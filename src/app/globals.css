@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --accent: #0077FF;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --font-montserrat: var(--font-montserrat);
+}
+
+@font-face {
+  font-family: 'LuloClean';
+  src: url('/lulo-clean/Lulo Clean One.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'LuloClean';
+  src: url('/lulo-clean/Lulo Clean One Bold.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'LuloClean', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1 {
+  font-family: var(--font-montserrat), sans-serif;
+  text-transform: uppercase;
+}
+
+h2, h3, h4, h5, h6, .font-bold-sans, nav a {
+  font-family: 'LuloClean', sans-serif;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+p, span, label, input, textarea, select {
+  font-family: 'LuloClean', sans-serif;
+  letter-spacing: 0.05em;
+}
+
+@keyframes scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-scroll {
+  animation: scroll 30s linear infinite;
+}
+
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
