@@ -33,6 +33,7 @@ export default function Rentals() {
   const [companyName, setCompanyName] = useState('Zipline Media');
   const [companyAddr, setCompanyAddr] = useState('New York, NY');
   const [notes, setNotes] = useState('');
+  const [shootDate, setShootDate] = useState('');
   const [includeReplacementValue, setIncludeReplacementValue] = useState(false);
 
   const filteredItems = useMemo(() => {
@@ -91,6 +92,7 @@ export default function Rentals() {
     setCompanyName('Zipline Media');
     setCompanyAddr('New York, NY');
     setNotes('');
+    setShootDate('');
     setSearch('');
     setFilterCategory('All');
   };
@@ -113,19 +115,43 @@ export default function Rentals() {
     };
 
     const date = new Date().toLocaleDateString();
+    
+    // Header Layout: "Diet Call Sheet" Style
+    const rightColX = 350;
 
+    // Row 1: Company Name & Job Title
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
+    doc.setFontSize(18);
     doc.text(companyName || "Gear Manifest", margin, y);
-    y += 18;
+    
+    if (jobTitle) {
+      doc.setFontSize(14);
+      doc.text(jobTitle.toUpperCase(), rightColX, y);
+    }
+    y += 20;
 
+    // Row 2: Address & Shoot Date
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
-    if (jobTitle) { doc.text("Job: " + jobTitle, margin, y); y += lineH; }
-    if (contactEmail) { doc.text("Contact: " + contactEmail, margin, y); y += lineH; }
-    if (companyAddr) { doc.text(companyAddr, margin, y); y += lineH; }
-    doc.text("Date: " + date, margin, y);
-    y += 24; // Increased spacing after header block
+    doc.setFontSize(10);
+    
+    if (companyAddr) {
+      doc.text(companyAddr, margin, y);
+    }
+    
+    if (shootDate) {
+      doc.setFont("helvetica", "bold");
+      doc.text("SHOOT DATE: " + shootDate.toUpperCase(), rightColX, y);
+      doc.setFont("helvetica", "normal");
+    }
+    y += 14;
+
+    // Row 3: Contact & Generated Date
+    if (contactEmail) {
+      doc.text(contactEmail, margin, y);
+    }
+    
+    doc.text("Generated: " + date, rightColX, y);
+    y += 30; // Spacing after header
 
     Object.keys(manifestGrouped).sort().forEach(cat => {
       // Check if we have space for header + 1 item line
@@ -279,6 +305,16 @@ export default function Rentals() {
                     value={jobTitle}
                     onChange={(e) => setJobTitle(e.target.value)}
                     placeholder="E.G. NIKE COMMERCIAL"
+                    className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Shoot Date</label>
+                  <input 
+                    type="text" 
+                    value={shootDate}
+                    onChange={(e) => setShootDate(e.target.value)}
+                    placeholder="MM/DD/YYYY"
                     className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
                   />
                 </div>
