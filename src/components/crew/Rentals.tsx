@@ -98,9 +98,19 @@ export default function Rentals() {
   const exportPDF = () => {
     const doc = new jsPDF({ unit: "pt", format: "letter" });
     const margin = 48;
+    const PAGE_BOTTOM = 750;
     let y = margin;
     const lineH = 14;
     doc.setLineHeightFactor(1.2);
+
+    const checkPageBreak = (needed: number) => {
+      if (y + needed > PAGE_BOTTOM) {
+        doc.addPage();
+        y = margin;
+        return true;
+      }
+      return false;
+    };
 
     const date = new Date().toLocaleDateString();
 
@@ -115,14 +125,16 @@ export default function Rentals() {
     if (contactEmail) { doc.text("Contact: " + contactEmail, margin, y); y += lineH; }
     if (companyAddr) { doc.text(companyAddr, margin, y); y += lineH; }
     doc.text("Date: " + date, margin, y);
-    y += 20;
+    y += 24; // Increased spacing after header block
 
     Object.keys(manifestGrouped).sort().forEach(cat => {
-      if (y > 700) { doc.addPage(); y = margin; }
+      // Check if we have space for header + 1 item line
+      checkPageBreak(30); 
+
       doc.setFont("helvetica", "bold");
       doc.setFontSize(13);
       doc.text(cat, margin, y);
-      y += lineH;
+      y += 20; // Increased spacing after category header
       
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
@@ -130,25 +142,25 @@ export default function Rentals() {
         const bullet = "- " + row.name + "  (x" + row.count + ")";
         const wrapped = doc.splitTextToSize(bullet, 514);
         wrapped.forEach((ln: string) => {
-          if (y > 750) { doc.addPage(); y = margin; }
+          checkPageBreak(lineH);
           doc.text(ln, margin + 12, y);
           y += lineH;
         });
       });
-      y += 6;
+      y += 10; // Increased spacing between categories
     });
 
     if (notes) {
-      if (y > 700) { doc.addPage(); y = margin; }
+      checkPageBreak(30); // Ensure space for header + at least one line of notes
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("Notes", margin, y);
-      y += lineH;
+      y += 16; // Increased spacing after Notes header
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
       const wrapped = doc.splitTextToSize(notes, 514);
       wrapped.forEach((ln: string) => {
-        if (y > 750) { doc.addPage(); y = margin; }
+        checkPageBreak(lineH);
         doc.text(ln, margin, y);
         y += lineH;
       });
@@ -156,7 +168,7 @@ export default function Rentals() {
 
     if (includeReplacementValue) {
       y += 10;
-      if (y > 700) { doc.addPage(); y = margin; }
+      checkPageBreak(lineH);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text(`Total Replacement Value: $${grandTotal.toLocaleString()}`, margin, y);
