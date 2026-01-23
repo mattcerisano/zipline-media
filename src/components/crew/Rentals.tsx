@@ -117,6 +117,14 @@ export default function Rentals() {
       return false;
     };
 
+    const sanitizeText = (text: string) => {
+      return text
+        .replace(/″/g, '"')
+        .replace(/′/g, "'")
+        .replace(/×/g, "x")
+        .replace(/’/g, "'");
+    };
+
     const date = new Date().toLocaleDateString();
 
     // --- LOAD LOGO ---
@@ -200,13 +208,14 @@ export default function Rentals() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       manifestGrouped[cat].sort((a, b) => a.name.localeCompare(b.name)).forEach(row => {
-        const bullet = "• " + row.name + "  (x" + row.count + ")";
+        const bullet = "• " + sanitizeText(row.name) + "  (x" + row.count + ")";
         const wrapped = doc.splitTextToSize(bullet, 514);
         wrapped.forEach((ln: string) => {
           checkPageBreak(lineH);
           doc.text(ln, margin + 10, y);
           y += lineH;
         });
+        y += 4; // Extra spacing between items
       });
       y += 12;
     });
