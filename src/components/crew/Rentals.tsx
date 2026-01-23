@@ -209,7 +209,30 @@ export default function Rentals() {
     y += 25;
 
     // --- MANIFEST CONTENT ---
-    Object.keys(manifestGrouped).sort().forEach(cat => {
+    const CATEGORY_ORDER = [
+      "Camera",
+      "Lens",
+      "Grip/Support",
+      "Playback & Wireless Video",
+      "Lighting",
+      "Modifiers",
+      "Stands/Grip",
+      "Audio",
+      "Power",
+      "Comms",
+      "Carts/Cases",
+      "Backdrops",
+      "Specialty"
+    ];
+
+    Object.keys(manifestGrouped).sort((a, b) => {
+      const indexA = CATEGORY_ORDER.indexOf(a);
+      const indexB = CATEGORY_ORDER.indexOf(b);
+      if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    }).forEach(cat => {
       checkPageBreak(30); 
 
       doc.setFont("helvetica", "bold");
