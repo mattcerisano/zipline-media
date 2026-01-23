@@ -118,6 +118,15 @@ function Work() {
           </div>
         </div>
       ))}
+
+      <div className="py-20 text-center border-b border-white/5">
+        <a 
+          href="/archive" 
+          className="inline-block border border-white/20 px-12 py-6 text-xs font-bold tracking-[0.3em] uppercase hover:bg-white hover:text-black transition-all duration-300"
+        >
+          Explore Full Video Repository
+        </a>
+      </div>
     </section>
   );
 }
