@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
 import { Clapperboard, Lightbulb, Wand2 } from 'lucide-react';
 import LogoTicker from '@/components/LogoTicker';
 
@@ -18,12 +17,6 @@ const staggerContainer = {
       staggerChildren: 0.2
     }
   }
-};
-
-const textReveal = {
-  initial: { y: "100%" },
-  animate: { y: 0 },
-  transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } // Custom bezier for "slick" feel
 };
 
 function Hero() {
@@ -237,7 +230,7 @@ function Contact() {
              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
             <h2 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 uppercase leading-[0.9]">
-              LET'S ROLL.
+              LET&apos;S ROLL.
             </h2>
           </motion.div>
           
@@ -248,7 +241,7 @@ function Contact() {
             transition={{ delay: 0.4, duration: 0.8 }}
           >
             <p className="text-xl opacity-60 max-w-md mb-12">
-              Have a project in mind? We'd love to hear about your vision and how we can help bring it to life.
+              Have a project in mind? We&apos;d love to hear about your vision and how we can help bring it to life.
             </p>
             
             <div className="space-y-4">
