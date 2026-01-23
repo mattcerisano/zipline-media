@@ -100,7 +100,7 @@ export default function Rentals() {
     setFilterCategory('All');
   };
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     const doc = new jsPDF({ unit: "pt", format: "letter" });
     const margin = 48;
     const PAGE_BOTTOM = 750;
@@ -118,75 +118,113 @@ export default function Rentals() {
     };
 
     const date = new Date().toLocaleDateString();
-    
-    // Header Layout: "Diet Call Sheet" Style
-    const rightColX = 350;
 
-    // Row 1: Company Name & Job Title
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text(companyName || "Gear Manifest", margin, y);
-    
-    if (jobTitle) {
-      doc.setFontSize(14);
-      doc.text(jobTitle.toUpperCase(), rightColX, y);
+    // --- LOAD LOGO ---
+    const logoUrl = "/Zipline Logo FULL Blue.png";
+    const logoImg = new Image();
+    logoImg.src = logoUrl;
+    await new Promise((resolve) => {
+      logoImg.onload = resolve;
+      logoImg.onerror = resolve; // Continue even if logo fails
+    });
+
+    // --- HEADER ---
+    const logoWidth = 140;
+    const logoRatio = logoImg.height && logoImg.width ? logoImg.height / logoImg.width : 0.5;
+    const logoHeight = logoWidth * logoRatio;
+
+    if (logoImg.complete && logoImg.naturalWidth > 0) {
+      doc.addImage(logoImg, "PNG", margin, y, logoWidth, logoHeight);
+    } else {
+      // Fallback text if logo fails
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.text(companyName || "Gear Manifest", margin, y + 20);
     }
-    y += 20;
 
-    // Row 2: Address & Shoot Date
+    // Right Column Info (Job Details)
+    const rightColX = 350;
+    let infoY = y + 10;
+
+    if (jobTitle) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text(jobTitle.toUpperCase(), rightColX, infoY);
+      infoY += 18;
+    }
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     
-    if (companyAddr) {
-      doc.text(companyAddr, margin, y);
-    }
-    
     if (shootDate) {
       doc.setFont("helvetica", "bold");
-      doc.text("SHOOT DATE: " + shootDate.toUpperCase(), rightColX, y);
+      doc.text("SHOOT DATE: " + shootDate.toUpperCase(), rightColX, infoY);
       doc.setFont("helvetica", "normal");
-    }
-    y += 14;
-
-    // Row 3: Contact & Generated Date
-    if (contactEmail) {
-      doc.text(contactEmail, margin, y);
+      infoY += 14;
     }
     
-    doc.text("Generated: " + date, rightColX, y);
-    y += 30; // Spacing after header
+    doc.text("Generated: " + date, rightColX, infoY);
+    
+    // Move Y past logo
+    y += Math.max(logoHeight, 60) + 20;
 
+    // --- BRANDING LINE ---
+    doc.setDrawColor(0, 119, 255); // #0077FF (Zipline Blue)
+    doc.setLineWidth(2);
+    doc.line(margin, y, 612 - margin, y);
+    y += 20;
+
+    // --- CONTACT INFO (Sub-header) ---
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(100); // Dark Gray
+    
+    if (companyAddr) doc.text(companyAddr, margin, y);
+    if (contactEmail) doc.text(contactEmail, margin + 200, y);
+    
+    doc.setTextColor(0); // Reset to Black
+    y += 30;
+
+
+    // --- MANIFEST CONTENT ---
     Object.keys(manifestGrouped).sort().forEach(cat => {
-      // Check if we have space for header + 1 item line
       checkPageBreak(30); 
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
+      doc.setFontSize(12);
+      doc.setTextColor(0, 119, 255); // Blue Accent Headers
       doc.text(cat, margin, y);
-      y += 20; // Increased spacing after category header
+      doc.setTextColor(0); // Reset
+      y += 18;
       
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(11);
+      doc.setFontSize(10);
       manifestGrouped[cat].sort((a, b) => a.name.localeCompare(b.name)).forEach(row => {
-        const bullet = "- " + row.name + "  (x" + row.count + ")";
+        const bullet = "• " + row.name + "  (x" + row.count + ")";
         const wrapped = doc.splitTextToSize(bullet, 514);
         wrapped.forEach((ln: string) => {
           checkPageBreak(lineH);
-          doc.text(ln, margin + 12, y);
+          doc.text(ln, margin + 10, y);
           y += lineH;
         });
       });
-      y += 10; // Increased spacing between categories
+      y += 12;
     });
 
     if (notes) {
-      checkPageBreak(30); // Ensure space for header + at least one line of notes
+      checkPageBreak(40);
+      y += 10;
+      doc.setDrawColor(200);
+      doc.setLineWidth(1);
+      doc.line(margin, y, 612 - margin, y); // Separator line
+      y += 20;
+
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.text("Notes", margin, y);
-      y += 16; // Increased spacing after Notes header
-      doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
+      doc.text("NOTES", margin, y);
+      y += 16;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
       const wrapped = doc.splitTextToSize(notes, 514);
       wrapped.forEach((ln: string) => {
         checkPageBreak(lineH);
@@ -196,11 +234,21 @@ export default function Rentals() {
     }
 
     if (includeReplacementValue) {
-      y += 10;
+      y += 20;
       checkPageBreak(lineH);
+      
+      // Box style for Total
+      doc.setFillColor(245, 245, 245);
+      doc.rect(margin, y - 10, 516, 30, "F");
+      
       doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("TOTAL REPLACEMENT VALUE:", margin + 10, y + 8);
+      
       doc.setFontSize(12);
-      doc.text(`Total Replacement Value: $${grandTotal.toLocaleString()}`, margin, y);
+      doc.setTextColor(0, 119, 255);
+      doc.text(`$${grandTotal.toLocaleString()}`, 612 - margin - 10, y + 8, { align: "right" });
+      doc.setTextColor(0);
       y += lineH;
     }
 
