@@ -20,16 +20,13 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 w-full z-50 bg-black/90 backdrop-blur-md border-b border-white/5">
       <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
         <div className="flex flex-col">
-          <Link href="/#home" className="relative h-8 w-32 md:h-10 md:w-48">
+          <Link href="/#home" className="relative h-12 w-48 md:h-16 md:w-64">
             <img 
               src="/Zipline Logo FULL Blue.png" 
               alt="ZIPLINE" 
               className="h-full object-contain"
             />
           </Link>
-          <span className="hidden md:block text-[8px] tracking-[0.4em] uppercase text-white/40 mt-1 ml-1">
-            Creative Video Production
-          </span>
         </div>
         
         <div className="flex gap-4 md:gap-8">
