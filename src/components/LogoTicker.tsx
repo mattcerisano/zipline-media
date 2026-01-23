@@ -24,6 +24,8 @@ const lanes = {
   ],
   Brand: [
     { type: 'text', value: 'QUALCOMM' },
+    { type: 'text', value: 'NFL' },
+    { type: 'text', value: 'MLB' },
     { type: 'text', value: 'GOOD MORNING AMERICA' },
     { type: 'text', value: 'UNIVISION' },
     { type: 'text', value: 'T-MOBILE' },
@@ -35,7 +37,9 @@ const lanes = {
     { type: 'text', value: 'YMCA' },
     { type: 'text', value: 'MAC PRO' },
     { type: 'text', value: 'AMERICAN CANCER SOCIETY' },
-    { type: 'text', value: 'HEINEKEN' }
+    { type: 'text', value: 'HEINEKEN' },
+    { type: 'text', value: 'LIVEX' },
+    { type: 'text', value: 'PRG' }
   ]
 };
 
