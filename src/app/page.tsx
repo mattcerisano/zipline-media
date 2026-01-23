@@ -70,7 +70,7 @@ function Hero() {
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
             className="text-4xl sm:text-5xl md:text-8xl font-black tracking-tighter text-white leading-[0.9]"
           >
-            FULL SERVICE <br/> VIDEO PRODUCTION
+            FULL SERVICE VIDEO PRODUCTION
           </motion.h1>
         </div>
         <motion.p 
