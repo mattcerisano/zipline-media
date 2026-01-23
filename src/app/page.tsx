@@ -6,7 +6,7 @@ import LogoTicker from '@/components/LogoTicker';
 
 function Hero() {
   const [isIntroComplete, setIsIntroComplete] = useState(false);
-  const text = "zzzzzzzzzzzzzzzzzzzzzzip";
+  const text = "zzzzzzzzzzip";
   const letters = text.split("");
 
   return (
@@ -17,7 +17,7 @@ function Hero() {
           <motion.div 
             className="absolute inset-0 z-50 bg-black flex items-center justify-center overflow-hidden"
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
           >
             <div className="relative w-full max-w-[95vw] overflow-hidden">
               <motion.h1 
@@ -30,12 +30,12 @@ function Hero() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{
-                      delay: index * 0.05, // Rapid fire typing
+                      delay: index * 0.02, // Rapid fire typing
                       duration: 0,
                     }}
                     onAnimationComplete={() => {
                       if (index === letters.length - 1) {
-                        setTimeout(() => setIsIntroComplete(true), 500); // Pause briefly at the end before reveal
+                        setTimeout(() => setIsIntroComplete(true), 200); // Pause briefly at the end before reveal
                       }
                     }}
                   >
@@ -70,7 +70,7 @@ function Hero() {
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
             className="text-4xl sm:text-5xl md:text-8xl font-black tracking-tighter text-white leading-[0.9]"
           >
-            FULL SERVICE VIDEO PRODUCTION
+            FULL SERVICE <br/> VIDEO PRODUCTION
           </motion.h1>
         </div>
         <motion.p 
