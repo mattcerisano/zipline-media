@@ -38,7 +38,7 @@ export default function CrewPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as Tab)}
                 className={`
-                  relative flex items-center gap-2 px-4 md:px-6 py-2 rounded-full text-[10px] font-bold tracking-[0.2em] uppercase transition-all duration-300 shrink-0
+                  relative flex items-center gap-2 px-4 md:px-6 py-2 rounded-full text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300 shrink-0
                   ${isActive ? 'bg-white text-black' : 'text-white/40 hover:text-white hover:bg-white/5'}
                 `}
               >

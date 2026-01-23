@@ -114,7 +114,7 @@ export default function Rolodex() {
               <button
                 key={mode}
                 onClick={() => { setViewMode(mode); setSelectedId(null); }}
-                className={`flex-1 py-2 text-[10px] font-bold tracking-[0.2em] uppercase rounded-md transition-all ${viewMode === mode ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
+                className={`flex-1 py-2 text-xs font-bold tracking-[0.2em] uppercase rounded-md transition-all ${viewMode === mode ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
               >
                 {mode}
               </button>
@@ -134,7 +134,7 @@ export default function Rolodex() {
 
           <button 
             onClick={() => { setEditingItem({}); setIsDialogOpen(true); }}
-            className="w-full bg-white text-black py-3 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase hover:bg-accent hover:text-white transition-all flex items-center justify-center gap-2"
+            className="w-full bg-white text-black py-3 rounded-lg text-xs font-black tracking-[0.2em] uppercase hover:bg-accent hover:text-white transition-all flex items-center justify-center gap-2"
           >
             <Plus className="w-4 h-4" /> Add New {viewMode === 'contacts' ? 'Contact' : 'Client'}
           </button>
@@ -145,7 +145,7 @@ export default function Rolodex() {
           {filteredItems.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center opacity-30 gap-2">
               <User className="w-8 h-8" />
-              <p className="text-[10px] uppercase tracking-widest">No results</p>
+              <p className="text-xs uppercase tracking-widest">No results</p>
             </div>
           ) : (
             filteredItems.map(item => (
@@ -157,7 +157,7 @@ export default function Rolodex() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className={`text-sm font-bold uppercase tracking-tight ${selectedId === item.id ? 'text-white' : 'text-white/80'}`}>{item.name}</h3>
-                    <p className="text-[10px] font-medium tracking-widest uppercase opacity-40 mt-1">
+                    <p className="text-xs font-medium tracking-widest uppercase opacity-40 mt-1">
                       {(item as Contact).primary_role || (item as Contact).company_name || (viewMode === 'clients' ? 'Client' : 'Freelancer')}
                     </p>
                   </div>

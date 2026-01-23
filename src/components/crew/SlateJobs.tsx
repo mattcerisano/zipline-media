@@ -283,7 +283,7 @@ export default function SlateJobs() {
             </div>
             <button 
                 onClick={() => { setEditingJob({ production_company: 'Zipline Media', job_status: 'Planning' }); setIsJobDialogOpen(true); }}
-                className="w-full bg-white text-black py-3 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase hover:bg-accent hover:text-white transition-all flex items-center justify-center gap-2"
+                className="w-full bg-white text-black py-3 rounded-lg text-xs font-black tracking-[0.2em] uppercase hover:bg-accent hover:text-white transition-all flex items-center justify-center gap-2"
             >
                 <Plus className="w-4 h-4" /> New Job
             </button>
@@ -293,7 +293,7 @@ export default function SlateJobs() {
             {filteredJobs.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center opacity-30 gap-2">
                     <Clock className="w-8 h-8" />
-                    <p className="text-[10px] uppercase tracking-widest">No jobs found</p>
+                    <p className="text-xs uppercase tracking-widest">No jobs found</p>
                 </div>
             ) : (
                 filteredJobs.map(job => (
@@ -305,7 +305,7 @@ export default function SlateJobs() {
                          <div className="flex justify-between items-start">
                             <div className="flex-1 min-w-0 pr-2">
                                 <h3 className={`text-sm font-bold uppercase tracking-tight truncate ${selectedJob?.id === job.id ? 'text-white' : 'text-white/80'}`}>{job.title}</h3>
-                                <p className="text-[10px] font-medium tracking-widest uppercase opacity-40 mt-1">
+                                <p className="text-xs font-medium tracking-widest uppercase opacity-40 mt-1">
                                     {job.shoot_date ? new Date(job.shoot_date).toLocaleDateString() : 'Date TBD'} • {job.job_status}
                                 </p>
                             </div>
