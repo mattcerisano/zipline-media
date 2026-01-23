@@ -1,12 +1,54 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
 import LogoTicker from '@/components/LogoTicker';
 
 function Hero() {
+  const [isIntroComplete, setIsIntroComplete] = useState(false);
+  const text = "zzzzzzzzzzzzzzzzzzzzzzip";
+  const letters = text.split("");
+
   return (
-    <section id="home" className="relative h-screen w-full overflow-hidden flex items-center justify-center">
-      {/* Background Video */}
+    <section id="home" className="relative h-screen w-full overflow-hidden flex items-center justify-center bg-black">
+      {/* --- INTRO ANIMATION LAYER --- */}
+      <AnimatePresence>
+        {!isIntroComplete && (
+          <motion.div 
+            className="absolute inset-0 z-50 bg-black flex items-center justify-center overflow-hidden"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+          >
+            <div className="relative w-full max-w-[90vw] overflow-hidden">
+              <motion.h1 
+                className="text-[10vw] md:text-[8vw] font-black leading-none text-white whitespace-nowrap"
+                initial={{ x: 0 }}
+              >
+                {letters.map((char, index) => (
+                  <motion.span
+                    key={index}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{
+                      delay: index * 0.05, // Rapid fire typing
+                      duration: 0,
+                    }}
+                    onAnimationComplete={() => {
+                      if (index === letters.length - 1) {
+                        setTimeout(() => setIsIntroComplete(true), 500); // Pause briefly at the end before reveal
+                      }
+                    }}
+                  >
+                    {char}
+                  </motion.span>
+                ))}
+              </motion.h1>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- MAIN HERO CONTENT (Revealed after intro) --- */}
       <div className="absolute inset-0 z-0">
         <video 
           autoPlay 
@@ -17,7 +59,6 @@ function Hero() {
         >
           <source src="/LandingPage.mp4" type="video/mp4" />
         </video>
-        {/* Dark Overlay for readability - Gradient for better text pop */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70 z-10" />
       </div>
 
@@ -25,8 +66,8 @@ function Hero() {
         <div className="overflow-hidden mb-4">
           <motion.h1 
             initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            animate={isIntroComplete ? { y: 0 } : { y: "100%" }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
             className="text-6xl md:text-8xl font-black tracking-tighter text-white"
           >
             CURIOSITY UNLEASHED
@@ -34,8 +75,8 @@ function Hero() {
         </div>
         <motion.p 
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
+          animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
+          transition={{ delay: 0.8, duration: 0.8 }}
           className="text-lg md:text-xl font-medium tracking-[0.2em] uppercase opacity-80 text-white leading-relaxed"
         >
           Creative Partners in Video Production
@@ -44,8 +85,8 @@ function Hero() {
 
       <motion.div 
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 1 }}
+        animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
+        transition={{ delay: 1.5, duration: 1 }}
         className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20"
       >
         <div className="w-px h-12 bg-white/20 relative overflow-hidden">
