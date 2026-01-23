@@ -141,58 +141,72 @@ export default function Rentals() {
     const logoRatio = logoImg.height && logoImg.width ? logoImg.height / logoImg.width : 0.5;
     const logoHeight = logoWidth * logoRatio;
 
+    // Draw Logo
     if (logoImg.complete && logoImg.naturalWidth > 0) {
       doc.addImage(logoImg, "PNG", margin, y, logoWidth, logoHeight);
     } else {
-      // Fallback text if logo fails
       doc.setFont("helvetica", "bold");
       doc.setFontSize(18);
       doc.text(companyName || "Gear Manifest", margin, y + 20);
     }
 
-    // Right Column Info (Job Details)
-    const rightColX = 350;
+    // Right Column Info (Consolidated)
+    const rightColX = 320;
     let infoY = y + 10;
+    
+    // Helper to format date
+    const formatDate = (d: string) => {
+      if (!d) return "";
+      const dateObj = new Date(d + 'T12:00:00'); // Fix timezone offset issue
+      return dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
 
+    // Job Title (Large)
     if (jobTitle) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.text(jobTitle.toUpperCase(), rightColX, infoY);
-      infoY += 18;
+      infoY += 16;
     }
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    
-    if (shootDate) {
-      doc.setFont("helvetica", "bold");
-      doc.text("SHOOT DATE: " + shootDate.toUpperCase(), rightColX, infoY);
-      doc.setFont("helvetica", "normal");
-      infoY += 14;
-    }
-    
-    doc.text("Generated: " + date, rightColX, infoY);
-    
-    // Move Y past logo
-    y += Math.max(logoHeight, 60) + 20;
-
-    // --- BRANDING LINE ---
-    doc.setDrawColor(0, 119, 255); // #0077FF (Zipline Blue)
-    doc.setLineWidth(2);
-    doc.line(margin, y, 612 - margin, y);
-    y += 20;
-
-    // --- CONTACT INFO (Sub-header) ---
+    // Details Block
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.setTextColor(100); // Dark Gray
-    
-    if (companyAddr) doc.text(companyAddr, margin, y);
-    if (contactEmail) doc.text(contactEmail, margin + 200, y);
-    
-    doc.setTextColor(0); // Reset to Black
-    y += 30;
+    doc.setTextColor(80); // Dark Gray for labels
 
+    const addDetail = (label: string, value: string) => {
+      if (!value) return;
+      doc.setFont("helvetica", "bold");
+      doc.text(label, rightColX, infoY);
+      
+      const labelWidth = doc.getTextWidth(label);
+      doc.setFont("helvetica", "normal");
+      doc.text(value, rightColX + labelWidth + 5, infoY);
+      infoY += 12;
+    };
+
+    if (shootDate) addDetail("SHOOT DATE:", formatDate(shootDate).toUpperCase());
+    if (companyAddr) addDetail("LOC:", companyAddr.toUpperCase());
+    if (contactEmail) addDetail("CONTACT:", contactEmail.toUpperCase());
+    
+    // Generated Date (Footer of header)
+    infoY += 4;
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text("Generated: " + date, rightColX, infoY);
+    
+    // Reset Color
+    doc.setTextColor(0);
+
+    // Calculate header height to push content down
+    const headerHeight = Math.max(logoHeight, infoY - y) + 10;
+    y += headerHeight;
+
+    // --- BRANDING LINE ---
+    doc.setDrawColor(0, 119, 255); // #0077FF
+    doc.setLineWidth(2);
+    doc.line(margin, y, 612 - margin, y);
+    y += 25;
 
     // --- MANIFEST CONTENT ---
     Object.keys(manifestGrouped).sort().forEach(cat => {
@@ -304,10 +318,9 @@ export default function Rentals() {
         <div className="space-y-1">
           <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Shoot Date</label>
           <input 
-            type="text" 
+            type="date" 
             value={shootDate}
             onChange={(e) => setShootDate(e.target.value)}
-            placeholder="MM/DD/YYYY"
             className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
           />
         </div>
