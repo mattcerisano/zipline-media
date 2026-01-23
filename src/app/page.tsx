@@ -70,7 +70,7 @@ function Hero() {
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
             className="text-6xl md:text-8xl font-black tracking-tighter text-white"
           >
-            CURIOSITY UNLEASHED
+            FULL SERVICE VIDEO PRODUCTION
           </motion.h1>
         </div>
         <motion.p 
@@ -79,7 +79,7 @@ function Hero() {
           transition={{ delay: 0.8, duration: 0.8 }}
           className="text-lg md:text-xl font-medium tracking-[0.2em] uppercase opacity-80 text-white leading-relaxed"
         >
-          Creative Partners in Video Production
+          PRE. PROD. POST.
         </motion.p>
       </div>
 
