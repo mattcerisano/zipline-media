@@ -19,9 +19,9 @@ function Hero() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8, ease: "easeInOut" }}
           >
-            <div className="relative w-full max-w-[90vw] overflow-hidden">
+            <div className="relative w-full max-w-[95vw] overflow-hidden">
               <motion.h1 
-                className="text-[10vw] md:text-[8vw] font-black leading-none text-white whitespace-nowrap"
+                className="text-[12vw] md:text-[8vw] font-black leading-none text-white whitespace-nowrap text-center"
                 initial={{ x: 0 }}
               >
                 {letters.map((char, index) => (
@@ -62,13 +62,13 @@ function Hero() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70 z-10" />
       </div>
 
-      <div className="relative z-20 text-center px-4 overflow-hidden">
-        <div className="overflow-hidden mb-4">
+      <div className="relative z-20 text-center px-6 overflow-hidden max-w-4xl mx-auto">
+        <div className="overflow-hidden mb-6">
           <motion.h1 
             initial={{ y: "100%" }}
             animate={isIntroComplete ? { y: 0 } : { y: "100%" }}
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-            className="text-6xl md:text-8xl font-black tracking-tighter text-white"
+            className="text-4xl sm:text-5xl md:text-8xl font-black tracking-tighter text-white leading-[0.9]"
           >
             FULL SERVICE VIDEO PRODUCTION
           </motion.h1>
@@ -77,7 +77,7 @@ function Hero() {
           initial={{ opacity: 0 }}
           animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
           transition={{ delay: 0.8, duration: 0.8 }}
-          className="text-lg md:text-xl font-medium tracking-[0.2em] uppercase opacity-80 text-white leading-relaxed"
+          className="text-sm md:text-xl font-bold tracking-[0.3em] uppercase opacity-80 text-white leading-relaxed"
         >
           PRE. PROD. POST.
         </motion.p>
@@ -87,7 +87,7 @@ function Hero() {
         initial={{ opacity: 0 }}
         animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
         transition={{ delay: 1.5, duration: 1 }}
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20"
       >
         <div className="w-px h-12 bg-white/20 relative overflow-hidden">
           <motion.div 
@@ -127,7 +127,7 @@ function Work() {
   return (
     <section id="work" className="bg-black">
       {categories.map((cat) => (
-        <div key={cat.id} className="relative w-full h-[70vh] md:h-screen overflow-hidden group border-b border-white/5">
+        <div key={cat.id} className="relative w-full h-[60vh] md:h-screen overflow-hidden group border-b border-white/5">
           {cat.video && (
             <video
               autoPlay
@@ -147,23 +147,23 @@ function Work() {
             />
           )}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-8 md:p-24 flex flex-col justify-end items-start">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-6 md:p-24 flex flex-col justify-end items-start">
             <motion.div
-              initial={{ y: 50, opacity: 0 }}
+              initial={{ y: 30, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.8 }}
             >
-              <h2 className="text-4xl md:text-8xl font-black uppercase tracking-tighter text-white mb-2">{cat.title}</h2>
-              <p className="text-sm md:text-xl tracking-[0.3em] uppercase text-white/60">{cat.subtitle}</p>
+              <h2 className="text-3xl md:text-8xl font-black uppercase tracking-tighter text-white mb-2 leading-none">{cat.title}</h2>
+              <p className="text-xs md:text-xl tracking-[0.2em] uppercase text-white/60 font-bold">{cat.subtitle}</p>
             </motion.div>
           </div>
         </div>
       ))}
 
-      <div className="py-20 text-center border-b border-white/5">
+      <div className="py-16 md:py-20 text-center border-b border-white/5 px-6">
         <a 
           href="/archive" 
-          className="inline-block border border-white/20 px-12 py-6 text-xs font-bold tracking-[0.3em] uppercase hover:bg-white hover:text-black transition-all duration-300"
+          className="inline-block border border-white/20 px-8 py-5 md:px-12 md:py-6 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-black transition-all duration-300 w-full md:w-auto"
         >
           Explore Full Video Repository
         </a>
