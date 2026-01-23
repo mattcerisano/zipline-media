@@ -11,7 +11,8 @@ import {
   RotateCcw, 
   Package,
   X,
-  ClipboardList
+  ClipboardList,
+  Check
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { INVENTORY, ALL_CATEGORIES } from '@/data/inventory';
@@ -32,6 +33,7 @@ export default function Rentals() {
   const [companyName, setCompanyName] = useState('Zipline Media');
   const [companyAddr, setCompanyAddr] = useState('New York, NY');
   const [notes, setNotes] = useState('');
+  const [includeReplacementValue, setIncludeReplacementValue] = useState(false);
 
   const filteredItems = useMemo(() => {
     const term = search.toLowerCase().trim();
@@ -150,6 +152,15 @@ export default function Rentals() {
         doc.text(ln, margin, y);
         y += lineH;
       });
+    }
+
+    if (includeReplacementValue) {
+      y += 10;
+      if (y > 700) { doc.addPage(); y = margin; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text(`Total Replacement Value: $${grandTotal.toLocaleString()}`, margin, y);
+      y += lineH;
     }
 
     const safeJob = jobTitle ? jobTitle.replace(/[^a-z0-9\-_\s]/gi, "").trim().replace(/\s+/g, "_") : "Gear_Manifest";
@@ -353,6 +364,18 @@ export default function Rentals() {
                     <p className="text-[10px] font-bold tracking-[0.4em] uppercase opacity-40">Total Replacement Value</p>
                     <p className="text-3xl font-black text-accent">${grandTotal.toLocaleString()}</p>
                   </div>
+                  <label className="flex items-center gap-2 cursor-pointer group select-none">
+                    <div className={`w-4 h-4 border border-white/20 rounded flex items-center justify-center transition-all ${includeReplacementValue ? 'bg-accent border-accent' : 'bg-transparent group-hover:border-white/40'}`}>
+                      {includeReplacementValue && <Check className="w-3 h-3 text-black" />}
+                    </div>
+                    <span className="text-[9px] font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">Include in PDF</span>
+                    <input 
+                      type="checkbox" 
+                      className="hidden" 
+                      checked={includeReplacementValue} 
+                      onChange={e => setIncludeReplacementValue(e.target.checked)} 
+                    />
+                  </label>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
