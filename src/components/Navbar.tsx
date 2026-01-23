@@ -17,9 +17,9 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-black/90 backdrop-blur-md border-b border-white/5">
-      <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 flex justify-between items-center">
         <div className="flex flex-col">
-          <Link href="/#home" className="relative h-12 w-48 md:h-16 md:w-64">
+          <Link href="/#home" className="relative h-14 w-52 md:h-20 md:w-80">
             <img 
               src="/Zipline Logo FULL Blue.png" 
               alt="ZIPLINE" 
