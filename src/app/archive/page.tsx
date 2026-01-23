@@ -93,14 +93,6 @@ const archive = [
     image: 'https://images.unsplash.com/photo-1621619856624-42fd193a0661?q=80&w=800&auto=format&fit=crop'
   },
   { 
-    id: 12,
-    year: '2023', 
-    client: 'Chase Bank', 
-    project: 'Sapphire Lounge Reveal', 
-    type: 'Corporate',
-    image: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=800&auto=format&fit=crop'
-  },
-  { 
     id: 13,
     year: '2022', 
     client: 'Jesse Tyler Ferguson', 
@@ -147,14 +139,6 @@ const archive = [
     project: 'Hope Gala', 
     type: 'Non-Profit',
     image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?q=80&w=800&auto=format&fit=crop'
-  },
-  { 
-    id: 19,
-    year: '2021', 
-    client: 'Nike', 
-    project: 'Air Max Day NYC', 
-    type: 'Event',
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop'
   },
   { 
     id: 20,

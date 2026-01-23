@@ -14,7 +14,7 @@ export const CONTACTS_DATA = [
     "primary_role": "Audio Tech",
     "phone": "917-565-7768",
     "email": "cshendge1@gmail.com",
-    "notes_general": "Worked with Mike at PRG. Audio Tech for Broadway. Our go to for Live Theater and Shows",
+    "notes_general": "Worked with Mike. Audio Tech for Broadway. Our go to for Live Theater and Shows",
     "is_favorite": true
   },
   {
@@ -221,7 +221,7 @@ export const CONTACTS_DATA = [
     "primary_role": "Shooter",
     "phone": "908-616-5209",
     "email": "russcermo@gmail.com",
-    "notes_general": "Matt's friends from band stuff - Worked for the NFL and MLB...",
+    "notes_general": "Matt's friends from band stuff - Professional shooter experience...",
     "is_favorite": false
   },
   {

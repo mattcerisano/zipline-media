@@ -334,7 +334,7 @@ export default function Rentals() {
             type="text" 
             value={jobTitle}
             onChange={(e) => setJobTitle(e.target.value)}
-            placeholder="E.G. NIKE COMMERCIAL"
+            placeholder="E.G. MOULIN ROUGE"
             className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
           />
         </div>

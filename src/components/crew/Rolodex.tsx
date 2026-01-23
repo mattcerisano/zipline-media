@@ -14,9 +14,7 @@ type ViewMode = 'contacts' | 'clients';
 
 const SEED_CONTACTS: Contact[] = CONTACTS_DATA;
 
-const SEED_CLIENTS: Client[] = [
-  { id: '1', name: 'Nike', email: 'marketing@nike.com', notes: 'Big budget campaigns.' }
-];
+const SEED_CLIENTS: Client[] = [];
 
 // --- Components ---
 
