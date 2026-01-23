@@ -176,9 +176,6 @@ export default function Archive() {
           <h1 className="text-4xl md:text-[8vw] font-black tracking-tighter leading-none text-white/90 select-none mb-4 md:mb-8">
             VIDEO REPOSITORY
           </h1>
-          <p className="text-sm md:text-xl font-medium opacity-60 max-w-2xl leading-relaxed">
-            A comprehensive archive of our work. From Broadway stages to corporate boardrooms, every frame counts.
-          </p>
         </div>
 
         {/* Video Grid */}
