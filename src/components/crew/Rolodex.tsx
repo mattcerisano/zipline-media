@@ -187,7 +187,7 @@ export default function Rolodex() {
                   <ChevronLeft className="w-5 h-5" />
               </button>
 
-              <div className="absolute top-0 right-0 p-4 flex gap-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-0 right-0 p-4 flex gap-2">
                 <button 
                   onClick={() => { setEditingItem(selectedItem); setIsDialogOpen(true); }}
                   className="p-2 bg-black/50 hover:bg-white hover:text-black rounded-lg transition-colors border border-white/10"

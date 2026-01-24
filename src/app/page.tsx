@@ -62,22 +62,34 @@ function Hero() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70 z-10" />
       </div>
 
-      <div className="relative z-20 text-center px-6 overflow-hidden max-w-4xl mx-auto">
-        <div className="overflow-hidden mb-6">
-          <motion.h1 
-            initial={{ y: "100%" }}
-            animate={isIntroComplete ? { y: 0 } : { y: "100%" }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-            className="text-4xl sm:text-5xl md:text-8xl font-black tracking-tighter text-white leading-[0.9]"
-          >
-            FULL SERVICE <br/> VIDEO PRODUCTION
-          </motion.h1>
+      <div className="relative z-20 text-center px-6 w-full max-w-[95vw] mx-auto">
+        <div className="flex flex-col items-center gap-2">
+          <div className="overflow-hidden">
+            <motion.h1 
+              initial={{ y: "100%" }}
+              animate={isIntroComplete ? { y: 0 } : { y: "100%" }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+              className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-7xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
+            >
+              FULL SERVICE
+            </motion.h1>
+          </div>
+          <div className="overflow-hidden">
+            <motion.h1 
+              initial={{ y: "100%" }}
+              animate={isIntroComplete ? { y: 0 } : { y: "100%" }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+              className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-7xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
+            >
+              VIDEO PRODUCTION
+            </motion.h1>
+          </div>
         </div>
         <motion.p 
           initial={{ opacity: 0 }}
           animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
           transition={{ delay: 0.8, duration: 0.8 }}
-          className="text-sm md:text-xl font-bold tracking-[0.3em] uppercase opacity-80 text-white leading-relaxed"
+          className="text-sm md:text-xl font-bold tracking-[0.3em] uppercase opacity-80 text-white leading-relaxed mt-6"
         >
           PRE. PROD. POST.
         </motion.p>

@@ -5,14 +5,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Trash2, Edit2, Calendar, MapPin, Sun, 
   FileText, Link as LinkIcon, Download, Users, 
-  Clock, Search, ChevronLeft
+  Clock, Search, ChevronLeft, ExternalLink, Check
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import Autocomplete from 'react-google-autocomplete';
 import { 
-  Job, JobRole, Contact, 
-  STORAGE_KEY_JOBS, STORAGE_KEY_CONTACTS, 
+  Job, JobRole, Contact, Client,
+  STORAGE_KEY_JOBS, STORAGE_KEY_CONTACTS, STORAGE_KEY_CLIENTS,
   DEPARTMENTS, STATUSES 
 } from './types';
+
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 import { CONTACTS_DATA } from '@/data/contacts';
 
 // Helper: Weather Code to Text
@@ -20,42 +23,60 @@ const weatherCodeToText = (code: number) => {
   const map: Record<number, string> = {
     0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
     45: 'Fog', 48: 'Depositing rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle',
-    55: 'Dense drizzle', 61: 'Slight rain', 63: 'Rain', 65: 'Heavy rain',
-    71: 'Slight snow', 73: 'Snow', 75: 'Heavy snow', 80: 'Rain showers',
-    81: 'Moderate rain showers', 82: 'Violent rain showers', 95: 'Thunderstorm',
-    96: 'Thunderstorm with hail', 99: 'Thunderstorm with heavy hail',
+    55: 'Dense drizzle', 56: 'Light freezing drizzle', 57: 'Dense freezing drizzle',
+    61: 'Slight rain', 63: 'Rain', 65: 'Heavy rain', 66: 'Light freezing rain', 67: 'Heavy freezing rain',
+    71: 'Slight snow', 73: 'Snow', 75: 'Heavy snow', 77: 'Snow grains',
+    80: 'Rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers',
+    85: 'Snow showers', 86: 'Heavy snow showers',
+    95: 'Thunderstorm', 96: 'Thunderstorm with hail', 99: 'Thunderstorm with heavy hail',
   };
-  return map[code] || 'Unknown';
+  return map[code] || `Unknown (${code})`;
+};
+
+// Helper: Format 24h time to 12h AM/PM
+const formatTimeTo12h = (time?: string) => {
+  if (!time) return 'TBD';
+  const [hours, minutes] = time.split(':');
+  let h = parseInt(hours);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  h = h ? h : 12; // 0 becomes 12
+  return `${h}:${minutes} ${ampm}`;
 };
 
 export default function SlateJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [search, setSearch] = useState('');
   
   // Dialogs
   const [isJobDialogOpen, setIsJobDialogOpen] = useState(false);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [isClientDialogOpen, setIsClientDialogOpen] = useState(false); // New Client Dialog
+
   const [editingJob, setEditingJob] = useState<Partial<Job>>({});
   const [editingRole, setEditingRole] = useState<Partial<JobRole>>({});
-  
+  const [editingClient, setEditingClient] = useState<Partial<Client>>({}); // New Client State
+
   // External API States
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [hospitalLoading, setHospitalLoading] = useState(false);
+  const [weatherSuccess, setWeatherSuccess] = useState(false);
+  const [hospitalSuccess, setHospitalSuccess] = useState(false);
 
   // Load Data
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const j = localStorage.getItem(STORAGE_KEY_JOBS);
     const c = localStorage.getItem(STORAGE_KEY_CONTACTS);
+    const cl = localStorage.getItem(STORAGE_KEY_CLIENTS);
+    
     if (j) setJobs(JSON.parse(j));
-    // Use saved contacts or fallback to seed data
-    if (c) {
-        setContacts(JSON.parse(c));
-    } else {
-        setContacts(CONTACTS_DATA);
-    }
+    if (c) setContacts(JSON.parse(c));
+    else setContacts(CONTACTS_DATA);
+    if (cl) setClients(JSON.parse(cl));
   }, []);
 
   // Save Data
@@ -63,6 +84,22 @@ export default function SlateJobs() {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEY_JOBS, JSON.stringify(jobs));
   }, [jobs]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(clients));
+  }, [clients]);
+
+  // Reset success indicators when dialog opens or address changes significantly
+  useEffect(() => {
+    if (isJobDialogOpen) {
+        setWeatherSuccess(!!editingJob.weather_summary);
+        setHospitalSuccess(!!editingJob.nearest_hospital_name);
+    } else {
+        setWeatherSuccess(false);
+        setHospitalSuccess(false);
+    }
+  }, [isJobDialogOpen, editingJob.id]);
 
   const filteredJobs = useMemo(() => {
     return jobs.filter(j => 
@@ -92,6 +129,26 @@ export default function SlateJobs() {
     if (!window.confirm('Delete this job?')) return;
     setJobs(prev => prev.filter(j => j.id !== id));
     if (selectedJob?.id === id) setSelectedJob(null);
+  };
+
+  const handleSaveClient = () => {
+    if (!editingClient.name) return;
+    const now = new Date().toISOString();
+    const payload = { ...editingClient, updated_at: now } as Client;
+
+    if (!payload.id) payload.id = crypto.randomUUID();
+
+    setClients(prev => {
+      const exists = prev.find(c => c.id === payload.id);
+      return exists ? prev.map(c => c.id === payload.id ? payload : c) : [payload, ...prev];
+    });
+
+    // If we're editing a job, auto-select this new client
+    if (isJobDialogOpen) {
+        setEditingJob(prev => ({ ...prev, client_name: payload.name }));
+    }
+
+    setIsClientDialogOpen(false);
   };
 
   const handleSaveRole = () => {
@@ -134,23 +191,45 @@ export default function SlateJobs() {
 
   // --- API Integrations ---
 
+  const addToGoogleCalendar = () => {
+    if (!selectedJob || !selectedJob.shoot_date) return;
+    
+    const title = encodeURIComponent(`SHOOT: ${selectedJob.title}`);
+    const details = encodeURIComponent(
+        `Job: ${selectedJob.title}\nClient: ${selectedJob.client_name || 'N/A'}\nLocation: ${selectedJob.location_name || selectedJob.location_address}\nCall Time: ${selectedJob.call_time}\n\nNotes:\n${selectedJob.notes_general || ''}`
+    );
+    const location = encodeURIComponent(selectedJob.location_address || '');
+    
+    // Construct Date strings (YYYYMMDD)
+    // Assuming all day event or specific time if implemented later
+    const startDate = new Date(selectedJob.shoot_date).toISOString().replace(/-|:|\.\d\d\d/g, "").slice(0, 8);
+    const endDate = new Date(selectedJob.shoot_date);
+    endDate.setDate(endDate.getDate() + 1);
+    const endDateStr = endDate.toISOString().replace(/-|:|\.\d\d\d/g, "").slice(0, 8);
+
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${startDate}/${endDateStr}`;
+    
+    window.open(url, '_blank');
+  };
+
   const fetchWeather = async () => {
     if (!editingJob.shoot_date || !editingJob.location_address) {
         alert('Please enter a Location Address and Shoot Date first.');
         return;
     }
     setWeatherLoading(true);
+    setWeatherSuccess(false);
     try {
-        // 1. Geocode
-        const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=${encodeURIComponent(editingJob.location_address)}`);
+        // 1. Geocode with Google
+        const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(editingJob.location_address)}&key=${GOOGLE_MAPS_API_KEY}`);
         const geoData = await geoRes.json();
         
-        if (!geoData[0]) throw new Error('Address not found');
-        const { lat, lon } = geoData[0];
+        if (geoData.status !== 'OK' || !geoData.results[0]) throw new Error('Address not found');
+        const { lat, lng } = geoData.results[0].geometry.location;
 
         // 2. Weather
         const date = new Date(editingJob.shoot_date).toISOString().slice(0, 10);
-        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max&temperature_unit=fahrenheit&timezone=auto&start_date=${date}&end_date=${date}`);
+        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max&temperature_unit=fahrenheit&timezone=auto&start_date=${date}&end_date=${date}`);
         const wData = await wRes.json();
 
         if (wData.daily) {
@@ -158,6 +237,7 @@ export default function SlateJobs() {
             const temp = wData.daily.temperature_2m_max[0];
             const summary = `${weatherCodeToText(code)} • High: ${temp}°F`;
             setEditingJob(prev => ({ ...prev, weather_summary: summary }));
+            setWeatherSuccess(true);
         }
     } catch (err) {
         console.error(err);
@@ -173,20 +253,21 @@ export default function SlateJobs() {
          return;
      }
      setHospitalLoading(true);
+     setHospitalSuccess(false);
      try {
-         // Simple Nominatim search
-         const q = `hospital near ${editingJob.location_address}`;
-         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=${encodeURIComponent(q)}`);
+         // Call internal API to avoid CORS
+         const res = await fetch(`/api/hospital?address=${encodeURIComponent(editingJob.location_address)}`);
          const data = await res.json();
          
-         if (data[0]) {
+         if (res.ok && data) {
              setEditingJob(prev => ({
                  ...prev,
-                 nearest_hospital_name: data[0].display_name.split(',')[0],
-                 nearest_hospital_address: data[0].display_name
+                 nearest_hospital_name: data.name,
+                 nearest_hospital_address: data.address
              }));
+             setHospitalSuccess(true);
          } else {
-             alert('No hospital found nearby.');
+             alert(data.error || 'No hospital found nearby.');
          }
      } catch (err) {
          console.error(err);
@@ -197,70 +278,236 @@ export default function SlateJobs() {
   };
 
   // --- Export ---
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!selectedJob) return;
+    
+    // Helper to load assets
+    const loadAsset = async (path: string): Promise<string> => {
+        try {
+            const res = await fetch(path);
+            const blob = await res.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            console.error("Error loading asset:", path, e);
+            return '';
+        }
+    };
+
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 12;
+    const contentWidth = pageWidth - (margin * 2);
     
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(24);
-    doc.text(selectedJob.title.toUpperCase(), 20, 20);
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${selectedJob.production_company || 'Zipline Media'}`, 20, 28);
-    
-    // Meta Grid
-    let y = 40;
-    doc.setFont('helvetica', 'bold');
-    doc.text('SHOOT DATE', 20, y);
-    doc.text('CALL TIME', 80, y);
-    doc.text('LOCATION', 140, y);
-    
-    doc.setFont('helvetica', 'normal');
-    doc.text(selectedJob.shoot_date ? new Date(selectedJob.shoot_date).toLocaleDateString() : 'TBD', 20, y+5);
-    doc.text(selectedJob.call_time || 'TBD', 80, y+5);
-    
-    const locLines = doc.splitTextToSize(selectedJob.location_name || selectedJob.location_address || 'TBD', 60);
-    doc.text(locLines, 140, y+5);
+    // --- LOAD ASSETS ---
+    const logoData = await loadAsset('/Zipline Logo FULL Blue.png');
+    const fontData = await loadAsset('/Webrush Demo.ttf');
 
-    y += 20;
+    // Add Font
+    if (fontData) {
+        // Remove "data:font/ttf;base64," prefix
+        const fontBase64 = fontData.split(',')[1];
+        doc.addFileToVFS('Webrush.ttf', fontBase64);
+        doc.addFont('Webrush.ttf', 'Webrush', 'normal');
+    }
 
-    // Crew List
-    doc.setFillColor(0, 0, 0);
-    doc.rect(20, y, 170, 8, 'F');
+    // --- COLORS ---
+    const ZIPLINE_BLUE = '#0077FF';
+    const TEXT_DARK = '#111111';
+    const TEXT_GRAY = '#666666';
+
+    let y = 20;
+
+    // --- HEADER ---
+    // Logo (Left)
+    if (logoData) {
+        doc.addImage(logoData, 'PNG', margin, 15, 60, 15); // Adjust aspect ratio as needed
+    } else {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.setTextColor(ZIPLINE_BLUE);
+        doc.text('ZIPLINE MEDIA', margin, 25);
+    }
+
+    // Title (Right) - Using Custom Font
+    doc.setTextColor(TEXT_DARK);
+    if (fontData) {
+        doc.setFont('Webrush', 'normal');
+        doc.setFontSize(40);
+        doc.text('Call Sheet', pageWidth - margin, 25, { align: 'right' });
+    } else {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(30);
+        doc.text('CALL SHEET', pageWidth - margin, 25, { align: 'right' });
+    }
+
+    y = 45;
+
+    // --- HERO BAR (Date & Call Time) ---
+    doc.setFillColor(TEXT_DARK);
+    doc.rect(0, y, pageWidth, 18, 'F');
+    
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text('CREW LIST', 22, y+5.5);
     
-    y += 15;
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(9);
-    
-    doc.text('POSITION', 20, y);
-    doc.text('NAME', 70, y);
-    doc.text('CALL', 120, y);
-    doc.text('PHONE', 150, y);
-    y += 2;
-    doc.line(20, y, 190, y);
-    y += 5;
+    // Date (Left)
+    doc.setFontSize(12);
+    const dateStr = selectedJob.shoot_date ? new Date(selectedJob.shoot_date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase() : 'DATE TBD';
+    doc.text(dateStr, margin, y + 11);
 
+    // Call Time (Right) - Highlighted
+    const callTime = selectedJob.call_time ? formatTimeTo12h(selectedJob.call_time) : 'TBD';
+    doc.text(`GENERAL CALL: ${callTime}`, pageWidth - margin, y + 11, { align: 'right' });
+
+    y += 30;
+
+    // --- JOB INFO GRID ---
+    doc.setTextColor(TEXT_GRAY);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    
+    // Col 1: Job Details
+    doc.text('PRODUCTION', margin, y);
+    doc.text('PROJECT', margin, y + 15);
+    doc.text('CLIENT', margin, y + 30);
+
+    doc.setTextColor(TEXT_DARK);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    selectedJob.job_roles.forEach(role => {
-        doc.text(role.position, 20, y);
-        doc.text(role.name || '—', 70, y);
-        doc.text(role.call_time || '—', 120, y);
-        doc.text(role.phone || '—', 150, y);
+    doc.text(selectedJob.production_company || 'Zipline Media', margin, y + 5);
+    doc.text(selectedJob.title.toUpperCase(), margin, y + 20);
+    doc.text(selectedJob.client_name?.toUpperCase() || 'INTERNAL', margin, y + 35);
+
+    // Col 2: Locations
+    const col2X = 80;
+    doc.setTextColor(TEXT_GRAY);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SHOOT LOCATION', col2X, y);
+    
+    doc.setTextColor(TEXT_DARK);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    if (selectedJob.location_name) {
+        doc.setFont('helvetica', 'bold');
+        doc.text(selectedJob.location_name.toUpperCase(), col2X, y + 5);
+        doc.setFont('helvetica', 'normal');
+        const locLines = doc.splitTextToSize(selectedJob.location_address || '', 60);
+        doc.text(locLines, col2X, y + 10);
+    } else {
+        const locLines = doc.splitTextToSize(selectedJob.location_address || 'TBD', 60);
+        doc.text(locLines, col2X, y + 5);
+    }
+
+    // Col 3: Weather & Hospital
+    const col3X = 150;
+    doc.setTextColor(TEXT_GRAY);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('WEATHER', col3X, y);
+    
+    doc.setTextColor(TEXT_DARK);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(selectedJob.weather_summary || 'N/A', col3X, y + 5);
+
+    doc.setTextColor(TEXT_GRAY);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('NEAREST HOSPITAL', col3X, y + 15);
+    
+    doc.setTextColor(TEXT_DARK);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    if (selectedJob.nearest_hospital_name) {
+        const hospLines = doc.splitTextToSize(`${selectedJob.nearest_hospital_name}\n${selectedJob.nearest_hospital_address}`, 50);
+        doc.text(hospLines, col3X, y + 20);
+    } else {
+        doc.text('None Listed', col3X, y + 20);
+    }
+
+    y += 45;
+
+    // --- CREW LIST ---
+    // Section Title
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(ZIPLINE_BLUE);
+    doc.text('CREW MANIFEST', margin, y);
+    doc.setDrawColor(ZIPLINE_BLUE);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y + 2, margin + 40, y + 2); // Underline
+
+    y += 10;
+
+    // Table Header
+    doc.setFillColor(245, 245, 245);
+    doc.rect(margin, y, contentWidth, 8, 'F');
+    doc.setFontSize(8);
+    doc.setTextColor(TEXT_GRAY);
+    doc.text('POSITION', margin + 2, y + 5);
+    doc.text('NAME', margin + 60, y + 5);
+    doc.text('CALL TIME', margin + 120, y + 5);
+    doc.text('CONTACT', margin + 150, y + 5);
+
+    y += 10;
+
+    // Rows
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(TEXT_DARK);
+
+    selectedJob.job_roles.forEach((role, i) => {
+        const contact = role.contact_id ? contacts.find(c => c.id === role.contact_id) : null;
+        const displayName = contact?.name || role.name || '—';
+        const displayPhone = contact?.phone || role.phone || '—';
+        const callTime = role.call_time ? formatTimeTo12h(role.call_time) : formatTimeTo12h(selectedJob.call_time);
+
+        // Striping
+        if (i % 2 !== 0) {
+            doc.setFillColor(250, 250, 250);
+            doc.rect(margin, y - 4, contentWidth, 7, 'F');
+        }
+
+        doc.text(role.position.toUpperCase(), margin + 2, y);
+        doc.setFont('helvetica', 'bold');
+        doc.text(displayName.toUpperCase(), margin + 60, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(callTime, margin + 120, y);
+        doc.text(displayPhone, margin + 150, y);
+        
         y += 7;
     });
 
+    // --- NOTES ---
     if (selectedJob.notes_general) {
         y += 10;
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('NOTES', 20, y);
-        y += 5;
+        doc.setTextColor(ZIPLINE_BLUE);
+        doc.text('GENERAL NOTES', margin, y);
+        doc.line(margin, y + 2, margin + 40, y + 2);
+        
+        y += 8;
         doc.setFont('helvetica', 'normal');
-        const notes = doc.splitTextToSize(selectedJob.notes_general, 170);
-        doc.text(notes, 20, y);
+        doc.setTextColor(TEXT_DARK);
+        doc.setFontSize(9);
+        const notes = doc.splitTextToSize(selectedJob.notes_general, contentWidth);
+        doc.text(notes, margin, y);
+    }
+
+    // --- FOOTER ---
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('PRODUCED BY ZIPLINE MEDIA', margin, 285);
+        doc.text(`PAGE ${i} OF ${totalPages}`, pageWidth - margin - 20, 285);
     }
 
     doc.save(`${selectedJob.title.replace(/\s+/g, '_')}_CallSheet.pdf`);
@@ -338,6 +585,13 @@ export default function SlateJobs() {
 
                     <div className="absolute top-6 right-6 md:top-8 md:right-8 flex gap-2">
                         <button 
+                             onClick={addToGoogleCalendar}
+                             className="p-2 bg-white/10 hover:bg-[#4285F4] hover:text-white rounded-lg transition-colors border border-white/10 flex items-center gap-2 group"
+                             title="Add to Google Calendar"
+                        >
+                             <Calendar className="w-4 h-4" />
+                        </button>
+                        <button 
                              onClick={exportPDF}
                              className="p-2 bg-white/10 hover:bg-white hover:text-black rounded-lg transition-colors border border-white/10 flex items-center gap-2"
                              title="Export Call Sheet"
@@ -359,8 +613,8 @@ export default function SlateJobs() {
                         </button>
                     </div>
 
-                    <p className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 mb-2 mt-8 md:mt-0">{selectedJob.production_company}</p>
-                    <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter mb-4 pr-24 md:pr-0">{selectedJob.title}</h2>
+                    <p className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 mb-2 mt-8 md:mt-0">{selectedJob.client_name || selectedJob.production_company}</p>
+                    <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter mb-4 pr-32 md:pr-0">{selectedJob.title}</h2>
                     
                     <div className="flex flex-wrap gap-6 text-sm">
                         <div className="flex items-center gap-2 opacity-80">
@@ -369,7 +623,7 @@ export default function SlateJobs() {
                         </div>
                         <div className="flex items-center gap-2 opacity-80">
                             <Clock className="w-4 h-4" />
-                            <span className="font-bold tracking-wide uppercase">{selectedJob.call_time || 'TBD'}</span>
+                            <span className="font-bold tracking-wide uppercase">{formatTimeTo12h(selectedJob.call_time)}</span>
                         </div>
                         <div className="flex items-center gap-2 opacity-80">
                              <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
@@ -391,8 +645,28 @@ export default function SlateJobs() {
                              <h3 className="text-xs font-bold tracking-[0.2em] uppercase opacity-40">Location</h3>
                         </div>
                         <div>
-                             <p className="font-bold uppercase text-sm">{selectedJob.location_name || 'Location TBD'}</p>
-                             <p className="text-xs opacity-60 mt-1">{selectedJob.location_address}</p>
+                             {selectedJob.location_name || selectedJob.location_address ? (
+                                <>
+                                    {selectedJob.location_name && (
+                                        <p className="font-bold uppercase text-sm mb-1">{selectedJob.location_name}</p>
+                                    )}
+                                    <p className={`text-xs opacity-60 ${!selectedJob.location_name ? 'font-bold uppercase text-sm !opacity-100' : ''}`}>
+                                        {selectedJob.location_address || 'Address TBD'}
+                                    </p>
+                                    {selectedJob.location_address && (
+                                        <a 
+                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedJob.location_address)}`} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-accent mt-3 hover:underline"
+                                        >
+                                            <ExternalLink className="w-3 h-3" /> View Map
+                                        </a>
+                                    )}
+                                </>
+                             ) : (
+                                <p className="text-sm font-medium opacity-30 italic">Location To Be Determined</p>
+                             )}
                         </div>
                         {selectedJob.nearest_hospital_name && (
                              <div className="pt-4 border-t border-white/5">
@@ -408,7 +682,9 @@ export default function SlateJobs() {
                              <Sun className="w-4 h-4 text-yellow-500" />
                              <h3 className="text-xs font-bold tracking-[0.2em] uppercase opacity-40">Weather</h3>
                         </div>
-                        <p className="text-sm font-medium">{selectedJob.weather_summary || 'No forecast available.'}</p>
+                        <p className={`text-sm font-medium ${selectedJob.weather_summary ? '' : 'opacity-30 italic'}`}>
+                            {selectedJob.weather_summary || 'Forecast unavailable'}
+                        </p>
                         
                         <div className="pt-4 border-t border-white/5 space-y-2">
                              <div className="flex items-center gap-2 mb-2">
@@ -440,7 +716,13 @@ export default function SlateJobs() {
                              <h3 className="text-xs font-bold tracking-[0.2em] uppercase">Crew List</h3>
                         </div>
                         <button 
-                            onClick={() => { setEditingRole({ position: 'Crew' }); setIsRoleDialogOpen(true); }}
+                            onClick={() => { 
+                                setEditingRole({ 
+                                    position: 'Crew',
+                                    call_time: selectedJob.call_time || ''
+                                }); 
+                                setIsRoleDialogOpen(true); 
+                            }}
                             className="px-3 py-1 bg-white text-black text-[10px] font-bold tracking-widest uppercase rounded hover:bg-accent hover:text-white transition-colors"
                         >
                             + Add Person
@@ -452,7 +734,13 @@ export default function SlateJobs() {
                                 No crew added yet.
                             </div>
                         ) : (
-                            selectedJob.job_roles.map(role => (
+                            selectedJob.job_roles.map(role => {
+                                // Hydrate with latest contact info if available
+                                const contact = role.contact_id ? contacts.find(c => c.id === role.contact_id) : null;
+                                const displayPhone = contact?.phone || role.phone;
+                                const displayName = contact?.name || role.name;
+
+                                return (
                                 <div key={role.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors group min-w-[500px] md:min-w-0">
                                     <div className="flex items-center gap-4">
                                         <div className={`w-8 h-8 rounded flex items-center justify-center text-[10px] font-black uppercase ${
@@ -463,15 +751,15 @@ export default function SlateJobs() {
                                             {role.position.charAt(0)}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold uppercase">{role.name || 'TBD'}</p>
-                                            <p className="text-[10px] opacity-50 tracking-wider uppercase">{role.position} • {role.department}</p>
+                                            <p className="text-sm font-bold uppercase">{displayName || 'TBD'}</p>
+                                            <p className="text-[10px] opacity-50 tracking-wider uppercase">{role.position} • {displayPhone || 'No Phone'}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         {role.call_time && (
                                             <div className="text-right">
                                                 <p className="text-[10px] opacity-40 font-bold uppercase">Call</p>
-                                                <p className="text-xs font-mono">{role.call_time}</p>
+                                                <p className="text-xs font-mono">{formatTimeTo12h(role.call_time)}</p>
                                             </div>
                                         )}
                                         <button 
@@ -482,7 +770,7 @@ export default function SlateJobs() {
                                         </button>
                                     </div>
                                 </div>
-                            ))
+                            )})
                         )}
                     </div>
                 </div>
@@ -521,6 +809,28 @@ export default function SlateJobs() {
                     <h2 className="text-2xl font-black uppercase tracking-tighter mb-8">{editingJob.id ? 'Edit Job' : 'New Job'}</h2>
                     
                     <div className="space-y-6">
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-40">Client</label>
+                           <div className="flex gap-2">
+                                <select 
+                                    value={editingJob.client_name || ''}
+                                    onChange={e => setEditingJob(p => ({ ...p, client_name: e.target.value }))}
+                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm appearance-none"
+                                >
+                                    <option value="">-- Select Client --</option>
+                                    {clients.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                    <option value="Zipline Media">Zipline Media</option>
+                                </select>
+                                <button 
+                                    onClick={() => { setEditingClient({}); setIsClientDialogOpen(true); }}
+                                    className="px-3 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10"
+                                    title="Add New Client"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                </button>
+                           </div>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                              <div className="space-y-2">
                                 <label className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-40">Job Title *</label>
@@ -548,7 +858,10 @@ export default function SlateJobs() {
                                 <input 
                                     type="date"
                                     value={editingJob.shoot_date || ''}
-                                    onChange={e => setEditingJob(p => ({ ...p, shoot_date: e.target.value }))}
+                                    onChange={e => {
+                                        setEditingJob(p => ({ ...p, shoot_date: e.target.value, weather_summary: undefined }));
+                                        setWeatherSuccess(false);
+                                    }}
                                     className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm text-white"
                                 />
                              </div>
@@ -565,18 +878,52 @@ export default function SlateJobs() {
 
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-40">Location Address</label>
-                            <input 
-                                placeholder="FULL ADDRESS FOR WEATHER/HOSPITAL..."
-                                value={editingJob.location_address || ''}
-                                onChange={e => setEditingJob(p => ({ ...p, location_address: e.target.value }))}
+                            <Autocomplete
+                                apiKey={GOOGLE_MAPS_API_KEY}
+                                onPlaceSelected={(place) => {
+                                    if (!place) return;
+                                    // Extract name and address
+                                    const name = place.name;
+                                    const address = place.formatted_address;
+                                    
+                                    setEditingJob(p => ({ 
+                                        ...p, 
+                                        location_address: address,
+                                        // Only set name if it's not just a repeat of the address/number
+                                        location_name: (name && name !== address && !address.startsWith(name)) ? name : undefined,
+                                        weather_summary: undefined,
+                                        nearest_hospital_name: undefined,
+                                        nearest_hospital_address: undefined
+                                    }));
+                                    setWeatherSuccess(false);
+                                    setHospitalSuccess(false);
+                                }}
+                                options={{
+                                    types: ['geocode', 'establishment'],
+                                    fields: ['name', 'formatted_address', 'geometry'],
+                                    componentRestrictions: { country: 'us' }
+                                }}
+                                defaultValue={editingJob.location_address || ''}
+                                onChange={(e: any) => {
+                                    setEditingJob(p => ({ 
+                                        ...p, 
+                                        location_address: e.target.value,
+                                        weather_summary: undefined,
+                                        nearest_hospital_name: undefined,
+                                        nearest_hospital_address: undefined
+                                    }));
+                                    setWeatherSuccess(false);
+                                    setHospitalSuccess(false);
+                                }}
                                 className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent text-sm"
+                                placeholder="SEARCH FOR A LOCATION..."
                             />
                             <div className="flex gap-2 mt-2">
-                                <button onClick={fetchWeather} disabled={weatherLoading} className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                                    {weatherLoading ? 'Loading...' : <><Sun className="w-3 h-3" /> Get Weather</>}
+                                <button onClick={fetchWeather} disabled={weatherLoading || weatherSuccess} className={`px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${weatherSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : ''}`}>
+                                    {weatherLoading ? 'Loading...' : weatherSuccess ? <><Check className="w-3 h-3" /> Weather Added</> : <><Sun className="w-3 h-3" /> Get Weather</>}
                                 </button>
-                                <button onClick={findHospital} disabled={hospitalLoading} className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                                    {hospitalLoading ? 'Loading...' : <><Plus className="w-3 h-3" /> Find Hospital</>}
+                                <button onClick={findHospital} disabled={hospitalLoading || hospitalSuccess} className={`px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${hospitalSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : ''}`}>
+                                    {hospitalLoading ? 'Loading...' : hospitalSuccess ? <><Check className="w-3 h-3" /> Hospital Found</> : <><Plus className="w-3 h-3" /> Find Hospital</>}
                                 </button>
                             </div>
                         </div>
@@ -614,6 +961,44 @@ export default function SlateJobs() {
                     <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-white/10">
                         <button onClick={() => setIsJobDialogOpen(false)} className="px-6 py-3 rounded-lg text-[10px] font-bold tracking-[0.2em] uppercase hover:bg-white/10 transition-colors">Cancel</button>
                         <button onClick={handleSaveJob} className="px-8 py-3 bg-white text-black rounded-lg text-[10px] font-black tracking-[0.2em] uppercase hover:bg-accent hover:text-white transition-colors">Save Job</button>
+                    </div>
+                </motion.div>
+             </div>
+        )}
+      </AnimatePresence>
+
+      {/* NEW CLIENT DIALOG */}
+      <AnimatePresence>
+        {isClientDialogOpen && (
+             <div className="fixed inset-0 z-[150] flex items-center justify-center p-6">
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={() => setIsClientDialogOpen(false)} />
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                    className="relative bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-8 shadow-2xl"
+                >
+                    <h2 className="text-xl font-black uppercase tracking-tighter mb-6">Add New Client</h2>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                             <label className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-40">Client Name *</label>
+                             <input 
+                                value={editingClient.name || ''}
+                                onChange={e => setEditingClient(p => ({ ...p, name: e.target.value }))}
+                                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm font-bold"
+                                autoFocus
+                             />
+                        </div>
+                         <div className="space-y-2">
+                             <label className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-40">Email</label>
+                             <input 
+                                value={editingClient.email || ''}
+                                onChange={e => setEditingClient(p => ({ ...p, email: e.target.value }))}
+                                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm"
+                             />
+                        </div>
+                    </div>
+                     <div className="flex justify-end gap-4 mt-8">
+                        <button onClick={() => setIsClientDialogOpen(false)} className="px-4 py-2 rounded-lg text-[10px] font-bold tracking-[0.2em] uppercase hover:bg-white/10 transition-colors">Cancel</button>
+                        <button onClick={handleSaveClient} className="px-6 py-2 bg-white text-black rounded-lg text-[10px] font-black tracking-[0.2em] uppercase hover:bg-accent hover:text-white transition-colors">Add Client</button>
                     </div>
                 </motion.div>
              </div>
@@ -667,25 +1052,13 @@ export default function SlateJobs() {
                              />
                          </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-40">Position</label>
-                                <input 
-                                    value={editingRole.position || ''}
-                                    onChange={e => setEditingRole(p => ({ ...p, position: e.target.value }))}
-                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm"
-                                />
-                             </div>
-                             <div className="space-y-2">
-                                <label className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-40">Department</label>
-                                <select 
-                                    value={editingRole.department || 'General'}
-                                    onChange={e => setEditingRole(p => ({ ...p, department: e.target.value }))}
-                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm appearance-none"
-                                >
-                                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-                                </select>
-                             </div>
+                        <div className="space-y-2">
+                             <label className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-40">Position</label>
+                             <input 
+                                value={editingRole.position || ''}
+                                onChange={e => setEditingRole(p => ({ ...p, position: e.target.value }))}
+                                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm"
+                             />
                         </div>
 
                          <div className="grid grid-cols-2 gap-4">

@@ -8,29 +8,45 @@ const lanes = {
   Podcasts: [
     { type: 'text', value: 'BOMBING WITH ERIC ANDRE' },
     { type: 'text', value: 'BABY, THIS IS KEKE PALMER' },
-    { type: 'text', value: 'NEW HEIGHTS' }
+    { type: 'text', value: 'NEW HEIGHTS' },
+    { type: 'text', value: 'GOOD FORTUNE' }
   ],
   Performance: [
     { type: 'text', value: 'TONY AWARDS' },
     { type: 'text', value: 'MOULIN ROUGE!' },
-    { type: 'text', value: 'PHANTOM OF THE OPERA' },
-    { type: 'text', value: '2ST' },
+    { type: 'text', value: 'MERRILY WE ROLL ALONG' },
     { type: 'text', value: 'THE GREAT GATSBY' },
+    { type: 'text', value: 'SMASH' },
+    { type: 'text', value: 'GUTENBERG!' },
+    { type: 'text', value: 'ONCE UPON A MATTRESS' },
+    { type: 'text', value: 'THE QUEEN OF VERSAILLES' },
+    { type: 'text', value: 'McNEAL' },
+    { type: 'text', value: 'MACBETH' },
+    { type: 'text', value: 'LEMPICKA' },
+    { type: 'text', value: 'REAL WOMEN HAVE CURVES' },
+    { type: 'text', value: 'THE SIGN IN SIDNEY BRUSTEIN’S WINDOW' },
+    { type: 'text', value: 'CHESS' },
+    { type: 'text', value: 'DEAD OUTLAW' },
+    { type: 'text', value: 'PHANTOM OF THE OPERA' },
+    { type: 'text', value: 'TAKE ME OUT' },
+    { type: 'text', value: 'DRAG: THE MUSICAL' },
+    { type: 'text', value: 'FLOYD COLLINS' },
+    { type: 'text', value: 'WALDEN' },
+    { type: 'text', value: 'CULT OF LOVE' },
     { type: 'text', value: 'SHAKESPEARE THEATRE NJ' },
     { type: 'text', value: 'ARS NOVA' }
   ],
   Brand: [
+    { type: 'text', value: 'HULU' },
+    { type: 'text', value: 'SPOTIFY' },
     { type: 'text', value: 'QUALCOMM' },
     { type: 'text', value: 'GOOD MORNING AMERICA' },
     { type: 'text', value: 'UNIVISION' },
     { type: 'text', value: 'T-MOBILE' },
     { type: 'text', value: 'VISIBLE' },
-    { type: 'text', value: 'THE BACHELOR' },
     { type: 'text', value: 'YMCA' },
-    { type: 'text', value: 'MAC PRO' },
-    { type: 'text', value: 'AMERICAN CANCER SOCIETY' },
     { type: 'text', value: 'HEINEKEN' },
-    { type: 'text', value: 'LIVEX' }
+    { type: 'text', value: 'AMERICAN CANCER SOCIETY' }
   ]
 };
 

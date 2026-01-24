@@ -5,19 +5,7 @@ import { motion } from 'framer-motion';
 import { Users, FileText, Calendar as CalendarIcon } from 'lucide-react';
 import Rolodex from '@/components/crew/Rolodex';
 import SlateJobs from '@/components/crew/SlateJobs';
-
-// Placeholder Calendar Component
-const CalendarPlaceholder = () => (
-  <div className="flex flex-col items-center justify-center min-h-[400px] text-center opacity-50 space-y-4">
-    <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
-      <CalendarIcon className="w-8 h-8" />
-    </div>
-    <div>
-      <h2 className="text-xl font-black uppercase tracking-widest">Production Calendar</h2>
-      <p className="text-xs font-bold tracking-[0.2em] mt-2 opacity-60">Coming Soon</p>
-    </div>
-  </div>
-);
+import ProductionCalendar from '@/components/crew/ProductionCalendar';
 
 type SubTab = 'jobs' | 'rolodex' | 'calendar';
 
@@ -64,7 +52,7 @@ export default function Slate() {
       >
         {activeSubTab === 'jobs' && <SlateJobs />}
         {activeSubTab === 'rolodex' && <Rolodex />}
-        {activeSubTab === 'calendar' && <CalendarPlaceholder />}
+        {activeSubTab === 'calendar' && <ProductionCalendar />}
       </motion.div>
     </div>
   );
