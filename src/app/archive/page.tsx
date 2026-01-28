@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Play } from 'lucide-react';
+import { Play, Youtube, Link as LinkIcon } from 'lucide-react';
 
 const archive = [
   { 
@@ -10,7 +10,9 @@ const archive = [
     client: 'Cole Escola', 
     project: 'Tony Awards First Impressions', 
     type: 'Social',
-    image: 'https://images.unsplash.com/photo-1514302240736-b1fee5989461?q=80&w=800&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1514302240736-b1fee5989461?q=80&w=800&auto=format&fit=crop',
+    youtube: 'https://youtube.com',
+    vimeo: 'https://vimeo.com'
   },
   { 
     id: 2,
@@ -18,7 +20,8 @@ const archive = [
     client: 'Zipline Media', 
     project: 'Performance Reel', 
     type: 'Reel',
-    image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=800&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=800&auto=format&fit=crop',
+    vimeo: 'https://vimeo.com'
   },
   { 
     id: 3,
@@ -190,10 +193,39 @@ export default function Archive() {
               </div>
 
               {/* Text Info */}
-              <div className="space-y-1">
+              <div className="space-y-3">
                 <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight leading-none group-hover:text-[var(--accent)] transition-colors">
                   {item.project}
                 </h3>
+                
+                <div className="flex gap-3">
+                  {/* @ts-ignore */}
+                  {item.youtube && (
+                    <a 
+                      href={item.youtube} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase border border-white/20 px-3 py-1.5 hover:bg-red-600 hover:border-red-600 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Youtube className="w-3 h-3" />
+                      <span>YouTube</span>
+                    </a>
+                  )}
+                  {/* @ts-ignore */}
+                  {item.vimeo && (
+                    <a 
+                      href={item.vimeo} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase border border-white/20 px-3 py-1.5 hover:bg-blue-500 hover:border-blue-500 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <LinkIcon className="w-3 h-3" />
+                      <span>Vimeo</span>
+                    </a>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}
