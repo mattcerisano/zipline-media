@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import LogoTicker from '@/components/LogoTicker';
+import { Check } from 'lucide-react';
 
 function Hero() {
   const [isIntroComplete, setIsIntroComplete] = useState(false);
@@ -240,6 +241,36 @@ function About() {
 }
 
 function Contact() {
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = new FormData(form);
+
+    setStatus('submitting');
+
+    try {
+      const response = await fetch("https://formspree.io/f/mgokbqag", {
+        method: "POST",
+        body: data,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setStatus('success');
+        form.reset();
+      } else {
+        setStatus('error');
+      }
+    } catch (error) {
+      console.error(error);
+      setStatus('error');
+    }
+  }
+
   return (
     <section id="contact" className="py-24 px-6 max-w-7xl mx-auto flex flex-col justify-center">
       <div className="flex flex-col lg:flex-row gap-20 items-start">
@@ -279,10 +310,8 @@ function Contact() {
           transition={{ duration: 0.8 }}
           className="w-full lg:w-1/2"
         >
-          {/* ... Form content ... */}
           <form 
-            action="https://formspree.io/f/mgokbqag" 
-            method="POST" 
+            onSubmit={handleSubmit}
             className="space-y-10 bg-neutral-900/30 p-8 md:p-12 border border-white/5 text-left"
           >
             <div className="space-y-2">
@@ -328,8 +357,25 @@ function Contact() {
               />
             </div>
 
-            <button type="submit" className="w-full bg-white text-black font-black py-5 tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all text-xs duration-300">
-              Send Inquiry
+            <button 
+              type="submit" 
+              disabled={status === 'submitting' || status === 'success'}
+              className={`w-full font-black py-5 tracking-[0.3em] uppercase transition-all text-xs duration-300 flex items-center justify-center gap-2
+                ${status === 'success' 
+                  ? 'bg-green-500 text-black' 
+                  : 'bg-white text-black hover:bg-[var(--accent)] hover:text-white'
+                }
+              `}
+            >
+              {status === 'submitting' && "Sending..."}
+              {status === 'success' && (
+                <>
+                  <span>Sent</span>
+                  <Check className="w-4 h-4" />
+                </>
+              )}
+              {status === 'error' && "Error - Try Again"}
+              {status === 'idle' && "Send Inquiry"}
             </button>
           </form>
         </motion.div>
