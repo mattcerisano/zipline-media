@@ -280,20 +280,37 @@ function Contact() {
           className="w-full lg:w-1/2"
         >
           {/* ... Form content ... */}
-          <form className="space-y-10 bg-neutral-900/30 p-8 md:p-12 border border-white/5 text-left">
+          <form 
+            action="https://formspree.io/f/mgokbqag" 
+            method="POST" 
+            className="space-y-10 bg-neutral-900/30 p-8 md:p-12 border border-white/5 text-left"
+          >
             <div className="space-y-2">
               <label className="text-xs tracking-[0.4em] uppercase opacity-40 font-bold">Name</label>
-              <input type="text" className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors uppercase text-sm" />
+              <input 
+                type="text" 
+                name="name"
+                required
+                className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors uppercase text-sm" 
+              />
             </div>
             
             <div className="space-y-2">
               <label className="text-xs tracking-[0.4em] uppercase opacity-40 font-bold">Email</label>
-              <input type="email" className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors uppercase text-sm" />
+              <input 
+                type="email" 
+                name="email"
+                required
+                className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors uppercase text-sm" 
+              />
             </div>
 
             <div className="space-y-2">
               <label className="text-xs tracking-[0.4em] uppercase opacity-40 font-bold">Project Type</label>
-              <select className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors appearance-none uppercase text-sm rounded-none">
+              <select 
+                name="projectType"
+                className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors appearance-none uppercase text-sm rounded-none"
+              >
                 <option className="bg-black">Performance / Narrative</option>
                 <option className="bg-black">Brand / Corporate</option>
                 <option className="bg-black">Creative / Social</option>
@@ -303,10 +320,15 @@ function Contact() {
 
             <div className="space-y-2">
               <label className="text-xs tracking-[0.4em] uppercase opacity-40 font-bold">Message</label>
-              <textarea rows={4} className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors resize-none uppercase text-sm" />
+              <textarea 
+                name="message"
+                rows={4} 
+                required
+                className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors resize-none uppercase text-sm" 
+              />
             </div>
 
-            <button className="w-full bg-white text-black font-black py-5 tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all text-xs duration-300">
+            <button type="submit" className="w-full bg-white text-black font-black py-5 tracking-[0.3em] uppercase hover:bg-[var(--accent)] hover:text-white transition-all text-xs duration-300">
               Send Inquiry
             </button>
           </form>

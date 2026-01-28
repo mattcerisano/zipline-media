@@ -201,7 +201,6 @@ export default function SlateJobs() {
     const location = encodeURIComponent(selectedJob.location_address || '');
     
     // Construct Date strings (YYYYMMDD)
-    // Assuming all day event or specific time if implemented later
     const startDate = new Date(selectedJob.shoot_date).toISOString().replace(/-|:|\.\d\d\d/g, "").slice(0, 8);
     const endDate = new Date(selectedJob.shoot_date);
     endDate.setDate(endDate.getDate() + 1);
@@ -210,6 +209,45 @@ export default function SlateJobs() {
     const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${startDate}/${endDateStr}`;
     
     window.open(url, '_blank');
+  };
+
+  const downloadICS = () => {
+    if (!selectedJob || !selectedJob.shoot_date) return;
+
+    // Helper to format date for ICS (YYYYMMDD)
+    const formatDate = (date: Date) => date.toISOString().replace(/-|:|\.\d\d\d/g, "").slice(0, 8);
+
+    const startDate = new Date(selectedJob.shoot_date);
+    const endDate = new Date(selectedJob.shoot_date);
+    endDate.setDate(endDate.getDate() + 1); // All day event + 1
+
+    const uid = `${selectedJob.id}@zipline.media`;
+    const description = `Job: ${selectedJob.title}\\nClient: ${selectedJob.client_name || 'N/A'}\\nCall Time: ${selectedJob.call_time}\\nNotes: ${selectedJob.notes_general || ''}`.replace(/\n/g, '\\n');
+    
+    const icsContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Zipline Media//Crew Portal//EN',
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${formatDate(new Date())}T000000Z`,
+        `DTSTART;VALUE=DATE:${formatDate(startDate)}`,
+        `DTEND;VALUE=DATE:${formatDate(endDate)}`,
+        `SUMMARY:SHOOT: ${selectedJob.title}`,
+        `DESCRIPTION:${description}`,
+        `LOCATION:${selectedJob.location_address || ''}`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ].join('\r\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${selectedJob.title.replace(/\s+/g, '_')}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const fetchWeather = async () => {
@@ -590,6 +628,13 @@ export default function SlateJobs() {
                              title="Add to Google Calendar"
                         >
                              <Calendar className="w-4 h-4" />
+                        </button>
+                        <button 
+                             onClick={downloadICS}
+                             className="p-2 bg-white/10 hover:bg-white hover:text-black rounded-lg transition-colors border border-white/10 flex items-center gap-2 group"
+                             title="Download .ics (Outlook/Apple)"
+                        >
+                             <FileText className="w-4 h-4" />
                         </button>
                         <button 
                              onClick={exportPDF}
