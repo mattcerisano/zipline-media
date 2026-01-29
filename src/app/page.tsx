@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import LogoTicker from '@/components/LogoTicker';
-import { Check } from 'lucide-react';
+import { Check, Play } from 'lucide-react';
 
 function Hero() {
   const [isIntroComplete, setIsIntroComplete] = useState(false);
@@ -117,22 +117,19 @@ function Hero() {
 function Work() {
   const categories = [
     { 
-      id: 'brand', 
-      title: 'BRAND & CORPORATE', 
-      subtitle: 'Fortune 500 Identity',
+      id: 'business', 
+      title: 'Business + Non-Profit', 
       image: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2000&auto=format&fit=crop',
     },
     { 
       id: 'performance', 
       title: 'PERFORMANCE', 
-      subtitle: 'Broadway & Narrative',
       image: 'https://images.unsplash.com/photo-1514302240736-b1fee5989461?q=80&w=2000&auto=format&fit=crop',
       video: '/broadway-reel.mp4',
     },
     { 
-      id: 'podcasts', 
-      title: 'PODCASTS', 
-      subtitle: 'Digital Content',
+      id: 'new-media', 
+      title: 'NEW MEDIA', 
       image: 'https://images.unsplash.com/photo-1478737270239-2f02b77ac6d5?q=80&w=2000&auto=format&fit=crop',
     },
   ];
@@ -166,8 +163,7 @@ function Work() {
               whileInView={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.8 }}
             >
-              <h2 className="text-3xl md:text-8xl font-black uppercase tracking-tighter text-white mb-2 leading-none">{cat.title}</h2>
-              <p className="text-xs md:text-xl tracking-[0.2em] uppercase text-white/60 font-bold">{cat.subtitle}</p>
+              <h2 className="text-4xl md:text-8xl font-black uppercase tracking-tighter text-white mb-2 leading-none">{cat.title}</h2>
             </motion.div>
           </div>
         </div>
@@ -178,7 +174,7 @@ function Work() {
           href="/archive" 
           className="inline-block border border-white/20 px-8 py-5 md:px-12 md:py-6 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-black transition-all duration-300 w-full md:w-auto"
         >
-          Explore Full Video Repository
+          See more
         </a>
       </div>
     </section>
@@ -186,8 +182,47 @@ function Work() {
 }
 
 function Social() {
+  const clips = [
+    {
+      title: "Gutenberg! The Musical | Opening Night",
+      thumbnail: "https://i.ytimg.com/vi/Kya8YUZxXAM/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/Kya8YUZxXAM",
+      category: "Opening Nights"
+    },
+    {
+      title: "Sarah Snook | 2024 Tony Awards First Impressions",
+      thumbnail: "https://i.ytimg.com/vi/1RW3OCUMp4s/hqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/1RW3OCUMp4s",
+      category: "New Media"
+    },
+    {
+      title: "Moulin Rouge! The Musical | Props",
+      thumbnail: "https://i.ytimg.com/vi/JwCNbJ0ob7Q/hqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/JwCNbJ0ob7Q",
+      category: "Broadway B-Roll"
+    },
+    {
+      title: "Moulin Rouge! The Musical | Aaron Tveit - Roxanne",
+      thumbnail: "https://i.vimeocdn.com/video/1405078795-629e45e5858499dc329466b78358b688325f67a9cc9b0ce41181d7316272eb85-d_640?region=us",
+      videoUrl: "https://player.vimeo.com/video/694493773",
+      category: "Reveals"
+    },
+    {
+      title: "The Bachelor | Granted",
+      thumbnail: "https://i.vimeocdn.com/video/1983280990-7403b3ad22b01e748107a6921cb60ebc94762e392535da80ad7bdf46fa1aeacf-d_1920x1080?&r=pad&region=us",
+      videoUrl: "https://player.vimeo.com/video/1056968490",
+      category: "TVC"
+    },
+    {
+      title: "Think of Me - The Phantom of the Opera Broadway Cast 2023",
+      thumbnail: "https://i.ytimg.com/vi/FXfQzAHPa6g/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/FXfQzAHPa6g",
+      category: "Cast Recordings"
+    }
+  ];
+
   return (
-    <section className="py-24 bg-black overflow-hidden">
+    <section className="pt-24 pb-12 bg-black overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 mb-12">
         <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase mb-4">Built for the Feed</h2>
         <p className="text-sm md:text-base opacity-60 max-w-xl">
@@ -197,14 +232,32 @@ function Social() {
       
       {/* Marquee of 9:16 Videos */}
       <div className="flex gap-6 overflow-x-auto pb-8 px-6 no-scrollbar snap-x">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="snap-center shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group">
-             <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[10px] uppercase tracking-widest opacity-40 group-hover:opacity-100 transition-opacity">Social Clip {i}</span>
+        {clips.map((clip, i) => (
+          <a 
+            key={i} 
+            href={clip.videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="snap-center shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-pointer"
+          >
+             <div 
+               className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
+               style={{ backgroundImage: `url(${clip.thumbnail})` }}
+             />
+             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80" />
+             
+             <div className="absolute bottom-0 left-0 p-4 w-full">
+                <p className="text-[10px] uppercase tracking-widest text-white/60 mb-1">{clip.category}</p>
+                <p className="text-sm font-bold leading-tight text-white line-clamp-2">{clip.title}</p>
              </div>
-             {/* Placeholder for actual vertical video files */}
-             <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10 transition-colors" />
-          </div>
+             
+             {/* Play button overlay */}
+             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                   <Play className="w-5 h-5 text-white fill-white" />
+                </div>
+             </div>
+          </a>
         ))}
       </div>
     </section>
@@ -215,7 +268,7 @@ function Social() {
 
 function About() {
   return (
-    <section id="about" className="py-32 px-6 max-w-7xl mx-auto flex flex-col items-start">
+    <section id="about" className="pt-12 pb-32 px-6 max-w-7xl mx-auto flex flex-col items-start">
       <motion.h2 
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -281,7 +334,7 @@ function Contact() {
              viewport={{ once: true }}
              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h2 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 uppercase leading-[0.9]">
+            <h2 className="text-5xl md:text-8xl font-black tracking-tighter mb-8 uppercase leading-[0.9]">
               LET&apos;S ROLL.
             </h2>
           </motion.div>

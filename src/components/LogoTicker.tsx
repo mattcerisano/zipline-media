@@ -57,7 +57,7 @@ interface TickerItem {
 
 const TickerLane = ({ title, items }: { title: string, items: TickerItem[] }) => (
   <div className="flex flex-col md:flex-row gap-8 md:items-center border-b border-white/10 pb-8 overflow-hidden">
-    <h3 className="w-32 text-[10px] font-bold tracking-[0.4em] uppercase text-white/40 shrink-0">{title}</h3>
+    <h3 className="w-full md:w-32 text-[10px] font-bold tracking-[0.4em] uppercase text-white/40 shrink-0 mb-4 md:mb-0">{title}</h3>
     
     <div className="flex-1 overflow-hidden relative">
       <div className="flex w-fit animate-scroll whitespace-nowrap gap-16 items-center">
@@ -92,7 +92,7 @@ const TickerLane = ({ title, items }: { title: string, items: TickerItem[] }) =>
 
 export default function LogoTicker() {
   return (
-    <section className="py-24 bg-black px-6 max-w-7xl mx-auto space-y-8">
+    <section className="py-12 bg-black px-6 max-w-7xl mx-auto space-y-8">
       <div className="mb-12 text-center">
         <p className="text-sm md:text-lg font-medium tracking-[0.2em] uppercase opacity-50">
           High drama for Broadway. No drama for you.

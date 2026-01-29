@@ -37,7 +37,7 @@ export default function ArchiveClient() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 md:p-12 pt-12 md:pt-20">
+    <main className="min-h-screen bg-black text-white p-6 md:p-12 pt-32 md:pt-40">
       <div className="max-w-[1600px] mx-auto">
         <header className="mb-16 flex flex-col gap-8">
           <Link href="/" className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-60 hover:opacity-100">
@@ -56,44 +56,126 @@ export default function ArchiveClient() {
           </div>
         </header>
 
-        <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-10 pb-20"
-        >
-          {videos.map((video, index) => (
-            <motion.button 
-              key={index}
-              variants={itemVariants}
-              onClick={() => setSelectedVideo(video.videoUrl)}
-              className="group flex flex-col gap-3 text-left w-full"
-              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+        <div className="flex flex-col gap-24 pb-20">
+          {/* Just Added / This Minute Section */}
+          <section>
+            <motion.h2 
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-2xl md:text-4xl font-bold uppercase tracking-widest mb-10 border-b border-white/10 pb-6 text-[var(--accent)]"
             >
-              {/* Thumbnail Container */}
-              <div className="aspect-video w-full overflow-hidden bg-neutral-900 border border-white/5 relative rounded-sm shadow-lg group-hover:shadow-2xl group-hover:shadow-white/5 transition-all duration-500">
-                <img 
-                  src={video.thumbnail} 
-                  alt={video.title}
-                  className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 ease-out"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
-                
-                {/* Play Icon Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 group-active:scale-95 transition-transform">
-                    <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-1"></div>
+              This Minute
+            </motion.h2>
+
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-6 gap-y-10"
+            >
+              {[...videos]
+                .sort((a, b) => {
+                  const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
+                  const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
+                  return dateB - dateA;
+                })
+                .slice(0, 6)
+                .map((video: any, index: number) => (
+                <motion.button 
+                  key={`just-added-${index}`}
+                  variants={itemVariants}
+                  onClick={() => setSelectedVideo(video.videoUrl)}
+                  className="group flex flex-col gap-3 text-left w-full"
+                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                >
+                  {/* Thumbnail Container */}
+                  <div className="aspect-video w-full overflow-hidden bg-neutral-900 border border-white/5 relative rounded-sm shadow-lg group-hover:shadow-2xl group-hover:shadow-white/5 transition-all duration-500">
+                    <img 
+                      src={video.thumbnail} 
+                      alt={video.title}
+                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
+                    
+                    {/* Play Icon Overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 group-active:scale-95 transition-transform">
+                        <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-1"></div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              {/* Title */}
-              <h3 className="font-bold text-[10px] md:text-xs uppercase tracking-wider leading-snug group-hover:text-[var(--accent)] transition-colors opacity-60 group-hover:opacity-100 duration-300">
-                {video.title}
-              </h3>
-            </motion.button>
-          ))}
-        </motion.div>
+                  
+                  {/* Title */}
+                  <h3 className="font-bold text-[10px] md:text-xs uppercase tracking-wider leading-snug group-hover:text-[var(--accent)] transition-colors opacity-60 group-hover:opacity-100 duration-300">
+                    {video.title}
+                  </h3>
+                </motion.button>
+              ))}
+            </motion.div>
+          </section>
+
+          {['Opening Nights', 'New Media', 'Broadway B-Roll', 'Reveals', 'TVC', 'Cast Recordings'].map((category) => {
+            const categoryVideos = videos.filter((v: any) => v.category === category);
+            if (categoryVideos.length === 0) return null;
+
+            return (
+              <section key={category}>
+                <motion.h2 
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6 }}
+                  className="text-2xl md:text-4xl font-bold uppercase tracking-widest mb-10 border-b border-white/10 pb-6 text-white/90"
+                >
+                  {category}
+                </motion.h2>
+
+                <motion.div 
+                  variants={containerVariants}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: "-100px" }}
+                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-10"
+                >
+                  {categoryVideos.map((video: any, index: number) => (
+                    <motion.button 
+                      key={`${category}-${index}`}
+                      variants={itemVariants}
+                      onClick={() => setSelectedVideo(video.videoUrl)}
+                      className="group flex flex-col gap-3 text-left w-full"
+                      whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                    >
+                      {/* Thumbnail Container */}
+                      <div className="aspect-video w-full overflow-hidden bg-neutral-900 border border-white/5 relative rounded-sm shadow-lg group-hover:shadow-2xl group-hover:shadow-white/5 transition-all duration-500">
+                        <img 
+                          src={video.thumbnail} 
+                          alt={video.title}
+                          className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 ease-out"
+                        />
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
+                        
+                        {/* Play Icon Overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20 group-active:scale-95 transition-transform">
+                            <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-1"></div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Title */}
+                      <h3 className="font-bold text-[10px] md:text-xs uppercase tracking-wider leading-snug group-hover:text-[var(--accent)] transition-colors opacity-60 group-hover:opacity-100 duration-300">
+                        {video.title}
+                      </h3>
+                    </motion.button>
+                  ))}
+                </motion.div>
+              </section>
+            );
+          })}
+        </div>
       </div>
 
       {/* Video Modal */}
