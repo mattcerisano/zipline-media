@@ -1,0 +1,6 @@
+Electron main process started
+App ready event fired
+Creating main window...
+Loading URL: http://localhost:3000/crew
+Window ready to show
+[14322:0130/093805.762720:ERROR:content/browser/network_service_instance_impl.cc:610] Network service crashed or was terminated, restarting service.

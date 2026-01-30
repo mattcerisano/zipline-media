@@ -8,6 +8,11 @@ export function middleware(req: NextRequest) {
   // Check if the current path is one of the protected paths
   const isProtected = protectedPaths.some(path => req.nextUrl.pathname.startsWith(path));
 
+  // Bypass auth for the Desktop App
+  if (req.headers.get('x-zipline-client') === 'desktop-app') {
+    return NextResponse.next();
+  }
+
   if (isProtected) {
     const basicAuth = req.headers.get('authorization');
 
