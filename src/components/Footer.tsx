@@ -1,7 +1,13 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Instagram, Linkedin, Video } from 'lucide-react'; // Using Video as Vimeo placeholder if needed, or text
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith('/crew')) return null;
 
   return (
 

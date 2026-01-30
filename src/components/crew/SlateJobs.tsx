@@ -552,7 +552,7 @@ export default function SlateJobs() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-200px)]">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-280px)]">
       {/* SIDEBAR: Jobs List */}
       <div className={`lg:col-span-4 flex flex-col gap-4 h-full ${selectedJob ? 'hidden lg:flex' : 'flex'}`}>
          <div className="bg-neutral-900/50 border border-white/10 p-4 rounded-xl space-y-4">

@@ -102,7 +102,7 @@ export default function Rolodex() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-200px)]">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-280px)]">
       {/* SIDEBAR LIST */}
       <div className={`lg:col-span-4 flex flex-col gap-4 h-full ${selectedId ? 'hidden lg:flex' : 'flex'}`}>
         {/* Controls */}
