@@ -1,35 +1,203 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+
+import NextImage from 'next/image';
+
 import { motion, AnimatePresence } from 'framer-motion';
+
 import { 
+
   Search, 
+
   Plus, 
+
   Minus, 
+
   Trash2, 
+
   FileDown, 
+
   RotateCcw, 
+
   Package,
+
   X,
+
   ClipboardList,
+
   Check,
+
   ChevronDown,
-  Layers
+
+  Layers,
+
+  User,
+
+  Pencil
+
 } from 'lucide-react';
+
 import { jsPDF } from 'jspdf';
-import { INVENTORY, ALL_CATEGORIES } from '@/data/inventory';
+
+import { INVENTORY, ALL_CATEGORIES, type InventoryItem } from '@/data/inventory';
+
+
 
 interface ManifestItem {
+
   name: string;
+
   count: number;
+
 }
+
+
+
+// Optimized Tooltip
+
+const ImageTooltip = ({ src }: { src: string }) => {
+
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+
+
+
+  useEffect(() => {
+
+    const handleMove = (e: MouseEvent) => {
+
+      setPos({ x: e.clientX, y: e.clientY });
+
+    };
+
+    window.addEventListener('mousemove', handleMove);
+
+    return () => window.removeEventListener('mousemove', handleMove);
+
+  }, []);
+
+
+
+  return (
+
+    <motion.div
+
+      initial={{ opacity: 0, scale: 0.9 }}
+
+      animate={{ opacity: 1, scale: 1 }}
+
+      exit={{ opacity: 0, scale: 0.9 }}
+
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+
+      style={{ 
+
+        position: 'fixed', 
+
+        left: pos.x + 20, 
+
+        top: pos.y - 140,
+
+        zIndex: 100 
+
+      }}
+
+      className="pointer-events-none hidden md:block"
+
+    >
+
+      <div className="w-64 h-64 bg-neutral-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl shadow-black/80 p-2 backdrop-blur-xl">
+
+        <div className="w-full h-full bg-white rounded-xl overflow-hidden relative">
+
+          <NextImage 
+
+            src={src} 
+
+            alt="Gear Preview" 
+
+            fill
+
+            sizes="256px"
+
+            className="object-contain p-2"
+
+          />
+
+        </div>
+
+      </div>
+
+    </motion.div>
+
+  );
+
+};
+
+const GearItem = ({ 
+  item, 
+  manifestCount, 
+  onUpdate, 
+  onHover 
+}: { 
+  item: InventoryItem, 
+  manifestCount: number, 
+  onUpdate: (name: string, dir: number) => void,
+  onHover: (img: string | null) => void 
+}) => (
+  <div className="group flex items-center justify-between p-3 md:p-4 border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all rounded-xl">
+    <div 
+      onMouseEnter={() => item.image && onHover(item.image)}
+      onMouseLeave={() => onHover(null)}
+      className="flex-1 min-w-0 pr-2 md:pr-4 cursor-help"
+    >
+      <h3 className="text-sm font-bold uppercase tracking-tight mb-1 leading-tight">{item.name}</h3>
+      <p className="text-[10px] opacity-40 font-bold uppercase tracking-[0.2em] leading-relaxed">
+        {item.category} • QTY: {item.qty} • ${item.replacement.toLocaleString()}
+      </p>
+    </div>
+    
+    <div className="flex items-center gap-1 md:gap-3 shrink-0">
+      <button 
+        onClick={() => onUpdate(item.name, -1)}
+        disabled={!manifestCount}
+        className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center border border-white/10 rounded-lg hover:bg-white/10 disabled:opacity-20 transition-colors"
+      >
+        <Minus className="w-3 h-3" />
+      </button>
+      <span className={`w-5 md:w-6 text-center text-xs md:text-sm font-black ${manifestCount ? 'text-accent' : 'opacity-20'}`}>
+        {manifestCount || 0}
+      </span>
+      <button 
+        onClick={() => onUpdate(item.name, 1)}
+        disabled={(manifestCount || 0) >= item.qty}
+        className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white text-black rounded-lg hover:bg-accent hover:text-white disabled:opacity-20 transition-all"
+      >
+        <Plus className="w-3 h-3" />
+      </button>
+    </div>
+  </div>
+);
 
 export default function Rentals() {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [manifest, setManifest] = useState<Record<string, number>>({});
+  const [hoveredImage, setHoveredImage] = useState<string | null>(null);
   
-  // Job Details
+  // Custom Gear State
+  const [customGear, setCustomGear] = useState<InventoryItem[]>([]);
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  const [editingItemName, setEditingItemName] = useState<string | null>(null);
+
+  // Form State
+  const [customName, setCustomName] = useState('');
+  const [customCategory, setCustomCategory] = useState(ALL_CATEGORIES[0]);
+  const [customQty, setCustomQty] = useState(1);
+  const [customValue, setCustomValue] = useState(0);
+  const [customOwner, setCustomOwner] = useState('');
+
+  // Job Details State
   const [jobTitle, setJobTitle] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [companyName, setCompanyName] = useState('Zipline Media');
@@ -39,43 +207,117 @@ export default function Rentals() {
   const [includeReplacementValue, setIncludeReplacementValue] = useState(false);
   const [isMobileManifestOpen, setIsMobileManifestOpen] = useState(false);
 
+  const allInventory = useMemo(() => {
+    return [...INVENTORY, ...customGear].sort((a, b) => a.name.localeCompare(b.name));
+  }, [customGear]);
+
   const filteredItems = useMemo(() => {
     const term = search.toLowerCase().trim();
-    return INVENTORY.filter(item => {
+    return allInventory.filter(item => {
       const catMatch = filterCategory === 'All' || item.category === filterCategory;
       const searchMatch = !term || item.name.toLowerCase().includes(term);
       return catMatch && searchMatch;
     });
-  }, [search, filterCategory]);
+  }, [search, filterCategory, allInventory]);
 
-  const manifestGrouped = useMemo(() => {
-    const grouped: Record<string, ManifestItem[]> = {};
-    Object.entries(manifest).forEach(([name, count]) => {
-      if (count <= 0) return;
-      const item = INVENTORY.find(i => i.name === name);
-      if (!item) return;
+  const filteredGroupedItems = useMemo(() => {
+    const term = search.toLowerCase().trim();
+    if (term || filterCategory !== 'All') return null;
+
+    const grouped: Record<string, InventoryItem[]> = {};
+    filteredItems.forEach(item => {
       if (!grouped[item.category]) grouped[item.category] = [];
-      grouped[item.category].push({ name, count });
+      grouped[item.category].push(item);
     });
     return grouped;
-  }, [manifest]);
+  }, [filteredItems, search, filterCategory]);
+
+  const manifestByOwner = useMemo(() => {
+    const byOwner: Record<string, Record<string, ManifestItem[]>> = {}; 
+    Object.entries(manifest).forEach(([name, count]) => {
+      if (count <= 0) return;
+      const item = allInventory.find(i => i.name === name);
+      if (!item) return;
+      const owner = item.owner || 'Zipline Media';
+      if (!byOwner[owner]) byOwner[owner] = {};
+      if (!byOwner[owner][item.category]) byOwner[owner][item.category] = [];
+      byOwner[owner][item.category].push({ name, count });
+    });
+    return byOwner;
+  }, [manifest, allInventory]);
 
   const grandTotal = useMemo(() => {
     return Object.entries(manifest).reduce((total, [name, count]) => {
-      const item = INVENTORY.find(i => i.name === name);
+      const item = allInventory.find(i => i.name === name);
       return total + (item?.replacement || 0) * count;
     }, 0);
-  }, [manifest]);
+  }, [manifest, allInventory]);
 
   const updateManifest = (name: string, dir: number) => {
-    const item = INVENTORY.find(i => i.name === name);
+    const item = allInventory.find(i => i.name === name);
     if (!item) return;
-    
     setManifest(prev => {
       const current = prev[name] || 0;
       const next = Math.max(0, Math.min(item.qty, current + dir));
       return { ...prev, [name]: next };
     });
+  };
+
+  const openAddModal = () => {
+    setEditingItemName(null);
+    setCustomName('');
+    setCustomCategory(ALL_CATEGORIES[0]);
+    setCustomQty(1);
+    setCustomValue(0);
+    setCustomOwner('');
+    setIsCustomModalOpen(true);
+  };
+
+  const handleEdit = (item: InventoryItem) => {
+    let baseName = item.name;
+    let owner = item.owner || '';
+    if (owner && baseName.includes(`[${owner}]`)) {
+        baseName = baseName.replace(` [${owner}]`, '').trim();
+    }
+    setEditingItemName(item.name); 
+    setCustomName(baseName);
+    setCustomCategory(item.category);
+    setCustomQty(item.qty);
+    setCustomValue(item.replacement);
+    setCustomOwner(owner);
+    setIsCustomModalOpen(true);
+  };
+
+  const addCustomItem = () => {
+    if (!customName.trim()) return;
+    const finalName = customOwner.trim() ? `${customName.trim()} [${customOwner.trim()}]` : customName.trim();
+    if (finalName !== editingItemName && allInventory.find(i => i.name.toLowerCase() === finalName.toLowerCase())) {
+      alert('Item with this name already exists.');
+      return;
+    }
+    const newItem: InventoryItem = {
+      name: finalName,
+      category: customCategory,
+      qty: customQty,
+      replacement: customValue,
+      owner: customOwner.trim() || undefined
+    };
+    setCustomGear(prev => {
+        const filtered = prev.filter(i => i.name !== editingItemName);
+        return [...filtered, newItem];
+    });
+    setManifest(prev => {
+        const newManifest = { ...prev };
+        if (editingItemName && editingItemName !== finalName) {
+            const count = newManifest[editingItemName];
+            delete newManifest[editingItemName];
+            if (count) newManifest[finalName] = count;
+        } else if (!editingItemName) {
+            newManifest[finalName] = 1;
+        }
+        return newManifest;
+    });
+    setIsCustomModalOpen(false);
   };
 
   const removeFromManifest = (name: string) => {
@@ -98,6 +340,7 @@ export default function Rentals() {
     setShootDate('');
     setSearch('');
     setFilterCategory('All');
+    setCustomGear([]); 
   };
 
   const exportPDF = async () => {
@@ -118,30 +361,24 @@ export default function Rentals() {
     };
 
     const sanitizeText = (text: string) => {
-      return text
-        .replace(/″/g, '"')
-        .replace(/′/g, "'")
-        .replace(/×/g, "x")
-        .replace(/’/g, "'");
+      return text.replace(/″/g, '"').replace(/′/g, "'").replace(/×/g, "x").replace(/’/g, "'");
     };
 
     const date = new Date().toLocaleDateString();
-
-    // --- LOAD LOGO ---
+    
+    // --- HEADER ---
     const logoUrl = "/Zipline Logo FULL Blue.png";
     const logoImg = new Image();
     logoImg.src = logoUrl;
     await new Promise((resolve) => {
       logoImg.onload = resolve;
-      logoImg.onerror = resolve; // Continue even if logo fails
+      logoImg.onerror = resolve; 
     });
 
-    // --- HEADER ---
     const logoWidth = 140;
     const logoRatio = logoImg.height && logoImg.width ? logoImg.height / logoImg.width : 0.5;
     const logoHeight = logoWidth * logoRatio;
 
-    // Draw Logo
     if (logoImg.complete && logoImg.naturalWidth > 0) {
       doc.addImage(logoImg, "PNG", margin, y, logoWidth, logoHeight);
     } else {
@@ -150,18 +387,15 @@ export default function Rentals() {
       doc.text(companyName || "Gear Manifest", margin, y + 20);
     }
 
-    // Right Column Info (Consolidated)
     const rightColX = 320;
     let infoY = y + 10;
     
-    // Helper to format date
     const formatDate = (d: string) => {
       if (!d) return "";
-      const dateObj = new Date(d + 'T12:00:00'); // Fix timezone offset issue
+      const dateObj = new Date(d + 'T12:00:00');
       return dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     };
 
-    // Job Title (Large)
     if (jobTitle) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
@@ -169,16 +403,14 @@ export default function Rentals() {
       infoY += 16;
     }
 
-    // Details Block
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.setTextColor(80); // Dark Gray for labels
+    doc.setTextColor(80); 
 
     const addDetail = (label: string, value: string) => {
       if (!value) return;
       doc.setFont("helvetica", "bold");
       doc.text(label, rightColX, infoY);
-      
       const labelWidth = doc.getTextWidth(label);
       doc.setFont("helvetica", "normal");
       doc.text(value, rightColX + labelWidth + 5, infoY);
@@ -189,72 +421,81 @@ export default function Rentals() {
     if (companyAddr) addDetail("LOC:", companyAddr.toUpperCase());
     if (contactEmail) addDetail("CONTACT:", contactEmail.toUpperCase());
     
-    // Generated Date (Footer of header)
     infoY += 4;
     doc.setFontSize(8);
     doc.setTextColor(150);
     doc.text("Generated: " + date, rightColX, infoY);
     
-    // Reset Color
     doc.setTextColor(0);
-
-    // Calculate header height to push content down
     const headerHeight = Math.max(logoHeight, infoY - y) + 10;
     y += headerHeight;
 
-    // --- BRANDING LINE ---
-    doc.setDrawColor(0, 119, 255); // #0077FF
+    doc.setDrawColor(0, 119, 255); 
     doc.setLineWidth(2);
     doc.line(margin, y, 612 - margin, y);
     y += 25;
 
-    // --- MANIFEST CONTENT ---
     const CATEGORY_ORDER = [
-      "Camera",
-      "Lens",
-      "Grip/Support",
-      "Playback & Wireless Video",
-      "Lighting",
-      "Modifiers",
-      "Stands/Grip",
-      "Audio",
-      "Power",
-      "Comms",
-      "Carts/Cases",
-      "Backdrops",
-      "Specialty"
+      "Camera", "Lens", "Lens Accessories", "Grip/Support", "Playback & Wireless Video", 
+      "Lighting", "Modifiers", "Stands/Grip", "Audio", "Power", "Comms", 
+      "Backdrops", "Carts/Cases", "Computing", "Specialty"
     ];
 
-    Object.keys(manifestGrouped).sort((a, b) => {
-      const indexA = CATEGORY_ORDER.indexOf(a);
-      const indexB = CATEGORY_ORDER.indexOf(b);
-      if (indexA === -1 && indexB === -1) return a.localeCompare(b);
-      if (indexA === -1) return 1;
-      if (indexB === -1) return -1;
-      return indexA - indexB;
-    }).forEach(cat => {
-      checkPageBreak(30); 
+    const sortedOwners = Object.keys(manifestByOwner).sort((a, b) => {
+        if (a === 'Zipline Media') return -1;
+        if (b === 'Zipline Media') return 1;
+        return a.localeCompare(b);
+    });
 
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(0, 119, 255); // Blue Accent Headers
-      doc.text(cat, margin, y);
-      doc.setTextColor(0); // Reset
-      y += 18;
-      
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      manifestGrouped[cat].sort((a, b) => a.name.localeCompare(b.name)).forEach(row => {
-        const bullet = "• " + sanitizeText(row.name) + "  (x" + row.count + ")";
-        const wrapped = doc.splitTextToSize(bullet, 514);
-        wrapped.forEach((ln: string) => {
-          checkPageBreak(lineH);
-          doc.text(ln, margin + 10, y);
-          y += lineH;
+    sortedOwners.forEach(owner => {
+        const ownerGroup = manifestByOwner[owner];
+        checkPageBreak(40);
+        
+        if (sortedOwners.length > 1) {
+            y += 10;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(14);
+            doc.setTextColor(0); 
+            doc.text(owner.toUpperCase(), margin, y);
+            y += 20;
+            doc.setDrawColor(200);
+            doc.setLineWidth(0.5);
+            doc.line(margin, y - 15, 612 - margin, y - 15);
+        }
+
+        Object.keys(ownerGroup).sort((a, b) => {
+            const indexA = CATEGORY_ORDER.indexOf(a);
+            const indexB = CATEGORY_ORDER.indexOf(b);
+            if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+        }).forEach(cat => {
+            checkPageBreak(30); 
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.setTextColor(0, 119, 255); 
+            doc.text(cat, margin, y);
+            doc.setTextColor(0); 
+            y += 18;
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            ownerGroup[cat].sort((a, b) => a.name.localeCompare(b.name)).forEach(row => {
+                const bullet = "• " + sanitizeText(row.name) + "  (x" + row.count + ")";
+                const wrapped = doc.splitTextToSize(bullet, 514);
+                wrapped.forEach((ln: string) => {
+                checkPageBreak(lineH);
+                doc.text(ln, margin + 10, y);
+                y += lineH;
+                });
+                y += 4; 
+            });
+            y += 12;
         });
-        y += 4; // Extra spacing between items
-      });
-      y += 12;
+        
+        y += 15; 
     });
 
     if (notes) {
@@ -262,7 +503,7 @@ export default function Rentals() {
       y += 10;
       doc.setDrawColor(200);
       doc.setLineWidth(1);
-      doc.line(margin, y, 612 - margin, y); // Separator line
+      doc.line(margin, y, 612 - margin, y); 
       y += 20;
 
       doc.setFont("helvetica", "bold");
@@ -283,7 +524,6 @@ export default function Rentals() {
       y += 20;
       checkPageBreak(lineH);
       
-      // Box style for Total
       doc.setFillColor(245, 245, 245);
       doc.rect(margin, y - 10, 516, 30, "F");
       
@@ -327,70 +567,70 @@ export default function Rentals() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <div className="space-y-1">
-          <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Job Title</label>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+        <div className="space-y-0.5">
+          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Job Title</label>
           <input 
             type="text" 
             value={jobTitle}
             onChange={(e) => setJobTitle(e.target.value)}
             placeholder="E.G. MOULIN ROUGE"
-            className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
+            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
           />
         </div>
-        <div className="space-y-1">
-          <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Shoot Date</label>
+        <div className="space-y-0.5">
+          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Shoot Date</label>
           <input 
             type="date" 
             value={shootDate}
             onChange={(e) => setShootDate(e.target.value)}
-            className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
+            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
           />
         </div>
-        <div className="space-y-1">
-          <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Contact</label>
+        <div className="space-y-0.5">
+          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Contact</label>
           <input 
             type="text" 
             value={contactEmail}
             onChange={(e) => setContactEmail(e.target.value)}
             placeholder="EMAIL@CLIENT.COM"
-            className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
+            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
           />
         </div>
-        <div className="space-y-1">
-          <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Company</label>
+        <div className="space-y-0.5">
+          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Company</label>
           <input 
             type="text" 
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
-            className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
+            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
           />
         </div>
-        <div className="space-y-1 md:col-span-2">
-          <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Location</label>
+        <div className="space-y-0.5 md:col-span-2">
+          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Location</label>
           <input 
             type="text" 
             value={companyAddr}
             onChange={(e) => setCompanyAddr(e.target.value)}
-            className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
+            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
           />
         </div>
       </div>
 
-      <div className="space-y-1 mb-8">
-        <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Production Notes</label>
+      <div className="space-y-0.5 mb-6">
+        <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Production Notes</label>
         <textarea 
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          rows={2}
+          rows={1}
           placeholder="CALL TIME, PARKING, ETC..."
-          className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg resize-none"
+          className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg resize-none"
         />
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-[300px] mb-8 pr-2 custom-scrollbar">
         <AnimatePresence mode="popLayout">
-          {Object.keys(manifestGrouped).length === 0 ? (
+          {Object.keys(manifestByOwner).length === 0 ? (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -399,37 +639,58 @@ export default function Rentals() {
               <p className="uppercase text-[10px] tracking-[0.3em] font-bold">Manifest is empty</p>
             </motion.div>
           ) : (
-            Object.entries(manifestGrouped).map(([cat, items]) => (
-              <motion.div 
-                key={cat}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                className="mb-6"
-              >
-                <h3 className="text-[10px] font-bold tracking-[0.4em] uppercase text-accent mb-3 ml-1">{cat}</h3>
-                <div className="space-y-2">
-                  {items.map((item) => {
-                     const invItem = INVENTORY.find(i => i.name === item.name);
-                     return (
-                      <div key={item.name} className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5 group">
-                        <div className="flex-1 min-w-0 pr-4">
-                          <p className="text-xs font-bold uppercase truncate">{item.name}</p>
-                          <p className="text-[10px] opacity-40 font-bold tracking-widest uppercase">
-                            X{item.count} • ${( (invItem?.replacement || 0) * item.count ).toLocaleString()}
-                          </p>
+            // Group by Owner
+            Object.keys(manifestByOwner).sort((a, b) => {
+                if (a === 'Zipline Media') return -1;
+                if (b === 'Zipline Media') return 1;
+                return a.localeCompare(b);
+            }).map(owner => (
+                <motion.div key={owner} className="mb-8">
+                    {(owner !== 'Zipline Media' || Object.keys(manifestByOwner).length > 1) && (
+                        <h2 className={`text-xs font-black uppercase tracking-[0.2em] mb-4 pb-2 border-b border-white/10 ${owner === 'Zipline Media' ? 'text-white' : 'text-red-500'}`}>
+                            {owner}
+                        </h2>
+                    )}
+                    
+                    {Object.entries(manifestByOwner[owner]).map(([cat, items]) => (
+                        <div key={cat} className="mb-4 pl-2 border-l border-white/5">
+                            <h3 className="text-[10px] font-bold tracking-[0.4em] uppercase text-accent mb-2 ml-1">{cat}</h3>
+                            <div className="space-y-2">
+                            {items.map((item) => {
+                                const invItem = allInventory.find(i => i.name === item.name);
+                                const isCustom = customGear.some(c => c.name === item.name);
+                                
+                                return (
+                                <div key={item.name} className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5 group">
+                                    <div className="flex-1 min-w-0 pr-4">
+                                    <p className="text-xs font-bold uppercase truncate">{item.name}</p>
+                                    <p className="text-[10px] opacity-40 font-bold tracking-widest uppercase">
+                                        X{item.count} • ${( (invItem?.replacement || 0) * item.count ).toLocaleString()}
+                                    </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {isCustom && (
+                                            <button
+                                                onClick={() => handleEdit(invItem!)}
+                                                className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 hover:text-white transition-all rounded-md"
+                                            >
+                                                <Pencil className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                        <button 
+                                            onClick={() => removeFromManifest(item.name)}
+                                            className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/20 hover:text-red-500 transition-all rounded-md"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                </div>
+                                )
+                            })}
+                            </div>
                         </div>
-                        <button 
-                          onClick={() => removeFromManifest(item.name)}
-                          className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/20 hover:text-red-500 transition-all rounded-md"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                     )
-                  })}
-                </div>
-              </motion.div>
+                    ))}
+                </motion.div>
             ))
           )}
         </AnimatePresence>
@@ -476,109 +737,102 @@ export default function Rentals() {
 
   return (
     <div className="pt-8 pb-32 lg:pb-8">
+        <AnimatePresence>
+          {hoveredImage && <ImageTooltip src={hoveredImage} />}
+        </AnimatePresence>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* Left Column: Gear Library */}
           <div className="lg:col-span-7 space-y-8">
-            <section className="bg-neutral-900/50 border border-white/10 p-6 md:p-8 rounded-2xl">
-              <div className="flex flex-col md:flex-row gap-4 mb-8">
-                <div className="relative flex-1">
+            <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-[80vh] md:h-[calc(100vh-140px)] sticky top-24">
+              
+              <div className="bg-neutral-900/90 backdrop-blur-md p-4 md:p-0 z-20 sticky top-0 border-b md:border-b-0 border-white/10 space-y-4">
+                <div className="flex gap-4">
+                  <select 
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="flex-1 bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-xl appearance-none cursor-pointer"
+                  >
+                    <option value="All">ALL CATEGORIES</option>
+                    {ALL_CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat.toUpperCase()}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={openAddModal}
+                    className="bg-white text-black px-4 font-black uppercase text-[10px] tracking-widest hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-white/5 whitespace-nowrap flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden md:inline">Custom</span>
+                  </button>
+                </div>
+
+                <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
                   <input 
                     type="text" 
                     placeholder="SEARCH GEAR..." 
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 py-4 pl-12 pr-4 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-xl"
+                    className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-10 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-xl"
                   />
+                  {search && (
+                    <button 
+                      onClick={() => setSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/40 hover:text-white transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
-                <select 
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="bg-black/50 border border-white/10 py-4 px-6 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-xl appearance-none cursor-pointer"
-                >
-                  <option value="All">ALL CATEGORIES</option>
-                  {ALL_CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat.toUpperCase()}</option>
-                  ))}
-                </select>
               </div>
 
-              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                {filteredItems.length === 0 ? (
-                  <div className="py-20 text-center opacity-40">
-                    <Package className="w-12 h-12 mx-auto mb-4" />
-                    <p className="uppercase text-xs tracking-widest font-bold">No gear found</p>
-                  </div>
+              <div className="flex-1 overflow-y-auto p-4 md:px-0 custom-scrollbar">
+                {filteredGroupedItems ? (
+                   Object.keys(filteredGroupedItems).sort().map(cat => (
+                     <div key={cat} className="mb-8 last:mb-0">
+                       <h3 className="sticky top-0 bg-neutral-900/95 backdrop-blur z-10 py-2 text-[10px] font-bold tracking-[0.4em] uppercase text-accent mb-2 border-b border-white/10">{cat}</h3>
+                       <div className="space-y-2">
+                         {filteredGroupedItems[cat].map(item => (
+                            <GearItem 
+                              key={item.name} 
+                              item={item} 
+                              manifestCount={manifest[item.name] || 0}
+                              onUpdate={updateManifest} 
+                              onHover={setHoveredImage}
+                            />
+                         ))}
+                       </div>
+                     </div>
+                   ))
                 ) : (
-                  filteredItems.map((item) => (
-                    <div 
-                      key={item.name}
-                      className="group flex items-center justify-between p-4 border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all rounded-xl"
-                    >
-                      <div className="flex-1 min-w-0 pr-4">
-                        <h3 className="text-sm font-bold uppercase tracking-tight mb-1 truncate">{item.name}</h3>
-                        <p className="text-[10px] opacity-40 font-bold uppercase tracking-[0.2em]">
-                          {item.category} • QTY: {item.qty} • ${item.replacement.toLocaleString()}
-                        </p>
+                  <div className="space-y-2">
+                    {filteredItems.length === 0 ? (
+                      <div className="py-20 text-center opacity-40">
+                        <Package className="w-12 h-12 mx-auto mb-4" />
+                        <p className="uppercase text-xs tracking-widest font-bold">No gear found</p>
                       </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <button 
-                          onClick={() => updateManifest(item.name, -1)}
-                          disabled={!manifest[item.name]}
-                          className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center border border-white/10 rounded-lg hover:bg-white/10 disabled:opacity-20 transition-colors"
-                        >
-                          <Minus className="w-4 h-4 md:w-3 md:h-3" />
-                        </button>
-                        <span className={`w-6 text-center text-sm font-black ${manifest[item.name] ? 'text-accent' : 'opacity-20'}`}>
-                          {manifest[item.name] || 0}
-                        </span>
-                        <button 
-                          onClick={() => updateManifest(item.name, 1)}
-                          disabled={(manifest[item.name] || 0) >= item.qty}
-                          className="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center bg-white text-black rounded-lg hover:bg-accent hover:text-white disabled:opacity-20 transition-all"
-                        >
-                          <Plus className="w-4 h-4 md:w-3 md:h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                    ) : (
+                      filteredItems.map((item) => (
+                        <GearItem 
+                          key={item.name} 
+                          item={item} 
+                          manifestCount={manifest[item.name] || 0}
+                          onUpdate={updateManifest}
+                          onHover={setHoveredImage} 
+                        />
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             </section>
           </div>
 
-          {/* Right Column: Desktop Manifest */}
           <div className="hidden lg:block lg:col-span-5 space-y-8">
             {ManifestContent}
           </div>
         </div>
 
-        {/* Mobile Bottom Bar */}
-        <AnimatePresence>
-          {Object.keys(manifest).length > 0 && (
-            <motion.div 
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="fixed bottom-6 left-6 right-6 bg-neutral-900/90 backdrop-blur-md border border-white/10 p-4 rounded-2xl z-40 lg:hidden flex items-center justify-between shadow-2xl ring-1 ring-white/10"
-            >
-              <div className="flex flex-col">
-                <span className="text-[9px] font-bold tracking-[0.2em] uppercase opacity-60 mb-1">Total Value</span>
-                <span className="text-xl font-black text-accent">${grandTotal.toLocaleString()}</span>
-              </div>
-              <button 
-                onClick={() => setIsMobileManifestOpen(true)}
-                className="flex items-center gap-2 bg-white text-black px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-accent hover:text-white transition-all shadow-lg"
-              >
-                <Layers className="w-4 h-4" /> 
-                <span>Manifest ({Object.values(manifest).reduce((a, b) => a + b, 0)})</span>
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Mobile Manifest Modal */}
         <AnimatePresence>
           {isMobileManifestOpen && (
             <motion.div 
@@ -594,23 +848,106 @@ export default function Rentals() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <AnimatePresence>
+          {isCustomModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsCustomModalOpen(false)}
+                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative bg-neutral-900 border border-white/10 p-8 rounded-2xl w-full max-w-md shadow-2xl"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-black uppercase tracking-tighter">{editingItemName ? 'Edit Custom Gear' : 'Add Custom Gear'}</h2>
+                  <button onClick={() => setIsCustomModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Owner / Source <span className="opacity-50">(Optional)</span></label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
+                      <input 
+                        type="text" 
+                        value={customOwner}
+                        onChange={(e) => setCustomOwner(e.target.value)}
+                        placeholder="E.G. RENTAL HOUSE A"
+                        className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-4 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Item Name</label>
+                    <input 
+                      type="text" 
+                      value={customName}
+                      onChange={(e) => setCustomName(e.target.value)}
+                      placeholder="E.G. RED KOMODO"
+                      autoFocus
+                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Category</label>
+                    <select 
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg appearance-none"
+                    >
+                      {ALL_CATEGORIES.map(cat => (
+                        <option key={cat} value={cat}>{cat.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-1">
+                      <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Quantity</label>
+                      <input 
+                        type="number" 
+                        min="1"
+                        value={customQty}
+                        onChange={(e) => setCustomQty(parseInt(e.target.value) || 1)}
+                        className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Value ($)</label>
+                      <input 
+                        type="number" 
+                        min="0"
+                        value={customValue}
+                        onChange={(e) => setCustomValue(parseInt(e.target.value) || 0)}
+                        className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg"
+                      />
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={addCustomItem}
+                    disabled={!customName.trim()}
+                    className="w-full bg-accent text-white py-4 mt-4 font-black tracking-widest uppercase text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
+                  >
+                    {editingItemName ? 'Save Changes' : 'Add to Manifest'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
         
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: var(--accent);
-        }
-      `}</style>
     </div>
   );
 }

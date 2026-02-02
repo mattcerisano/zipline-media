@@ -373,7 +373,7 @@ function Contact() {
                 type="text" 
                 name="name"
                 required
-                className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors uppercase text-sm" 
+                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors uppercase text-sm" 
               />
             </div>
             
@@ -383,7 +383,7 @@ function Contact() {
                 type="email" 
                 name="email"
                 required
-                className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors uppercase text-sm" 
+                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors uppercase text-sm" 
               />
             </div>
 
@@ -391,7 +391,7 @@ function Contact() {
               <label className="text-xs tracking-[0.4em] uppercase opacity-40 font-bold">Project Type</label>
               <select 
                 name="projectType"
-                className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors appearance-none uppercase text-sm rounded-none"
+                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors appearance-none uppercase text-sm rounded-none"
               >
                 <option className="bg-black">Performance / Narrative</option>
                 <option className="bg-black">Brand / Corporate</option>
@@ -406,7 +406,7 @@ function Contact() {
                 name="message"
                 rows={4} 
                 required
-                className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition-colors resize-none uppercase text-sm" 
+                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors resize-none uppercase text-sm" 
               />
             </div>
 

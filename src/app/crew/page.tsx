@@ -2,19 +2,25 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, Clapperboard, LogOut } from 'lucide-react';
-import Rentals from '@/components/crew/Rentals';
-import Slate from '@/components/crew/Slate';
+import { Camera, Calendar as CalendarIcon, Users, Briefcase, LogOut, FileText } from 'lucide-react';
 import Link from 'next/link';
+import Rentals from '@/components/crew/Rentals';
+import Jobs from '@/components/crew/Jobs';
+import SlateJobs from '@/components/crew/SlateJobs';
+import Rolodex from '@/components/crew/Rolodex';
+import ProductionCalendar from '@/components/crew/ProductionCalendar';
 
-type Tab = 'slate' | 'rentals';
+type Tab = 'jobs' | 'rolodex' | 'calendar' | 'gear' | 'slate';
 
 export default function CrewPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('slate');
+  const [activeTab, setActiveTab] = useState<Tab>('gear');
 
   const tabs = [
-    { id: 'slate', label: 'Slate', icon: Clapperboard },
-    { id: 'rentals', label: 'Gear Builder', icon: Camera },
+    { id: 'jobs', label: 'Production', icon: Briefcase },
+    { id: 'slate', label: 'Call Sheets', icon: FileText },
+    { id: 'rolodex', label: 'Rolodex', icon: Users },
+    { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
+    { id: 'gear', label: 'Gear Builder', icon: Camera },
   ];
 
   return (
@@ -29,7 +35,7 @@ export default function CrewPage() {
           <h1 className="text-sm font-black tracking-[0.2em] uppercase hidden md:block">Crew Portal</h1>
         </div>
 
-        <nav className="flex items-center gap-2 bg-white/5 p-1 rounded-full border border-white/5 overflow-x-auto max-w-[200px] md:max-w-none no-scrollbar">
+        <nav className="flex items-center gap-2 bg-white/5 p-1 rounded-full border border-white/5 overflow-x-auto md:max-w-none no-scrollbar">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -66,8 +72,11 @@ export default function CrewPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          {activeTab === 'rentals' && <Rentals />}
-          {activeTab === 'slate' && <Slate />}
+          {activeTab === 'jobs' && <Jobs />}
+          {activeTab === 'slate' && <SlateJobs />}
+          {activeTab === 'rolodex' && <Rolodex />}
+          {activeTab === 'calendar' && <ProductionCalendar />}
+          {activeTab === 'gear' && <Rentals />}
         </motion.div>
       </main>
     </div>

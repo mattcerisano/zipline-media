@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
+  --background: #000000;
   --foreground: #ffffff;
   --accent: #0077FF;
 }
@@ -14,7 +14,6 @@ html {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
-  --font-montserrat: var(--font-montserrat);
 }
 
 @font-face {
@@ -41,14 +40,39 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1 {
-  font-family: var(--font-montserrat), sans-serif;
-  text-transform: uppercase;
+::selection {
+  background-color: var(--accent);
+  color: white;
 }
 
-h2, h3, h4, h5, h6, .font-bold-sans, nav a {
+/* --- Global Scrollbar --- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* --- Utilities --- */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* --- Typography --- */
+h1, h2, h3, h4, h5, h6, nav a, button {
   font-family: 'LuloClean', sans-serif;
-  font-weight: bold;
   text-transform: uppercase;
 }
 

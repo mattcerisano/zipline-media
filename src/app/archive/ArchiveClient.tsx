@@ -40,7 +40,7 @@ export default function ArchiveClient() {
     <main className="min-h-screen bg-black text-white p-6 md:p-12 pt-32 md:pt-40">
       <div className="max-w-[1600px] mx-auto">
         <header className="mb-16 flex flex-col gap-8">
-          <Link href="/" className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-60 hover:opacity-100">
+          <Link href="/" className="flex items-center gap-2 text-sm uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-70 hover:opacity-100">
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Link>
