@@ -34,15 +34,45 @@ import {
 
   User,
 
-  Pencil
+  Pencil,
+
+  Sun,
+
+  Car,
+
+  Stethoscope,
+
+  MapPin,
+
+  ExternalLink,
+
+  Calendar
 
 } from 'lucide-react';
 
 import { jsPDF } from 'jspdf';
+import Autocomplete from 'react-google-autocomplete';
 
 import { INVENTORY, ALL_CATEGORIES, type InventoryItem } from '@/data/inventory';
+import { STORAGE_KEY_CLIENTS, STORAGE_KEY_JOBS, Client, Job } from './types';
+import ProductionCalendar from './ProductionCalendar';
 
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+// Helper: Weather Code to Text
+const weatherCodeToText = (code: number) => {
+  const map: Record<number, string> = {
+    0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+    45: 'Fog', 48: 'Depositing rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle',
+    55: 'Dense drizzle', 56: 'Light freezing drizzle', 57: 'Dense freezing drizzle',
+    61: 'Slight rain', 63: 'Rain', 65: 'Heavy rain', 66: 'Light freezing rain', 67: 'Heavy freezing rain',
+    71: 'Slight snow', 73: 'Snow', 75: 'Heavy snow', 77: 'Snow grains',
+    80: 'Rain showers', 81: 'Moderate rain showers', 82: 'Violent rain showers',
+    85: 'Snow showers', 86: 'Heavy snow showers',
+    95: 'Thunderstorm', 96: 'Thunderstorm with hail', 99: 'Thunderstorm with heavy hail',
+  };
+  return map[code] || `Unknown (${code})`;
+};
 
 interface ManifestItem {
 
@@ -201,11 +231,46 @@ export default function Rentals() {
   const [jobTitle, setJobTitle] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [companyName, setCompanyName] = useState('Zipline Media');
-  const [companyAddr, setCompanyAddr] = useState('New York, NY');
+  const [companyAddr, setCompanyAddr] = useState('');
   const [notes, setNotes] = useState('');
   const [shootDate, setShootDate] = useState('');
   const [includeReplacementValue, setIncludeReplacementValue] = useState(false);
   const [isMobileManifestOpen, setIsMobileManifestOpen] = useState(false);
+  const [isJobPickerOpen, setIsJobPickerOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isRentalCalendarOpen, setIsRentalCalendarOpen] = useState(false); // For Rental Mode
+
+  // Rental Mode State
+  const [isRentalMode, setIsRentalMode] = useState(false);
+  const [rentalStartDate, setRentalStartDate] = useState('');
+  const [rentalEndDate, setRentalEndDate] = useState('');
+  const [renterName, setRenterName] = useState('');
+
+  // External API States
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [hospitalLoading, setHospitalLoading] = useState(false);
+  const [parkingLoading, setParkingLoading] = useState(false);
+  const [weatherSuccess, setWeatherSuccess] = useState(false);
+  const [hospitalSuccess, setHospitalSuccess] = useState(false);
+  const [parkingSuccess, setParkingSuccess] = useState(false);
+  const [weatherSummary, setWeatherSummary] = useState<string | null>(null);
+  const [weatherLink, setWeatherLink] = useState<string | null>(null);
+  const [nearestHospital, setNearestHospital] = useState<{name: string, address: string} | null>(null);
+  const [nearestParking, setNearestParking] = useState<{name: string, address: string} | null>(null);
+  const [hoveredLogistics, setHoveredLogistics] = useState<'weather' | 'hospital' | 'parking' | null>(null);
+  
+  // Rolodex Data
+  const [clients, setClients] = useState<Client[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const cl = localStorage.getItem(STORAGE_KEY_CLIENTS);
+    if (cl) setClients(JSON.parse(cl));
+    
+    const j = localStorage.getItem(STORAGE_KEY_JOBS);
+    if (j) setJobs(JSON.parse(j));
+  }, []);
 
   const allInventory = useMemo(() => {
     return [...INVENTORY, ...customGear].sort((a, b) => a.name.localeCompare(b.name));
@@ -341,15 +406,179 @@ export default function Rentals() {
     setSearch('');
     setFilterCategory('All');
     setCustomGear([]); 
+    setWeatherSummary(null);
+    setWeatherLink(null);
+    setNearestHospital(null);
+    setNearestParking(null);
+    setWeatherSuccess(false);
+    setHospitalSuccess(false);
+    setParkingSuccess(false);
+    setParkingLoading(false);
+  };
+
+  const fetchWeather = async () => {
+    if (!shootDate || !companyAddr) {
+        alert('Please enter a Location and Shoot Date first.');
+        return;
+    }
+    setWeatherLoading(true);
+    setWeatherSuccess(false);
+    try {
+        // 1. Geocode with Google
+        const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(companyAddr)}&key=${GOOGLE_MAPS_API_KEY}`);
+        const geoData = await geoRes.json();
+        
+        if (geoData.status !== 'OK' || !geoData.results[0]) throw new Error('Address not found');
+        const { lat, lng } = geoData.results[0].geometry.location;
+
+        // 2. Weather
+        const date = new Date(shootDate).toISOString().slice(0, 10);
+        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max&temperature_unit=fahrenheit&timezone=auto&start_date=${date}&end_date=${date}`);
+        const wData = await wRes.json();
+
+        if (wData.daily) {
+            const code = wData.daily.weathercode[0];
+            const temp = wData.daily.temperature_2m_max[0];
+            const summary = `${weatherCodeToText(code)} • High: ${temp}°F`;
+            setWeatherSummary(summary);
+            setWeatherLink(`https://www.wunderground.com/weather/${lat},${lng}`);
+            setWeatherSuccess(true);
+        }
+    } catch (err) {
+        console.error(err);
+        alert('Could not fetch weather. Check address and date.');
+    } finally {
+        setWeatherLoading(false);
+    }
+  };
+
+
+  const findHospital = async () => {
+     if (!companyAddr) {
+         alert('Please enter a location address first.');
+         return;
+     }
+     setHospitalLoading(true);
+     setHospitalSuccess(false);
+     try {
+         const res = await fetch(`/api/hospital?address=${encodeURIComponent(companyAddr)}`);
+         const data = await res.json();
+         
+         if (res.ok && data) {
+             setNearestHospital({ name: data.name, address: data.address });
+             setHospitalSuccess(true);
+         } else {
+             alert(data.error || 'No hospital found nearby.');
+         }
+     } catch (err) {
+         console.error(err);
+         alert('Error searching for hospital.');
+     } finally {
+         setHospitalLoading(false);
+     }
+  };
+
+  const findParking = async () => {
+      if (!companyAddr) {
+          alert('Please enter a location address first.');
+          return;
+      }
+      setParkingLoading(true);
+      setParkingSuccess(false);
+      try {
+          const res = await fetch(`/api/parking?address=${encodeURIComponent(companyAddr)}`);
+          const data = await res.json();
+          
+          if (res.ok && data && data.place_id) {
+              setNearestParking({ name: data.name, address: data.address });
+              setParkingSuccess(true);
+          } else {
+              alert(data.error || 'No legitimate parking found nearby.');
+          }
+      } catch (err) {
+          console.error(err);
+          alert('Error searching for parking.');
+      } finally {
+          setParkingLoading(false);
+      }
+  };
+
+  const saveRental = () => {
+      if (!renterName || !rentalStartDate || !rentalEndDate) {
+          alert('Please fill in Renter Name, Start Date, and End Date.');
+          return;
+      }
+
+      const newRental: Job = {
+          id: crypto.randomUUID(),
+          title: `Rental: ${renterName}`,
+          client_name: renterName,
+          type: 'rental',
+          shoot_date: rentalStartDate,
+          end_date: rentalEndDate,
+          job_status: 'Booked', // Rentals are usually booked if logged
+          gear_manifest: manifest,
+          notes_general: notes,
+          job_roles: [],
+          updated_at: new Date().toISOString()
+      };
+
+      const savedJobs = localStorage.getItem(STORAGE_KEY_JOBS);
+      const currentJobs = savedJobs ? JSON.parse(savedJobs) : [];
+      const updatedJobs = [...currentJobs, newRental];
+      
+      localStorage.setItem(STORAGE_KEY_JOBS, JSON.stringify(updatedJobs));
+      setJobs(updatedJobs); // Update local state if needed
+      
+      alert('Rental logged to calendar successfully!');
+      // Optional: Reset rental fields
+      setIsRentalMode(false);
+      setRentalStartDate('');
+      setRentalEndDate('');
+      setRenterName('');
   };
 
   const exportPDF = async () => {
+    // Helper to load assets
+    const loadAsset = async (path: string): Promise<string> => {
+        try {
+            const res = await fetch(path);
+            const blob = await res.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            console.error("Error loading asset:", path, e);
+            return '';
+        }
+    };
+
     const doc = new jsPDF({ unit: "pt", format: "letter" });
-    const margin = 48;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 30; // Adjusted to match Call Sheet margin approx (12mm approx 34pt, let's use 30pt)
+    const contentWidth = pageWidth - (margin * 2);
     const PAGE_BOTTOM = 750;
-    let y = margin;
+    let y = 30;
     const lineH = 14;
     doc.setLineHeightFactor(1.2);
+
+    // --- LOAD ASSETS ---
+    const logoData = await loadAsset('/Zipline Logo FULL Blue.png');
+    const fontData = await loadAsset('/Webrush Demo.ttf');
+
+    // Add Font
+    if (fontData) {
+        const fontBase64 = fontData.split(',')[1];
+        doc.addFileToVFS('Webrush.ttf', fontBase64);
+        doc.addFont('Webrush.ttf', 'Webrush', 'normal');
+    }
+
+    // --- COLORS ---
+    const ZIPLINE_BLUE = '#0077FF';
+    const TEXT_DARK = '#111111';
+    const TEXT_GRAY = '#666666';
 
     const checkPageBreak = (needed: number) => {
       if (y + needed > PAGE_BOTTOM) {
@@ -365,74 +594,152 @@ export default function Rentals() {
     };
 
     const date = new Date().toLocaleDateString();
-    
+
     // --- HEADER ---
-    const logoUrl = "/Zipline Logo FULL Blue.png";
-    const logoImg = new Image();
-    logoImg.src = logoUrl;
-    await new Promise((resolve) => {
-      logoImg.onload = resolve;
-      logoImg.onerror = resolve; 
-    });
-
-    const logoWidth = 140;
-    const logoRatio = logoImg.height && logoImg.width ? logoImg.height / logoImg.width : 0.5;
-    const logoHeight = logoWidth * logoRatio;
-
-    if (logoImg.complete && logoImg.naturalWidth > 0) {
-      doc.addImage(logoImg, "PNG", margin, y, logoWidth, logoHeight);
+    // Logo (Left)
+    if (logoData) {
+        doc.addImage(logoData, 'PNG', margin, 20, 120, 30); 
     } else {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.text(companyName || "Gear Manifest", margin, y + 20);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.setTextColor(ZIPLINE_BLUE);
+        doc.text('ZIPLINE MEDIA', margin, 40);
     }
 
-    const rightColX = 320;
-    let infoY = y + 10;
-    
-    const formatDate = (d: string) => {
-      if (!d) return "";
-      const dateObj = new Date(d + 'T12:00:00');
-      return dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    };
-
-    if (jobTitle) {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.text(jobTitle.toUpperCase(), rightColX, infoY);
-      infoY += 16;
+    // Title (Right)
+    doc.setTextColor(TEXT_DARK);
+    if (fontData) {
+        doc.setFont('Webrush', 'normal');
+        doc.setFontSize(40);
+        doc.text('Gear Manifest', pageWidth - margin, 45, { align: 'right' });
+    } else {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(30);
+        doc.text('GEAR MANIFEST', pageWidth - margin, 45, { align: 'right' });
     }
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(80); 
-
-    const addDetail = (label: string, value: string) => {
-      if (!value) return;
-      doc.setFont("helvetica", "bold");
-      doc.text(label, rightColX, infoY);
-      const labelWidth = doc.getTextWidth(label);
-      doc.setFont("helvetica", "normal");
-      doc.text(value, rightColX + labelWidth + 5, infoY);
-      infoY += 12;
-    };
-
-    if (shootDate) addDetail("SHOOT DATE:", formatDate(shootDate).toUpperCase());
-    if (companyAddr) addDetail("LOC:", companyAddr.toUpperCase());
-    if (contactEmail) addDetail("CONTACT:", contactEmail.toUpperCase());
-    
-    infoY += 4;
+    // Generated Date
     doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text("Generated: " + date, rightColX, infoY);
-    
-    doc.setTextColor(0);
-    const headerHeight = Math.max(logoHeight, infoY - y) + 10;
-    y += headerHeight;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(TEXT_GRAY);
+    doc.text(`Generated: ${date}`, pageWidth - margin, 58, { align: 'right' });
 
-    doc.setDrawColor(0, 119, 255); 
+    y = 70;
+
+    // --- HERO BAR ---
+    doc.setFillColor(TEXT_DARK);
+    doc.rect(0, y, pageWidth, 24, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    
+    // Date (Left)
+    doc.setFontSize(12);
+    const dateStr = shootDate ? new Date(shootDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase() : new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase();
+    doc.text(`SHOOT DATE: ${dateStr}`, margin, y + 16);
+
+    // Job Title (Right)
+    if (jobTitle) {
+        doc.text(jobTitle.toUpperCase(), pageWidth - margin, y + 16, { align: 'right' });
+    }
+
+    y += 40;
+
+    // --- INFO GRID (3x2 Compact) ---
+    const col1X = margin;
+    const col2X = margin + 180;
+    const col3X = margin + 360;
+    
+    const row1Y = y;
+    const row2Y = y + 35; // Tighter row spacing
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(TEXT_GRAY);
+
+    // Row 1 Headers
+    doc.text('GENERATED BY', col1X, row1Y);
+    doc.text('GENERATED FOR', col2X, row1Y);
+    doc.text('LOCATION', col3X, row1Y);
+
+    // Values
+    doc.setFontSize(9); // Slightly smaller for compactness
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(TEXT_DARK);
+
+    // Row 1 Values
+    doc.text(companyName || 'Zipline Media', col1X, row1Y + 10);
+    doc.text(contactEmail || '—', col2X, row1Y + 10);
+    
+    if (companyAddr) {
+        const locLines = doc.splitTextToSize(companyAddr, 160);
+        doc.text(locLines[0] + (locLines.length > 1 ? '...' : ''), col3X, row1Y + 10);
+    } else {
+        doc.text('—', col3X, row1Y + 10);
+    }
+
+    // Row 2 Values
+    // Check if any Row 2 data exists
+    const hasLogistics = weatherSummary || nearestHospital || nearestParking;
+
+    if (hasLogistics) {
+        doc.text('WEATHER', col1X, row2Y);
+        doc.text('HOSPITAL', col2X, row2Y);
+        doc.text('PARKING', col3X, row2Y);
+
+        doc.text(weatherSummary || 'N/A', col1X, row2Y + 10);
+
+        if (nearestHospital) {
+            const hospName = nearestHospital.name.length > 30 ? nearestHospital.name.substring(0, 28) + '...' : nearestHospital.name;
+            doc.text(hospName, col2X, row2Y + 10);
+        } else {
+            doc.text('—', col2X, row2Y + 10);
+        }
+
+        if (nearestParking) {
+            const parkName = nearestParking.name.length > 30 ? nearestParking.name.substring(0, 28) + '...' : nearestParking.name;
+            doc.text(parkName, col3X, row2Y + 10);
+        } else {
+            doc.text('—', col3X, row2Y + 10);
+        }
+        
+        y = row2Y + 30;
+    } else {
+        // If no logistics, Row 1 ended at row1Y + 10 approx.
+        // We can just set y to be closer to Row 1.
+        y = row1Y + 30; 
+    }
+
+    // --- NOTES (Moved to Header) ---
+    if (notes) {
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(TEXT_GRAY);
+      doc.text("NOTES", margin, y);
+      y += 12;
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(TEXT_DARK);
+      const wrapped = doc.splitTextToSize(notes, contentWidth);
+      wrapped.forEach((ln: string) => {
+        // checkPageBreak in header might be tricky if notes are huge, 
+        // but typically header notes are brief. 
+        // Ideally we don't break page in header, but if we must:
+        if (y + lineH > PAGE_BOTTOM) {
+            doc.addPage();
+            y = margin;
+        }
+        doc.text(ln, margin, y);
+        y += lineH;
+      });
+      y += 10; // Spacing after notes
+    }
+
+    // --- LINE SEPARATOR ---
+    doc.setDrawColor(ZIPLINE_BLUE);
     doc.setLineWidth(2);
-    doc.line(margin, y, 612 - margin, y);
+    doc.line(margin, y, pageWidth - margin, y);
     y += 25;
 
     const CATEGORY_ORDER = [
@@ -455,12 +762,12 @@ export default function Rentals() {
             y += 10;
             doc.setFont("helvetica", "bold");
             doc.setFontSize(14);
-            doc.setTextColor(0); 
+            doc.setTextColor(TEXT_DARK); 
             doc.text(owner.toUpperCase(), margin, y);
             y += 20;
             doc.setDrawColor(200);
             doc.setLineWidth(0.5);
-            doc.line(margin, y - 15, 612 - margin, y - 15);
+            doc.line(margin, y - 15, pageWidth - margin, y - 15);
         }
 
         Object.keys(ownerGroup).sort((a, b) => {
@@ -475,9 +782,9 @@ export default function Rentals() {
 
             doc.setFont("helvetica", "bold");
             doc.setFontSize(12);
-            doc.setTextColor(0, 119, 255); 
+            doc.setTextColor(ZIPLINE_BLUE); 
             doc.text(cat, margin, y);
-            doc.setTextColor(0); 
+            doc.setTextColor(TEXT_DARK); 
             y += 18;
             
             doc.setFont("helvetica", "normal");
@@ -498,44 +805,46 @@ export default function Rentals() {
         y += 15; 
     });
 
-    if (notes) {
-      checkPageBreak(40);
-      y += 10;
-      doc.setDrawColor(200);
-      doc.setLineWidth(1);
-      doc.line(margin, y, 612 - margin, y); 
-      y += 20;
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.text("NOTES", margin, y);
-      y += 16;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      const wrapped = doc.splitTextToSize(notes, 514);
-      wrapped.forEach((ln: string) => {
-        checkPageBreak(lineH);
-        doc.text(ln, margin, y);
-        y += lineH;
-      });
-    }
-
     if (includeReplacementValue) {
       y += 20;
       checkPageBreak(lineH);
       
       doc.setFillColor(245, 245, 245);
-      doc.rect(margin, y - 10, 516, 30, "F");
+      doc.rect(margin, y - 10, contentWidth, 30, "F");
       
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
       doc.text("TOTAL REPLACEMENT VALUE:", margin + 10, y + 8);
       
       doc.setFontSize(12);
-      doc.setTextColor(0, 119, 255);
-      doc.text(`$${grandTotal.toLocaleString()}`, 612 - margin - 10, y + 8, { align: "right" });
-      doc.setTextColor(0);
+      doc.setTextColor(ZIPLINE_BLUE);
+      doc.text(`$${grandTotal.toLocaleString()}`, pageWidth - margin - 10, y + 8, { align: "right" });
+      doc.setTextColor(TEXT_DARK);
       y += lineH;
+    }
+
+    // Save to Rolodex History
+    if (contactEmail) {
+        const clientName = contactEmail.trim();
+        const existingClientIndex = clients.findIndex(c => c.name.toLowerCase() === clientName.toLowerCase());
+        
+        if (existingClientIndex >= 0) {
+            const updatedClients = [...clients];
+            const newEntry = {
+                id: crypto.randomUUID(),
+                type: 'gear' as const,
+                date: shootDate || new Date().toISOString(),
+                title: jobTitle || 'Gear Manifest',
+                summary: `Value: $${grandTotal.toLocaleString()}`
+            };
+            
+            const client = updatedClients[existingClientIndex];
+            client.history = [newEntry, ...(client.history || [])];
+            client.updated_at = new Date().toISOString();
+            
+            setClients(updatedClients);
+            localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(updatedClients));
+        }
     }
 
     const safeJob = jobTitle ? jobTitle.replace(/[^a-z0-9\-_\s]/gi, "").trim().replace(/\s+/g, "_") : "Gear_Manifest";
@@ -544,11 +853,28 @@ export default function Rentals() {
 
   const ManifestContent = (
     <section className="bg-neutral-900/80 border border-white/10 p-6 md:p-8 rounded-2xl lg:sticky lg:top-32 h-full lg:h-auto flex flex-col">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <ClipboardList className="w-5 h-5 text-accent" />
           <h2 className="text-xl font-black uppercase tracking-tighter">Current Manifest</h2>
         </div>
+        
+        {/* Mode Toggle */}
+        <div className="flex bg-black/50 p-1 rounded-lg border border-white/10">
+            <button 
+                onClick={() => setIsRentalMode(false)}
+                className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-all ${!isRentalMode ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
+            >
+                Production
+            </button>
+            <button 
+                onClick={() => setIsRentalMode(true)}
+                className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-all ${isRentalMode ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
+            >
+                Rental
+            </button>
+        </div>
+
         <div className="flex items-center gap-4">
           {Object.keys(manifest).length > 0 && (
             <button 
@@ -567,53 +893,268 @@ export default function Rentals() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+      {isRentalMode ? (
+        <div className="space-y-4 mb-6 p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-4 flex items-center gap-2">
+                <Car className="w-4 h-4" /> Rental Logistics
+            </h3>
+            
+            <div className="space-y-0.5">
+                <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Renter Name</label>
+                <input 
+                    type="text" 
+                    value={renterName}
+                    onChange={(e) => setRenterName(e.target.value)}
+                    placeholder="CLIENT OR RENTER"
+                    list="client-options"
+                    className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-blue-500 transition-colors uppercase text-sm font-bold rounded-lg"
+                />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-0.5">
+                    <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Start Date</label>
+                    <input 
+                        type="date" 
+                        value={rentalStartDate}
+                        onChange={(e) => setRentalStartDate(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-blue-500 transition-colors uppercase text-sm font-bold rounded-lg"
+                    />
+                </div>
+                <div className="space-y-0.5">
+                    <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">End Date</label>
+                    <div className="flex gap-2">
+                        <input 
+                            type="date" 
+                            value={rentalEndDate}
+                            onChange={(e) => setRentalEndDate(e.target.value)}
+                            className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-blue-500 transition-colors uppercase text-sm font-bold rounded-lg"
+                        />
+                        <button 
+                            onClick={() => setIsRentalCalendarOpen(true)}
+                            className="bg-white/10 hover:bg-white/20 p-3 rounded-lg transition-colors text-white"
+                            title="Select Dates from Calendar"
+                        >
+                            <Calendar className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {rentalStartDate && rentalEndDate && (
+                <div className="text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                        Duration: {Math.max(1, Math.ceil((new Date(rentalEndDate).getTime() - new Date(rentalStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)} Days
+                    </p>
+                </div>
+            )}
+
+            <button 
+                onClick={saveRental}
+                className="w-full bg-blue-500 text-white py-3 font-bold uppercase text-xs tracking-widest rounded-lg hover:bg-blue-400 transition-colors shadow-lg shadow-blue-500/20"
+            >
+                Log Rental to Calendar
+            </button>
+        </div>
+      ) : (
+        <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
         <div className="space-y-0.5">
           <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Job Title</label>
           <input 
             type="text" 
             value={jobTitle}
-            onChange={(e) => setJobTitle(e.target.value)}
+            onChange={(e) => {
+                const val = e.target.value;
+                setJobTitle(val);
+                
+                // Autofill attempt
+                const matchedJob = jobs.find(j => j.title.toLowerCase() === val.toLowerCase());
+                if (matchedJob) {
+                    if (matchedJob.shoot_date) setShootDate(matchedJob.shoot_date);
+                    if (matchedJob.client_name) setContactEmail(matchedJob.client_name);
+                    if (matchedJob.location_address) {
+                        setCompanyAddr(matchedJob.location_address);
+                        // Reset logistics to trigger re-fetch if needed (or could pre-fill if we saved them in Job)
+                        setWeatherSuccess(false);
+                        setHospitalSuccess(false);
+                        setParkingSuccess(false);
+                        setWeatherSummary(null);
+                        setNearestHospital(null);
+                        setNearestParking(null);
+                    }
+                    if (matchedJob.notes_general) setNotes(matchedJob.notes_general);
+                }
+            }}
             placeholder="E.G. MOULIN ROUGE"
-            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
+            list="job-list"
+            className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg"
           />
+          <datalist id="job-list">
+            {jobs.map(j => (
+                <option key={j.id} value={j.title}>{j.client_name ? `(${j.client_name})` : ''}</option>
+            ))}
+          </datalist>
         </div>
         <div className="space-y-0.5">
           <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Shoot Date</label>
-          <input 
-            type="date" 
-            value={shootDate}
-            onChange={(e) => setShootDate(e.target.value)}
-            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
-          />
+          <div className="flex gap-2">
+            <input 
+                type="date" 
+                value={shootDate}
+                onChange={(e) => setShootDate(e.target.value)}
+                className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg"
+            />
+            <button 
+                onClick={() => setIsCalendarOpen(true)}
+                className="bg-white/10 hover:bg-white/20 p-3 rounded-lg transition-colors text-white"
+                title="Pick from Production Calendar"
+            >
+                <Calendar className="w-5 h-5" />
+            </button>
+          </div>
         </div>
         <div className="space-y-0.5">
-          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Contact</label>
+          <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Generated For</label>
           <input 
             type="text" 
             value={contactEmail}
             onChange={(e) => setContactEmail(e.target.value)}
-            placeholder="EMAIL@CLIENT.COM"
-            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
+            placeholder="CLIENT NAME"
+            list="client-options"
+            className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg"
           />
+          <datalist id="client-options">
+            {clients.map(client => (
+                <option key={client.id} value={client.name} />
+            ))}
+          </datalist>
         </div>
         <div className="space-y-0.5">
-          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Company</label>
+          <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Generated By</label>
           <input 
             type="text" 
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
-            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
+            className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg"
           />
         </div>
         <div className="space-y-0.5 md:col-span-2">
-          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Location</label>
-          <input 
-            type="text" 
-            value={companyAddr}
-            onChange={(e) => setCompanyAddr(e.target.value)}
-            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg"
+          <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Location</label>
+          <Autocomplete
+            apiKey={GOOGLE_MAPS_API_KEY}
+            onPlaceSelected={(place) => {
+                if (!place) return;
+                setCompanyAddr(place.formatted_address || '');
+                setWeatherSuccess(false);
+                setHospitalSuccess(false);
+                setParkingSuccess(false);
+                setWeatherLink(null);
+                setNearestHospital(null);
+                setNearestParking(null);
+            }}
+            options={{
+                types: ['geocode', 'establishment'],
+                fields: ['formatted_address', 'geometry'],
+                componentRestrictions: { country: 'us' }
+            }}
+            defaultValue={companyAddr}
+            onChange={(e: any) => {
+                setCompanyAddr(e.target.value);
+                setWeatherSuccess(false);
+                setHospitalSuccess(false);
+                setParkingSuccess(false);
+                setWeatherSummary(null);
+                setWeatherLink(null);
+                setNearestHospital(null);
+                setNearestParking(null);
+            }}
+            className="w-full bg-black/5 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg"
+            placeholder="SEARCH FOR A LOCATION..."
           />
+          <div className="flex gap-2 pt-1 relative">
+             {hoveredLogistics && (
+                <div className="absolute bottom-full left-0 mb-2 w-full bg-neutral-900 border border-white/10 p-3 rounded-xl shadow-xl z-50 pointer-events-none">
+                    {hoveredLogistics === 'weather' && (
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Weather Forecast</p>
+                            <p className="text-xs font-bold">{weatherSummary || 'No weather data loaded.'}</p>
+                        </div>
+                    )}
+                    {hoveredLogistics === 'hospital' && (
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1">Nearest Hospital</p>
+                            {nearestHospital ? (
+                                <>
+                                    <p className="text-xs font-bold">{nearestHospital.name}</p>
+                                    <p className="text-[10px] opacity-60">{nearestHospital.address}</p>
+                                </>
+                            ) : <p className="text-xs opacity-50">No hospital found.</p>}
+                        </div>
+                    )}
+                    {hoveredLogistics === 'parking' && (
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">Nearest Parking</p>
+                            {nearestParking ? (
+                                <>
+                                    <p className="text-xs font-bold">{nearestParking.name}</p>
+                                    <p className="text-[10px] opacity-60">{nearestParking.address}</p>
+                                </>
+                            ) : <p className="text-xs opacity-50">No parking found.</p>}
+                        </div>
+                    )}
+                </div>
+             )}
+
+             <button 
+                onClick={() => {
+                    if (weatherSuccess && weatherLink) {
+                        window.open(weatherLink, '_blank');
+                    } else {
+                        fetchWeather();
+                    }
+                }}
+                onMouseEnter={() => setHoveredLogistics('weather')}
+                onMouseLeave={() => setHoveredLogistics(null)}
+                disabled={weatherLoading}
+                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all ${weatherSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
+             >
+                {weatherLoading ? '...' : weatherSuccess ? <Check className="w-3 h-3" /> : <Sun className="w-3 h-3" />}
+                {weatherSuccess ? 'View' : 'Weather'}
+             </button>
+             <button 
+                onClick={() => {
+                    if (hospitalSuccess && nearestHospital) {
+                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nearestHospital.name + ' ' + nearestHospital.address)}`, '_blank');
+                    } else {
+                        findHospital();
+                    }
+                }}
+                onMouseEnter={() => setHoveredLogistics('hospital')}
+                onMouseLeave={() => setHoveredLogistics(null)}
+                disabled={hospitalLoading}
+                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all ${hospitalSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
+             >
+                {hospitalLoading ? '...' : hospitalSuccess ? <Check className="w-3 h-3" /> : <Stethoscope className="w-3 h-3" />}
+                {hospitalSuccess ? 'View' : 'Hospital'}
+             </button>
+             <button 
+                onClick={() => {
+                    if (parkingSuccess && nearestParking) {
+                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nearestParking.name + ' ' + nearestParking.address)}`, '_blank');
+                    } else {
+                        findParking();
+                    }
+                }}
+                onMouseEnter={() => setHoveredLogistics('parking')}
+                onMouseLeave={() => setHoveredLogistics(null)}
+                disabled={parkingLoading}
+                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all ${parkingSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
+             >
+                {parkingLoading ? '...' : parkingSuccess ? <Check className="w-3 h-3" /> : <Car className="w-3 h-3" />}
+                {parkingSuccess ? 'View' : 'Parking'}
+             </button>
+          </div>
         </div>
       </div>
 
@@ -624,9 +1165,11 @@ export default function Rentals() {
           onChange={(e) => setNotes(e.target.value)}
           rows={1}
           placeholder="CALL TIME, PARKING, ETC..."
-          className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors uppercase text-[10px] font-bold tracking-widest rounded-lg resize-none"
+          className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg resize-none"
         />
       </div>
+      </>
+      )}
 
       <div className="flex-1 overflow-y-auto min-h-[300px] mb-8 pr-2 custom-scrollbar">
         <AnimatePresence mode="popLayout">
@@ -700,7 +1243,7 @@ export default function Rentals() {
         <div className="flex justify-between items-end">
           <div className="space-y-1">
             <p className="text-[10px] font-bold tracking-[0.4em] uppercase opacity-40">Total Replacement Value</p>
-            <p className="text-3xl font-black text-accent">${grandTotal.toLocaleString()}</p>
+            {/* <p className="text-3xl font-black text-accent">${grandTotal.toLocaleString()}</p> */}
           </div>
           <label className="flex items-center gap-2 cursor-pointer group select-none">
             <div className={`w-4 h-4 border border-white/20 rounded flex items-center justify-center transition-all ${includeReplacementValue ? 'bg-accent border-accent' : 'bg-transparent group-hover:border-white/40'}`}>
@@ -773,7 +1316,7 @@ export default function Rentals() {
                     placeholder="SEARCH GEAR..." 
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-10 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-xl"
+                    className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-10 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-xl"
                   />
                   {search && (
                     <button 
@@ -790,7 +1333,7 @@ export default function Rentals() {
                 {filteredGroupedItems ? (
                    Object.keys(filteredGroupedItems).sort().map(cat => (
                      <div key={cat} className="mb-8 last:mb-0">
-                       <h3 className="sticky top-0 bg-neutral-900/95 backdrop-blur z-10 py-2 text-[10px] font-bold tracking-[0.4em] uppercase text-accent mb-2 border-b border-white/10">{cat}</h3>
+                       <h3 className="sticky top-0 bg-neutral-900/95 backdrop-blur z-10 py-3 text-sm font-bold tracking-[0.4em] uppercase text-accent mb-2 border-b border-white/10">{cat}</h3>
                        <div className="space-y-2">
                          {filteredGroupedItems[cat].map(item => (
                             <GearItem 
@@ -846,6 +1389,92 @@ export default function Rentals() {
                 {ManifestContent}
               </div>
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isRentalCalendarOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-8">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsRentalCalendarOpen(false)}
+                className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative bg-neutral-900 border border-white/10 w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6"
+              >
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Select Rental Dates (Start & End)</h2>
+                    <button onClick={() => setIsRentalCalendarOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <ProductionCalendar 
+                    selectionMode="range"
+                    onSelectRange={(start, end) => {
+                        setRentalStartDate(start);
+                        setRentalEndDate(end);
+                        setIsRentalCalendarOpen(false);
+                    }}
+                />
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isCalendarOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-8">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsCalendarOpen(false)}
+                className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative bg-neutral-900 border border-white/10 w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6"
+              >
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Select Job or Date</h2>
+                    <button onClick={() => setIsCalendarOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <ProductionCalendar 
+                    onSelectDate={(date) => {
+                        setShootDate(date);
+                        setIsCalendarOpen(false);
+                    }}
+                    onSelectJob={(job) => {
+                        setJobTitle(job.title);
+                        if (job.shoot_date) setShootDate(job.shoot_date);
+                        if (job.client_name) setContactEmail(job.client_name);
+                        if (job.location_address) {
+                            setCompanyAddr(job.location_address);
+                            setWeatherSuccess(false);
+                            setHospitalSuccess(false);
+                            setParkingSuccess(false);
+                            setWeatherSummary(null);
+                            setNearestHospital(null);
+                            setNearestParking(null);
+                        }
+                        if (job.notes_general) setNotes(job.notes_general);
+                        setIsCalendarOpen(false);
+                    }}
+                />
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
 

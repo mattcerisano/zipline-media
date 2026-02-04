@@ -11,6 +11,13 @@ export interface Contact {
   tags?: string;
   notes_general?: string;
   is_favorite: boolean;
+  job_history?: {
+    job_id: string;
+    job_title: string;
+    role: string;
+    date: string;
+    status: string;
+  }[];
   updated_at?: string;
 }
 
@@ -21,6 +28,13 @@ export interface Client {
   phone?: string;
   address?: string;
   notes?: string;
+  history?: {
+    id: string;
+    type: 'job' | 'gear';
+    date: string;
+    title: string;
+    summary?: string;
+  }[];
   updated_at?: string;
 }
 
@@ -44,15 +58,20 @@ export interface Job {
   client_name?: string;
   production_company?: string;
   job_status?: 'Planning' | 'Hold' | 'Booked' | 'Wrapped' | 'Cancelled';
+  type?: 'production' | 'rental';
   shoot_date?: string;
+  end_date?: string;
   call_time?: string;
   location_name?: string;
   location_address?: string;
   nearest_hospital_name?: string;
   nearest_hospital_address?: string;
   nearest_hospital_phone?: string;
+  nearest_parking_name?: string;
+  nearest_parking_address?: string;
   weather_summary?: string;
   gear_list_url?: string;
+  gear_manifest?: Record<string, number>;
   quote_url?: string;
   estimate_url?: string;
   notes_general?: string;

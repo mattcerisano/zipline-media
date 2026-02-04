@@ -1,14 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   DndContext, 
   closestCorners, 
+  rectIntersection,
+  pointerWithin,
   KeyboardSensor, 
   PointerSensor, 
   useSensor, 
   useSensors, 
   DragOverlay,
+  useDroppable,
   defaultDropAnimationSideEffects, 
   DragStartEvent, 
   DragOverEvent, 
@@ -35,7 +38,13 @@ import {
   AlertCircle,
   Pencil,
   Trash2,
-  X
+  X,
+  Briefcase,
+  Layout,
+  UserPlus,
+  Users,
+  Settings,
+  Edit2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -118,6 +127,7 @@ function SortableJobCard({ job, onClick }: { job: Job; onClick: () => void }) {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.3 : 1,
+    touchAction: 'none',
   };
 
   // Status color helpers
@@ -168,18 +178,38 @@ function SortableJobCard({ job, onClick }: { job: Job; onClick: () => void }) {
 // 2. Main Board
 export default function Jobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [workspaces, setWorkspaces] = useState<string[]>([]);
+  
   const [activeId, setActiveId] = useState<string | null>(null); // For drag overlay
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
+  
+  // Client Management State
+  const [selectedClient, setSelectedClient] = useState<string | null>(null); // null = All Jobs
+  const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
+  const [editingWorkspaceName, setEditingWorkspaceName] = useState('');
+  const [originalWorkspaceName, setOriginalWorkspaceName] = useState<string | null>(null); // Null if creating new
 
   // Load initial data
   useEffect(() => {
     // In a real app, load from DB or LocalStorage
-    const saved = localStorage.getItem('zipline_jobs');
-    if (saved) {
-        setJobs(JSON.parse(saved));
+    const savedJobs = localStorage.getItem('zipline_jobs');
+    const savedWorkspaces = localStorage.getItem('zipline_workspaces');
+    
+    let loadedJobs = INITIAL_JOBS;
+    if (savedJobs) {
+        loadedJobs = JSON.parse(savedJobs);
+        setJobs(loadedJobs);
     } else {
         setJobs(INITIAL_JOBS);
+    }
+
+    if (savedWorkspaces) {
+        setWorkspaces(JSON.parse(savedWorkspaces));
+    } else {
+        // Migration: Derive from jobs if no workspaces saved
+        const derived = Array.from(new Set(loadedJobs.map(j => j.client).filter(Boolean))).sort();
+        setWorkspaces(derived);
     }
   }, []);
 
@@ -189,6 +219,17 @@ export default function Jobs() {
         localStorage.setItem('zipline_jobs', JSON.stringify(jobs));
     }
   }, [jobs]);
+
+  useEffect(() => {
+      if (workspaces.length > 0) {
+        localStorage.setItem('zipline_workspaces', JSON.stringify(workspaces));
+      }
+  }, [workspaces]);
+
+  const filteredJobs = useMemo(() => {
+    if (!selectedClient) return jobs;
+    return jobs.filter(j => j.client === selectedClient);
+  }, [jobs, selectedClient]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -205,33 +246,70 @@ export default function Jobs() {
     const { active, over } = event;
     if (!over) return;
 
-    const activeId = active.id;
-    const overId = over.id;
+    const activeId = active.id as string;
+    const overId = over.id as string;
 
-    // Find containers
+    if (activeId === overId) return;
+
     const activeJob = jobs.find(j => j.id === activeId);
     const overJob = jobs.find(j => j.id === overId);
     
     if (!activeJob) return;
 
-    // If dragging over a column (not a job)
-    if (!overJob) {
-        // Check if over is a column ID
-        const overColumnId = over.id as JobStatus;
-        if (COLUMNS.find(c => c.id === overColumnId)) {
+    // Case 1: Dragging over another Job
+    if (overJob) {
+        if (activeJob.status !== overJob.status) {
+            setJobs(items => {
+                const activeIndex = items.findIndex(j => j.id === activeId);
+                const overIndex = items.findIndex(j => j.id === overId);
+                
+                if (items[activeIndex].status !== items[overIndex].status) {
+                    const newItems = [...items];
+                    const overColumnId = items[overIndex].status;
+                    
+                    // Logic for status change
+                    let newRound = newItems[activeIndex].revisionRound;
+                    if (overColumnId === 'review' && newItems[activeIndex].status === 'editing') {
+                        newRound += 1;
+                    }
+
+                    newItems[activeIndex] = { 
+                        ...newItems[activeIndex], 
+                        status: overColumnId,
+                        revisionRound: newRound
+                    };
+                    
+                    // Simplify: Just update status, let DragEnd handle final sort if needed
+                    // or let standard sortable context handle visual placement based on array order
+                    return arrayMove(newItems, activeIndex, overIndex);
+                }
+                return items;
+            });
+        }
+    } 
+    // Case 2: Dragging over a Column (empty area)
+    else {
+        const overColumnId = overId as JobStatus;
+        // Check if overId corresponds to a column
+        if (COLUMNS.some(c => c.id === overColumnId)) {
             if (activeJob.status !== overColumnId) {
                 setJobs(items => {
-                    return items.map(j => {
-                        if (j.id === activeId) {
-                            // Auto-increment revision if moving to Review
-                            let newRound = j.revisionRound;
-                            if (overColumnId === 'review' && j.status === 'editing') {
-                                newRound += 1;
-                            }
-                            return { ...j, status: overColumnId, revisionRound: newRound };
-                        }
-                        return j;
-                    });
+                    const activeIndex = items.findIndex(j => j.id === activeId);
+                    const newItems = [...items];
+                    
+                    let newRound = newItems[activeIndex].revisionRound;
+                    if (overColumnId === 'review' && newItems[activeIndex].status === 'editing') {
+                        newRound += 1;
+                    }
+
+                    newItems[activeIndex] = { 
+                        ...newItems[activeIndex], 
+                        status: overColumnId,
+                        revisionRound: newRound
+                    };
+                    
+                    // Don't arrayMove here, just update status to move it to that column visually
+                    return newItems;
                 });
             }
         }
@@ -278,7 +356,7 @@ export default function Jobs() {
       setEditingJob({
           id: Math.random().toString(36).substr(2, 9),
           title: '',
-          client: '',
+          client: selectedClient || '',
           status: 'queue',
           shootDate: new Date().toISOString().split('T')[0],
           dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // +7 days
@@ -294,86 +372,211 @@ export default function Jobs() {
       setIsModalOpen(true);
   }
 
+  const handleSaveWorkspace = () => {
+    if (!editingWorkspaceName.trim()) return;
+    
+    if (originalWorkspaceName) {
+        // Rename
+        if (originalWorkspaceName !== editingWorkspaceName) {
+            setWorkspaces(prev => prev.map(w => w === originalWorkspaceName ? editingWorkspaceName : w));
+            setJobs(prev => prev.map(j => j.client === originalWorkspaceName ? { ...j, client: editingWorkspaceName } : j));
+            if (selectedClient === originalWorkspaceName) setSelectedClient(editingWorkspaceName);
+        }
+    } else {
+        // Create
+        if (!workspaces.includes(editingWorkspaceName)) {
+            setWorkspaces(prev => [...prev, editingWorkspaceName].sort());
+            setSelectedClient(editingWorkspaceName);
+        }
+    }
+    setIsWorkspaceModalOpen(false);
+    setEditingWorkspaceName('');
+    setOriginalWorkspaceName(null);
+  };
+
+  const handleDeleteWorkspace = () => {
+      if (!originalWorkspaceName) return;
+      
+      const jobCount = jobs.filter(j => j.client === originalWorkspaceName).length;
+      if (jobCount > 0) {
+          if (!confirm(`This workspace contains ${jobCount} active jobs. Are you sure you want to delete it? The jobs will remain but will be unassigned.`)) {
+              return;
+          }
+          // Unassign jobs (or we could delete them, but unassigning is safer)
+          setJobs(prev => prev.map(j => j.client === originalWorkspaceName ? { ...j, client: 'Unassigned' } : j));
+      }
+      
+      setWorkspaces(prev => prev.filter(w => w !== originalWorkspaceName));
+      if (selectedClient === originalWorkspaceName) setSelectedClient(null);
+      
+      setIsWorkspaceModalOpen(false);
+      setEditingWorkspaceName('');
+      setOriginalWorkspaceName(null);
+  };
+
+  const openWorkspaceModal = (name?: string) => {
+      setOriginalWorkspaceName(name || null);
+      setEditingWorkspaceName(name || '');
+      setIsWorkspaceModalOpen(true);
+  }
+
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col">
-      {/* Toolbar */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-black uppercase tracking-tighter">Production Tracker</h2>
-        <button 
-            onClick={openNewJob}
-            className="bg-white text-black px-4 py-2 font-black uppercase text-[10px] tracking-widest hover:bg-accent hover:text-white transition-all rounded-lg flex items-center gap-2"
-        >
-            <Plus className="w-4 h-4" /> New Job
-        </button>
-      </div>
-
-      {/* Board */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-4 h-full overflow-x-auto pb-4 custom-scrollbar">
-          {COLUMNS.map(col => (
-            <div key={col.id} className="flex-shrink-0 w-80 flex flex-col bg-neutral-900/50 rounded-2xl border border-white/5 h-full">
-              {/* Column Header */}
-              <div className={`p-4 border-b ${col.color} border-opacity-20 flex items-center justify-between`}>
-                <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg bg-white/5 ${col.color.replace('border', 'text')}`}>
-                        {col.icon}
-                    </div>
-                    <h3 className="text-xs font-black uppercase tracking-widest">{col.title}</h3>
-                </div>
-                <span className="text-[10px] font-bold opacity-40 bg-white/10 px-2 py-0.5 rounded">
-                    {jobs.filter(j => j.status === col.id).length}
-                </span>
-              </div>
-
-              {/* Droppable Area */}
-              <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
-                <SortableContext 
-                    items={jobs.filter(j => j.status === col.id).map(j => j.id)}
-                    strategy={verticalListSortingStrategy}
-                >
-                    <div ref={(node) => {
-                        // We use a Droppable generic container trick if sorting items directly is tricky, 
-                        // but SortableContext handles the items. 
-                        // We also need to make the *column itself* droppable for empty columns.
-                        // dnd-kit SortableContext handles the items, but if empty, we need a target.
-                    }} id={col.id} className="min-h-[100px]">
-                        {jobs.filter(j => j.status === col.id).map(job => (
-                            <SortableJobCard key={job.id} job={job} onClick={() => openEditJob(job)} />
-                        ))}
-                    </div>
-                </SortableContext>
-                {/* We create a droppable zone for the column ID to catch drops when empty */}
-                <ColumnDroppable id={col.id} />
-              </div>
-            </div>
-          ))}
+    <div className="h-[calc(100vh-120px)] flex gap-6">
+      {/* Sidebar - Client List */}
+      <div className="w-64 shrink-0 flex flex-col gap-4">
+        <div className="flex justify-between items-center mb-2">
+           <h3 className="text-xs font-black uppercase tracking-widest opacity-50">Workspaces</h3>
+           <button 
+             onClick={() => openWorkspaceModal()}
+             className="p-1.5 hover:bg-white/10 rounded-md transition-colors" 
+             title="Add Workspace"
+           >
+             <UserPlus className="w-4 h-4" />
+           </button>
         </div>
 
-        <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
-          {activeId ? (
-             <div className="bg-neutral-800 border border-white/20 p-4 rounded-xl shadow-2xl opacity-90 rotate-3 cursor-grabbing w-80">
-                {(() => {
-                    const job = jobs.find(j => j.id === activeId);
-                    if (!job) return null;
-                    return (
-                        <>
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="text-[10px] font-bold tracking-widest uppercase opacity-50">{job.client}</span>
-                            </div>
-                            <h3 className="text-sm font-bold uppercase leading-tight mb-4">{job.title}</h3>
-                        </>
-                    )
-                })()}
-             </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+        <div className="flex flex-col gap-2 overflow-y-auto flex-1 custom-scrollbar pr-2">
+            <button
+                onClick={() => setSelectedClient(null)}
+                className={`w-full text-left p-3 rounded-lg border transition-all flex items-center gap-3 group ${
+                    selectedClient === null 
+                    ? 'bg-white text-black border-white' 
+                    : 'bg-neutral-900 border-white/5 text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+            >
+                <Layout className="w-4 h-4" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">All Jobs</span>
+            </button>
+
+            {workspaces.map(client => (
+                <div 
+                    key={client}
+                    className={`group/item relative w-full rounded-lg border transition-all flex items-center ${
+                        selectedClient === client 
+                        ? 'bg-white border-white' 
+                        : 'bg-neutral-900 border-white/5 hover:bg-white/5'
+                    }`}
+                >
+                    <button
+                        onClick={() => setSelectedClient(client)}
+                        className={`flex-1 flex items-center gap-3 p-3 text-left min-w-0 ${selectedClient === client ? 'text-black' : 'text-white/60 group-hover/item:text-white'}`}
+                    >
+                        <Briefcase className="w-4 h-4 shrink-0" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest truncate">{client}</span>
+                    </button>
+                    
+                    {/* Hover Actions */}
+                    <div className={`absolute right-2 flex gap-1 ${selectedClient === client ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'} transition-opacity`}>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); openWorkspaceModal(client); }}
+                            className={`p-1.5 rounded-md transition-colors ${selectedClient === client ? 'hover:bg-black/10 text-black/50 hover:text-black' : 'hover:bg-white/20 text-white/40 hover:text-white'}`}
+                        >
+                            <Edit2 className="w-3 h-3" />
+                        </button>
+                    </div>
+                    
+                    {/* Badge (Hidden on hover if selected to show actions, or just pushed left) */}
+                    <span className={`absolute right-3 pointer-events-none text-[9px] px-1.5 rounded-full ${selectedClient === client ? 'bg-black/10 opacity-0' : 'bg-white/10 group-hover/item:opacity-0'} transition-opacity`}>
+                        {jobs.filter(j => j.client === client).length}
+                    </span>
+                </div>
+            ))}
+        </div>
+      </div>
+
+      {/* Main Board Area */}
+      <div className="flex-1 flex flex-col h-full min-w-0">
+        <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/5 rounded-lg border border-white/5">
+                    {selectedClient ? <Briefcase className="w-5 h-5" /> : <Layout className="w-5 h-5" />}
+                </div>
+                <div>
+                    <h2 className="text-xl font-black uppercase tracking-tighter">
+                        {selectedClient || 'Production Overview'}
+                    </h2>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">
+                        {filteredJobs.length} Active Jobs
+                    </p>
+                </div>
+            </div>
+            
+            <button 
+                onClick={openNewJob}
+                className="bg-white text-black px-4 py-2 font-black uppercase text-[10px] tracking-widest hover:bg-accent hover:text-white transition-all rounded-lg flex items-center gap-2"
+            >
+                <Plus className="w-4 h-4" /> New Job
+            </button>
+        </div>
+
+        {/* Board */}
+        <DndContext
+            sensors={sensors}
+            collisionDetection={pointerWithin}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+        >
+            <div className="flex gap-4 h-full overflow-x-auto pb-4 custom-scrollbar">
+            {COLUMNS.map(col => (
+                <div key={col.id} className="flex-shrink-0 w-80 flex flex-col bg-neutral-900/50 rounded-2xl border border-white/5 h-full">
+                {/* Column Header */}
+                <div className={`p-4 border-b ${col.color} border-opacity-20 flex items-center justify-between`}>
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg bg-white/5 ${col.color.replace('border', 'text')}`}>
+                            {col.icon}
+                        </div>
+                        <h3 className="text-xs font-black uppercase tracking-widest">{col.title}</h3>
+                    </div>
+                    <span className="text-[10px] font-bold opacity-40 bg-white/10 px-2 py-0.5 rounded">
+                        {filteredJobs.filter(j => j.status === col.id).length}
+                    </span>
+                </div>
+
+                {/* Droppable Area */}
+                <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar relative">
+                    <SortableContext 
+                        items={filteredJobs.filter(j => j.status === col.id).map(j => j.id)}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        <div ref={(node) => {
+                            // We use a Droppable generic container trick if sorting items directly is tricky, 
+                            // but SortableContext handles the items. 
+                            // We also need to make the *column itself* droppable for empty columns.
+                            // dnd-kit SortableContext handles the items, but if empty, we need a target.
+                        }} id={col.id} className="min-h-[100px]">
+                            {filteredJobs.filter(j => j.status === col.id).map(job => (
+                                <SortableJobCard key={job.id} job={job} onClick={() => openEditJob(job)} />
+                            ))}
+                        </div>
+                    </SortableContext>
+                    {/* We create a droppable zone for the column ID to catch drops when empty */}
+                    <ColumnDroppable id={col.id} />
+                </div>
+                </div>
+            ))}
+            </div>
+
+            <DragOverlay dropAnimation={{ sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0.5' } } }) }}>
+            {activeId ? (
+                <div className="bg-neutral-800 border border-white/20 p-4 rounded-xl shadow-2xl opacity-90 rotate-3 cursor-grabbing w-80">
+                    {(() => {
+                        const job = jobs.find(j => j.id === activeId);
+                        if (!job) return null;
+                        return (
+                            <>
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="text-[10px] font-bold tracking-widest uppercase opacity-50">{job.client}</span>
+                                </div>
+                                <h3 className="text-sm font-bold uppercase leading-tight mb-4">{job.title}</h3>
+                            </>
+                        )
+                    })()}
+                </div>
+            ) : null}
+            </DragOverlay>
+        </DndContext>
+      </div>
 
       {/* Edit/New Modal */}
       <AnimatePresence>
@@ -415,12 +618,17 @@ export default function Jobs() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Client</label>
+                                {/* Replaced simple input with select/datalist for convenience, but kept text input for flexibility */}
                                 <input 
                                     className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent uppercase text-xs font-bold rounded-lg"
                                     value={editingJob.client}
                                     onChange={e => setEditingJob({...editingJob, client: e.target.value})}
                                     placeholder="CLIENT NAME"
+                                    list="workspace-list"
                                 />
+                                <datalist id="workspace-list">
+                                    {workspaces.map(w => <option key={w} value={w} />)}
+                                </datalist>
                             </div>
                             <div>
                                 <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Status</label>
@@ -494,12 +702,65 @@ export default function Jobs() {
             </div>
         )}
       </AnimatePresence>
+
+      {/* Manage Workspace Modal */}
+      <AnimatePresence>
+        {isWorkspaceModalOpen && (
+             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    onClick={() => setIsWorkspaceModalOpen(false)}
+                    className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                />
+                <motion.div 
+                    initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                    className="relative bg-neutral-900 border border-white/10 w-full max-w-sm p-6 rounded-2xl shadow-2xl"
+                >
+                    <h2 className="text-xl font-black uppercase tracking-tighter mb-4">{originalWorkspaceName ? 'Edit Workspace' : 'New Workspace'}</h2>
+                    
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Workspace Name</label>
+                            <input 
+                                autoFocus
+                                value={editingWorkspaceName}
+                                onChange={e => setEditingWorkspaceName(e.target.value)}
+                                placeholder="CLIENT / PROJECT NAME"
+                                className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent uppercase text-sm font-bold rounded-lg"
+                                onKeyDown={e => e.key === 'Enter' && handleSaveWorkspace()}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between mt-6">
+                        <div>
+                            {originalWorkspaceName && (
+                                <button 
+                                    onClick={handleDeleteWorkspace}
+                                    className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
+                                    title="Delete Workspace"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={() => setIsWorkspaceModalOpen(false)} className="px-4 py-2 rounded-lg text-[10px] font-bold tracking-widest uppercase hover:bg-white/10">Cancel</button>
+                            <button onClick={handleSaveWorkspace} className="px-6 py-2 bg-white text-black rounded-lg text-[10px] font-black tracking-widest uppercase hover:bg-accent hover:text-white transition-colors">
+                                {originalWorkspaceName ? 'Save' : 'Create'}
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+             </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // Helper for empty columns
 function ColumnDroppable({ id }: { id: string }) {
-    const { setNodeRef } = useSortable({ id, data: { type: 'Column' } });
+    const { setNodeRef } = useDroppable({ id, data: { type: 'Column' } });
     return <div ref={setNodeRef} className="absolute inset-0 -z-10" />
 }

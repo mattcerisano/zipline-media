@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Trash2, Edit2, Calendar, MapPin, Sun, 
   FileText, Link as LinkIcon, Download, Users, 
-  Clock, Search, ChevronLeft, ExternalLink, Check
+  Clock, Search, ChevronLeft, ExternalLink, Check, Car
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import Autocomplete from 'react-google-autocomplete';
@@ -63,8 +63,10 @@ export default function SlateJobs() {
   // External API States
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [hospitalLoading, setHospitalLoading] = useState(false);
+  const [parkingLoading, setParkingLoading] = useState(false);
   const [weatherSuccess, setWeatherSuccess] = useState(false);
   const [hospitalSuccess, setHospitalSuccess] = useState(false);
+  const [parkingSuccess, setParkingSuccess] = useState(false);
 
   // Load Data
   useEffect(() => {
@@ -95,9 +97,11 @@ export default function SlateJobs() {
     if (isJobDialogOpen) {
         setWeatherSuccess(!!editingJob.weather_summary);
         setHospitalSuccess(!!editingJob.nearest_hospital_name);
+        setParkingSuccess(!!editingJob.nearest_parking_name);
     } else {
         setWeatherSuccess(false);
         setHospitalSuccess(false);
+        setParkingSuccess(false);
     }
   }, [isJobDialogOpen, editingJob.id]);
 
@@ -121,6 +125,46 @@ export default function SlateJobs() {
       const exists = prev.find(j => j.id === payload.id);
       return exists ? prev.map(j => j.id === payload.id ? payload : j) : [payload, ...prev];
     });
+
+    // Update Contacts' Job History
+    const updatedContacts = [...contacts];
+    let contactsChanged = false;
+
+    payload.job_roles.forEach(role => {
+        if (role.contact_id) {
+            const contactIndex = updatedContacts.findIndex(c => c.id === role.contact_id);
+            if (contactIndex >= 0) {
+                const contact = updatedContacts[contactIndex];
+                const newHistoryEntry = {
+                    job_id: payload.id,
+                    job_title: payload.title,
+                    role: role.position,
+                    date: payload.shoot_date || new Date().toISOString(),
+                    status: payload.job_status || 'Planning'
+                };
+
+                const existingHistoryIndex = contact.job_history?.findIndex(h => h.job_id === payload.id) ?? -1;
+                
+                let newHistory = contact.job_history ? [...contact.job_history] : [];
+                if (existingHistoryIndex >= 0) {
+                    // Update existing
+                    newHistory[existingHistoryIndex] = newHistoryEntry;
+                } else {
+                    // Add new
+                    newHistory = [newHistoryEntry, ...newHistory];
+                }
+
+                updatedContacts[contactIndex] = { ...contact, job_history: newHistory };
+                contactsChanged = true;
+            }
+        }
+    });
+
+    if (contactsChanged) {
+        setContacts(updatedContacts);
+        localStorage.setItem(STORAGE_KEY_CONTACTS, JSON.stringify(updatedContacts));
+    }
+
     setSelectedJob(payload);
     setIsJobDialogOpen(false);
   };
@@ -315,6 +359,35 @@ export default function SlateJobs() {
      }
   };
 
+  const findParking = async () => {
+      if (!editingJob.location_address) {
+          alert('Please enter a location address first.');
+          return;
+      }
+      setParkingLoading(true);
+      setParkingSuccess(false);
+      try {
+          const res = await fetch(`/api/parking?address=${encodeURIComponent(editingJob.location_address)}`);
+          const data = await res.json();
+          
+          if (res.ok && data && data.place_id) {
+              setEditingJob(prev => ({
+                  ...prev,
+                  nearest_parking_name: data.name,
+                  nearest_parking_address: data.address
+              }));
+              setParkingSuccess(true);
+          } else {
+              alert(data.error || 'No legitimate parking found nearby.');
+          }
+      } catch (err) {
+          console.error(err);
+          alert('Error searching for parking.');
+      } finally {
+          setParkingLoading(false);
+      }
+  };
+
   // --- Export ---
   const exportPDF = async () => {
     if (!selectedJob) return;
@@ -468,7 +541,20 @@ export default function SlateJobs() {
         doc.text('None Listed', col3X, y + 20);
     }
 
-    y += 45;
+    if (selectedJob.nearest_parking_name) {
+         doc.setTextColor(TEXT_GRAY);
+         doc.setFontSize(8);
+         doc.setFont('helvetica', 'bold');
+         doc.text('NEAREST PARKING', col3X, y + 40);
+
+         doc.setTextColor(TEXT_DARK);
+         doc.setFontSize(9);
+         doc.setFont('helvetica', 'normal');
+         const parkLines = doc.splitTextToSize(`${selectedJob.nearest_parking_name}\n${selectedJob.nearest_parking_address}`, 50);
+         doc.text(parkLines, col3X, y + 45);
+    }
+
+    y += 75;
 
     // --- CREW LIST ---
     // Section Title
@@ -563,7 +649,7 @@ export default function SlateJobs() {
                   placeholder="SEARCH JOBS..." 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-4 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg"
+                  className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg"
                 />
             </div>
             <button 
@@ -720,6 +806,13 @@ export default function SlateJobs() {
                                  <p className="text-[10px] opacity-60">{selectedJob.nearest_hospital_address}</p>
                              </div>
                         )}
+                        {selectedJob.nearest_parking_name && (
+                             <div className="pt-4 border-t border-white/5">
+                                 <p className="text-[10px] font-bold tracking-widest uppercase opacity-40 mb-1">Nearest Parking</p>
+                                 <p className="text-xs font-bold">{selectedJob.nearest_parking_name}</p>
+                                 <p className="text-[10px] opacity-60">{selectedJob.nearest_parking_address}</p>
+                             </div>
+                        )}
                     </div>
                     
                     <div className="bg-neutral-900/50 border border-white/10 p-6 rounded-2xl space-y-4">
@@ -860,7 +953,7 @@ export default function SlateJobs() {
                                 <select 
                                     value={editingJob.client_name || ''}
                                     onChange={e => setEditingJob(p => ({ ...p, client_name: e.target.value }))}
-                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm appearance-none"
+                                    className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm appearance-none"
                                 >
                                     <option value="">-- Select Client --</option>
                                     {clients.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
@@ -882,7 +975,7 @@ export default function SlateJobs() {
                                 <input 
                                     value={editingJob.title || ''}
                                     onChange={e => setEditingJob(p => ({ ...p, title: e.target.value }))}
-                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm font-bold"
+                                    className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm font-bold"
                                 />
                              </div>
                              <div className="space-y-2">
@@ -890,7 +983,7 @@ export default function SlateJobs() {
                                 <select 
                                     value={editingJob.job_status || 'Planning'}
                                     onChange={e => setEditingJob(p => ({ ...p, job_status: e.target.value as Job['job_status'] }))}
-                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm appearance-none"
+                                    className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm appearance-none"
                                 >
                                     {STATUSES.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
                                 </select>
@@ -907,7 +1000,7 @@ export default function SlateJobs() {
                                         setEditingJob(p => ({ ...p, shoot_date: e.target.value, weather_summary: undefined }));
                                         setWeatherSuccess(false);
                                     }}
-                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm text-white"
+                                    className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm text-white"
                                 />
                              </div>
                              <div className="space-y-2">
@@ -916,7 +1009,7 @@ export default function SlateJobs() {
                                     type="time"
                                     value={editingJob.call_time || ''}
                                     onChange={e => setEditingJob(p => ({ ...p, call_time: e.target.value }))}
-                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm text-white"
+                                    className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm text-white"
                                 />
                              </div>
                         </div>
@@ -938,10 +1031,13 @@ export default function SlateJobs() {
                                         location_name: (name && name !== address && !address.startsWith(name)) ? name : undefined,
                                         weather_summary: undefined,
                                         nearest_hospital_name: undefined,
-                                        nearest_hospital_address: undefined
+                                        nearest_hospital_address: undefined,
+                                        nearest_parking_name: undefined,
+                                        nearest_parking_address: undefined
                                     }));
                                     setWeatherSuccess(false);
                                     setHospitalSuccess(false);
+                                    setParkingSuccess(false);
                                 }}
                                 options={{
                                     types: ['geocode', 'establishment'],
@@ -955,12 +1051,15 @@ export default function SlateJobs() {
                                         location_address: e.target.value,
                                         weather_summary: undefined,
                                         nearest_hospital_name: undefined,
-                                        nearest_hospital_address: undefined
+                                        nearest_hospital_address: undefined,
+                                        nearest_parking_name: undefined,
+                                        nearest_parking_address: undefined
                                     }));
                                     setWeatherSuccess(false);
                                     setHospitalSuccess(false);
+                                    setParkingSuccess(false);
                                 }}
-                                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent text-sm"
+                                className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent text-sm"
                                 placeholder="SEARCH FOR A LOCATION..."
                             />
                             <div className="flex gap-2 mt-2">
@@ -969,6 +1068,9 @@ export default function SlateJobs() {
                                 </button>
                                 <button onClick={findHospital} disabled={hospitalLoading || hospitalSuccess} className={`px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${hospitalSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : ''}`}>
                                     {hospitalLoading ? 'Loading...' : hospitalSuccess ? <><Check className="w-3 h-3" /> Hospital Found</> : <><Plus className="w-3 h-3" /> Find Hospital</>}
+                                </button>
+                                <button onClick={findParking} disabled={parkingLoading || parkingSuccess} className={`px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${parkingSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : ''}`}>
+                                    {parkingLoading ? 'Loading...' : parkingSuccess ? <><Check className="w-3 h-3" /> Parking Found</> : <><Car className="w-3 h-3" /> Find Parking</>}
                                 </button>
                             </div>
                         </div>
@@ -979,7 +1081,7 @@ export default function SlateJobs() {
                                 rows={3}
                                 value={editingJob.notes_general || ''}
                                 onChange={e => setEditingJob(p => ({ ...p, notes_general: e.target.value }))}
-                                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent text-sm resize-none"
+                                className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent text-sm resize-none"
                             />
                         </div>
 
@@ -989,7 +1091,7 @@ export default function SlateJobs() {
                                 <input 
                                     value={editingJob.gear_list_url || ''}
                                     onChange={e => setEditingJob(p => ({ ...p, gear_list_url: e.target.value }))}
-                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent text-sm"
+                                    className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent text-sm"
                                 />
                              </div>
                              <div className="space-y-2">
@@ -997,7 +1099,7 @@ export default function SlateJobs() {
                                 <input 
                                     value={editingJob.quote_url || ''}
                                     onChange={e => setEditingJob(p => ({ ...p, quote_url: e.target.value }))}
-                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent text-sm"
+                                    className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent text-sm"
                                 />
                              </div>
                         </div>
@@ -1028,7 +1130,7 @@ export default function SlateJobs() {
                              <input 
                                 value={editingClient.name || ''}
                                 onChange={e => setEditingClient(p => ({ ...p, name: e.target.value }))}
-                                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm font-bold"
+                                className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm font-bold"
                                 autoFocus
                              />
                         </div>
@@ -1037,7 +1139,7 @@ export default function SlateJobs() {
                              <input 
                                 value={editingClient.email || ''}
                                 onChange={e => setEditingClient(p => ({ ...p, email: e.target.value }))}
-                                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm"
+                                className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm"
                              />
                         </div>
                     </div>
@@ -1081,7 +1183,7 @@ export default function SlateJobs() {
                                         setEditingRole(p => ({ ...p, contact_id: undefined }));
                                     }
                                 }}
-                                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm appearance-none"
+                                className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm appearance-none"
                              >
                                  <option value="">-- Custom / Manual Entry --</option>
                                  {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -1093,7 +1195,7 @@ export default function SlateJobs() {
                              <input 
                                 value={editingRole.name || ''}
                                 onChange={e => setEditingRole(p => ({ ...p, name: e.target.value }))}
-                                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm font-bold"
+                                className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm font-bold"
                              />
                          </div>
 
@@ -1102,7 +1204,7 @@ export default function SlateJobs() {
                              <input 
                                 value={editingRole.position || ''}
                                 onChange={e => setEditingRole(p => ({ ...p, position: e.target.value }))}
-                                className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm"
+                                className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm"
                              />
                         </div>
 
@@ -1113,7 +1215,7 @@ export default function SlateJobs() {
                                     type="time"
                                     value={editingRole.call_time || ''}
                                     onChange={e => setEditingRole(p => ({ ...p, call_time: e.target.value }))}
-                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm text-white"
+                                    className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm text-white"
                                 />
                              </div>
                              <div className="space-y-2">
@@ -1121,7 +1223,7 @@ export default function SlateJobs() {
                                 <input 
                                     value={editingRole.phone || ''}
                                     onChange={e => setEditingRole(p => ({ ...p, phone: e.target.value }))}
-                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-lg outline-none focus:border-accent uppercase text-sm"
+                                    className="w-full bg-white/5 border border-white/10 py-3 px-4 rounded-lg outline-none focus:border-accent uppercase text-sm"
                                 />
                              </div>
                         </div>
