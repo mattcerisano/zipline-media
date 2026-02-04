@@ -76,12 +76,18 @@ export interface Job {
   estimate_url?: string;
   notes_general?: string;
   job_roles: JobRole[];
+  // Integrations
+  discord_url?: string;
+  review_link?: string; // Frame.io / Vimeo
+  review_password?: string;
+  drive_folder_url?: string;
   updated_at?: string;
 }
 
 export const STORAGE_KEY_CONTACTS = 'zipline_rolodex_contacts';
 export const STORAGE_KEY_CLIENTS = 'zipline_rolodex_clients';
 export const STORAGE_KEY_JOBS = 'zipline_slate_jobs';
+export const STORAGE_KEY_MEETINGS = 'zipline_meetings';
 
 export const DEPARTMENTS = [
   'Production', 'Camera', 'G&E / Lighting', 'Audio', 'Art', 

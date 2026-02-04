@@ -44,7 +44,11 @@ import {
   UserPlus,
   Users,
   Settings,
-  Edit2
+  Edit2,
+  MessageSquare,
+  Video,
+  HardDrive,
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -62,6 +66,11 @@ interface Job {
   revisionRound: number; // 0 = Rough, 1 = V1, 2 = V2, etc.
   notes: string;
   tags: string[];
+  // Integrations
+  discordUrl?: string;
+  reviewLink?: string;
+  reviewPassword?: string;
+  driveUrl?: string;
 }
 
 const COLUMNS: { id: JobStatus; title: string; icon: React.ReactNode; color: string }[] = [
@@ -316,6 +325,36 @@ export default function Jobs() {
     }
   };
 
+  const notifyDiscord = async (job: Job, newStatus: JobStatus) => {
+      const statusLabels: Record<string, string> = {
+          queue: 'Ingest',
+          editing: 'In The Cut',
+          review: 'Client Review',
+          final: 'Final Polish',
+          backup: 'Backup',
+          done: 'Archive'
+      };
+      
+      const message = `🚀 **Job Status Update**\n**${job.title}** moved to **${statusLabels[newStatus]}**`;
+      
+      try {
+          await fetch('/api/integrations/discord', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                  message,
+                  embed: {
+                      title: job.title,
+                      description: `Client: ${job.client}\nRound: V${job.revisionRound}`,
+                      color: 5763719 // Blue-ish
+                  }
+              })
+          });
+      } catch (e) {
+          console.error('Webhook failed', e);
+      }
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveId(null);
     const { active, over } = event;
@@ -324,8 +363,28 @@ export default function Jobs() {
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    const activeJob = jobs.find(j => j.id === activeId);
+    const activeJobSnapshot = active.data.current?.job as Job | undefined;
+    
+    // Resolve final column/status
+    let finalStatus: JobStatus | undefined;
     const overJob = jobs.find(j => j.id === overId);
+    if (overJob) {
+        finalStatus = overJob.status;
+    } else {
+        if (COLUMNS.some(c => c.id === overId)) {
+            finalStatus = overId as JobStatus;
+        }
+    }
+
+    if (activeJobSnapshot && finalStatus && activeJobSnapshot.status !== finalStatus) {
+        if (finalStatus === 'review' || finalStatus === 'final' || finalStatus === 'editing') {
+            // Trigger webhook on significant moves
+            notifyDiscord(activeJobSnapshot, finalStatus);
+        }
+    }
+
+    const activeJob = jobs.find(j => j.id === activeId);
+    // const overJob = jobs.find(j => j.id === overId); // Redundant if we used finalStatus logic above but needed for arrayMove
 
     if (activeJob && overJob && activeJob.status === overJob.status) {
         // Reordering within same column
@@ -689,6 +748,55 @@ export default function Jobs() {
                                 onChange={e => setEditingJob({...editingJob, notes: e.target.value})}
                                 placeholder="LINKS, PASSWORDS, ETC..."
                             />
+                        </div>
+
+                        <div className="pt-4 border-t border-white/5 space-y-4">
+                            <h3 className="text-xs font-black uppercase tracking-widest opacity-50">Integrations</h3>
+                            
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1 flex items-center gap-2"><MessageSquare className="w-3 h-3" /> Discord Channel</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        className="flex-1 bg-black/50 border border-white/10 p-3 outline-none focus:border-accent text-xs rounded-lg"
+                                        value={editingJob.discordUrl || ''}
+                                        onChange={e => setEditingJob({...editingJob, discordUrl: e.target.value})}
+                                        placeholder="https://discord.com/channels/..."
+                                    />
+                                    {editingJob.discordUrl && (
+                                        <a href={editingJob.discordUrl} target="_blank" rel="noreferrer" className="p-3 bg-indigo-500/20 text-indigo-400 rounded-lg hover:bg-indigo-500 hover:text-white transition-colors">
+                                            <ExternalLink className="w-4 h-4" />
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1 flex items-center gap-2"><Video className="w-3 h-3" /> Frame.io / Vimeo Review</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <input 
+                                        className="bg-black/50 border border-white/10 p-3 outline-none focus:border-accent text-xs rounded-lg"
+                                        value={editingJob.reviewLink || ''}
+                                        onChange={e => setEditingJob({...editingJob, reviewLink: e.target.value})}
+                                        placeholder="Review URL"
+                                    />
+                                    <input 
+                                        className="bg-black/50 border border-white/10 p-3 outline-none focus:border-accent text-xs rounded-lg"
+                                        value={editingJob.reviewPassword || ''}
+                                        onChange={e => setEditingJob({...editingJob, reviewPassword: e.target.value})}
+                                        placeholder="Password (Optional)"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1 flex items-center gap-2"><HardDrive className="w-3 h-3" /> Google Drive</label>
+                                <input 
+                                    className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent text-xs rounded-lg"
+                                    value={editingJob.driveUrl || ''}
+                                    onChange={e => setEditingJob({...editingJob, driveUrl: e.target.value})}
+                                    placeholder="Folder URL"
+                                />
+                            </div>
                         </div>
 
                         <button 

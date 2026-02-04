@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, Calendar as CalendarIcon, Users, Briefcase, LogOut, FileText, Coffee } from 'lucide-react';
+import { Camera, Calendar as CalendarIcon, Users, Briefcase, LogOut, FileText, Coffee, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { 
   DndContext, 
@@ -20,7 +20,7 @@ import {
   horizontalListSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
-import { restrictToHorizontalAxis } from '@dnd-kit/modifiers';
+import { restrictToHorizontalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
 
 import Rentals from '@/components/crew/Rentals';
@@ -29,8 +29,9 @@ import SlateJobs from '@/components/crew/SlateJobs';
 import Rolodex from '@/components/crew/Rolodex';
 import ProductionCalendar from '@/components/crew/ProductionCalendar';
 import Meetings from '@/components/crew/Meetings';
+import Dashboard from '@/components/crew/Dashboard';
 
-type TabId = 'jobs' | 'rolodex' | 'calendar' | 'gear' | 'slate' | 'meetings';
+type TabId = 'jobs' | 'rolodex' | 'calendar' | 'gear' | 'slate' | 'meetings' | 'dashboard';
 
 interface TabItem {
   id: TabId;
@@ -39,6 +40,7 @@ interface TabItem {
 }
 
 const DEFAULT_TABS: TabItem[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'jobs', label: 'Production', icon: Briefcase },
   { id: 'slate', label: 'Shoots', icon: FileText },
   { id: 'rolodex', label: 'Rolodex', icon: Users },
@@ -85,7 +87,7 @@ function SortableTab({ tab, isActive, onClick }: { tab: TabItem; isActive: boole
 }
 
 export default function CrewPage() {
-  const [activeTab, setActiveTab] = useState<TabId>('gear');
+  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [tabs, setTabs] = useState<TabItem[]>(DEFAULT_TABS);
   const [mounted, setMounted] = useState(false);
 
@@ -153,7 +155,7 @@ export default function CrewPage() {
             sensors={sensors} 
             collisionDetection={closestCenter} 
             onDragEnd={handleDragEnd}
-            modifiers={[restrictToHorizontalAxis]}
+            modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
           >
             <SortableContext 
               items={tabs.map(t => t.id)} 
@@ -188,6 +190,7 @@ export default function CrewPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
+          {activeTab === 'dashboard' && <Dashboard />}
           {activeTab === 'jobs' && <Jobs />}
           {activeTab === 'slate' && <SlateJobs />}
           {activeTab === 'rolodex' && <Rolodex />}
