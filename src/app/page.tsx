@@ -141,7 +141,7 @@ function Work() {
     
     if (isRightColumn) {
        if (hoveredId === id) return 3; 
-       if (['business', 'new-media'].includes(hoveredId)) return 1; 
+       if (['brands', 'new-media'].includes(hoveredId)) return 1; 
        return 1; 
     }
 
@@ -149,14 +149,14 @@ function Work() {
        return hoveredId === 'performance' ? 2 : 1;
     }
     if (id === 'right-wrapper') {
-       return ['business', 'new-media'].includes(hoveredId) ? 2 : 1;
+       return ['brands', 'new-media'].includes(hoveredId) ? 2 : 1;
     }
     return 1;
   };
 
   const categories = [
     { id: 'performance', title: 'Performance', video: '/broadway-performance.mp4', link: '/archive#opening-nights' },
-    { id: 'business', title: 'Brands', video: '/corporate.mp4', link: '/archive#tvc' },
+    { id: 'brands', title: 'Brands', video: '/corporate.mp4', link: '/archive#tvc' },
     { id: 'new-media', title: 'New Media', video: '/new-media.mp4', link: '/archive#new-media' },
   ];
 
@@ -261,19 +261,19 @@ function Work() {
             className="flex flex-col gap-4 h-full"
             style={{ flex: getFlexGrow('right-wrapper') }}
           >
-            {/* TOP RIGHT (Business) */}
+            {/* TOP RIGHT (Brands) */}
             <motion.div 
               layout
-              onMouseEnter={() => setHoveredId('business')}
+              onMouseEnter={() => setHoveredId('brands')}
               onMouseLeave={() => setHoveredId(null)}
               transition={{ duration: 0.4, ease: "easeInOut" }}
               className="relative overflow-hidden group rounded-2xl border border-white/10 bg-neutral-900 w-full cursor-pointer"
-              style={{ flex: getFlexGrow('business', true) }}
+              style={{ flex: getFlexGrow('brands', true) }}
             >
                <motion.div 
                  className="absolute inset-0 w-full h-full"
                  animate={{ 
-                   opacity: (hoveredId && hoveredId !== 'business') ? 0.4 : 1,
+                   opacity: (hoveredId && hoveredId !== 'brands') ? 0.4 : 1,
                  }}
                  transition={{ duration: 0.5 }}
                >
@@ -288,7 +288,7 @@ function Work() {
                 </video>
               </motion.div>
 
-              <Link href="/archive#tvc" className="absolute inset-0 z-20" aria-label="View Business Projects" />
+              <Link href="/archive#tvc" className="absolute inset-0 z-20" aria-label="View Brands Projects" />
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                  <motion.div layout className="flex items-end gap-4">
@@ -296,18 +296,18 @@ function Work() {
                      layout
                      className="font-black uppercase tracking-tighter text-white leading-none"
                      animate={{ 
-                       scale: hoveredId === 'business' ? 1.05 : 1,
+                       scale: hoveredId === 'brands' ? 1.05 : 1,
                        originX: 0 
                      }}
                      style={{ fontSize: 'clamp(1rem, 1.8vw, 1.5rem)' }}
                    >
-                     Business
+                     Brands
                    </motion.h2>
                    <motion.div
                      initial={{ opacity: 0, x: -10 }}
                      animate={{ 
-                       opacity: hoveredId === 'business' ? 1 : 0,
-                       x: hoveredId === 'business' ? 0 : -10 
+                       opacity: hoveredId === 'brands' ? 1 : 0,
+                       x: hoveredId === 'brands' ? 0 : -10 
                      }}
                      className="mb-1 md:mb-2"
                    >
