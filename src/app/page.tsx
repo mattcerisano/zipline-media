@@ -635,7 +635,7 @@ function Contact() {
   return (
     <section id="contact" className="py-16 md:py-20 px-6 max-w-7xl mx-auto flex flex-col justify-center scroll-mt-24">
       <div className="flex flex-col lg:flex-row gap-20 items-start">
-        <div className="w-full lg:w-1/2 text-left overflow-hidden">
+        <div className="w-full lg:w-1/2 text-left overflow-hidden py-4">
           <motion.div
              initial={{ y: "100%" }}
              whileInView={{ y: 0 }}
