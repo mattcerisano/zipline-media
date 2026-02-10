@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import Link from 'next/link';
 import LogoTicker from '@/components/LogoTicker';
 import { Check, Play } from 'lucide-react';
 
@@ -11,7 +12,7 @@ function Hero() {
   const letters = text.split("");
 
   return (
-    <section id="home" className="relative h-screen w-full overflow-hidden flex items-center justify-center bg-black">
+    <section id="home" className="relative h-dvh w-full overflow-hidden flex items-center justify-center bg-black">
       {/* --- INTRO ANIMATION LAYER --- */}
       <AnimatePresence>
         {!isIntroComplete && (
@@ -50,7 +51,7 @@ function Hero() {
       </AnimatePresence>
 
       {/* --- MAIN HERO CONTENT (Revealed after intro) --- */}
-      <div className="absolute inset-0 z-0">
+      <div className="hidden md:block absolute inset-0 z-0">
         <video 
           autoPlay 
           muted 
@@ -64,7 +65,9 @@ function Hero() {
       </div>
 
       <div className="relative z-20 text-center px-6 w-full max-w-[95vw] mx-auto">
-        <div className="flex flex-col items-center gap-2">
+        
+        {/* Desktop: Text */}
+        <div className="hidden md:flex flex-col items-center gap-2">
           <div className="overflow-hidden">
             <motion.h1 
               initial={{ y: "100%" }}
@@ -86,6 +89,21 @@ function Hero() {
             </motion.h1>
           </div>
         </div>
+
+        {/* Mobile: Logo */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={isIntroComplete ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
+          transition={{ duration: 1, delay: 0.2 }}
+          className="flex md:hidden justify-center items-center"
+        >
+          <img 
+            src="/Zipline Logo FULL Blue.png" 
+            alt="Zipline Media" 
+            className="w-[80vw] max-w-[300px] h-auto object-contain"
+          />
+        </motion.div>
+
         <motion.p 
           initial={{ opacity: 0 }}
           animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
@@ -115,61 +133,256 @@ function Hero() {
 }
 
 function Work() {
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  // Helper to determine flex-grow values based on hover state (Desktop Only)
+  const getFlexGrow = (id: string, isRightColumn = false) => {
+    if (!hoveredId) return isRightColumn ? 1 : 1.5; 
+    
+    if (isRightColumn) {
+       if (hoveredId === id) return 3; 
+       if (['business', 'new-media'].includes(hoveredId)) return 1; 
+       return 1; 
+    }
+
+    if (id === 'performance') {
+       return hoveredId === 'performance' ? 2 : 1;
+    }
+    if (id === 'right-wrapper') {
+       return ['business', 'new-media'].includes(hoveredId) ? 2 : 1;
+    }
+    return 1;
+  };
+
   const categories = [
-    { 
-      id: 'business', 
-      title: 'Business + Non-Profit', 
-      image: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=2000&auto=format&fit=crop',
-    },
-    { 
-      id: 'performance', 
-      title: 'PERFORMANCE', 
-      image: 'https://images.unsplash.com/photo-1514302240736-b1fee5989461?q=80&w=2000&auto=format&fit=crop',
-      video: '/broadway-reel.mp4',
-    },
-    { 
-      id: 'new-media', 
-      title: 'NEW MEDIA', 
-      image: 'https://images.unsplash.com/photo-1478737270239-2f02b77ac6d5?q=80&w=2000&auto=format&fit=crop',
-    },
+    { id: 'performance', title: 'Performance', video: '/broadway-performance.mp4', link: '/archive#opening-nights' },
+    { id: 'business', title: 'Business', video: '/corporate.mp4', link: '/archive#tvc' },
+    { id: 'new-media', title: 'New Media', video: '/new-media.mp4', link: '/archive#new-media' },
   ];
 
   return (
-    <section id="work" className="bg-black">
-      {categories.map((cat) => (
-        <div key={cat.id} className="relative w-full h-[60vh] md:h-screen overflow-hidden group border-b border-white/5">
-          {cat.video && (
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
-            >
-              <source src={cat.video} type="video/mp4" />
-            </video>
-          )}
-          
-          {!cat.video && (
-            <div 
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-[2s] group-hover:scale-105 opacity-60 group-hover:opacity-100"
-              style={{ backgroundImage: `url(${cat.image})` }}
-            />
-          )}
+    <section id="work" className="bg-black py-10 md:py-20 px-6 scroll-mt-24">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* --- MOBILE LAYOUT (Simple Stack) --- */}
+        <div className="flex flex-col gap-6 md:hidden">
+          {categories.map((cat) => (
+            <div key={cat.id} className="relative w-full h-[50vh] rounded-2xl overflow-hidden border border-white/10 bg-neutral-900 group">
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover opacity-60"
+              >
+                <source src={cat.video} type="video/mp4" />
+              </video>
+              
+              <Link href={cat.link} className="absolute inset-0 z-20" aria-label={`View ${cat.title} Projects`} />
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-6 md:p-24 flex flex-col justify-end items-start">
-            <motion.div
-              initial={{ y: 30, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8 }}
-            >
-              <h2 className="text-4xl md:text-8xl font-black uppercase tracking-tighter text-white mb-2 leading-none">{cat.title}</h2>
-            </motion.div>
-          </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
+                <div className="flex items-end gap-3 mb-2">
+                  <h2 className="text-3xl font-black uppercase tracking-tighter text-white leading-none">
+                    {cat.title}
+                  </h2>
+                  <div className="bg-white text-black p-1.5 rounded-full mb-1">
+                    <Play className="w-3 h-3 fill-current" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
 
-      <div className="py-16 md:py-20 text-center border-b border-white/5 px-6">
+        {/* --- DESKTOP LAYOUT (Interactive Bento) --- */}
+        <div className="hidden md:flex h-[80vh] flex-row gap-4">
+          
+          {/* LEFT COLUMN (Performance) */}
+          <motion.div 
+            layout
+            onMouseEnter={() => setHoveredId('performance')}
+            onMouseLeave={() => setHoveredId(null)}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="relative overflow-hidden group rounded-2xl border border-white/10 bg-neutral-900 h-full cursor-pointer"
+            style={{ flex: getFlexGrow('performance') }}
+          >
+            <motion.div 
+              className="absolute inset-0 w-full h-full"
+              animate={{ 
+                opacity: (hoveredId && hoveredId !== 'performance') ? 0.4 : 1,
+              }}
+              transition={{ duration: 0.5 }}
+            >
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full h-full object-cover"
+              >
+                <source src="/broadway-performance.mp4" type="video/mp4" />
+              </video>
+            </motion.div>
+            
+            <Link href="/archive#opening-nights" className="absolute inset-0 z-20" aria-label="View Performance Projects" />
+
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-10 flex flex-col justify-end items-start pointer-events-none">
+               <motion.div layout className="flex items-end gap-4">
+                 <motion.h2 
+                   layout
+                   className="font-black uppercase tracking-tighter text-white leading-none whitespace-nowrap"
+                   animate={{ 
+                     scale: hoveredId === 'performance' ? 1.05 : 1,
+                     originX: 0 
+                   }}
+                   style={{ fontSize: 'clamp(1rem, 1.8vw, 1.5rem)' }}
+                 >
+                   Performance
+                 </motion.h2>
+                 <motion.div
+                   initial={{ opacity: 0, x: -10 }}
+                   animate={{ 
+                     opacity: hoveredId === 'performance' ? 1 : 0,
+                     x: hoveredId === 'performance' ? 0 : -10 
+                   }}
+                   className="mb-2 md:mb-4"
+                 >
+                   <div className="bg-white text-black p-2 rounded-full">
+                     <Play className="w-4 h-4 fill-current" />
+                   </div>
+                 </motion.div>
+               </motion.div>
+            </div>
+          </motion.div>
+
+          {/* RIGHT COLUMN WRAPPER */}
+          <motion.div 
+            layout
+            className="flex flex-col gap-4 h-full"
+            style={{ flex: getFlexGrow('right-wrapper') }}
+          >
+            {/* TOP RIGHT (Business) */}
+            <motion.div 
+              layout
+              onMouseEnter={() => setHoveredId('business')}
+              onMouseLeave={() => setHoveredId(null)}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="relative overflow-hidden group rounded-2xl border border-white/10 bg-neutral-900 w-full cursor-pointer"
+              style={{ flex: getFlexGrow('business', true) }}
+            >
+               <motion.div 
+                 className="absolute inset-0 w-full h-full"
+                 animate={{ 
+                   opacity: (hoveredId && hoveredId !== 'business') ? 0.4 : 1,
+                 }}
+                 transition={{ duration: 0.5 }}
+               >
+                 <video
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="w-full h-full object-cover"
+                >
+                  <source src="/corporate.mp4" type="video/mp4" />
+                </video>
+              </motion.div>
+
+              <Link href="/archive#tvc" className="absolute inset-0 z-20" aria-label="View Business Projects" />
+
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
+                 <motion.div layout className="flex items-end gap-4">
+                   <motion.h2 
+                     layout
+                     className="font-black uppercase tracking-tighter text-white leading-none"
+                     animate={{ 
+                       scale: hoveredId === 'business' ? 1.05 : 1,
+                       originX: 0 
+                     }}
+                     style={{ fontSize: 'clamp(1rem, 1.8vw, 1.5rem)' }}
+                   >
+                     Business
+                   </motion.h2>
+                   <motion.div
+                     initial={{ opacity: 0, x: -10 }}
+                     animate={{ 
+                       opacity: hoveredId === 'business' ? 1 : 0,
+                       x: hoveredId === 'business' ? 0 : -10 
+                     }}
+                     className="mb-1 md:mb-2"
+                   >
+                     <div className="bg-white text-black p-1.5 rounded-full">
+                       <Play className="w-3 h-3 fill-current" />
+                     </div>
+                   </motion.div>
+                 </motion.div>
+              </div>
+            </motion.div>
+
+            {/* BOTTOM RIGHT (New Media) */}
+            <motion.div 
+              layout
+              onMouseEnter={() => setHoveredId('new-media')}
+              onMouseLeave={() => setHoveredId(null)}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="relative overflow-hidden group rounded-2xl border border-white/10 bg-neutral-900 w-full cursor-pointer"
+              style={{ flex: getFlexGrow('new-media', true) }}
+            >
+               <motion.div 
+                 className="absolute inset-0 w-full h-full"
+                 animate={{ 
+                   opacity: (hoveredId && hoveredId !== 'new-media') ? 0.4 : 1,
+                 }}
+                 transition={{ duration: 0.5 }}
+               >
+                 <video
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="w-full h-full object-cover"
+                >
+                  <source src="/new-media.mp4" type="video/mp4" />
+                </video>
+              </motion.div>
+
+              <Link href="/archive#new-media" className="absolute inset-0 z-20" aria-label="View New Media Projects" />
+
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
+                 <motion.div layout className="flex items-end gap-4">
+                   <motion.h2 
+                     layout
+                     className="font-black uppercase tracking-tighter text-white leading-none"
+                     animate={{ 
+                       scale: hoveredId === 'new-media' ? 1.05 : 1,
+                       originX: 0 
+                     }}
+                     style={{ fontSize: 'clamp(1rem, 1.8vw, 1.5rem)' }}
+                   >
+                     New Media
+                   </motion.h2>
+                   <motion.div
+                     initial={{ opacity: 0, x: -10 }}
+                     animate={{ 
+                       opacity: hoveredId === 'new-media' ? 1 : 0,
+                       x: hoveredId === 'new-media' ? 0 : -10 
+                     }}
+                     className="mb-1 md:mb-2"
+                   >
+                     <div className="bg-white text-black p-1.5 rounded-full">
+                       <Play className="w-3 h-3 fill-current" />
+                     </div>
+                   </motion.div>
+                 </motion.div>
+              </div>
+            </motion.div>
+
+          </motion.div>
+        </div>
+
+      </div>
+
+      <div className="mt-12 text-center">
         <a 
           href="/archive" 
           className="inline-block border border-white/20 px-8 py-5 md:px-12 md:py-6 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-black transition-all duration-300 w-full md:w-auto"
@@ -184,45 +397,51 @@ function Work() {
 function Social() {
   const clips = [
     {
-      title: "Gutenberg! The Musical | Opening Night",
-      thumbnail: "https://i.ytimg.com/vi/Kya8YUZxXAM/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/Kya8YUZxXAM",
-      category: "Opening Nights"
+      title: "The Most BROADWAY Broadway Opening Night | SMASH The Musical",
+      thumbnail: "https://i.ytimg.com/vi/9QCHsiR8QrQ/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/9QCHsiR8QrQ",
+      category: "Opening Nights",
+      localVideo: "/social-clip-1.mov"
     },
     {
       title: "Sarah Snook | 2024 Tony Awards First Impressions",
       thumbnail: "https://i.ytimg.com/vi/1RW3OCUMp4s/hqdefault.jpg",
       videoUrl: "https://www.youtube.com/embed/1RW3OCUMp4s",
-      category: "New Media"
+      category: "New Media",
+      localVideo: "/social-clip-2.mov"
     },
     {
-      title: "Moulin Rouge! The Musical | Props",
-      thumbnail: "https://i.ytimg.com/vi/JwCNbJ0ob7Q/hqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/JwCNbJ0ob7Q",
-      category: "Broadway B-Roll"
+      title: "Moulin Rouge! The Musical | Automation & Carpentry",
+      thumbnail: "https://i.ytimg.com/vi/tkQzaEmYQdo/hqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/tkQzaEmYQdo",
+      category: "Broadway B-Roll",
+      localVideo: "/social-clip-3.mov"
     },
     {
-      title: "Moulin Rouge! The Musical | Aaron Tveit - Roxanne",
-      thumbnail: "https://i.vimeocdn.com/video/1405078795-629e45e5858499dc329466b78358b688325f67a9cc9b0ce41181d7316272eb85-d_640?region=us",
-      videoUrl: "https://player.vimeo.com/video/694493773",
-      category: "Reveals"
+      title: "Robyn Hurder is Ivy Lynn | SMASH The Musical",
+      thumbnail: "https://i.ytimg.com/vi/SzzqFdtpoAk/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/SzzqFdtpoAk",
+      category: "Reveals",
+      localVideo: "/social-clip-4.mov"
     },
     {
-      title: "The Bachelor | Granted",
-      thumbnail: "https://i.vimeocdn.com/video/1983280990-7403b3ad22b01e748107a6921cb60ebc94762e392535da80ad7bdf46fa1aeacf-d_1920x1080?&r=pad&region=us",
-      videoUrl: "https://player.vimeo.com/video/1056968490",
-      category: "TVC"
+      title: "T-Mobile | Winners Circle Sizzle",
+      thumbnail: "https://i.vimeocdn.com/video/1356334895-48a78ad477f304d334f5dba31b37bc8eac597308ae55584a9cb6b17ee4aaac5c-d_1920x1080?&r=pad&region=us",
+      videoUrl: "https://player.vimeo.com/video/542369134",
+      category: "TVC",
+      localVideo: "/social-clip-5.mov"
     },
     {
-      title: "Think of Me - The Phantom of the Opera Broadway Cast 2023",
-      thumbnail: "https://i.ytimg.com/vi/FXfQzAHPa6g/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/FXfQzAHPa6g",
-      category: "Cast Recordings"
+      title: "\"Where I Wanna Be\" from Boop! The Musical",
+      thumbnail: "https://i.ytimg.com/vi/rhyiqvVNsUo/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/rhyiqvVNsUo",
+      category: "Cast Recordings",
+      localVideo: "/social-clip-6.mov"
     }
   ];
 
   return (
-    <section className="pt-24 pb-12 bg-black overflow-hidden">
+    <section className="pt-16 pb-10 bg-black overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 mb-12">
         <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase mb-4">Built for the Feed</h2>
         <p className="text-sm md:text-base opacity-60 max-w-xl">
@@ -231,7 +450,7 @@ function Social() {
       </div>
       
       {/* Marquee of 9:16 Videos */}
-      <div className="flex gap-6 overflow-x-auto pb-8 px-6 no-scrollbar snap-x">
+      <div className="flex gap-6 overflow-x-auto pb-8 px-6 no-scrollbar snap-x touch-pan-x">
         {clips.map((clip, i) => (
           <a 
             key={i} 
@@ -240,16 +459,23 @@ function Social() {
             rel="noopener noreferrer"
             className="snap-center shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-pointer"
           >
-             <div 
-               className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
-               style={{ backgroundImage: `url(${clip.thumbnail})` }}
-             />
-             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80" />
-             
-             <div className="absolute bottom-0 left-0 p-4 w-full">
-                <p className="text-[10px] uppercase tracking-widest text-white/60 mb-1">{clip.category}</p>
-                <p className="text-sm font-bold leading-tight text-white line-clamp-2">{clip.title}</p>
-             </div>
+             {clip.localVideo ? (
+               <video 
+                 autoPlay 
+                 muted 
+                 loop 
+                 playsInline 
+                 className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
+               >
+                 <source src={clip.localVideo} type="video/quicktime" />
+                 <source src={clip.localVideo} type="video/mp4" />
+               </video>
+             ) : (
+               <div 
+                 className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
+                 style={{ backgroundImage: `url(${clip.thumbnail})` }}
+               />
+             )}
              
              {/* Play button overlay */}
              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -268,26 +494,40 @@ function Social() {
 
 function About() {
   return (
-    <section id="about" className="pt-12 pb-32 px-6 max-w-7xl mx-auto flex flex-col items-start">
-      <motion.h2 
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="text-3xl md:text-6xl font-black tracking-tighter uppercase leading-tight mb-12 max-w-4xl"
-      >
-        We don&apos;t do &quot;Marketing Speak.&quot; <br/>
-        <span className="text-[var(--accent)]">We just make it look cool.</span>
-      </motion.h2>
+    <section id="about" className="py-16 px-6 max-w-7xl mx-auto flex flex-col items-center gap-8 md:gap-12">
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-sm md:text-lg opacity-70 leading-relaxed font-medium">
-        <p>
-          Your audience is smart. They know when they&apos;re being sold to. 
-          That&apos;s why we focus on the visual language first.
+      {/* 1. Header */}
+      <div className="text-center space-y-4">
+        <p className="text-sm md:text-lg font-medium tracking-[0.2em] uppercase opacity-50">
+          High drama for Broadway. No drama for you.
         </p>
-        <p>
-          Whether it&apos;s a Broadway stage or a TikTok feed, we respect the medium and the moment. 
-          No fluff. No drama. Just high-impact video that works.
-        </p>
+      </div>
+
+      {/* 2. Ticker */}
+      <div className="w-full">
+        <LogoTicker />
+      </div>
+
+      {/* 3. Mission Text */}
+      <div className="flex flex-col items-start w-full">
+        <motion.h2 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-3xl md:text-6xl font-black tracking-tighter uppercase leading-tight mb-8 md:mb-12 max-w-4xl"
+        >
+          We don&apos;t do &quot;Marketing Speak.&quot; <br/>
+          <span className="text-[var(--accent)]">We just make it look cool.</span>
+        </motion.h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 text-sm md:text-lg opacity-70 leading-relaxed font-medium">
+          <p>
+            Our process begins with a conversation to understand your objectives, brand story, and desired visual style.
+          </p>
+          <p>
+            We are smart, adaptable, and innovative - whether you want stunning TV commercials, engaging TikToks, high-quality social media ads, or dynamic narrative videos, we got you covered.
+          </p>
+        </div>
       </div>
     </section>
   );
@@ -325,7 +565,7 @@ function Contact() {
   }
 
   return (
-    <section id="contact" className="py-24 px-6 max-w-7xl mx-auto flex flex-col justify-center">
+    <section id="contact" className="py-16 md:py-20 px-6 max-w-7xl mx-auto flex flex-col justify-center scroll-mt-24">
       <div className="flex flex-col lg:flex-row gap-20 items-start">
         <div className="w-full lg:w-1/2 text-left overflow-hidden">
           <motion.div
@@ -443,7 +683,6 @@ export default function Page() {
       <Hero />
       <Work />
       <Social />
-      <LogoTicker />
       <About />
       <Contact />
     </main>

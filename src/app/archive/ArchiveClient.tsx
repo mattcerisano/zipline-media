@@ -121,8 +121,10 @@ export default function ArchiveClient() {
             const categoryVideos = videos.filter((v: any) => v.category === category);
             if (categoryVideos.length === 0) return null;
 
+            const categoryId = category.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+            
             return (
-              <section key={category}>
+              <section key={category} id={categoryId} className="scroll-mt-32">
                 <motion.h2 
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}

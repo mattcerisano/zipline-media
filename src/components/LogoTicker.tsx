@@ -64,11 +64,11 @@ const TickerLane = ({ title, items }: { title: string, items: TickerItem[] }) =>
         {/* Original List */}
         {items.map((item, i) => (
           item.type === 'svg' ? (
-            <svg key={i} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 hover:opacity-100 transition-opacity flex-shrink-0">
+            <svg key={i} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 flex-shrink-0">
               <path d={svgLogos[item.value as keyof typeof svgLogos].path} />
             </svg>
           ) : (
-            <span key={i} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 hover:opacity-100 transition-opacity cursor-default flex-shrink-0">
+            <span key={i} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0">
               {item.value}
             </span>
           )
@@ -76,11 +76,11 @@ const TickerLane = ({ title, items }: { title: string, items: TickerItem[] }) =>
         {/* Duplicate for Loop */}
         {items.map((item, i) => (
           item.type === 'svg' ? (
-            <svg key={`dup-${i}`} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 hover:opacity-100 transition-opacity flex-shrink-0">
+            <svg key={`dup-${i}`} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 flex-shrink-0">
               <path d={svgLogos[item.value as keyof typeof svgLogos].path} />
             </svg>
           ) : (
-            <span key={`dup-${i}`} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 hover:opacity-100 transition-opacity cursor-default flex-shrink-0">
+            <span key={`dup-${i}`} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0">
               {item.value}
             </span>
           )
@@ -92,15 +92,10 @@ const TickerLane = ({ title, items }: { title: string, items: TickerItem[] }) =>
 
 export default function LogoTicker() {
   return (
-    <section className="py-12 bg-black px-6 max-w-7xl mx-auto space-y-8">
-      <div className="mb-12 text-center">
-        <p className="text-sm md:text-lg font-medium tracking-[0.2em] uppercase opacity-50">
-          High drama for Broadway. No drama for you.
-        </p>
-      </div>
+    <div className="w-full space-y-8">
       <TickerLane title="Brand" items={lanes.Brand} />
       <TickerLane title="Performance" items={lanes.Performance} />
       <TickerLane title="Podcasts" items={lanes.Podcasts} />
-    </section>
+    </div>
   );
 }
