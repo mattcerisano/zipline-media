@@ -68,7 +68,7 @@ function Hero() {
         
         {/* Desktop: Text */}
         <div className="hidden md:flex flex-col items-center gap-2">
-          <div className="overflow-hidden">
+          <div className="overflow-hidden py-2">
             <motion.h1 
               initial={{ y: "100%" }}
               animate={isIntroComplete ? { y: 0 } : { y: "100%" }}
@@ -78,7 +78,7 @@ function Hero() {
               FULL SERVICE
             </motion.h1>
           </div>
-          <div className="overflow-hidden">
+          <div className="overflow-hidden py-2">
             <motion.h1 
               initial={{ y: "100%" }}
               animate={isIntroComplete ? { y: 0 } : { y: "100%" }}
@@ -156,7 +156,7 @@ function Work() {
 
   const categories = [
     { id: 'performance', title: 'Performance', video: '/broadway-performance.mp4', link: '/archive#opening-nights' },
-    { id: 'business', title: 'Business', video: '/corporate.mp4', link: '/archive#tvc' },
+    { id: 'business', title: 'Brands', video: '/corporate.mp4', link: '/archive#tvc' },
     { id: 'new-media', title: 'New Media', video: '/new-media.mp4', link: '/archive#new-media' },
   ];
 
@@ -440,51 +440,119 @@ function Social() {
     }
   ];
 
+  const featuredClip = clips[0];
+  const subClips = clips.slice(1);
+
   return (
-    <section className="pt-16 pb-10 bg-black overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 mb-12">
+    <section className="pt-16 pb-16 bg-black overflow-hidden px-6">
+      <div className="max-w-7xl mx-auto mb-12">
         <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase mb-4">Built for the Feed</h2>
         <p className="text-sm md:text-base opacity-60 max-w-xl">
           We don&apos;t just resize horizontal video. We shoot specifically for vertical 9:16 to stop the scroll.
         </p>
       </div>
       
-      {/* Marquee of 9:16 Videos */}
-      <div className="flex gap-6 overflow-x-auto pb-8 px-6 no-scrollbar snap-x touch-pan-x">
-        {clips.map((clip, i) => (
-          <a 
-            key={i} 
-            href={clip.videoUrl}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+        {/* --- Featured Clip (Left / Top) --- */}
+        <div className="lg:col-span-5 w-full">
+           <a 
+            href={featuredClip.videoUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="snap-center shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-pointer"
+            className="block w-full aspect-[9/16] bg-neutral-900 relative rounded-xl overflow-hidden border border-white/10 group cursor-pointer"
           >
-             {clip.localVideo ? (
+             {featuredClip.localVideo ? (
                <video 
                  autoPlay 
                  muted 
                  loop 
                  playsInline 
-                 className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
+                 className="absolute inset-0 w-full h-full object-cover"
                >
-                 <source src={clip.localVideo} type="video/quicktime" />
-                 <source src={clip.localVideo} type="video/mp4" />
+                 <source src={featuredClip.localVideo} type="video/quicktime" />
+                 <source src={featuredClip.localVideo} type="video/mp4" />
                </video>
              ) : (
                <div 
-                 className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
-                 style={{ backgroundImage: `url(${clip.thumbnail})` }}
+                 className="absolute inset-0 bg-cover bg-center"
+                 style={{ backgroundImage: `url(${featuredClip.thumbnail})` }}
                />
              )}
              
-             {/* Play button overlay */}
+             {/* Gradient Overlay */}
+             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80" />
+             
+             {/* Text Content */}
+             <div className="absolute bottom-0 left-0 p-8 w-full">
+                <div className="flex items-center gap-2 mb-2">
+                   <span className="bg-white text-black text-[10px] font-bold px-2 py-1 rounded-sm uppercase tracking-wider">Featured</span>
+                   <p className="text-xs uppercase tracking-widest text-white/80">{featuredClip.category}</p>
+                </div>
+                <h3 className="text-2xl md:text-4xl font-black leading-none text-white uppercase tracking-tight">{featuredClip.title}</h3>
+             </div>
+
+             {/* Play Button */}
              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                   <Play className="w-5 h-5 text-white fill-white" />
+                <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
+                   <Play className="w-8 h-8 text-white fill-white ml-1" />
                 </div>
              </div>
           </a>
-        ))}
+        </div>
+
+        {/* --- Subcategory Grid (Right / Bottom) --- */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {subClips.map((clip, i) => (
+                <a 
+                  key={i} 
+                  href={clip.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-pointer"
+                >
+                   {clip.localVideo ? (
+                     <video 
+                       muted 
+                       loop 
+                       playsInline 
+                       className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-500"
+                       onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                       onMouseLeave={(e) => e.currentTarget.pause()}
+                     >
+                       <source src={clip.localVideo} type="video/quicktime" />
+                       <source src={clip.localVideo} type="video/mp4" />
+                     </video>
+                   ) : (
+                     <div 
+                       className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
+                       style={{ backgroundImage: `url(${clip.thumbnail})` }}
+                     />
+                   )}
+                   
+                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                         <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+                      </div>
+                   </div>
+
+                   <div className="absolute bottom-0 left-0 p-3 w-full bg-gradient-to-t from-black/90 to-transparent pointer-events-none">
+                      <p className="text-[9px] uppercase tracking-wider text-white/50 mb-0.5">{clip.category}</p>
+                      <p className="text-xs font-bold leading-none text-white line-clamp-2">{clip.title}</p>
+                   </div>
+                </a>
+              ))}
+           </div>
+           
+           <div className="bg-neutral-900/50 rounded-xl p-8 border border-white/5 flex flex-col justify-center items-start h-full">
+              <h3 className="text-xl font-bold uppercase mb-2">More from the feed?</h3>
+              <p className="text-sm opacity-60 mb-6 max-w-md">Check out our latest work on Instagram and TikTok for daily updates and behind-the-scenes.</p>
+              <div className="flex gap-4">
+                 <a href="#" className="text-xs font-bold uppercase tracking-widest border border-white/20 px-6 py-3 hover:bg-white hover:text-black transition-colors">Instagram</a>
+                 <a href="#" className="text-xs font-bold uppercase tracking-widest border border-white/20 px-6 py-3 hover:bg-white hover:text-black transition-colors">TikTok</a>
+              </div>
+           </div>
+        </div>
       </div>
     </section>
   );
