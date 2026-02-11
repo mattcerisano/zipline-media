@@ -62,10 +62,7 @@ function CategorySection({
             </div>
 
             <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
-               <span className="inline-block bg-[var(--accent)] text-white text-[10px] font-bold px-2 py-1 mb-3 uppercase tracking-wider rounded-sm">
-                 Now Showing
-               </span>
-               <h3 className="text-xl md:text-3xl font-black uppercase tracking-tight text-white leading-none">
+               <h3 className="text-lg md:text-2xl font-black uppercase tracking-tight text-white leading-[1.2]">
                  {activeVideo.title}
                </h3>
             </div>
@@ -75,7 +72,7 @@ function CategorySection({
         {/* --- THUMBNAIL GRID (Right) --- */}
         {/* Scrollable container or Grid */}
         <div className="xl:col-span-5 2xl:col-span-4">
-           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-2 gap-3 max-h-[600px] overflow-y-auto pr-2 no-scrollbar">
+           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 gap-3 max-h-[600px] overflow-y-auto pr-2 no-scrollbar">
               {videos.map((video, index) => {
                 const isActive = video === activeVideo;
                 return (
@@ -142,14 +139,14 @@ export default function ArchiveClient() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter break-words leading-[0.9] py-2"
+              className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter whitespace-nowrap leading-[0.9] py-2"
             >
               Video Repository
             </motion.h1>
           </div>
         </header>
 
-        <div className="flex flex-col gap-32 pb-20">
+        <div className="flex flex-col gap-20 pb-20">
           
           {/* This Minute Section (Keep as Grid or convert? Keeping as Grid for variety as it's 'Just Added') */}
           <section>
@@ -160,12 +157,36 @@ export default function ArchiveClient() {
               transition={{ duration: 0.6 }}
               className="text-2xl md:text-4xl font-bold uppercase tracking-widest mb-10 border-b border-white/10 pb-6 text-[var(--accent)]"
             >
-              This Minute
+              Recent Work
             </motion.h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-6 gap-y-10">
               {[...videos]
-                .sort((a, b) => {
+                .sort((a: any, b: any) => {
+                  const SOCIAL_CLIPS_ORDER = [
+                    "‘Good Fortune’ & Funny Set Confessions with Keanu Reeves, Seth Rogen and Aziz Ansari",
+                    "Golden Hour | The Queen of Versailles on Broadway",
+                    "Record-Breaking Signings, March Madness Mayhem & A Severance Waffle Party with Ben Stiller | Ep 130",
+                    "The Most BROADWAY Broadway Opening Night | SMASH The Musical",
+                    "For Her/My Green Light - The Great Gatsby on Broadway",
+                    "Opening Night with Real Women Have Curves | The Musical"
+                  ];
+
+                  const indexA = SOCIAL_CLIPS_ORDER.indexOf(a.title);
+                  const indexB = SOCIAL_CLIPS_ORDER.indexOf(b.title);
+
+                  // If both are in the specific list, sort by the list order
+                  if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                  // If only A is in the list, it comes first
+                  if (indexA !== -1) return -1;
+                  // If only B is in the list, it comes first
+                  if (indexB !== -1) return 1;
+
+                  // Fallback: If tagged as social_clips but not in the specific list (safety), prioritize them
+                  if (a.collection === 'social_clips' && b.collection !== 'social_clips') return -1;
+                  if (a.collection !== 'social_clips' && b.collection === 'social_clips') return 1;
+
+                  // Default: Sort by date descending
                   const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
                   const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
                   return dateB - dateA;
@@ -200,8 +221,20 @@ export default function ArchiveClient() {
           </section>
 
           {/* Categories with New Layout */}
-          {['Opening Nights', 'New Media', 'Broadway B-Roll', 'Reveals', 'TVC', 'Cast Recordings'].map((category) => {
-            const categoryVideos = videos.filter((v: any) => v.category === category);
+          {['Opening Nights', 'Reveals', 'Music', 'New Media', 'Broadway B-Roll', 'TVC'].map((category) => {
+            const categoryVideos = videos
+              .filter((v: any) => v.category === category)
+              .sort((a: any, b: any) => {
+                 // Priority 1: Social Clips (High Profile)
+                 if (a.collection === 'social_clips' && b.collection !== 'social_clips') return -1;
+                 if (a.collection !== 'social_clips' && b.collection === 'social_clips') return 1;
+                 
+                 // Priority 2: Date (Newest First)
+                 const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
+                 const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
+                 return dateB - dateA;
+              });
+
             if (categoryVideos.length === 0) return null;
             
             return (

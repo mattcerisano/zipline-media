@@ -183,7 +183,7 @@
     "videoUrl": "https://www.youtube.com/embed/FXfQzAHPa6g",
     "uploadDate": "2023-04-14T20:10:06.018Z",
     "duration": "PT2M51S",
-    "category": "Cast Recordings"
+    "category": "Music"
   },
   {
     "title": "2022 Tony Awards First Impressions | Jesse Tyler Ferguson - Take Me Out",
@@ -210,7 +210,8 @@
     "videoUrl": "https://www.youtube.com/embed/Gx_MFlluTYo",
     "uploadDate": "2024-03-12T18:58:46.727Z",
     "duration": "PT3M33S",
-    "category": "Reveals"
+    "category": "Reveals",
+    "collection": "social_clips"
   },
   {
     "title": "\"Let Me Be Your Star (Opening Version)\" | SMASH The Musical",
@@ -219,7 +220,7 @@
     "videoUrl": "https://www.youtube.com/embed/ntYge3kewmQ",
     "uploadDate": "2025-02-10T16:12:52.378Z",
     "duration": "PT3M29S",
-    "category": "Reveals"
+    "category": "Music"
   },
   {
     "title": "Opening Night - JUST IN TIME is \"A SMASH HIT!\" | Now on Broadway",
@@ -237,7 +238,8 @@
     "videoUrl": "https://www.youtube.com/embed/9QCHsiR8QrQ",
     "uploadDate": "2025-05-05T14:01:31.960Z",
     "duration": "PT1M48S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "collection": "social_clips"
   },
   {
     "title": "Moulin Rouge! The Musical | Come What May",
@@ -327,7 +329,8 @@
     "videoUrl": "https://www.youtube.com/embed/w4xaJxeUIaw",
     "uploadDate": "2025-11-16T16:24:43.095Z",
     "duration": "PT1M10S",
-    "category": "Reveals"
+    "category": "Reveals",
+    "collection": "social_clips"
   },
   {
     "title": "\"Where I Wanna Be\" from Boop! The Musical",
@@ -336,7 +339,7 @@
     "videoUrl": "https://www.youtube.com/embed/rhyiqvVNsUo",
     "uploadDate": "2023-11-14T14:44:38.869Z",
     "duration": "PT2M19S",
-    "category": "Cast Recordings"
+    "category": "Music"
   },
   {
     "title": "In The Recording Studio with BOOP! The Musical",
@@ -345,7 +348,7 @@
     "videoUrl": "https://www.youtube.com/embed/VEtXCE-t0HI",
     "uploadDate": "2025-02-18T15:44:46.366Z",
     "duration": "PT48S",
-    "category": "Cast Recordings"
+    "category": "Music"
   },
   {
     "title": "A 30-Second Montage of Broadway's Lempicka",
@@ -435,7 +438,8 @@
     "videoUrl": "https://www.youtube.com/embed/wCYtx31o2WU",
     "uploadDate": "2025-11-19T17:23:37.739Z",
     "duration": "PT1M25S",
-    "category": "Reveals"
+    "category": "Opening Nights",
+    "collection": "social_clips"
   },
   {
     "title": "Real Women Have Curves | The Musical | Original Broadway Cast Recording (Official Album Trailer)",
@@ -444,7 +448,7 @@
     "videoUrl": "https://www.youtube.com/embed/pIoJRMK0wcw",
     "uploadDate": "2025-06-09T20:35:40.197Z",
     "duration": "PT2M30S",
-    "category": "Cast Recordings"
+    "category": "Music"
   },
   {
     "title": "Opening Night with Real Women Have Curves | The Musical",
@@ -453,7 +457,8 @@
     "videoUrl": "https://www.youtube.com/embed/X5qVexsouPk",
     "uploadDate": "2025-05-05T14:01:31.969Z",
     "duration": "PT1M19S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "collection": "social_clips"
   },
   {
     "title": "The Music Man | Opening Night",
@@ -675,115 +680,116 @@
     "videoUrl": "https://www.youtube.com/embed/bCy3RdLHC0Q",
     "uploadDate": "2025-11-16T16:25:51.632Z",
     "duration": "PT50M21S",
-    "category": "New Media"
+    "category": "New Media",
+    "collection": "social_clips"
   },
   {
     "title": "Hoffman - Didn't Like Me Back",
     "thumbnail": "https://i.vimeocdn.com/video/1523258812-34784807c793b3e2f83f34b12f1831e42caaa2cbae8c2c7cd795f726cf084325-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/758377863",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "The Lost Boys (Feat. Slash) - \"Have to Have You\"",
     "thumbnail": "https://i.ytimg.com/vi/FupJLTtytz8/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/FupJLTtytz8",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "\"Wild\" Featuring Guest Artists Caissie Levy & Patrick Wilson",
     "thumbnail": "https://i.ytimg.com/vi/RNFps5250JM/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/RNFps5250JM",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Marigold - \"Alpenglow\" Live",
     "thumbnail": "https://i.ytimg.com/vi/n0573wFMbY0/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/n0573wFMbY0",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Granite Garden - April",
     "thumbnail": "https://i.vimeocdn.com/video/1977080562-12b7ebb81efe440bccb6de2ac732fc581b8c78e23d5526280a8e08382e23ddd9-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/1052151410",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Hoffman - Reflection",
     "thumbnail": "https://i.vimeocdn.com/video/1446914049-7afbb3f94c8d8d11c7e88e96a79c722e7dd28f8ad55ea8d023b5a5069af8387c-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/718138020",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Inside Scoop - Marsoupial",
     "thumbnail": "https://i.vimeocdn.com/video/843581577-2684ba543f62b60d2d7afbf5e0c76c94eaec7f2b81e959579cc7266cb5eec904-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/338969089",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Pesh Milli - V Roy & Painless",
     "thumbnail": "https://i.vimeocdn.com/video/1401967539-be003eb3a4acf76ca6bce4880986d6884dba62d6d96082bedcf7776d66a0ea9e-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/692694065",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "GNUdefRecords | Sundae Cypher #1",
     "thumbnail": "https://i.vimeocdn.com/video/1705479520-046c86b175d06273af634151f5952208762bae9057e8084822cda7e99fe90918-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/850941432",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "GNUdefRecords | Sundae Cypher #2",
     "thumbnail": "https://i.vimeocdn.com/video/1765453161-4279d2dd78f9921f2f25b328fbf26aa0141886113ce5d5d3aa2fdd3774d4906a-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/892348596",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "GNUdefRecords | Sundae Cypher #3",
     "thumbnail": "https://i.vimeocdn.com/video/1898107670-f15cf5157ce64392fd39415308d35f5786b9b6c3b5750b7d003d489f12c6b942-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/982735509",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Dr. Will - The Squeeze",
     "thumbnail": "https://i.vimeocdn.com/video/1330258609-9c64d2fe70c6cd450c639877d80507f185bc327118ff5c92335d198a8147b2ef-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/597280904",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Green Knuckle Material - Julia",
     "thumbnail": "https://i.vimeocdn.com/video/1573119514-ea7fcb6b26a47c6325d119c1f41508a6cd9b87e4b4d6d4e0470d3ff966f13f77-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/780540226",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Dr. Will - Wayne Campbell",
     "thumbnail": "https://i.vimeocdn.com/video/1021473770-8121101e66c746e3a34942a76d8ced7a0f75aa2c0aff0b7e962ebce07bf2ca49-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/493986789",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "King of Spiderman One",
     "thumbnail": "https://i.vimeocdn.com/video/1465102618-6e323f13e5aa0842bd65dcb331ff9cbf4db0a0d2772e99a8ea9f9ef3c5f136b4-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/727626975",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Drug Seeker - Ghost",
     "thumbnail": "https://i.vimeocdn.com/video/843582034-0fa6fa0534aea83b96f3a922d866c96c7e27bee82cc1e04aeb91dd1d51c5f1ca-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/372752699",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Granite Garden - \"Am I Just Bored\"",
     "thumbnail": "https://i.ytimg.com/vi/s1kwN9Hb6QM/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/s1kwN9Hb6QM",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Sonoa: Live Session at Mount Moon",
     "thumbnail": "https://i.vimeocdn.com/video/1142760600-e5b0fe3f7c2e6f64e1930bc925fee9eebc864416fd9c44389c7d672d18d962db-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/539966176",
-    "category": "New Media"
+    "category": "Music"
   },
   {
     "title": "Record-Breaking Signings, March Madness Mayhem & A Severance Waffle Party with Ben Stiller | Ep 130",
@@ -792,7 +798,8 @@
     "videoUrl": "https://www.youtube.com/embed/G0oyW5uuVoI",
     "uploadDate": "2025-05-05T14:01:31.984Z",
     "duration": "PT1H43M6S",
-    "category": "New Media"
+    "category": "New Media",
+    "collection": "social_clips"
   },
   {
     "title": "Camelot | Cast Recording",
@@ -801,7 +808,7 @@
     "videoUrl": "https://player.vimeo.com/video/828137458",
     "uploadDate": "2026-01-21T08:19:55.735Z",
     "duration": "PT1M48S",
-    "category": "Cast Recordings"
+    "category": "Music"
   },
   {
     "title": "Ars Nova | Meet the Campers",
@@ -912,7 +919,7 @@
     "videoUrl": "https://www.youtube.com/embed/m6VjlZsAKNE",
     "uploadDate": "2024-12-19T19:52:55.898Z",
     "duration": "PT2M58S",
-    "category": "Cast Recordings"
+    "category": "Music"
   },
   {
     "title": "Behind-The-Scenes with Betty Boop",
