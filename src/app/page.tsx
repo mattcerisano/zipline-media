@@ -408,10 +408,22 @@ function Work() {
 function Social() {
   const clips = [
     {
+      title: "Death Becomes Her | Hero",
+      thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/mV5xdHHtQD0",
+      localVideo: "/DBH_Hero_SocialThumbnail.mp4"
+    },
+    {
+      title: "Moulin Rouge | Titus Burgess",
+      thumbnail: "https://i.ytimg.com/vi/7funQCcxymc/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/7funQCcxymc",
+      localVideo: "/MRTM_Titus_SocialThumbnail.mp4"
+    },
+    {
       title: "‘Good Fortune’ with Keanu Reeves, Seth Rogen and Aziz Ansari",
       thumbnail: "https://i.ytimg.com/vi/bCy3RdLHC0Q/mqdefault.jpg",
       videoUrl: "https://www.youtube.com/embed/bCy3RdLHC0Q",
-      localVideo: "/Keke_SocialThumbnail.mp4"
+      localVideo: "/Keke_SocialThumbnail_V2.mp4"
     },
     {
       title: "Golden Hour | The Queen of Versailles on Broadway",

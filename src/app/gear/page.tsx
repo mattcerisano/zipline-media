@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { INVENTORY, ALL_CATEGORIES } from '@/data/inventory';
+import Link from 'next/link';
+import { INVENTORY } from '@/data/inventory';
 import { Search } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function GearPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,9 +23,17 @@ export default function GearPage() {
         
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12 border-b border-white/10 pb-8">
-          <div>
-            <h1 className="text-white text-3xl font-black tracking-tighter uppercase mb-2">Internal Gear Manifest</h1>
-            <p className="text-xs text-zinc-500 tracking-widest uppercase">Zipline Media Production Assets // Inventory Control</p>
+          <div className="space-y-4">
+            <Link 
+              href="/" 
+              className="inline-flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase opacity-40 hover:opacity-100 transition-opacity mb-4"
+            >
+              ← Back to site
+            </Link>
+            <div>
+              <h1 className="text-white text-3xl font-black tracking-tighter uppercase mb-2">Internal Gear Manifest</h1>
+              <p className="text-xs text-zinc-500 tracking-widest uppercase">Zipline Media Production Assets // Inventory Control</p>
+            </div>
           </div>
           
           <div className="relative w-full md:w-80">
@@ -39,22 +49,26 @@ export default function GearPage() {
         </div>
 
         {/* Table Section */}
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+          <table className="w-full border-collapse min-w-[600px] md:min-w-0">
             <thead>
               <tr className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase text-left border-b border-white/10">
                 <th className="pb-4 font-black w-16">Preview</th>
-                <th className="pb-4 font-black w-16 text-center">Qty</th>
+                <th className="pb-4 font-black w-12 text-center">Qty</th>
                 <th className="pb-4 font-black pl-4">Item Description</th>
-                <th className="pb-4 font-black">Category</th>
-                <th className="pb-4 font-black text-right">Replacement</th>
+                <th className="pb-4 font-black hidden sm:table-cell">Category</th>
+                <th className="pb-4 font-black text-right hidden md:table-cell">Replacement</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {filteredInventory.map((item, idx) => (
                 <tr key={idx} className="group hover:bg-white/[0.02] transition-colors">
                   <td className="py-3">
-                    <div className="relative w-12 h-12 bg-white rounded-sm overflow-hidden border border-white/10 group-hover:border-accent/50 transition-colors">
+                    <motion.div 
+                      whileHover={{ scale: 3.5, zIndex: 50, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.5)" }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="relative w-12 h-12 bg-white rounded-sm overflow-hidden border border-white/10 cursor-zoom-in"
+                    >
                       {item.image ? (
                         <Image 
                           src={item.image}
@@ -66,7 +80,7 @@ export default function GearPage() {
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-[8px] text-zinc-700">NO IMG</div>
                       )}
-                    </div>
+                    </motion.div>
                   </td>
                   <td className="py-3 text-center">
                     <span className={`text-xs font-bold ${item.qty > 1 ? 'text-accent' : 'text-zinc-500'}`}>
@@ -77,13 +91,17 @@ export default function GearPage() {
                     <div className="text-xs md:text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">
                       {item.name}
                     </div>
+                    {/* Category visible on small screens since column is hidden */}
+                    <div className="sm:hidden text-[8px] uppercase tracking-widest text-zinc-600 mt-1">
+                      {item.category}
+                    </div>
                   </td>
-                  <td className="py-3">
+                  <td className="py-3 hidden sm:table-cell">
                     <span className="text-[9px] px-2 py-1 bg-white/5 rounded-full tracking-widest uppercase font-bold text-zinc-500">
                       {item.category}
                     </span>
                   </td>
-                  <td className="py-3 text-right">
+                  <td className="py-3 text-right hidden md:table-cell">
                     <span className="text-[10px] tabular-nums font-medium text-zinc-500 group-hover:text-zinc-300">
                       ${item.replacement.toLocaleString()}
                     </span>
