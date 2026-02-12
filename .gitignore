@@ -42,4 +42,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 *.log
-*.mp4
+
+# large videos
+public/LandingPage.mp4
+public/broadway-performance.mp4
+public/broadway-reel.mp4
+public/corporate.mp4
+public/new-media.mp4
