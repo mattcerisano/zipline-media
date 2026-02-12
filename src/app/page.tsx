@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import LogoTicker from '@/components/LogoTicker';
 import { Check, Play } from 'lucide-react';
 
@@ -160,8 +161,31 @@ function Work() {
     { id: 'new-media', title: 'New Media', video: '/new-media.mp4', link: '/archive#new-media' },
   ];
 
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const router = useRouter();
+
+  const handleWorkClick = (e: React.MouseEvent<HTMLAnchorElement>, link: string) => {
+    e.preventDefault();
+    setIsTransitioning(true);
+    setTimeout(() => {
+      router.push(link);
+    }, 500); // Match duration of fade
+  };
+
   return (
-    <section id="work" className="bg-black py-8 md:py-16 px-6 scroll-mt-24">
+    <section id="work" className="bg-black py-8 md:py-16 px-6 scroll-mt-24 relative">
+      {/* Page Transition Overlay */}
+      <AnimatePresence>
+        {isTransitioning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="fixed inset-0 z-[100] bg-black pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
       <div className="max-w-7xl mx-auto">
         
         {/* --- MOBILE LAYOUT (Simple Stack) --- */}
@@ -178,7 +202,12 @@ function Work() {
                 <source src={cat.video} type="video/mp4" />
               </video>
               
-              <Link href={cat.link} className="absolute inset-0 z-20" aria-label={`View ${cat.title} Projects`} />
+              <a 
+                href={cat.link} 
+                onClick={(e) => handleWorkClick(e, cat.link)}
+                className="absolute inset-0 z-20" 
+                aria-label={`View ${cat.title} Projects`} 
+              />
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                 <div className="flex items-end gap-3 mb-2">
@@ -224,7 +253,12 @@ function Work() {
               </video>
             </motion.div>
             
-            <Link href="/archive#performance" className="absolute inset-0 z-20" aria-label="View Performance Projects" />
+            <a 
+              href="/archive#performance" 
+              onClick={(e) => handleWorkClick(e, "/archive#performance")}
+              className="absolute inset-0 z-20" 
+              aria-label="View Performance Projects" 
+            />
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-10 flex flex-col justify-end items-start pointer-events-none">
                <motion.div layout className="flex items-end gap-4">
@@ -276,7 +310,12 @@ function Work() {
                 </video>
               </motion.div>
 
-              <Link href="/archive#brands" className="absolute inset-0 z-20" aria-label="View Brands Projects" />
+              <a 
+                href="/archive#brands" 
+                onClick={(e) => handleWorkClick(e, "/archive#brands")}
+                className="absolute inset-0 z-20" 
+                aria-label="View Brands Projects" 
+              />
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                  <motion.div layout className="flex items-end gap-4">
@@ -322,7 +361,12 @@ function Work() {
                 </video>
               </motion.div>
 
-              <Link href="/archive#new-media" className="absolute inset-0 z-20" aria-label="View New Media Projects" />
+              <a 
+                href="/archive#new-media" 
+                onClick={(e) => handleWorkClick(e, "/archive#new-media")}
+                className="absolute inset-0 z-20" 
+                aria-label="View New Media Projects" 
+              />
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                  <motion.div layout className="flex items-end gap-4">
@@ -414,41 +458,83 @@ function Social() {
       </div>
       
       {/* Marquee of 9:16 Videos */}
-      <div className="flex gap-6 overflow-x-auto pb-8 px-6 no-scrollbar snap-x touch-pan-x">
-        {clips.map((clip, i) => (
-          <a 
-            key={i} 
-            href={clip.videoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="snap-center shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-pointer"
-          >
-             {clip.localVideo ? (
-               <video 
-                 autoPlay 
-                 muted 
-                 loop 
-                 playsInline 
-                 className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
-               >
-                 <source src={clip.localVideo} type="video/quicktime" />
-                 <source src={clip.localVideo} type="video/mp4" />
-               </video>
-             ) : (
-               <div 
-                 className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
-                 style={{ backgroundImage: `url(${clip.thumbnail})` }}
-               />
-             )}
-             
-             {/* Play button overlay */}
-             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                   <Play className="w-5 h-5 text-white fill-white" />
-                </div>
-             </div>
-          </a>
-        ))}
+      <div className="relative overflow-hidden group/marquee pause-on-hover">
+        <div className="flex w-fit animate-scroll whitespace-nowrap">
+          {/* First Set */}
+          <div className="flex gap-6 px-3">
+            {clips.map((clip, i) => (
+              <a 
+                key={i} 
+                href={clip.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-pointer"
+              >
+                 {clip.localVideo ? (
+                   <video 
+                     autoPlay 
+                     muted 
+                     loop 
+                     playsInline 
+                     className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
+                   >
+                     <source src={clip.localVideo} type="video/quicktime" />
+                     <source src={clip.localVideo} type="video/mp4" />
+                   </video>
+                 ) : (
+                   <div 
+                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
+                     style={{ backgroundImage: `url(${clip.thumbnail})` }}
+                   />
+                 )}
+                 
+                 {/* Play button overlay */}
+                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                       <Play className="w-5 h-5 text-white fill-white" />
+                    </div>
+                 </div>
+              </a>
+            ))}
+          </div>
+          {/* Second Set (Duplicate) */}
+          <div className="flex gap-6 px-3">
+            {clips.map((clip, i) => (
+              <a 
+                key={`dup-${i}`} 
+                href={clip.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-pointer"
+              >
+                 {clip.localVideo ? (
+                   <video 
+                     autoPlay 
+                     muted 
+                     loop 
+                     playsInline 
+                     className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
+                   >
+                     <source src={clip.localVideo} type="video/quicktime" />
+                     <source src={clip.localVideo} type="video/mp4" />
+                   </video>
+                 ) : (
+                   <div 
+                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
+                     style={{ backgroundImage: `url(${clip.thumbnail})` }}
+                   />
+                 )}
+                 
+                 {/* Play button overlay */}
+                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                       <Play className="w-5 h-5 text-white fill-white" />
+                    </div>
+                 </div>
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );

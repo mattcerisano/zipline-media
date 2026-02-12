@@ -277,49 +277,16 @@ export default function ArchiveClient() {
   const { videosByCategory, recentWork } = useMemo(() => {
     const rawVideos = videos as Video[];
     
-    // Sort Helper
-    const sortVideos = (list: Video[]) => {
-      return [...list].sort((a: any, b: any) => {
-         // Priority 1: Social Clips
-         if (a.collection === 'social_clips' && b.collection !== 'social_clips') return -1;
-         if (a.collection !== 'social_clips' && b.collection === 'social_clips') return 1;
-         // Priority 2: Date
-         const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
-         const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
-         return dateB - dateA;
-      });
-    };
-
     const grouped: Record<string, Video[]> = {};
     const allCats = ['Opening Nights', 'Reveals', 'Music', 'Broadway B-Roll', 'Brands', 'Nonprofits', 'New Media'];
     
     allCats.forEach(cat => {
-      grouped[cat] = sortVideos(rawVideos.filter(v => v.category === cat));
+      // Just filter, don't re-sort, to keep the JSON order
+      grouped[cat] = rawVideos.filter(v => v.category === cat);
     });
 
-    // Recent Work (Top 6 overall, prioritizing Social Clips)
-    const recent = [...rawVideos].sort((a: any, b: any) => {
-        const SOCIAL_CLIPS_ORDER = [
-          "‘Good Fortune’ & Funny Set Confessions with Keanu Reeves, Seth Rogen and Aziz Ansari",
-          "Golden Hour | The Queen of Versailles on Broadway",
-          "Record-Breaking Signings, March Madness Mayhem & A Severance Waffle Party with Ben Stiller | Ep 130",
-          "The Most BROADWAY Broadway Opening Night | SMASH The Musical",
-          "For Her/My Green Light - The Great Gatsby on Broadway",
-          "Opening Night with Real Women Have Curves | The Musical"
-        ];
-        const indexA = SOCIAL_CLIPS_ORDER.indexOf(a.title);
-        const indexB = SOCIAL_CLIPS_ORDER.indexOf(b.title);
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        
-        if (a.collection === 'social_clips' && b.collection !== 'social_clips') return -1;
-        if (a.collection !== 'social_clips' && b.collection === 'social_clips') return 1;
-
-        const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
-        const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
-        return dateB - dateA;
-    }).slice(0, 6);
+    // Recent Work (Top 6 overall from the JSON order)
+    const recent = rawVideos.slice(0, 6);
 
     return { videosByCategory: grouped, recentWork: recent };
   }, []);

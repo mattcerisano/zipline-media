@@ -1,266 +1,34 @@
 [
   {
-    "title": "American Cancer Society | Allan Shedlin Memorial Golf Classic 2022",
-    "thumbnail": "https://i.vimeocdn.com/video/1453556471-d183bde6cc856a27429579fddbcd54cecf1e9be49f017672386c0bbaaf1c8e34-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/721766009",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "T-Mobile | Winners Circle Sizzle",
-    "description": "T-Mobile: Winners Circle Sizzle",
-    "thumbnail": "https://i.vimeocdn.com/video/1356334895-48a78ad477f304d334f5dba31b37bc8eac597308ae55584a9cb6b17ee4aaac5c-d_1920x1080?&r=pad&region=us",
-    "videoUrl": "https://player.vimeo.com/video/542369134",
-    "uploadDate": "2026-01-21T08:19:55.745Z",
-    "duration": "PT42S",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Visible Mobile | Shatter the Family Drama",
-    "description": "Visible Mobile: Shatter the Family Drama",
-    "thumbnail": "https://i.vimeocdn.com/video/1381460762-a9430fb606c7cf641f2d42a81e405acc1bb04ebc9cb2ec668d076892d3a2488e-d_1920x1080?&r=pad&region=us",
-    "videoUrl": "https://player.vimeo.com/video/681589910",
-    "uploadDate": "2026-01-21T08:19:55.741Z",
-    "duration": "PT1M55S",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "American Cancer Society | Hope Lodge Gala",
-    "thumbnail": "https://i.vimeocdn.com/video/1447988928-d8f534a4a822d332423bc4cf5963effe165bf533df4881e15d2d52d57421ef61-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/715301141",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "American Cancer Society | Wine and Spirits",
-    "thumbnail": "https://i.vimeocdn.com/video/1543234810-88adac140696fbaaaf819e53df8ee8fd54a39af7db5092a6d8b935f8bb2bacb9-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/768717251",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Heroes of New York Gala | YMCA of Greater New York",
-    "description": "Thank You for Attending the YMCA of Greater New York's Heroes of New York Gala!We are incredibly grateful to everyone who joined us at The Metropolitan Museum of Art on June 13th. The evening was unforgettable with a special performance by Billy Porter and music by Grandmaster Flash, and emceed by Punkie Johnson. We honored New York Life, Deloitte, and John Starks, and the Rowe Scholars program, which celebrates its 10th anniversary this year.The inaugural After Party was a blast with an intimate performance by Grandmaster Flash, desserts, and an open bar in The Met's Great Hall.Thank you for your generous support, which helps fund our free community programs. Together, we're opening the doors of opportunity for New Yorkers. See you next year! \\#YMCA #HeroesOfNewYorkGala #CommunitySupport #BillyPorter #GrandmasterFlash #RoweScholars #TheMet #GalaAfterParty #ThankYou",
-    "thumbnail": "https://i.ytimg.com/vi/ztz4D8zTpHY/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/ztz4D8zTpHY",
-    "uploadDate": "2024-07-01T13:50:36.746Z",
-    "duration": "PT1M51S",
-    "category": "Nonprofits",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Elegant Music Group | DJ Jony Rahat Interview",
-    "thumbnail": "https://i.vimeocdn.com/video/1643708350-2ebbce17b8f64c162ddd6d32a2d6e84bf853a07530caae46145b30699339661f-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/563342132",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Elegant Music Group | VLOG Six",
-    "thumbnail": "https://i.vimeocdn.com/video/1711919927-5031143b1629b6e725b72b0f598293dae50526ac3e79d6ef6e0c898738c03188-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/855141398",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Elegant Music Group | Electric Boulevard at The Grove",
-    "thumbnail": "https://i.vimeocdn.com/video/1820405148-db046e449c1e1c32a4dd058c17c2cb34018ddf149c48d57643fcdb9d42621cdc-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/926273323",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Elegant Music Group | DJ Bryan Festa at Shadowbrook",
-    "thumbnail": "https://i.vimeocdn.com/video/1643710324-a18844e21bb610f628066496b80e82270f053b7ee53f4d649c9b3f8cf9c25f36-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/760636300",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Elegant Music Group | The Gramercy - Hip Hop",
-    "thumbnail": "https://i.vimeocdn.com/video/1643714578-041a59cb3ed1d8574e42860bc82dcc2bbe8ee901a62b6ce71625a9ea338748bf-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/780244516",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "New York Sports Club | West Village",
-    "thumbnail": "https://i.vimeocdn.com/video/837673413-75064a165ebb5607acec57568c49e49b0d0695265d1a9f17fad969c2236e9ab2-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/377871768",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "New York Sports Club | Astor Place",
-    "thumbnail": "https://i.vimeocdn.com/video/839987944-891478f70ba9f07ac8dd341137e01b944b47d008c5366407319165f6754e5fbc-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/378947564",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "New York Sports Club | Hell's Kitchen",
-    "thumbnail": "https://i.vimeocdn.com/video/841019119-d6c267c1a585cf531238706d66fcf94401b09a99cfc3e6505d444936b9c112cd-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/378723276",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Queerty | Pride50 Red Carpet",
-    "thumbnail": "https://i.ytimg.com/vi/4EiznCbECBo/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/4EiznCbECBo",
-    "category": "Brands",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "The Bachelor | Granted",
-    "description": "The Bachelor: Granted",
-    "thumbnail": "https://i.vimeocdn.com/video/1983280990-7403b3ad22b01e748107a6921cb60ebc94762e392535da80ad7bdf46fa1aeacf-d_1920x1080?&r=pad&region=us",
-    "videoUrl": "https://player.vimeo.com/video/1056968490",
-    "uploadDate": "2025-02-17T03:25:34.532Z",
-    "duration": "PT1M19S",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Rita Joseph for City Council",
-    "thumbnail": "https://i.ytimg.com/vi/Vzpn1QFvF75/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/Vzpn1QFvF75",
-    "category": "Nonprofits",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Startup Story | Glow",
-    "thumbnail": "https://i.ytimg.com/vi/Jer8XAvANd4/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/Jer8XAvANd4",
-    "category": "Brands",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "50,000 Crypto Hackathon Competition | SZN 1 - Part 1",
-    "thumbnail": "https://i.ytimg.com/vi/gq7lEcd2m38/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/gq7lEcd2m38",
-    "category": "Brands",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "00,000 Hackathon | Season 3",
-    "thumbnail": "https://i.ytimg.com/vi/6Nypbnbsvy8/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/6Nypbnbsvy8",
-    "category": "Brands",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Advice For Founders | Don't Overhire",
-    "thumbnail": "https://i.ytimg.com/vi/wHcZV-hZW6I/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/wHcZV-hZW6I",
-    "category": "Brands",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Advice For Founders | What Makes a Good One-Liner",
-    "thumbnail": "https://i.ytimg.com/vi/w3F4QshpWPo/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/w3F4QshpWPo",
-    "category": "Brands",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Advice For Founders | Networking in the Age of AI",
-    "thumbnail": "https://i.ytimg.com/vi/YnLkEotw0o0/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/YnLkEotw0o0",
-    "category": "Brands",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Sarah Snook | 2024 Tony Awards First Impressions",
-    "description": "Tony Award-winner Cole Escola is congratulated by Bonnie Milligan at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 78th Annual Tony Awards on Sunday, June 8, 2025.About the 78th Annual Tony AwardsThe American Theatre Wing's 78th Annual Tony Awards, presented by the Broadway League and the American Theatre Wing, aired LIVE on Sunday, June 8, 2025 from Radio City Music Hall from 8:00-11:00 PM, ET/5:00-8:00 PM, PT on the CBS Television Network, and streaming live and on demand on Paramount+*.CBS and Pluto TV presented The Tony Awards: Act One, a pre-show of live, exclusive content leading into the 78th Annual Tony Awards. The celebration commenced at 6:40-8:00 PM, ET/3:30-5:00 PM PT, on Pluto TV.\\(live and on-demand for Paramount+ with SHOWTIME subscribers, or on-demand for Paramount+ Essential subscribers the day after the special airs).*",
-    "thumbnail": "https://i.ytimg.com/vi/1RW3OCUMp4s/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/1RW3OCUMp4s",
-    "uploadDate": "2025-06-09T20:35:40.192Z",
-    "duration": "PT4M51S",
+    "title": "‘Good Fortune’ & Funny Set Confessions with Keanu Reeves, Seth Rogen and Aziz Ansari",
+    "description": "Do Keanu Reeves, Seth Rogen, and Aziz Ansari think they have a guardian angel? The stars of the new movie '91Good Fortune' join their co-star Keke for a convo you won't hear anywhere else: stories of divine intervention, looking five years into the future, and what they would be doing if they weren't in Hollywood. Add in co-star body swap confessions, a few behind-the-scenes secrets and what Keke's auntie REALLY thought of '91The Matrix'?! This one's pure gold.Chapters::00 - What are they fortunate for? :31 - Do Seth, Keanu, and Aziz have guardian angels? :35 - Aziz as a food delivery driver :43 - Moments that changed their lives :17 - High school dropouts & early hustle:55 - Advice for aspiring writers :47 - Aziz's inspiration for '91Good Fortune':01 - Seth's stories from '91Superbad' :24 - '91The Matrix', '91John Wick' and raising the stakes:35 - Casting Keanu as the guardian angel :56 - Behind-the-scenes stories:17 - Swapping bodies with a castmate?!Watch More Baby, This is Keke Palmer episodes:://youtube.com/playlist?list=PLdcezJ2sNeAsmBTdorccSanHejdXRLGC2&si=vya1EmI8LKEcOQDkCheck out Keke's first merch drop by going to kekepalmershop.comFollow Keke on social: ://www.instagram.com/keke://www.twitter.com/KekePalmer://www.facebook.com/kekepalmer://www.tiktok.com/@kekepalmerConnect with Wondery://wondery.com/shows/baby-this-is-keke-palmer/://facebook.com/WonderyMedia://twitter.com/WonderyMedia://instagram.com/WonderyMedia://www.tiktok.com/@wonderymediaAbout the Show:Keke Palmer has questions for days, about everything under the sun. From the existential to the inconsequential, and everything in between. And now she's diving into the brains of entertainment's best and brightest to get some answers. From Snoop Dogg to Jordan Peele to Quinta Brunson, to John Stamos, Keke is getting to the bottom of the burning topics that keep us up at night. This is Keke as her most authentic self, going all in on everything in her life and the lives of her celeb guests, because Baby, this is Keke Palmer, and she is here for All. Of. It. You know it's your girl!\\#kekepalmer #podcast #wondery #goodfortune #azizansari #keanureeves #sethrogen Watch more of Keke with her 'Good Fortune' co-stars:://www.youtube.com/watch?v=X_2b4qMBXCI&pp=ygUMZ29vZCBmb3J0dW5l://www.youtube.com/watch?v=Ixo3N86WZcQ&pp=ygUMZ29vZCBmb3J0dW5l0gcJCfwJAYcqIYzv://www.youtube.com/watch?v=2jb1xQpyWTU&pp=ygUYZ29vZCBmb3J0dW5lIGtla2UgcGFsbWVy",
+    "thumbnail": "https://i.ytimg.com/vi/bCy3RdLHC0Q/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/bCy3RdLHC0Q",
+    "uploadDate": "2025-11-16T16:25:51.632Z",
+    "duration": "PT50M21S",
     "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Daniel Radcliffe | 2024 Tony Awards First Impressions",
-    "description": "Tony Award-winner Daniel Radcliffe is congratulated by Erich Bergen at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 77th Annual Tony Awards on Sunday, June 16, 2024.About the 77th Annual Tony AwardsThe American Theatre Wing's 77th Annual Tony Awards, presented by the Broadway League and the American Theatre Wing, aired LIVE on Sunday, June 16, 2024 from The David H. Koch Theater at Lincoln Center for the Performing Arts from 8:00-11:00 PM, ET/5:00-8:00 PM, PT on the CBS Television Network, and streaming live and on demand on Paramount+*.CBS and Pluto TV presented The Tony Awards: Act One, a pre-show of live, exclusive content leading into the 77th Annual Tony Awards. The celebration commenced at 6:30-8:00 PM, ET/3:30-5:00 PM PT, on Pluto TV.\\(live and on-demand for Paramount+ with SHOWTIME subscribers, or on-demand for Paramount+ Essential subscribers the day after the special airs).*",
-    "thumbnail": "https://i.ytimg.com/vi/G8xeZQCjX6k/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/G8xeZQCjX6k",
-    "uploadDate": "2024-06-17T18:44:34.934Z",
-    "duration": "PT3M23S",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Jodie Comer | 2023 Tony Awards First Impressions",
-    "description": "Tony Award-winner Jodie Comer is congratulated by Erich Bergen at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 76th Annual Tony Awards on Sunday, June 11, 2023.\\*About the 76th Annual Tony Awards*The American Theatre Wing's 76th Annual Tony Awards, presented by the Broadway League and the American Theatre Wing, aired LIVE on Sunday, June 11, 2023 from the historic United Palace in Washington Heights, in New York City from 8:00-11:00 PM, ET/5:00-8:00 PM, PT on the CBS Television Network, and streaming live and on demand on Paramount+*.CBS and Pluto TV presented The Tony Awards: Act One, a pre-show of live, exclusive content leading into the 76th Annual Tony Awards. The celebration commenced at 6:30-8:00 PM, ET/3:30-5:00 PM PT, on Pluto TV, the leading free streaming television service (FAST).",
-    "thumbnail": "https://i.ytimg.com/vi/pI4CQYvOwD8/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/pI4CQYvOwD8",
-    "uploadDate": "2023-06-13T18:38:06.754Z",
-    "duration": "PT3M45S",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Think of Me - The Phantom of the Opera Broadway Cast 2023",
-    "description": "Celebrating 35 years on Broadway, the production's lead cast members Ben Crawford (The Phantom), Emilie Kouatchou (Christine), and John Riddle (Raoul) sing Think of Me from The Phantom of the Opera.Accompanied on the piano by Music Director and Conductor David Lai. Sheet music available here: https://www.sheetmusicdirect.com/en-US/se/ID_No/1315101/Product.aspx Filmed and recorded at Power Station at BerkleeNYCExperience the power of the phantom with your nearest performance: http://www.thephantomoftheopera.com Follow The Phantom of the Opera everywhere:Instagram: https://instagram.com/phantomopera (West End / Broadway)Instagram: https://instagram.com/potoworldwide (global productions)Twitter: https://twitter.com/PhantomOpera Facebook: https://www.facebook.com/ThePhantomOfTheOperaTikTok: https://www.tiktok.com/@phantommusical \\---------------Far beneath the majesty and splendour of the Paris Opera House, hides the Phantom in a shadowy existence. Shamed by his physical appearance and feared by all, the love he holds for his beautiful prot'e9g'e9e Christine Daa'e9 is so strong that even her heart cannot resist.Andrew Lloyd Webber's Phantom of the Opera is widely considered one of the most beautiful and spectacular productions in history, playing to over 160 million people in 41 countries and 186 cities in 18 languages.The musical opened at the Majestic Theatre on Broadway 26 January 1988, closing 16 April 2023.\\#ThinkOfMe #ThePhantomoftheOpera #AndrewLloydWebber",
-    "thumbnail": "https://i.ytimg.com/vi/FXfQzAHPa6g/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/FXfQzAHPa6g",
-    "uploadDate": "2023-04-14T20:10:06.018Z",
-    "duration": "PT2M51S",
-    "category": "Music",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "2022 Tony Awards First Impressions | Jesse Tyler Ferguson - Take Me Out",
-    "description": "Tony Award-winner Jesse Tyler Ferguson is congratulated by Andrew Keenan-Bolger at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 75th Annual Tony Awards on Sunday, June 12, 2022.\\---About the 75th Annual Tony Awards---The Tony Awards, presented by the Broadway League and the American Theatre Wing, hosted a multi-platform celebration on Sunday, June 12th. Academy Award winner and Tony nominee Ariana DeBose hosted The 75th Annual Tony Awards, aired live coast-to-coast (8:00-11:00 PM, LIVE ET/5:00-8:00 PM, LIVE PT) on the CBS Television Network, and streamed live and on demand on Paramount+. Julianne Hough and Darren Criss hosted \"The Tony Awards: Act One,\" one hour of exclusive content streaming live, only on Paramount+ (7:00-8:00 PM, ET/4:00-5:00 PM, PT.)",
-    "thumbnail": "https://i.ytimg.com/vi/XpyvXLCZMOo/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/XpyvXLCZMOo",
-    "uploadDate": "2023-06-06T02:34:21.730Z",
-    "duration": "PT1M55S",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Robyn Hurder is Ivy Lynn | SMASH The Musical",
-    "description": "Who is this diva?? SMASH begins Broadway performances on March 11.Tickets and more information: www.smashbroadway.com",
-    "thumbnail": "https://i.ytimg.com/vi/SzzqFdtpoAk/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/SzzqFdtpoAk",
-    "uploadDate": "2025-01-30T19:04:49.639Z",
-    "duration": "PT15S",
-    "category": "Reveals",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "For Her/My Green Light - The Great Gatsby on Broadway",
-    "description": "The Great Gatsby begins performances on Broadway March 29. Tickets: www.broadwaygatsby.comTransport yourself to the opulent world of the 1920s as one of the greatest American novels hits the greatest American stage. Starring Jeremy Jordan (Newsies) as the eccentric and mysterious millionaire Jay Gatsby and Eva Noblezada (Hadestown) as the enigmatic Daisy Buchanan, THE GREAT GATSBY arrives on Broadway after a record-shattering, sold-out run at Paper Mill Playhouse. Directed by Marc Bruni (Beautiful: The Carole King Musical), this story of extravagance and longing features choreography by Dominique Kelley (So You Think You Can Dance), a book by Kait Kerrigan (The Mad Ones) and a jazz- and pop-influenced original score by Jason Howland (Little Women) and Nathan Tysen (Paradise Square). Don't miss the party - get tickets today to the musical that The New York Times calls \"lush, bewitching, and dazzling!\"THE GREAT GATSBY is produced by Chunsoo Shin, acclaimed Korean musical producer, 5-time winner of Korea's most prestigious theatrical award and OD Company president.\\.broadwaygatsby.com\\#bwaygatsby #gatsbybway #gatsbymusical #broadway #musicaltheatre #greatgatsbymusical #greatgatsby #broadway #jeremyjordan #evanoblezada",
-    "thumbnail": "https://i.ytimg.com/vi/Gx_MFlluTYo/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/Gx_MFlluTYo",
-    "uploadDate": "2024-03-12T18:58:46.727Z",
-    "duration": "PT3M33S",
-    "category": "Reveals",
     "collection": "social_clips",
     "hostedOn": "youtube"
   },
   {
-    "title": "\"Let Me Be Your Star (Opening Version)\" | SMASH The Musical",
-    "description": "This first look at \"Let Me Be Your Star (Opening Number Version)\" is yours for the taking! And yes, there are multiple versions of the song in the show, but you have to come to the Imperial Theatre to see them!Original Broadway cast album coming soon from Concord Theatricals Recordings Tickets and more information: www.smashbroadway.com",
-    "thumbnail": "https://i.ytimg.com/vi/ntYge3kewmQ/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/ntYge3kewmQ",
-    "uploadDate": "2025-02-10T16:12:52.378Z",
-    "duration": "PT3M29S",
-    "category": "Music",
+    "title": "Golden Hour | The Queen of Versailles on Broadway",
+    "description": "Broadway previews begin October 8 at the St. James Theatre.Based on the wildly astonishing documentary directed by award-winning filmmaker Lauren Greenfield, The Queen of Versailles reunites celebrated Academy Award-winning songwriter Stephen Schwartz with Tony and Emmy Award winner Kristin Chenoweth as Jackie Siegel. With a book by Lindsey Ferrentino (Ugly Lies the Bone, Amy and the Orphans) and direction by Tony Award winner Michael Arden (Parade, Once on This Island), The Queen of Versailles is a new musical exploring the true cost of fame, fortune, and family.Get tickets now at queenofversaillesmusical.com!",
+    "thumbnail": "https://i.ytimg.com/vi/MOnGlcd3NxY/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/MOnGlcd3NxY",
+    "uploadDate": "2025-06-09T20:35:40.188Z",
+    "duration": "PT31S",
+    "category": "Broadway B-Roll",
     "hostedOn": "youtube"
   },
   {
-    "title": "Opening Night - JUST IN TIME is \"A SMASH HIT!\" | Now on Broadway",
-    "description": "NOW ON BROADWAY | Get Tickets Now: https://justintimebroadway.com/\"JONATHAN GROFF IS SENSATIONAL! Thrilling sonically and emotionally, he gives one of BROADWAY'S BEST PERFORMANCES.\" The New York Times \"A DAZZLING AND IMMERSIVE LOVE LETTER TO LIVE PERFORMANCE.\" The Washington PostLook out, Jonathan's back! Tony Award winner Jonathan Groff (Merrily We Roll Along, Hamilton) returns to Broadway this spring as Bobby Darin, the legendary singer whose short but remarkable life took him from teen idol to global sensation. Developed and directed by Tony Award winner Alex Timbers (Moulin Rouge), Just In Time is an exhilarating new musical that immerses audiences in an intimate, swinging nightclub complete with a live band, a stellar ensemble cast, and iconic Bobby Darin hits including \"Beyond the Sea,\" \"Mack the Knife,\" \"Splish Splash,\" and \"Dream Lover.\" Discover the man behind the music - a once-in-a-lifetime talent who knew his time was limited and was determined to make a splash before it was too late.\\[4 STARS] \"ONE OF THE MOST WONDROUS MUSICALS OF THE SEASON AND A WALLOP OF JOY! Director Alex Timbers and his irrepressible star Jonathan Groff have made magic.\" New York Post",
-    "thumbnail": "https://i.ytimg.com/vi/3XLd9WYlfI0/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/3XLd9WYlfI0",
-    "uploadDate": "2025-05-05T14:01:31.975Z",
-    "duration": "PT1M35S",
-    "category": "Opening Nights",
+    "title": "Record-Breaking Signings, March Madness Mayhem & A Severance Waffle Party with Ben Stiller | Ep 130",
+    "description": "92%ers we are back with another episode of New Heights presented by Nike! When the world says you can't win, Nike says, \"So Win\" On today's episode, Jason and Travis weigh in on the latest news from NFL Free Agency including revealing how much players snitch on their old teams, why the Cowboys are fighting online, and if the Bengals made the right call by signing Ja'Marr Chase and Tee Higgins to record-breaking contracts. We also have an incredible conversation with Ben Stiller. We get into everything from the guy's love of \"Heavyweights\", what really happens at NFL training camps, who's idea it was for Tom Cruise to dance in \"Tropic Thunder\", if Ben would give up an Academy Award for a Knicks Title, and all of Jason and Travis' biggest questions about \"Severance.\" Finally, we have potentially the least helpful March Madness breakdown of all time. If your criteria for picking teams involves fighting ability, if they shoot underhand free throws, higher GPAs, or any other broad generalizations, this bracket preview is for you! You can participate in the New Heights March Madness Bracket Challenge with the links below: Men's Bracket Link: https://bit.ly/NHMensBracketWomen's Bracket Link: https://bit.ly/NHWomensBracketYou can listen to new episodes early and ad-free on Wondery+. Join Wondery+ in the Wondery App, Apple Podcasts or Spotify. ...Download the full podcast here:Wondery: https://wondery.app.link/s9hHTgtXpMbApple: https://podcasts.apple.com/us/podcast/new-heights/id1643745036Spotify:https://open.spotify.com/show/1y3SUbFMUSESC1N43tBleK?si=LsuQ4a5MRN6wGMcfVcuynwFollow New Heights on Social Media for all the best moments from the show: ://lnk.to/newheightshowCheck out all of our new merch' at https://homage.com/newheightsSupport the Show: NIKE: When the world says you can't win, Nike says So Win! https://www.nike.com/w/college-teams-2wq2g AMERICAN EXPRESS: For full terms and to learn more about the powerful backing of American Express, visit https://americanexpress.com/withAmexAUDIBLE: Visit https://audible.com/newheights and sign up for a free 30-Day TrialTHE FARMER'S DOG: Get 50% off your first box of fresh, healthy food at https://TheFarmersDog.com/newheights. Plus, you get FREE shipping! ALL STATE: Checking first is smart. So, check https://Allstate.com first for a quote that could save you hundreds.DRAFT KINGS: Don't miss out on all the action this week at DraftKings! Download the DraftKings app today! Sign-up using http://dkng.co/newheights or through my promo code NEWHEIGHTS.GAMBLING PROBLEM? CALL 1-800-GAMBLER, (800) 327-5050 or visit gamblinghelplinema.org (MA). Call 877-8-HOPENY/text HOPENY (467369) (NY).Please Gamble Responsibly. 888-789-7777/visit ccpg.org (CT), or visit www.mdgamblinghelp.org (MD). 21+ and present in most states. (18+ DC/KY/NH/WY). Void in ONT/OR/NH.Eligibility restrictions apply. On behalf of Boot Hill Casino & Resort (KS). 1 per new customer. $5+ first-time bet req. Max. $200 issued as non-withdrawable Bonus Bets that expire in 7 days (168 hours). Stake removed from payout. Terms: dkng.co/dk-offer-terms. Ends 3/30/25 at 11:59 PM ET. Sponsored by DK.Chapters: \\:00 - Intro :30 - Award-Winning Podcast :30 - Free Agency Snitching :15 - Cowboys Twitter Fight:40 - Chase and Higgins Get Paid :10 - Shout Out Kyle Frazier :20 - Ben Stiller Conversation :20 - Legacy of Heavyweights :00 - Answering Ben's Biggest NFL Questions :30 - Could you Make Tropic Thunder Today? :05 - Enjoying the Process :50 - Working with Tom Cruise:20 - Knicks Fandom :10 - Travis' Favorite Basketball Scene :30 - Severance Waffle Party :21:40 - That's Right, A \"Blank Man\" Discussion :23:30 - Reese's Final Four Debate :27:00 - New Heights March Madness Bracket Preview\\#nfl #newheights #traviskelce #jasonkelce #chiefs #eagles #cowboys #bengals #freeagency #benstiller #heavyweights #severance #tropicthunder #tomcruise #MarchMadness",
+    "thumbnail": "https://i.ytimg.com/vi/G0oyW5uuVoI/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/G0oyW5uuVoI",
+    "uploadDate": "2025-05-05T14:01:31.984Z",
+    "duration": "PT1H43M6S",
+    "category": "New Media",
+    "collection": "social_clips",
     "hostedOn": "youtube"
   },
   {
@@ -275,147 +43,35 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Moulin Rouge! The Musical | Come What May",
-    "thumbnail": "https://i.vimeocdn.com/video/1703063812-6d875e9036147e7dca0cec786889a48144989cad8ae5221e6be7abec34176283-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/849162311",
-    "category": "Reveals",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Moulin Rouge! The Musical | Back to Broadway",
-    "thumbnail": "https://i.vimeocdn.com/video/1237940901-736fd4dc27e44e0331d2ad894f9046c76ca4f6a396ebc8e952f8f3286580d5ba-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/601182916",
-    "category": "New Media",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Moulin Rouge! The Musical | Automation & Carpentry",
-    "thumbnail": "https://i.ytimg.com/vi/tkQzaEmYQdo/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/tkQzaEmYQdo",
-    "category": "Broadway B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Moulin Rouge! The Musical | Lighting",
-    "thumbnail": "https://i.ytimg.com/vi/5nwy0Hylzd8/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/5nwy0Hylzd8",
-    "category": "Broadway B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Moulin Rouge! The Musical | Props",
-    "thumbnail": "https://i.ytimg.com/vi/JwCNbJ0ob7Q/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/JwCNbJ0ob7Q",
-    "category": "Broadway B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Moulin Rouge! The Musical | Aaron Tveit - Roxanne",
-    "thumbnail": "https://i.ytimg.com/vi/vPTvwKthVIk/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/vPTvwKthVIk",
-    "category": "Reveals",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Moulin Rouge! The Musical | Derek Klena - Come What May",
-    "thumbnail": "https://i.ytimg.com/vi/DpVvb77VKTg/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/DpVvb77VKTg",
-    "category": "Reveals",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Moulin Rouge! The Musical | Ashley Loren - Firework",
-    "thumbnail": "https://i.vimeocdn.com/video/1643318139-0ca4d711f7e21edf652a0c59ad5413ffa00c1f53cab13abbb348a07c9f1ffb20-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/805687971",
-    "category": "Reveals",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "MAC x Moulin Rouge! The Musical | Satine Make Up Look",
-    "thumbnail": "https://i.ytimg.com/vi/7funQCcxymc/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/7funQCcxymc",
-    "category": "Reveals",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Moulin Rouge! The Musical Celebrates 5 Years on Broadway",
-    "description": "EVERYBODY CAN-CAN! Our 5-Year Anniversary festivities were beyond spectacular. Thank you for celebrating with us, bohemians. Never forget, YOU are the Moulin Rouge!",
-    "thumbnail": "https://i.ytimg.com/vi/rhWWITnK6-s/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/rhWWITnK6-s",
-    "uploadDate": "2024-07-29T14:29:03.805Z",
-    "duration": "PT42S",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Golden Hour | The Queen of Versailles on Broadway",
-    "description": "Broadway previews begin October 8 at the St. James Theatre.Based on the wildly astonishing documentary directed by award-winning filmmaker Lauren Greenfield, The Queen of Versailles reunites celebrated Academy Award-winning songwriter Stephen Schwartz with Tony and Emmy Award winner Kristin Chenoweth as Jackie Siegel. With a book by Lindsey Ferrentino (Ugly Lies the Bone, Amy and the Orphans) and direction by Tony Award winner Michael Arden (Parade, Once on This Island), The Queen of Versailles is a new musical exploring the true cost of fame, fortune, and family.Get tickets now at queenofversaillesmusical.com!",
-    "thumbnail": "https://i.ytimg.com/vi/MOnGlcd3NxY/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/MOnGlcd3NxY",
-    "uploadDate": "2025-06-09T20:35:40.188Z",
-    "duration": "PT31S",
-    "category": "Reveals",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "The Royal We | Queen of Versailles on Broadway",
-    "description": "\"Because in this country, anyone can become American Royalty\" says Jackie Siegel. During \"The Royal We\", she dreams of her idol, Marie Antoinette. But the higher the throne, the harder the fall.Get Tickets Today",
-    "thumbnail": "https://i.ytimg.com/vi/D1x2rICBtl4/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/D1x2rICBtl4",
-    "uploadDate": "2025-11-16T16:24:43.103Z",
-    "duration": "PT1M5S",
-    "category": "Reveals",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Golden Hour | The Queen of Versailles on Broadway",
-    "description": "Golden Hour: The Queen of Versailles on Broadway",
-    "thumbnail": "https://i.ytimg.com/vi/w4xaJxeUIaw/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/w4xaJxeUIaw",
-    "uploadDate": "2025-11-16T16:24:43.095Z",
-    "duration": "PT1M10S",
-    "category": "Reveals",
+    "title": "For Her/My Green Light - The Great Gatsby on Broadway",
+    "description": "The Great Gatsby begins performances on Broadway March 29. Tickets: www.broadwaygatsby.comTransport yourself to the opulent world of the 1920s as one of the greatest American novels hits the greatest American stage. Starring Jeremy Jordan (Newsies) as the eccentric and mysterious millionaire Jay Gatsby and Eva Noblezada (Hadestown) as the enigmatic Daisy Buchanan, THE GREAT GATSBY arrives on Broadway after a record-shattering, sold-out run at Paper Mill Playhouse. Directed by Marc Bruni (Beautiful: The Carole King Musical), this story of extravagance and longing features choreography by Dominique Kelley (So You Think You Can Dance), a book by Kait Kerrigan (The Mad Ones) and a jazz- and pop-influenced original score by Jason Howland (Little Women) and Nathan Tysen (Paradise Square). Don't miss the party - get tickets today to the musical that The New York Times calls \"lush, bewitching, and dazzling!\"THE GREAT GATSBY is produced by Chunsoo Shin, acclaimed Korean musical producer, 5-time winner of Korea's most prestigious theatrical award and OD Company president.\\.broadwaygatsby.com\\#bwaygatsby #gatsbybway #gatsbymusical #broadway #musicaltheatre #greatgatsbymusical #greatgatsby #broadway #jeremyjordan #evanoblezada",
+    "thumbnail": "https://i.ytimg.com/vi/Gx_MFlluTYo/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/Gx_MFlluTYo",
+    "uploadDate": "2024-03-12T18:58:46.727Z",
+    "duration": "PT3M33S",
+    "category": "Music",
     "collection": "social_clips",
     "hostedOn": "youtube"
   },
   {
-    "title": "\"Where I Wanna Be\" from Boop! The Musical",
-    "description": "We snuck into the recording studio with Jasmine Amy Rogers and David Foster! Watch them record \"Where I Wanna Be\" from Boop! The Musical.\\'95Performed by Jasmine Amy RogersMusic by David FosterLyrics by Susan BirkenheadRecorded at Quad StudiosVideo by Zipline Media",
-    "thumbnail": "https://i.ytimg.com/vi/rhyiqvVNsUo/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/rhyiqvVNsUo",
-    "uploadDate": "2023-11-14T14:44:38.869Z",
-    "duration": "PT2M19S",
-    "category": "Music",
+    "title": "Opening Night with Real Women Have Curves | The Musical",
+    "description": "Celebrate with us! Real Women Have Curves: The Musical is officially open on Broadway at the James Earl Jones Theatre. Get ahead of the curve and get your tickets at realwomenhavecurvesbroadway.com!",
+    "thumbnail": "https://i.ytimg.com/vi/X5qVexsouPk/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/X5qVexsouPk",
+    "uploadDate": "2025-05-05T14:01:31.969Z",
+    "duration": "PT1M19S",
+    "category": "Opening Nights",
+    "collection": "social_clips",
     "hostedOn": "youtube"
   },
   {
-    "title": "In The Recording Studio with BOOP! The Musical",
-    "description": "Sneak peek at our Original Broadway Cast Recording with David Foster!",
-    "thumbnail": "https://i.ytimg.com/vi/VEtXCE-t0HI/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/VEtXCE-t0HI",
-    "uploadDate": "2025-02-18T15:44:46.366Z",
-    "duration": "PT48S",
-    "category": "Music",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "A 30-Second Montage of Broadway's Lempicka",
-    "description": "A 30-Second Montage of Broadway's Lempicka",
-    "thumbnail": "https://i.ytimg.com/vi/NkpevV8YSNk/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/NkpevV8YSNk",
-    "uploadDate": "2024-06-18T17:26:07.743Z",
-    "duration": "PT30S",
-    "category": "Broadway B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "LEMPICKA on Broadway",
-    "description": "One of the world's greatest artists deserves the world's biggest stage: LEMPICKA comes to Broadway on March 19, 2024, following critically acclaimed, sold-out runs at the Williamstown Theatre Festival and the La Jolla Playhouse.From the Tony Award-winning director of HADESTOWN and starring Eden Espinosa, this New York Times Critic's Pick is a sweeping musical portrait of a woman who changed art and culture forever. Spanning decades of political and personal turmoil and told through a thrilling, pop-infused score, LEMPICKA boldly explores the contradictions of a world in crisis, a woman ahead of her era, and an artist whose time has finally come.\"Eden Espinosa has finally found a part to match her high-voltage talent in this rousing, surprising, intricately shaded portrait of a conquering heroine.\" The New York Times\"A singular boldness pulses through LEMPICKA, a musical that's as ambitious and complex as the painter it frames onstage.\" The Los Angeles Times",
-    "thumbnail": "https://i.ytimg.com/vi/fovrHNNiF-4/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/fovrHNNiF-4",
-    "uploadDate": "2023-10-30T22:26:42.555Z",
-    "duration": "PT27S",
-    "category": "Reveals",
+    "title": "Opening Night - JUST IN TIME is \"A SMASH HIT!\" | Now on Broadway",
+    "description": "NOW ON BROADWAY | Get Tickets Now: https://justintimebroadway.com/\"JONATHAN GROFF IS SENSATIONAL! Thrilling sonically and emotionally, he gives one of BROADWAY'S BEST PERFORMANCES.\" The New York Times \"A DAZZLING AND IMMERSIVE LOVE LETTER TO LIVE PERFORMANCE.\" The Washington PostLook out, Jonathan's back! Tony Award winner Jonathan Groff (Merrily We Roll Along, Hamilton) returns to Broadway this spring as Bobby Darin, the legendary singer whose short but remarkable life took him from teen idol to global sensation. Developed and directed by Tony Award winner Alex Timbers (Moulin Rouge), Just In Time is an exhilarating new musical that immerses audiences in an intimate, swinging nightclub complete with a live band, a stellar ensemble cast, and iconic Bobby Darin hits including \"Beyond the Sea,\" \"Mack the Knife,\" \"Splish Splash,\" and \"Dream Lover.\" Discover the man behind the music - a once-in-a-lifetime talent who knew his time was limited and was determined to make a splash before it was too late.\\[4 STARS] \"ONE OF THE MOST WONDROUS MUSICALS OF THE SEASON AND A WALLOP OF JOY! Director Alex Timbers and his irrepressible star Jonathan Groff have made magic.\" New York Post",
+    "thumbnail": "https://i.ytimg.com/vi/3XLd9WYlfI0/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/3XLd9WYlfI0",
+    "uploadDate": "2025-05-05T14:01:31.975Z",
+    "duration": "PT1M35S",
+    "category": "Opening Nights",
     "hostedOn": "youtube"
   },
   {
@@ -446,36 +102,6 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Broadway Meet and Greet | Gutenberg! The Musical",
-    "description": "Get an inside look at the Gutenberg! Broadway meet and greet... Turns out when you're in a two-man show, you end up with alooooot of bagels.Tickets and More information: https://gutenbergbway.com/A Hilarious New Musical About An Unintentionally Hilarious New Musical!Need we say more? Okay we will! Josh Gad and Andrew Rannells-who became pretty famous on Broadway and then extremely super famous out in Hollywood-are coming back to their musical theater roots, putting on a show together because they just love each other so damn much. And what did they pick? A hilarious new musical from the guys who wrote BEETLEJUICE and the guy who directed BEETLEJUICE and MOULIN ROUGE. It's the story of two best pals named Bud and Doug who put on a show together because they just love each other so damn much. It's art imitating life imitating art! And it's the funniest thing to come to Broadway since 1448! (Which is the year the printing press was invented by Johannes Gutenberg, who is the subject of the musical that Bud and Doug write, but that's not important right now.)",
-    "thumbnail": "https://i.ytimg.com/vi/17cRECRE4Nk/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/17cRECRE4Nk",
-    "uploadDate": "2023-09-05T16:41:41.046Z",
-    "duration": "PT50S",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Red Carpet Celebration | Merrily We Roll Along on Broadway",
-    "description": "It's the best thing that ever could have happened! MERRILY is now open on Broadway and critics agree - it's a hit! \"IT'S A HIT. MARIA FRIEDMAN'S STAGING BRINGS STEPHEN SONDHEIM'SBRILLIANT, INGENIOUS SCORE FULLY ALIVE - and with DANIEL RADCLIFFE, JONATHAN GROFF and LINDSAY MENDEZ as the show's central trio, it is perfectly cast.\"Tickets and more information: https://merrilyonbroadway.com",
-    "thumbnail": "https://i.ytimg.com/vi/h4LY5dXCw6s/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/h4LY5dXCw6s",
-    "uploadDate": "2023-10-12T01:44:46.687Z",
-    "duration": "PT1M57S",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Bad Cinderella Cast Announcement",
-    "description": "Bad Cinderella x Phantom 35th Anniversary",
-    "thumbnail": "https://i.ytimg.com/vi/kX_okloMl-s/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/kX_okloMl-s",
-    "uploadDate": "2026-01-21T08:19:55.766Z",
-    "duration": "PT1M49S",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
     "title": "Camelot | Opening Night",
     "thumbnail": "https://i.ytimg.com/vi/fi2LDc1c96Q/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/fi2LDc1c96Q",
@@ -496,27 +122,6 @@
     "videoUrl": "https://www.youtube.com/embed/wCYtx31o2WU",
     "uploadDate": "2025-11-19T17:23:37.739Z",
     "duration": "PT1M25S",
-    "category": "Opening Nights",
-    "collection": "social_clips",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Real Women Have Curves | The Musical | Original Broadway Cast Recording (Official Album Trailer)",
-    "description": "Real Women Have Curves: The Musical I Original Broadway Cast Recording (Official Album Trailer)Pre-order or Pre-Save:.lnk.to/OrignalBroadwayCastAlbumHailed as \"One of the most relevant musicals of the year\" - Time Out New York, and featuring \"A hummable score that sounds variously of Mexico, Broadway and American pop\" - New York Times. This groundbreaking musical, with a Tony-nominated score by Grammy-winning Joy Huerta (of the Mexican pop duo Jesse & Joy- Warner Latin) and Benjamin Velez, celebrates the strength, dreams, and unbreakable bonds of a community of Mexican-American women in East Los Angeles.Follow Real Women Have Curves: The Musical://www.instagram.com/rwhcmusical/://www.tiktok.com/@rwhcmusical://www.facebook.com/RWHCMusicalSubscribe for more content from Ghostlight Records://ghostlightrecords.lnk.to/YTSubscribeIDFollow Ghostlight Records://www.instagram.com/ghostlightrecords/://www.tiktok.com/@ghostlightrecords://twitter.com/GhostlightRcrds://www.facebook.com/ghostlightrecords://www.ghostlightrecords.com/",
-    "thumbnail": "https://i.ytimg.com/vi/pIoJRMK0wcw/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/pIoJRMK0wcw",
-    "uploadDate": "2025-06-09T20:35:40.197Z",
-    "duration": "PT2M30S",
-    "category": "Music",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Opening Night with Real Women Have Curves | The Musical",
-    "description": "Celebrate with us! Real Women Have Curves: The Musical is officially open on Broadway at the James Earl Jones Theatre. Get ahead of the curve and get your tickets at realwomenhavecurvesbroadway.com!",
-    "thumbnail": "https://i.ytimg.com/vi/X5qVexsouPk/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/X5qVexsouPk",
-    "uploadDate": "2025-05-05T14:01:31.969Z",
-    "duration": "PT1M19S",
     "category": "Opening Nights",
     "collection": "social_clips",
     "hostedOn": "youtube"
@@ -648,10 +253,69 @@
     "hostedOn": "vimeo"
   },
   {
-    "title": "Costume Spotlight - A Gentleman's Guide to Love & Murder at The Shakespeare Theatre of New Jersey",
-    "thumbnail": "https://i.ytimg.com/vi/6E6Wj0rVqTo/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/6E6Wj0rVqTo",
-    "category": "Broadway B-Roll",
+    "title": "Broadway Opening Night at BOOP! The Musical",
+    "videoUrl": "https://www.youtube.com/embed/TwnInDUg3EE",
+    "thumbnail": "https://i.ytimg.com/vi/TwnInDUg3EE/maxresdefault.jpg",
+    "category": "Opening Nights",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T01:50:29.856Z"
+  },
+  {
+    "title": "Go inside opening night of Meet the Cartozians!",
+    "videoUrl": "https://www.youtube.com/embed/Xoq7bCxsU3Y",
+    "thumbnail": "https://i.ytimg.com/vi/Xoq7bCxsU3Y/maxresdefault.jpg",
+    "category": "Opening Nights",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T02:03:19.923Z"
+  },
+  {
+    "title": "#TheThanksgivingPlayBway Opening Night",
+    "videoUrl": "https://www.youtube.com/embed/XL6AbHiyDjQ",
+    "thumbnail": "https://i.ytimg.com/vi/XL6AbHiyDjQ/hqdefault.jpg",
+    "category": "Opening Nights",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T02:03:19.923Z"
+  },
+  {
+    "title": "Red Carpet Celebration | Merrily We Roll Along on Broadway",
+    "description": "It's the best thing that ever could have happened! MERRILY is now open on Broadway and critics agree - it's a hit! \"IT'S A HIT. MARIA FRIEDMAN'S STAGING BRINGS STEPHEN SONDHEIM'SBRILLIANT, INGENIOUS SCORE FULLY ALIVE - and with DANIEL RADCLIFFE, JONATHAN GROFF and LINDSAY MENDEZ as the show's central trio, it is perfectly cast.\"Tickets and more information: https://merrilyonbroadway.com",
+    "thumbnail": "https://i.ytimg.com/vi/h4LY5dXCw6s/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/h4LY5dXCw6s",
+    "uploadDate": "2023-10-12T01:44:46.687Z",
+    "duration": "PT1M57S",
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Inside Cabaret at the Kit Kat Club on Broadway",
+    "thumbnail": "https://i.ytimg.com/vi/1m-gd_upphY/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/1m-gd_upphY",
+    "category": "Opening Nights",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T07:08:01.247Z"
+  },
+  {
+    "title": "Robyn Hurder is Ivy Lynn | SMASH The Musical",
+    "description": "Who is this diva?? SMASH begins Broadway performances on March 11.Tickets and more information: www.smashbroadway.com",
+    "thumbnail": "https://i.ytimg.com/vi/SzzqFdtpoAk/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/SzzqFdtpoAk",
+    "uploadDate": "2025-01-30T19:04:49.639Z",
+    "duration": "PT15S",
+    "category": "Reveals",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "MAC x Moulin Rouge! The Musical | Satine Make Up Look",
+    "thumbnail": "https://i.ytimg.com/vi/7funQCcxymc/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/7funQCcxymc",
+    "category": "Reveals",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Bob The Drag Queen is Harold Zidler Beginning January 27",
+    "videoUrl": "https://www.youtube.com/embed/2tf1pGxy3Ks",
+    "thumbnail": "https://i.ytimg.com/vi/2tf1pGxy3Ks/hqdefault.jpg",
+    "category": "Reveals",
     "hostedOn": "youtube"
   },
   {
@@ -659,30 +323,6 @@
     "thumbnail": "https://i.ytimg.com/vi/MhWficDtDZY/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/MhWficDtDZY",
     "category": "Reveals",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "MACBETH at The Shakespeare Theatre of New Jersey",
-    "description": "By William ShakespeareDirected by Brian B. CroweSpurred on by supernatural solicitings, a noble general and his wife embark on a bloody journey to gain the crown. Their ruthless quest for power rocks a war-torn nation as ambition grows to devastating madness in this epic tragedy which has not been presented as part of STNJ's season in two decades. Don't miss Shakespeare's electrifying and thrilling cautionary tale.   : @zipline.media",
-    "thumbnail": "https://i.ytimg.com/vi/jfy1qGwMuYM/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/jfy1qGwMuYM",
-    "uploadDate": "2024-10-16T21:55:27.584Z",
-    "duration": "PT42S",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "New Jersey Play Lab | Storyteller Studio",
-    "thumbnail": "https://i.vimeocdn.com/video/1887459453-a6f109b868f3da92029f22518e69206752166d1f09551c2463b5b436ded96e0e-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/973331659",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "To My Girls | About the Play",
-    "thumbnail": "https://i.ytimg.com/vi/WQ5Fq8Hy8hc/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/WQ5Fq8Hy8hc",
-    "category": "New Media",
     "hostedOn": "youtube"
   },
   {
@@ -730,33 +370,6 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Lea Salonga and David Korins Tour the Broadway Theatre for Here Lies Love",
-    "description": "Lea Salonga and David Korins Tour the Broadway Theatre for Here Lies Love",
-    "thumbnail": "https://i.ytimg.com/vi/nadDdEpnBdI/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/nadDdEpnBdI",
-    "uploadDate": "2023-03-30T17:49:56.157Z",
-    "duration": "PT2M21S",
-    "category": "Broadway B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Bringing The Sign in Brustein's Window to Broadway",
-    "description": "Bringing The Sign in Brustein's Window to Broadway",
-    "thumbnail": "https://i.vimeocdn.com/video/1678158461-38d01ecdd3970ecfd48fb9c61954d0ee3e99c171662848f26020345f49c1b5d2-d_1920x1080?&r=pad&region=us",
-    "videoUrl": "https://player.vimeo.com/video/832342962",
-    "uploadDate": "2026-01-21T08:19:55.741Z",
-    "duration": "PT33S",
-    "category": "New Media",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Sing Street Broadway - Behind the Scenes",
-    "thumbnail": "https://i.ytimg.com/vi/W-VAddb159I/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/W-VAddb159I",
-    "category": "Broadway B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
     "title": "Shakespeare Theater of NJ | Romeo and Juliet Trailer",
     "thumbnail": "https://i.ytimg.com/vi/yt6nLES3etE/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/yt6nLES3etE",
@@ -764,14 +377,91 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "‘Good Fortune’ & Funny Set Confessions with Keanu Reeves, Seth Rogen and Aziz Ansari",
-    "description": "Do Keanu Reeves, Seth Rogen, and Aziz Ansari think they have a guardian angel? The stars of the new movie '91Good Fortune' join their co-star Keke for a convo you won't hear anywhere else: stories of divine intervention, looking five years into the future, and what they would be doing if they weren't in Hollywood. Add in co-star body swap confessions, a few behind-the-scenes secrets and what Keke's auntie REALLY thought of '91The Matrix'?! This one's pure gold.Chapters::00 - What are they fortunate for? :31 - Do Seth, Keanu, and Aziz have guardian angels? :35 - Aziz as a food delivery driver :43 - Moments that changed their lives :17 - High school dropouts & early hustle:55 - Advice for aspiring writers :47 - Aziz's inspiration for '91Good Fortune':01 - Seth's stories from '91Superbad' :24 - '91The Matrix', '91John Wick' and raising the stakes:35 - Casting Keanu as the guardian angel :56 - Behind-the-scenes stories:17 - Swapping bodies with a castmate?!Watch More Baby, This is Keke Palmer episodes:://youtube.com/playlist?list=PLdcezJ2sNeAsmBTdorccSanHejdXRLGC2&si=vya1EmI8LKEcOQDkCheck out Keke's first merch drop by going to kekepalmershop.comFollow Keke on social: ://www.instagram.com/keke://www.twitter.com/KekePalmer://www.facebook.com/kekepalmer://www.tiktok.com/@kekepalmerConnect with Wondery://wondery.com/shows/baby-this-is-keke-palmer/://facebook.com/WonderyMedia://twitter.com/WonderyMedia://instagram.com/WonderyMedia://www.tiktok.com/@wonderymediaAbout the Show:Keke Palmer has questions for days, about everything under the sun. From the existential to the inconsequential, and everything in between. And now she's diving into the brains of entertainment's best and brightest to get some answers. From Snoop Dogg to Jordan Peele to Quinta Brunson, to John Stamos, Keke is getting to the bottom of the burning topics that keep us up at night. This is Keke as her most authentic self, going all in on everything in her life and the lives of her celeb guests, because Baby, this is Keke Palmer, and she is here for All. Of. It. You know it's your girl!\\#kekepalmer #podcast #wondery #goodfortune #azizansari #keanureeves #sethrogen Watch more of Keke with her 'Good Fortune' co-stars:://www.youtube.com/watch?v=X_2b4qMBXCI&pp=ygUMZ29vZCBmb3J0dW5l://www.youtube.com/watch?v=Ixo3N86WZcQ&pp=ygUMZ29vZCBmb3J0dW5l0gcJCfwJAYcqIYzv://www.youtube.com/watch?v=2jb1xQpyWTU&pp=ygUYZ29vZCBmb3J0dW5lIGtla2UgcGFsbWVy",
-    "thumbnail": "https://i.ytimg.com/vi/bCy3RdLHC0Q/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/bCy3RdLHC0Q",
-    "uploadDate": "2025-11-16T16:25:51.632Z",
-    "duration": "PT50M21S",
-    "category": "New Media",
-    "collection": "social_clips",
+    "title": "Happily Ever After will never be the same.",
+    "description": "Happily Ever After will never be the same- Previews begin 5.13",
+    "thumbnail": "https://i.ytimg.com/vi/O_adESuYNyw/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/O_adESuYNyw",
+    "uploadDate": "2023-05-02T19:36:16.986Z",
+    "duration": "PT16S",
+    "category": "Reveals",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Think of Me - The Phantom of the Opera Broadway Cast 2023",
+    "description": "Celebrating 35 years on Broadway, the production's lead cast members Ben Crawford (The Phantom), Emilie Kouatchou (Christine), and John Riddle (Raoul) sing Think of Me from The Phantom of the Opera.Accompanied on the piano by Music Director and Conductor David Lai. Sheet music available here: https://www.sheetmusicdirect.com/en-US/se/ID_No/1315101/Product.aspx Filmed and recorded at Power Station at BerkleeNYCExperience the power of the phantom with your nearest performance: http://www.thephantomoftheopera.com Follow The Phantom of the Opera everywhere:Instagram: https://instagram.com/phantomopera (West End / Broadway)Instagram: https://instagram.com/potoworldwide (global productions)Twitter: https://twitter.com/PhantomOpera Facebook: https://www.facebook.com/ThePhantomOfTheOperaTikTok: https://www.tiktok.com/@phantommusical \\---------------Far beneath the majesty and splendour of the Paris Opera House, hides the Phantom in a shadowy existence. Shamed by his physical appearance and feared by all, the love he holds for his beautiful prot'e9g'e9e Christine Daa'e9 is so strong that even her heart cannot resist.Andrew Lloyd Webber's Phantom of the Opera is widely considered one of the most beautiful and spectacular productions in history, playing to over 160 million people in 41 countries and 186 cities in 18 languages.The musical opened at the Majestic Theatre on Broadway 26 January 1988, closing 16 April 2023.\\#ThinkOfMe #ThePhantomoftheOpera #AndrewLloydWebber",
+    "thumbnail": "https://i.ytimg.com/vi/FXfQzAHPa6g/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/FXfQzAHPa6g",
+    "uploadDate": "2023-04-14T20:10:06.018Z",
+    "duration": "PT2M51S",
+    "category": "Music",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "\"Let Me Be Your Star (Opening Version)\" | SMASH The Musical",
+    "description": "This first look at \"Let Me Be Your Star (Opening Number Version)\" is yours for the taking! And yes, there are multiple versions of the song in the show, but you have to come to the Imperial Theatre to see them!Original Broadway cast album coming soon from Concord Theatricals Recordings Tickets and more information: www.smashbroadway.com",
+    "thumbnail": "https://i.ytimg.com/vi/ntYge3kewmQ/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/ntYge3kewmQ",
+    "uploadDate": "2025-02-10T16:12:52.378Z",
+    "duration": "PT3M29S",
+    "category": "Music",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Moulin Rouge! The Musical | Come What May",
+    "thumbnail": "https://i.vimeocdn.com/video/1703063812-6d875e9036147e7dca0cec786889a48144989cad8ae5221e6be7abec34176283-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/849162311",
+    "category": "Music",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Moulin Rouge! The Musical | Aaron Tveit - Roxanne",
+    "thumbnail": "https://i.ytimg.com/vi/vPTvwKthVIk/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/vPTvwKthVIk",
+    "category": "Music",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Moulin Rouge! The Musical | Derek Klena - Come What May",
+    "thumbnail": "https://i.ytimg.com/vi/DpVvb77VKTg/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/DpVvb77VKTg",
+    "category": "Music",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Moulin Rouge! The Musical | Ashley Loren - Firework",
+    "thumbnail": "https://i.vimeocdn.com/video/1643318139-0ca4d711f7e21edf652a0c59ad5413ffa00c1f53cab13abbb348a07c9f1ffb20-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/805687971",
+    "category": "Music",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "\"Where I Wanna Be\" from Boop! The Musical",
+    "description": "We snuck into the recording studio with Jasmine Amy Rogers and David Foster! Watch them record \"Where I Wanna Be\" from Boop! The Musical.\\'95Performed by Jasmine Amy RogersMusic by David FosterLyrics by Susan BirkenheadRecorded at Quad StudiosVideo by Zipline Media",
+    "thumbnail": "https://i.ytimg.com/vi/rhyiqvVNsUo/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/rhyiqvVNsUo",
+    "uploadDate": "2023-11-14T14:44:38.869Z",
+    "duration": "PT2M19S",
+    "category": "Music",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "In The Recording Studio with BOOP! The Musical",
+    "description": "Sneak peek at our Original Broadway Cast Recording with David Foster!",
+    "thumbnail": "https://i.ytimg.com/vi/VEtXCE-t0HI/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/VEtXCE-t0HI",
+    "uploadDate": "2025-02-18T15:44:46.366Z",
+    "duration": "PT48S",
+    "category": "Music",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Real Women Have Curves | The Musical | Original Broadway Cast Recording (Official Album Trailer)",
+    "description": "Real Women Have Curves: The Musical I Original Broadway Cast Recording (Official Album Trailer)Pre-order or Pre-Save:.lnk.to/OrignalBroadwayCastAlbumHailed as \"One of the most relevant musicals of the year\" - Time Out New York, and featuring \"A hummable score that sounds variously of Mexico, Broadway and American pop\" - New York Times. This groundbreaking musical, with a Tony-nominated score by Grammy-winning Joy Huerta (of the Mexican pop duo Jesse & Joy- Warner Latin) and Benjamin Velez, celebrates the strength, dreams, and unbreakable bonds of a community of Mexican-American women in East Los Angeles.Follow Real Women Have Curves: The Musical://www.instagram.com/rwhcmusical/://www.tiktok.com/@rwhcmusical://www.facebook.com/RWHCMusicalSubscribe for more content from Ghostlight Records://ghostlightrecords.lnk.to/YTSubscribeIDFollow Ghostlight Records://www.instagram.com/ghostlightrecords/://www.tiktok.com/@ghostlightrecords://twitter.com/GhostlightRcrds://www.facebook.com/ghostlightrecords://www.ghostlightrecords.com/",
+    "thumbnail": "https://i.ytimg.com/vi/pIoJRMK0wcw/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/pIoJRMK0wcw",
+    "uploadDate": "2025-06-09T20:35:40.197Z",
+    "duration": "PT2M30S",
+    "category": "Music",
     "hostedOn": "youtube"
   },
   {
@@ -873,13 +563,6 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "King of Spiderman One",
-    "thumbnail": "https://i.vimeocdn.com/video/1465102618-6e323f13e5aa0842bd65dcb331ff9cbf4db0a0d2772e99a8ea9f9ef3c5f136b4-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/727626975",
-    "category": "Music",
-    "hostedOn": "vimeo"
-  },
-  {
     "title": "Drug Seeker - Ghost",
     "thumbnail": "https://i.ytimg.com/vi/qj9U8ttEy4Q/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/qj9U8ttEy4Q",
@@ -901,17 +584,6 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Record-Breaking Signings, March Madness Mayhem & A Severance Waffle Party with Ben Stiller | Ep 130",
-    "description": "92%ers we are back with another episode of New Heights presented by Nike! When the world says you can't win, Nike says, \"So Win\" On today's episode, Jason and Travis weigh in on the latest news from NFL Free Agency including revealing how much players snitch on their old teams, why the Cowboys are fighting online, and if the Bengals made the right call by signing Ja'Marr Chase and Tee Higgins to record-breaking contracts. We also have an incredible conversation with Ben Stiller. We get into everything from the guy's love of \"Heavyweights\", what really happens at NFL training camps, who's idea it was for Tom Cruise to dance in \"Tropic Thunder\", if Ben would give up an Academy Award for a Knicks Title, and all of Jason and Travis' biggest questions about \"Severance.\" Finally, we have potentially the least helpful March Madness breakdown of all time. If your criteria for picking teams involves fighting ability, if they shoot underhand free throws, higher GPAs, or any other broad generalizations, this bracket preview is for you! You can participate in the New Heights March Madness Bracket Challenge with the links below: Men's Bracket Link: https://bit.ly/NHMensBracketWomen's Bracket Link: https://bit.ly/NHWomensBracketYou can listen to new episodes early and ad-free on Wondery+. Join Wondery+ in the Wondery App, Apple Podcasts or Spotify. ...Download the full podcast here:Wondery: https://wondery.app.link/s9hHTgtXpMbApple: https://podcasts.apple.com/us/podcast/new-heights/id1643745036Spotify:https://open.spotify.com/show/1y3SUbFMUSESC1N43tBleK?si=LsuQ4a5MRN6wGMcfVcuynwFollow New Heights on Social Media for all the best moments from the show: ://lnk.to/newheightshowCheck out all of our new merch' at https://homage.com/newheightsSupport the Show: NIKE: When the world says you can't win, Nike says So Win! https://www.nike.com/w/college-teams-2wq2g AMERICAN EXPRESS: For full terms and to learn more about the powerful backing of American Express, visit https://americanexpress.com/withAmexAUDIBLE: Visit https://audible.com/newheights and sign up for a free 30-Day TrialTHE FARMER'S DOG: Get 50% off your first box of fresh, healthy food at https://TheFarmersDog.com/newheights. Plus, you get FREE shipping! ALL STATE: Checking first is smart. So, check https://Allstate.com first for a quote that could save you hundreds.DRAFT KINGS: Don't miss out on all the action this week at DraftKings! Download the DraftKings app today! Sign-up using http://dkng.co/newheights or through my promo code NEWHEIGHTS.GAMBLING PROBLEM? CALL 1-800-GAMBLER, (800) 327-5050 or visit gamblinghelplinema.org (MA). Call 877-8-HOPENY/text HOPENY (467369) (NY).Please Gamble Responsibly. 888-789-7777/visit ccpg.org (CT), or visit www.mdgamblinghelp.org (MD). 21+ and present in most states. (18+ DC/KY/NH/WY). Void in ONT/OR/NH.Eligibility restrictions apply. On behalf of Boot Hill Casino & Resort (KS). 1 per new customer. $5+ first-time bet req. Max. $200 issued as non-withdrawable Bonus Bets that expire in 7 days (168 hours). Stake removed from payout. Terms: dkng.co/dk-offer-terms. Ends 3/30/25 at 11:59 PM ET. Sponsored by DK.Chapters: \\:00 - Intro :30 - Award-Winning Podcast :30 - Free Agency Snitching :15 - Cowboys Twitter Fight:40 - Chase and Higgins Get Paid :10 - Shout Out Kyle Frazier :20 - Ben Stiller Conversation :20 - Legacy of Heavyweights :00 - Answering Ben's Biggest NFL Questions :30 - Could you Make Tropic Thunder Today? :05 - Enjoying the Process :50 - Working with Tom Cruise:20 - Knicks Fandom :10 - Travis' Favorite Basketball Scene :30 - Severance Waffle Party :21:40 - That's Right, A \"Blank Man\" Discussion :23:30 - Reese's Final Four Debate :27:00 - New Heights March Madness Bracket Preview\\#nfl #newheights #traviskelce #jasonkelce #chiefs #eagles #cowboys #bengals #freeagency #benstiller #heavyweights #severance #tropicthunder #tomcruise #MarchMadness",
-    "thumbnail": "https://i.ytimg.com/vi/G0oyW5uuVoI/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/G0oyW5uuVoI",
-    "uploadDate": "2025-05-05T14:01:31.984Z",
-    "duration": "PT1H43M6S",
-    "category": "New Media",
-    "collection": "social_clips",
-    "hostedOn": "youtube"
-  },
-  {
     "title": "Camelot | Cast Recording",
     "description": "Camelot: Cast Recording",
     "thumbnail": "https://i.vimeocdn.com/video/1671852882-d66ff47f160a81a3e6cb556941ffcd226980334fed4cee9ee965d80e6b29dada-d_1920x1080?&r=pad&region=us",
@@ -922,49 +594,196 @@
     "hostedOn": "vimeo"
   },
   {
-    "title": "Our 2023 CAMPers Talk CAMP!",
-    "thumbnail": "https://i.ytimg.com/vi/53VNlroxHiw/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/53VNlroxHiw",
+    "title": "'If I Were a Bird' Performed by Joy Huerta (of Jesse and Joy) and Aline Mayagoitia",
+    "description": "Co-composed by Joy Huerta (of Jesse and Joy) and Benjamin Velez, 'If I Were a Bird' is a song about two girls who are becoming friends. They are bonding over the ways life is shitting on them and what they would do if they could fly. This song is inspired by \"Freedom\" by Guatemalan poet Humberto Ak abal (1952-2019). Performed by: Aline Mayagoitia, Joy Huerta, Nadia DiGiallonardo, Rich Mercurio, and Yair Evnine.REAL WOMEN HAVE CURVES: THE MUSICAL is a funny, joyous, and empowering new show coming to Broadway this April. It's the summer of 1987, and Ana Garcia dreams of flying away from East Los Angeles. But when her family's garment business receives a make-or-break order for 200 dresses, Ana finds herself juggling her own ambitions, her mother's expectations, and a community of women all trying to make it work against the odds. Based on the play by Josefina L'f3pez that inspired the iconic hit film, REAL WOMEN HAVE CURVES: THE MUSICAL is \"a winner, with a big heart and joyous abandon\" (The Boston Globe). \"It makes us feel we can all soar!\" (WBUR)Tickets now on sale at RealWomenHaveCurvesBroadway.com!",
+    "thumbnail": "https://i.ytimg.com/vi/m6VjlZsAKNE/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/m6VjlZsAKNE",
+    "uploadDate": "2024-12-19T19:52:55.898Z",
+    "duration": "PT2M58S",
+    "category": "Music",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "DAD - \"Holy Water (Live at Scorpion Records)\"",
+    "videoUrl": "https://www.youtube.com/embed/jnrw0JQZBS4",
+    "thumbnail": "https://i.ytimg.com/vi/jnrw0JQZBS4/maxresdefault.jpg",
+    "category": "Music",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "LEMPICKA | \"Woman Is\" Official Music Video",
+    "videoUrl": "https://www.youtube.com/embed/hZpeyr11uVM",
+    "thumbnail": "https://i.ytimg.com/vi/hZpeyr11uVM/maxresdefault.jpg",
+    "category": "Music",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T01:50:29.856Z"
+  },
+  {
+    "title": "LEMPICKA | \"Speed\" (Give Back My Heart)",
+    "videoUrl": "https://www.youtube.com/embed/cShIqCXQMjI",
+    "thumbnail": "https://i.ytimg.com/vi/cShIqCXQMjI/maxresdefault.jpg",
+    "category": "Music",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T01:50:29.856Z"
+  },
+  {
+    "title": "Stephanie Chou - Jazz at Lincoln Center - Appel Room",
+    "videoUrl": "https://www.youtube.com/embed/P9Snqtbahs0",
+    "thumbnail": "https://i.ytimg.com/vi/P9Snqtbahs0/hqdefault.jpg",
+    "category": "Music",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T02:39:22.498Z"
+  },
+  {
+    "title": "A 30-Second Montage of Broadway's Lempicka",
+    "description": "A 30-Second Montage of Broadway's Lempicka",
+    "thumbnail": "https://i.ytimg.com/vi/NkpevV8YSNk/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/NkpevV8YSNk",
+    "uploadDate": "2024-06-18T17:26:07.743Z",
+    "duration": "PT30S",
     "category": "Broadway B-Roll",
     "hostedOn": "youtube"
   },
   {
-    "title": "Dance Lab New York | Christian Denice",
-    "thumbnail": "https://i.vimeocdn.com/video/1514335198-fe94f149679ed98df296b031d66e543832b7106e045c885cc8c69d90cc6a96fa-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/753537255",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
+    "title": "Golden Hour | The Queen of Versailles on Broadway",
+    "description": "Golden Hour: The Queen of Versailles on Broadway",
+    "thumbnail": "https://i.ytimg.com/vi/w4xaJxeUIaw/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/w4xaJxeUIaw",
+    "uploadDate": "2025-11-16T16:24:43.095Z",
+    "duration": "PT1M10S",
+    "category": "Broadway B-Roll",
+    "collection": "social_clips",
+    "hostedOn": "youtube"
   },
   {
-    "title": "Dance Lab New York | Dava Huesca",
-    "thumbnail": "https://i.vimeocdn.com/video/1617008442-7bbfb54cda8d428c82a1b80a8f43b583d0c8a3af063dd822f8e088314554920d-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/801426525",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Dance Lab New York | Next Gen Connect",
-    "thumbnail": "https://i.vimeocdn.com/video/1339629419-98aa33f6caf5c57c81ae383bee1060bb355772146a9ee3c76faab0c575b1d3d4-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/644985527",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "I am an EMG Bride",
-    "description": "Being an EMG Bride is not merely about an event; it's about the journey, the experience, and the prestige of being part of a community that celebrates elegance, individuality, and unforgettable moments. EMG Brides are not just planning an event; they're creating a legacy of luxury and distinction.Visit us at https://elegantmusicgroup.com/ for more information.",
-    "thumbnail": "https://i.vimeocdn.com/video/1913484980-af500e591b4ef8a5492a5f0cf71c089cea6cc73b7cec6dc775e467ec436989b7-d_1920x1080?&r=pad&region=us",
-    "videoUrl": "https://player.vimeo.com/video/997344890",
-    "uploadDate": "2024-10-04T21:40:57.945Z",
-    "duration": "PT4M9S",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Inside Walden's First Rehearsal",
-    "thumbnail": "https://i.ytimg.com/vi/WxiOqq4fYh8/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/WxiOqq4fYh8",
+    "title": "The Royal We | Queen of Versailles on Broadway",
+    "description": "\"Because in this country, anyone can become American Royalty\" says Jackie Siegel. During \"The Royal We\", she dreams of her idol, Marie Antoinette. But the higher the throne, the harder the fall.Get Tickets Today",
+    "thumbnail": "https://i.ytimg.com/vi/D1x2rICBtl4/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/D1x2rICBtl4",
+    "uploadDate": "2025-11-16T16:24:43.103Z",
+    "duration": "PT1M5S",
     "category": "Broadway B-Roll",
     "hostedOn": "youtube"
+  },
+  {
+    "title": "LEMPICKA on Broadway",
+    "description": "One of the world's greatest artists deserves the world's biggest stage: LEMPICKA comes to Broadway on March 19, 2024, following critically acclaimed, sold-out runs at the Williamstown Theatre Festival and the La Jolla Playhouse.From the Tony Award-winning director of HADESTOWN and starring Eden Espinosa, this New York Times Critic's Pick is a sweeping musical portrait of a woman who changed art and culture forever. Spanning decades of political and personal turmoil and told through a thrilling, pop-infused score, LEMPICKA boldly explores the contradictions of a world in crisis, a woman ahead of her era, and an artist whose time has finally come.\"Eden Espinosa has finally found a part to match her high-voltage talent in this rousing, surprising, intricately shaded portrait of a conquering heroine.\" The New York Times\"A singular boldness pulses through LEMPICKA, a musical that's as ambitious and complex as the painter it frames onstage.\" The Los Angeles Times",
+    "thumbnail": "https://i.ytimg.com/vi/fovrHNNiF-4/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/fovrHNNiF-4",
+    "uploadDate": "2023-10-30T22:26:42.555Z",
+    "duration": "PT27S",
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "LEMPICKA | The Muse (with Matt Gould)",
+    "videoUrl": "https://www.youtube.com/embed/FE4DR_dLazU",
+    "thumbnail": "https://i.ytimg.com/vi/FE4DR_dLazU/maxresdefault.jpg",
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T01:50:29.854Z"
+  },
+  {
+    "title": "LEMPICKA | The Role of a Lifetime",
+    "videoUrl": "https://www.youtube.com/embed/EJjJ5yaVKj0",
+    "thumbnail": "https://i.ytimg.com/vi/EJjJ5yaVKj0/hqdefault.jpg",
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T01:50:29.856Z"
+  },
+  {
+    "title": "Daniel Radcliffe | 2024 Tony Awards First Impressions",
+    "description": "Tony Award-winner Daniel Radcliffe is congratulated by Erich Bergen at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 77th Annual Tony Awards on Sunday, June 16, 2024.About the 77th Annual Tony AwardsThe American Theatre Wing's 77th Annual Tony Awards, presented by the Broadway League and the American Theatre Wing, aired LIVE on Sunday, June 16, 2024 from The David H. Koch Theater at Lincoln Center for the Performing Arts from 8:00-11:00 PM, ET/5:00-8:00 PM, PT on the CBS Television Network, and streaming live and on demand on Paramount+*.CBS and Pluto TV presented The Tony Awards: Act One, a pre-show of live, exclusive content leading into the 77th Annual Tony Awards. The celebration commenced at 6:30-8:00 PM, ET/3:30-5:00 PM PT, on Pluto TV.\\(live and on-demand for Paramount+ with SHOWTIME subscribers, or on-demand for Paramount+ Essential subscribers the day after the special airs).*",
+    "thumbnail": "https://i.ytimg.com/vi/G8xeZQCjX6k/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/G8xeZQCjX6k",
+    "uploadDate": "2024-06-17T18:44:34.934Z",
+    "duration": "PT3M23S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Jodie Comer | 2023 Tony Awards First Impressions",
+    "description": "Tony Award-winner Jodie Comer is congratulated by Erich Bergen at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 76th Annual Tony Awards on Sunday, June 11, 2023.\\*About the 76th Annual Tony Awards*The American Theatre Wing's 76th Annual Tony Awards, presented by the Broadway League and the American Theatre Wing, aired LIVE on Sunday, June 11, 2023 from the historic United Palace in Washington Heights, in New York City from 8:00-11:00 PM, ET/5:00-8:00 PM, PT on the CBS Television Network, and streaming live and on demand on Paramount+*.CBS and Pluto TV presented The Tony Awards: Act One, a pre-show of live, exclusive content leading into the 76th Annual Tony Awards. The celebration commenced at 6:30-8:00 PM, ET/3:30-5:00 PM PT, on Pluto TV, the leading free streaming television service (FAST).",
+    "thumbnail": "https://i.ytimg.com/vi/pI4CQYvOwD8/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/pI4CQYvOwD8",
+    "uploadDate": "2023-06-13T18:38:06.754Z",
+    "duration": "PT3M45S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "2022 Tony Awards First Impressions | Jesse Tyler Ferguson - Take Me Out",
+    "description": "Tony Award-winner Jesse Tyler Ferguson is congratulated by Andrew Keenan-Bolger at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 75th Annual Tony Awards on Sunday, June 12, 2022.\\---About the 75th Annual Tony Awards---The Tony Awards, presented by the Broadway League and the American Theatre Wing, hosted a multi-platform celebration on Sunday, June 12th. Academy Award winner and Tony nominee Ariana DeBose hosted The 75th Annual Tony Awards, aired live coast-to-coast (8:00-11:00 PM, LIVE ET/5:00-8:00 PM, LIVE PT) on the CBS Television Network, and streamed live and on demand on Paramount+. Julianne Hough and Darren Criss hosted \"The Tony Awards: Act One,\" one hour of exclusive content streaming live, only on Paramount+ (7:00-8:00 PM, ET/4:00-5:00 PM, PT.)",
+    "thumbnail": "https://i.ytimg.com/vi/XpyvXLCZMOo/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/XpyvXLCZMOo",
+    "uploadDate": "2023-06-06T02:34:21.730Z",
+    "duration": "PT1M55S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Moulin Rouge! The Musical | Back to Broadway",
+    "thumbnail": "https://i.vimeocdn.com/video/1237940901-736fd4dc27e44e0331d2ad894f9046c76ca4f6a396ebc8e952f8f3286580d5ba-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/601182916",
+    "category": "New Media",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Moulin Rouge! The Musical Celebrates 5 Years on Broadway",
+    "description": "EVERYBODY CAN-CAN! Our 5-Year Anniversary festivities were beyond spectacular. Thank you for celebrating with us, bohemians. Never forget, YOU are the Moulin Rouge!",
+    "thumbnail": "https://i.ytimg.com/vi/rhWWITnK6-s/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/rhWWITnK6-s",
+    "uploadDate": "2024-07-29T14:29:03.805Z",
+    "duration": "PT42S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Broadway Meet and Greet | Gutenberg! The Musical",
+    "description": "Get an inside look at the Gutenberg! Broadway meet and greet... Turns out when you're in a two-man show, you end up with alooooot of bagels.Tickets and More information: https://gutenbergbway.com/A Hilarious New Musical About An Unintentionally Hilarious New Musical!Need we say more? Okay we will! Josh Gad and Andrew Rannells-who became pretty famous on Broadway and then extremely super famous out in Hollywood-are coming back to their musical theater roots, putting on a show together because they just love each other so damn much. And what did they pick? A hilarious new musical from the guys who wrote BEETLEJUICE and the guy who directed BEETLEJUICE and MOULIN ROUGE. It's the story of two best pals named Bud and Doug who put on a show together because they just love each other so damn much. It's art imitating life imitating art! And it's the funniest thing to come to Broadway since 1448! (Which is the year the printing press was invented by Johannes Gutenberg, who is the subject of the musical that Bud and Doug write, but that's not important right now.)",
+    "thumbnail": "https://i.ytimg.com/vi/17cRECRE4Nk/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/17cRECRE4Nk",
+    "uploadDate": "2023-09-05T16:41:41.046Z",
+    "duration": "PT50S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Bad Cinderella Cast Announcement",
+    "description": "Bad Cinderella x Phantom 35th Anniversary",
+    "thumbnail": "https://i.ytimg.com/vi/kX_okloMl-s/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/kX_okloMl-s",
+    "uploadDate": "2026-01-21T08:19:55.766Z",
+    "duration": "PT1M49S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "MACBETH at The Shakespeare Theatre of New Jersey",
+    "description": "By William ShakespeareDirected by Brian B. CroweSpurred on by supernatural solicitings, a noble general and his wife embark on a bloody journey to gain the crown. Their ruthless quest for power rocks a war-torn nation as ambition grows to devastating madness in this epic tragedy which has not been presented as part of STNJ's season in two decades. Don't miss Shakespeare's electrifying and thrilling cautionary tale.   : @zipline.media",
+    "thumbnail": "https://i.ytimg.com/vi/jfy1qGwMuYM/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/jfy1qGwMuYM",
+    "uploadDate": "2024-10-16T21:55:27.584Z",
+    "duration": "PT42S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "To My Girls | About the Play",
+    "thumbnail": "https://i.ytimg.com/vi/WQ5Fq8Hy8hc/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/WQ5Fq8Hy8hc",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Bringing The Sign in Brustein's Window to Broadway",
+    "description": "Bringing The Sign in Brustein's Window to Broadway",
+    "thumbnail": "https://i.vimeocdn.com/video/1678158461-38d01ecdd3970ecfd48fb9c61954d0ee3e99c171662848f26020345f49c1b5d2-d_1920x1080?&r=pad&region=us",
+    "videoUrl": "https://player.vimeo.com/video/832342962",
+    "uploadDate": "2026-01-21T08:19:55.741Z",
+    "duration": "PT33S",
+    "category": "New Media",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Take Me Out | Field of Dreams",
@@ -1008,46 +827,6 @@
     "hostedOn": "vimeo"
   },
   {
-    "title": "Happily Ever After will never be the same.",
-    "description": "Happily Ever After will never be the same- Previews begin 5.13",
-    "thumbnail": "https://i.ytimg.com/vi/O_adESuYNyw/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/O_adESuYNyw",
-    "uploadDate": "2023-05-02T19:36:16.986Z",
-    "duration": "PT16S",
-    "category": "Reveals",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Cult of Love - Behind The Scenes",
-    "description": "Get the inside scoop on #CultOfLoveBwayGet your tickets at https://2st.com/shows/cult-of-love",
-    "thumbnail": "https://i.ytimg.com/vi/WMuREsrAmSg/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/WMuREsrAmSg",
-    "uploadDate": "2024-12-02T16:45:14.890Z",
-    "duration": "PT1M6S",
-    "category": "Broadway B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Inside Cult of Love's First Rehearsal",
-    "description": "The dinner table is set. Pull up a chair and peek into the first rehearsal of Cult of Love on Broadway. Performances start November 20th.Grab your seat at https://2st.com/shows/cult-of-love",
-    "thumbnail": "https://i.ytimg.com/vi/7XoQKtD5XDY/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/7XoQKtD5XDY",
-    "uploadDate": "2024-12-02T16:47:15.597Z",
-    "duration": "PT1M5S",
-    "category": "Broadway B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "'If I Were a Bird' Performed by Joy Huerta (of Jesse and Joy) and Aline Mayagoitia",
-    "description": "Co-composed by Joy Huerta (of Jesse and Joy) and Benjamin Velez, 'If I Were a Bird' is a song about two girls who are becoming friends. They are bonding over the ways life is shitting on them and what they would do if they could fly. This song is inspired by \"Freedom\" by Guatemalan poet Humberto Ak abal (1952-2019). Performed by: Aline Mayagoitia, Joy Huerta, Nadia DiGiallonardo, Rich Mercurio, and Yair Evnine.REAL WOMEN HAVE CURVES: THE MUSICAL is a funny, joyous, and empowering new show coming to Broadway this April. It's the summer of 1987, and Ana Garcia dreams of flying away from East Los Angeles. But when her family's garment business receives a make-or-break order for 200 dresses, Ana finds herself juggling her own ambitions, her mother's expectations, and a community of women all trying to make it work against the odds. Based on the play by Josefina L'f3pez that inspired the iconic hit film, REAL WOMEN HAVE CURVES: THE MUSICAL is \"a winner, with a big heart and joyous abandon\" (The Boston Globe). \"It makes us feel we can all soar!\" (WBUR)Tickets now on sale at RealWomenHaveCurvesBroadway.com!",
-    "thumbnail": "https://i.ytimg.com/vi/m6VjlZsAKNE/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/m6VjlZsAKNE",
-    "uploadDate": "2024-12-19T19:52:55.898Z",
-    "duration": "PT2M58S",
-    "category": "Music",
-    "hostedOn": "youtube"
-  },
-  {
     "title": "Behind-The-Scenes with Betty Boop",
     "description": "Behind-The-Scenes with Betty Boop",
     "thumbnail": "https://i.ytimg.com/vi/svaQG2YwX30/maxresdefault.jpg",
@@ -1058,13 +837,6 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "DAD - \"Holy Water (Live at Scorpion Records)\"",
-    "videoUrl": "https://www.youtube.com/embed/jnrw0JQZBS4",
-    "thumbnail": "https://i.ytimg.com/vi/jnrw0JQZBS4/maxresdefault.jpg",
-    "category": "Music",
-    "hostedOn": "youtube"
-  },
-  {
     "title": "#PROMASTERCLASS: Moulin Rouge 'Zidler' Tutorial with Sarah Cimino",
     "videoUrl": "https://www.youtube.com/embed/KvQjeoiidWg",
     "thumbnail": "https://i.ytimg.com/vi/KvQjeoiidWg/maxresdefault.jpg",
@@ -1072,11 +844,69 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Bob The Drag Queen is Harold Zidler Beginning January 27",
-    "videoUrl": "https://www.youtube.com/embed/2tf1pGxy3Ks",
-    "thumbnail": "https://i.ytimg.com/vi/2tf1pGxy3Ks/hqdefault.jpg",
+    "title": "Costume Spotlight - A Gentleman's Guide to Love & Murder at The Shakespeare Theatre of New Jersey",
+    "thumbnail": "https://i.ytimg.com/vi/6E6Wj0rVqTo/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/6E6Wj0rVqTo",
     "category": "New Media",
     "hostedOn": "youtube"
+  },
+  {
+    "title": "Lea Salonga and David Korins Tour the Broadway Theatre for Here Lies Love",
+    "description": "Lea Salonga and David Korins Tour the Broadway Theatre for Here Lies Love",
+    "thumbnail": "https://i.ytimg.com/vi/nadDdEpnBdI/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/nadDdEpnBdI",
+    "uploadDate": "2023-03-30T17:49:56.157Z",
+    "duration": "PT2M21S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Sing Street Broadway - Behind the Scenes",
+    "thumbnail": "https://i.ytimg.com/vi/W-VAddb159I/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/W-VAddb159I",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Our 2023 CAMPers Talk CAMP!",
+    "thumbnail": "https://i.ytimg.com/vi/53VNlroxHiw/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/53VNlroxHiw",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Inside Walden's First Rehearsal",
+    "thumbnail": "https://i.ytimg.com/vi/WxiOqq4fYh8/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/WxiOqq4fYh8",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Cult of Love - Behind The Scenes",
+    "description": "Get the inside scoop on #CultOfLoveBwayGet your tickets at https://2st.com/shows/cult-of-love",
+    "thumbnail": "https://i.ytimg.com/vi/WMuREsrAmSg/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/WMuREsrAmSg",
+    "uploadDate": "2024-12-02T16:45:14.890Z",
+    "duration": "PT1M6S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Inside Cult of Love's First Rehearsal",
+    "description": "The dinner table is set. Pull up a chair and peek into the first rehearsal of Cult of Love on Broadway. Performances start November 20th.Grab your seat at https://2st.com/shows/cult-of-love",
+    "thumbnail": "https://i.ytimg.com/vi/7XoQKtD5XDY/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/7XoQKtD5XDY",
+    "uploadDate": "2024-12-02T16:47:15.597Z",
+    "duration": "PT1M5S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "King of Spiderman One",
+    "thumbnail": "https://i.vimeocdn.com/video/1465102618-6e323f13e5aa0842bd65dcb331ff9cbf4db0a0d2772e99a8ea9f9ef3c5f136b4-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/727626975",
+    "category": "New Media",
+    "hostedOn": "vimeo"
   },
   {
     "title": "TAKE ME OUT – First Rehearsal (2022)",
@@ -1086,44 +916,178 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "LEMPICKA | The Muse (with Matt Gould)",
-    "videoUrl": "https://www.youtube.com/embed/FE4DR_dLazU",
-    "thumbnail": "https://i.ytimg.com/vi/FE4DR_dLazU/maxresdefault.jpg",
-    "category": "Broadway B-Roll",
+    "title": "What Is White Girl in Danger?",
+    "videoUrl": "https://www.youtube.com/embed/_6zYxX4OxUU",
+    "thumbnail": "https://i.ytimg.com/vi/_6zYxX4OxUU/maxresdefault.jpg",
+    "category": "New Media",
     "hostedOn": "youtube",
-    "uploadDate": "2026-02-12T01:50:29.854Z"
+    "uploadDate": "2026-02-12T02:03:19.923Z"
   },
   {
-    "title": "LEMPICKA | The Role of a Lifetime",
-    "videoUrl": "https://www.youtube.com/embed/EJjJ5yaVKj0",
-    "thumbnail": "https://i.ytimg.com/vi/EJjJ5yaVKj0/hqdefault.jpg",
-    "category": "Broadway B-Roll",
-    "hostedOn": "youtube",
-    "uploadDate": "2026-02-12T01:50:29.856Z"
+    "title": "Moulin Rouge! The Musical | Automation & Carpentry",
+    "thumbnail": "https://i.ytimg.com/vi/tkQzaEmYQdo/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/tkQzaEmYQdo",
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
-    "title": "LEMPICKA | \"Woman Is\" Official Music Video",
-    "videoUrl": "https://www.youtube.com/embed/hZpeyr11uVM",
-    "thumbnail": "https://i.ytimg.com/vi/hZpeyr11uVM/maxresdefault.jpg",
-    "category": "Music",
-    "hostedOn": "youtube",
-    "uploadDate": "2026-02-12T01:50:29.856Z"
+    "title": "Moulin Rouge! The Musical | Lighting",
+    "thumbnail": "https://i.ytimg.com/vi/5nwy0Hylzd8/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/5nwy0Hylzd8",
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
-    "title": "LEMPICKA | \"Speed\" (Give Back My Heart)",
-    "videoUrl": "https://www.youtube.com/embed/cShIqCXQMjI",
-    "thumbnail": "https://i.ytimg.com/vi/cShIqCXQMjI/maxresdefault.jpg",
-    "category": "Music",
-    "hostedOn": "youtube",
-    "uploadDate": "2026-02-12T01:50:29.856Z"
+    "title": "Moulin Rouge! The Musical | Props",
+    "thumbnail": "https://i.ytimg.com/vi/JwCNbJ0ob7Q/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/JwCNbJ0ob7Q",
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
-    "title": "Broadway Opening Night at BOOP! The Musical",
-    "videoUrl": "https://www.youtube.com/embed/TwnInDUg3EE",
-    "thumbnail": "https://i.ytimg.com/vi/TwnInDUg3EE/maxresdefault.jpg",
-    "category": "Opening Nights",
-    "hostedOn": "youtube",
-    "uploadDate": "2026-02-12T01:50:29.856Z"
+    "title": "T-Mobile | Winners Circle Sizzle",
+    "description": "T-Mobile: Winners Circle Sizzle",
+    "thumbnail": "https://i.vimeocdn.com/video/1356334895-48a78ad477f304d334f5dba31b37bc8eac597308ae55584a9cb6b17ee4aaac5c-d_1920x1080?&r=pad&region=us",
+    "videoUrl": "https://player.vimeo.com/video/542369134",
+    "uploadDate": "2026-01-21T08:19:55.745Z",
+    "duration": "PT42S",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Visible Mobile | Shatter the Family Drama",
+    "description": "Visible Mobile: Shatter the Family Drama",
+    "thumbnail": "https://i.vimeocdn.com/video/1381460762-a9430fb606c7cf641f2d42a81e405acc1bb04ebc9cb2ec668d076892d3a2488e-d_1920x1080?&r=pad&region=us",
+    "videoUrl": "https://player.vimeo.com/video/681589910",
+    "uploadDate": "2026-01-21T08:19:55.741Z",
+    "duration": "PT1M55S",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Elegant Music Group | DJ Jony Rahat Interview",
+    "thumbnail": "https://i.vimeocdn.com/video/1643708350-2ebbce17b8f64c162ddd6d32a2d6e84bf853a07530caae46145b30699339661f-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/563342132",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Elegant Music Group | VLOG Six",
+    "thumbnail": "https://i.vimeocdn.com/video/1711919927-5031143b1629b6e725b72b0f598293dae50526ac3e79d6ef6e0c898738c03188-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/855141398",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Elegant Music Group | Electric Boulevard at The Grove",
+    "thumbnail": "https://i.vimeocdn.com/video/1820405148-db046e449c1e1c32a4dd058c17c2cb34018ddf149c48d57643fcdb9d42621cdc-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/926273323",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Elegant Music Group | DJ Bryan Festa at Shadowbrook",
+    "thumbnail": "https://i.vimeocdn.com/video/1643710324-a18844e21bb610f628066496b80e82270f053b7ee53f4d649c9b3f8cf9c25f36-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/760636300",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Elegant Music Group | The Gramercy - Hip Hop",
+    "thumbnail": "https://i.vimeocdn.com/video/1643714578-041a59cb3ed1d8574e42860bc82dcc2bbe8ee901a62b6ce71625a9ea338748bf-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/780244516",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "New York Sports Club | West Village",
+    "thumbnail": "https://i.vimeocdn.com/video/837673413-75064a165ebb5607acec57568c49e49b0d0695265d1a9f17fad969c2236e9ab2-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/377871768",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "New York Sports Club | Astor Place",
+    "thumbnail": "https://i.vimeocdn.com/video/839987944-891478f70ba9f07ac8dd341137e01b944b47d008c5366407319165f6754e5fbc-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/378947564",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "New York Sports Club | Hell's Kitchen",
+    "thumbnail": "https://i.vimeocdn.com/video/841019119-d6c267c1a585cf531238706d66fcf94401b09a99cfc3e6505d444936b9c112cd-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/378723276",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Queerty | Pride50 Red Carpet",
+    "thumbnail": "https://i.ytimg.com/vi/4EiznCbECBo/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/4EiznCbECBo",
+    "category": "Brands",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "The Bachelor | Granted",
+    "description": "The Bachelor: Granted",
+    "thumbnail": "https://i.vimeocdn.com/video/1983280990-7403b3ad22b01e748107a6921cb60ebc94762e392535da80ad7bdf46fa1aeacf-d_1920x1080?&r=pad&region=us",
+    "videoUrl": "https://player.vimeo.com/video/1056968490",
+    "uploadDate": "2025-02-17T03:25:34.532Z",
+    "duration": "PT1M19S",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Startup Story | Glow",
+    "thumbnail": "https://i.ytimg.com/vi/Jer8XAvANd4/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/Jer8XAvANd4",
+    "category": "Brands",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "50,000 Crypto Hackathon Competition | SZN 1 - Part 1",
+    "thumbnail": "https://i.ytimg.com/vi/gq7lEcd2m38/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/gq7lEcd2m38",
+    "category": "Brands",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "00,000 Hackathon | Season 3",
+    "thumbnail": "https://i.ytimg.com/vi/6Nypbnbsvy8/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/6Nypbnbsvy8",
+    "category": "Brands",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Advice For Founders | Don't Overhire",
+    "thumbnail": "https://i.ytimg.com/vi/wHcZV-hZW6I/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/wHcZV-hZW6I",
+    "category": "Brands",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Advice For Founders | What Makes a Good One-Liner",
+    "thumbnail": "https://i.ytimg.com/vi/w3F4QshpWPo/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/w3F4QshpWPo",
+    "category": "Brands",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Advice For Founders | Networking in the Age of AI",
+    "thumbnail": "https://i.ytimg.com/vi/YnLkEotw0o0/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/YnLkEotw0o0",
+    "category": "Brands",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "I am an EMG Bride",
+    "description": "Being an EMG Bride is not merely about an event; it's about the journey, the experience, and the prestige of being part of a community that celebrates elegance, individuality, and unforgettable moments. EMG Brides are not just planning an event; they're creating a legacy of luxury and distinction.Visit us at https://elegantmusicgroup.com/ for more information.",
+    "thumbnail": "https://i.vimeocdn.com/video/1913484980-af500e591b4ef8a5492a5f0cf71c089cea6cc73b7cec6dc775e467ec436989b7-d_1920x1080?&r=pad&region=us",
+    "videoUrl": "https://player.vimeo.com/video/997344890",
+    "uploadDate": "2024-10-04T21:40:57.945Z",
+    "duration": "PT4M9S",
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Heineken Employee Meeting 2025",
@@ -1142,6 +1106,72 @@
     "uploadDate": "2026-02-12T01:55:47.390Z"
   },
   {
+    "title": "American Cancer Society | Allan Shedlin Memorial Golf Classic 2022",
+    "thumbnail": "https://i.vimeocdn.com/video/1453556471-d183bde6cc856a27429579fddbcd54cecf1e9be49f017672386c0bbaaf1c8e34-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/721766009",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "American Cancer Society | Hope Lodge Gala",
+    "thumbnail": "https://i.vimeocdn.com/video/1447988928-d8f534a4a822d332423bc4cf5963effe165bf533df4881e15d2d52d57421ef61-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/715301141",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "American Cancer Society | Wine and Spirits",
+    "thumbnail": "https://i.vimeocdn.com/video/1543234810-88adac140696fbaaaf819e53df8ee8fd54a39af7db5092a6d8b935f8bb2bacb9-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/768717251",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Heroes of New York Gala | YMCA of Greater New York",
+    "description": "Thank You for Attending the YMCA of Greater New York's Heroes of New York Gala!We are incredibly grateful to everyone who joined us at The Metropolitan Museum of Art on June 13th. The evening was unforgettable with a special performance by Billy Porter and music by Grandmaster Flash, and emceed by Punkie Johnson. We honored New York Life, Deloitte, and John Starks, and the Rowe Scholars program, which celebrates its 10th anniversary this year.The inaugural After Party was a blast with an intimate performance by Grandmaster Flash, desserts, and an open bar in The Met's Great Hall.Thank you for your generous support, which helps fund our free community programs. Together, we're opening the doors of opportunity for New Yorkers. See you next year! \\#YMCA #HeroesOfNewYorkGala #CommunitySupport #BillyPorter #GrandmasterFlash #RoweScholars #TheMet #GalaAfterParty #ThankYou",
+    "thumbnail": "https://i.ytimg.com/vi/ztz4D8zTpHY/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/ztz4D8zTpHY",
+    "uploadDate": "2024-07-01T13:50:36.746Z",
+    "duration": "PT1M51S",
+    "category": "Nonprofits",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Rita Joseph for City Council",
+    "thumbnail": "https://i.ytimg.com/vi/Vzpn1QFvF75/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/Vzpn1QFvF75",
+    "category": "Nonprofits",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "New Jersey Play Lab | Storyteller Studio",
+    "thumbnail": "https://i.vimeocdn.com/video/1887459453-a6f109b868f3da92029f22518e69206752166d1f09551c2463b5b436ded96e0e-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/973331659",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Dance Lab New York | Christian Denice",
+    "thumbnail": "https://i.vimeocdn.com/video/1514335198-fe94f149679ed98df296b031d66e543832b7106e045c885cc8c69d90cc6a96fa-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/753537255",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Dance Lab New York | Dava Huesca",
+    "thumbnail": "https://i.vimeocdn.com/video/1617008442-7bbfb54cda8d428c82a1b80a8f43b583d0c8a3af063dd822f8e088314554920d-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/801426525",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Dance Lab New York | Next Gen Connect",
+    "thumbnail": "https://i.vimeocdn.com/video/1339629419-98aa33f6caf5c57c81ae383bee1060bb355772146a9ee3c76faab0c575b1d3d4-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/644985527",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
     "title": "2025 Second Stage Gala Video",
     "videoUrl": "https://www.youtube.com/embed/RZcjZy4LMqA",
     "thumbnail": "https://i.ytimg.com/vi/RZcjZy4LMqA/maxresdefault.jpg",
@@ -1150,35 +1180,13 @@
     "uploadDate": "2026-02-12T02:03:19.922Z"
   },
   {
-    "title": "Go inside opening night of Meet the Cartozians!",
-    "videoUrl": "https://www.youtube.com/embed/Xoq7bCxsU3Y",
-    "thumbnail": "https://i.ytimg.com/vi/Xoq7bCxsU3Y/maxresdefault.jpg",
-    "category": "Opening Nights",
-    "hostedOn": "youtube",
-    "uploadDate": "2026-02-12T02:03:19.923Z"
-  },
-  {
-    "title": "#TheThanksgivingPlayBway Opening Night",
-    "videoUrl": "https://www.youtube.com/embed/XL6AbHiyDjQ",
-    "thumbnail": "https://i.ytimg.com/vi/XL6AbHiyDjQ/hqdefault.jpg",
-    "category": "Opening Nights",
-    "hostedOn": "youtube",
-    "uploadDate": "2026-02-12T02:03:19.923Z"
-  },
-  {
-    "title": "What Is White Girl in Danger?",
-    "videoUrl": "https://www.youtube.com/embed/_6zYxX4OxUU",
-    "thumbnail": "https://i.ytimg.com/vi/_6zYxX4OxUU/maxresdefault.jpg",
+    "title": "Sarah Snook | 2024 Tony Awards First Impressions",
+    "description": "Tony Award-winner Cole Escola is congratulated by Bonnie Milligan at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 78th Annual Tony Awards on Sunday, June 8, 2025.About the 78th Annual Tony AwardsThe American Theatre Wing's 78th Annual Tony Awards, presented by the Broadway League and the American Theatre Wing, aired LIVE on Sunday, June 8, 2025 from Radio City Music Hall from 8:00-11:00 PM, ET/5:00-8:00 PM, PT on the CBS Television Network, and streaming live and on demand on Paramount+*.CBS and Pluto TV presented The Tony Awards: Act One, a pre-show of live, exclusive content leading into the 78th Annual Tony Awards. The celebration commenced at 6:40-8:00 PM, ET/3:30-5:00 PM PT, on Pluto TV.\\(live and on-demand for Paramount+ with SHOWTIME subscribers, or on-demand for Paramount+ Essential subscribers the day after the special airs).*",
+    "thumbnail": "https://i.ytimg.com/vi/1RW3OCUMp4s/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/1RW3OCUMp4s",
+    "uploadDate": "2025-06-09T20:35:40.192Z",
+    "duration": "PT4M51S",
     "category": "New Media",
-    "hostedOn": "youtube",
-    "uploadDate": "2026-02-12T02:03:19.923Z"
-  },
-  {
-    "title": "Stephanie Chou - Jazz at Lincoln Center - Appel Room",
-    "videoUrl": "https://www.youtube.com/embed/P9Snqtbahs0",
-    "thumbnail": "https://i.ytimg.com/vi/P9Snqtbahs0/hqdefault.jpg",
-    "category": "Music",
-    "hostedOn": "youtube",
-    "uploadDate": "2026-02-12T02:39:22.498Z"
+    "hostedOn": "youtube"
   }
 ]

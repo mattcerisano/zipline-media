@@ -89,3 +89,7 @@ p, span, label, input, textarea, select {
 .animate-scroll {
   animation: scroll 60s linear infinite;
 }
+
+.pause-on-hover:hover .animate-scroll {
+  animation-play-state: paused;
+}

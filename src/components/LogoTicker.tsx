@@ -59,32 +59,36 @@ const TickerLane = ({ title, items }: { title: string, items: TickerItem[] }) =>
   <div className="flex flex-col md:flex-row gap-8 md:items-center border-b border-white/10 pb-8 overflow-hidden">
     <h3 className="w-full md:w-32 text-[10px] font-bold tracking-[0.4em] uppercase text-white/40 shrink-0 mb-4 md:mb-0">{title}</h3>
     
-    <div className="flex-1 overflow-hidden relative">
-      <div className="flex w-fit animate-scroll whitespace-nowrap gap-16 items-center">
-        {/* Original List */}
-        {items.map((item, i) => (
-          item.type === 'svg' ? (
-            <svg key={i} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 flex-shrink-0">
-              <path d={svgLogos[item.value as keyof typeof svgLogos].path} />
-            </svg>
-          ) : (
-            <span key={i} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0">
-              {item.value}
-            </span>
-          )
-        ))}
-        {/* Duplicate for Loop */}
-        {items.map((item, i) => (
-          item.type === 'svg' ? (
-            <svg key={`dup-${i}`} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 flex-shrink-0">
-              <path d={svgLogos[item.value as keyof typeof svgLogos].path} />
-            </svg>
-          ) : (
-            <span key={`dup-${i}`} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0">
-              {item.value}
-            </span>
-          )
-        ))}
+    <div className="flex-1 overflow-hidden relative pause-on-hover">
+      <div className="flex w-fit animate-scroll whitespace-nowrap items-center">
+        {/* First Set */}
+        <div className="flex gap-16 items-center pr-16">
+          {items.map((item, i) => (
+            item.type === 'svg' ? (
+              <svg key={i} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 flex-shrink-0">
+                <path d={svgLogos[item.value as keyof typeof svgLogos].path} />
+              </svg>
+            ) : (
+              <span key={i} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0">
+                {item.value}
+              </span>
+            )
+          ))}
+        </div>
+        {/* Second Set (Duplicate) */}
+        <div className="flex gap-16 items-center pr-16">
+          {items.map((item, i) => (
+            item.type === 'svg' ? (
+              <svg key={`dup-${i}`} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 flex-shrink-0">
+                <path d={svgLogos[item.value as keyof typeof svgLogos].path} />
+              </svg>
+            ) : (
+              <span key={`dup-${i}`} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0">
+                {item.value}
+              </span>
+            )
+          ))}
+        </div>
       </div>
     </div>
   </div>
