@@ -1,116 +1,110 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { INVENTORY, ALL_CATEGORIES } from '@/data/inventory';
-import { motion, AnimatePresence } from 'framer-motion';
-
-// Optimized Tooltip Component - Isolates mouse tracking re-renders
-const ImageTooltip = ({ src }: { src: string }) => {
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const handleMove = (e: MouseEvent) => {
-      setPos({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMove);
-    return () => window.removeEventListener('mousemove', handleMove);
-  }, []);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      style={{ 
-        position: 'fixed', 
-        left: pos.x + 20, 
-        top: pos.y - 140,
-        zIndex: 100 
-      }}
-      className="pointer-events-none hidden md:block"
-    >
-      <div className="w-64 h-64 bg-neutral-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl shadow-black/80 p-2 backdrop-blur-xl">
-        <div className="w-full h-full bg-white rounded-xl overflow-hidden relative">
-          <Image 
-            src={src} 
-            alt="Gear Preview" 
-            fill
-            sizes="256px"
-            className="object-contain p-2"
-          />
-        </div>
-      </div>
-    </motion.div>
-  );
-};
+import { Search } from 'lucide-react';
 
 export default function GearPage() {
-  const [hoveredImage, setHoveredImage] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const groupedInventory = ALL_CATEGORIES.reduce((acc, category) => {
-    const items = INVENTORY.filter(item => item.category === category);
-    if (items.length > 0) {
-      acc[category] = items; // Preserves manual sort order from inventory.ts
-    }
-    return acc;
-  }, {} as Record<string, typeof INVENTORY>);
+  const filteredInventory = INVENTORY.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const totalValue = INVENTORY.reduce((sum, item) => sum + (item.replacement * item.qty), 0);
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-white selection:bg-accent selection:text-white py-20 px-6 md:px-12 lg:px-32 cursor-default">
-      
-      <AnimatePresence>
-        {hoveredImage && <ImageTooltip src={hoveredImage} />}
-      </AnimatePresence>
+    <main className="min-h-screen bg-[#0a0a0a] text-zinc-300 py-12 px-4 md:px-8 lg:px-12 font-mono">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12 border-b border-white/10 pb-8">
+          <div>
+            <h1 className="text-white text-3xl font-black tracking-tighter uppercase mb-2">Internal Gear Manifest</h1>
+            <p className="text-xs text-zinc-500 tracking-widest uppercase">Zipline Media Production Assets // Inventory Control</p>
+          </div>
+          
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <input 
+              type="text"
+              placeholder="FILTER BY NAME OR CATEGORY..."
+              className="w-full bg-white/5 border border-white/10 rounded-sm py-3 pl-10 pr-4 text-[10px] tracking-widest uppercase focus:outline-none focus:border-accent transition-colors"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
 
-      <div className="max-w-4xl mx-auto space-y-16">
-        {Object.entries(groupedInventory).map(([category, items]) => (
-          <section key={category} className="space-y-4">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent pl-2 opacity-60 border-b border-white/5 pb-2 sticky top-0 bg-neutral-950/90 backdrop-blur z-10">
-              {category}
-            </h2>
-            
-            <div className="space-y-0.5">
-              {items.map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="group relative flex items-center justify-between py-2 px-2 hover:bg-white/5 transition-colors rounded-md border-b border-white/[0.02]"
-                >
-                  <div className="flex items-baseline gap-2 cursor-help"
-                    onMouseEnter={() => item.image && setHoveredImage(item.image)}
-                    onMouseLeave={() => setHoveredImage(null)}
-                  >
-                    {item.qty > 1 && (
-                      <span className="text-xs font-black text-neutral-400 shrink-0">
-                        {item.qty}x —
-                      </span>
-                    )}
-                    <h3 className="text-xs md:text-sm font-bold tracking-tight text-neutral-400 group-hover:text-white transition-colors">
+        {/* Table Section */}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase text-left border-b border-white/10">
+                <th className="pb-4 font-black w-16">Preview</th>
+                <th className="pb-4 font-black w-16 text-center">Qty</th>
+                <th className="pb-4 font-black pl-4">Item Description</th>
+                <th className="pb-4 font-black">Category</th>
+                <th className="pb-4 font-black text-right">Replacement</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {filteredInventory.map((item, idx) => (
+                <tr key={idx} className="group hover:bg-white/[0.02] transition-colors">
+                  <td className="py-3">
+                    <div className="relative w-12 h-12 bg-white rounded-sm overflow-hidden border border-white/10 group-hover:border-accent/50 transition-colors">
+                      {item.image ? (
+                        <Image 
+                          src={item.image}
+                          alt=""
+                          fill
+                          sizes="48px"
+                          className="object-contain p-1"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[8px] text-zinc-700">NO IMG</div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-3 text-center">
+                    <span className={`text-xs font-bold ${item.qty > 1 ? 'text-accent' : 'text-zinc-500'}`}>
+                      {item.qty}x
+                    </span>
+                  </td>
+                  <td className="py-3 pl-4">
+                    <div className="text-xs md:text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">
                       {item.name}
-                    </h3>
-                  </div>
-
-                  <div className="hidden md:block opacity-0 group-hover:opacity-30 transition-opacity">
-                     <span className="text-[9px] font-bold tracking-widest text-neutral-400 tabular-nums uppercase">
-                        Ref: ${item.replacement.toLocaleString()}
-                     </span>
-                  </div>
-                </div>
+                    </div>
+                  </td>
+                  <td className="py-3">
+                    <span className="text-[9px] px-2 py-1 bg-white/5 rounded-full tracking-widest uppercase font-bold text-zinc-500">
+                      {item.category}
+                    </span>
+                  </td>
+                  <td className="py-3 text-right">
+                    <span className="text-[10px] tabular-nums font-medium text-zinc-500 group-hover:text-zinc-300">
+                      ${item.replacement.toLocaleString()}
+                    </span>
+                  </td>
+                </tr>
               ))}
-            </div>
-          </section>
-        ))}
-      </div>
+            </tbody>
+          </table>
+        </div>
 
-      <div className="max-w-4xl mx-auto mt-32 pt-8 border-t border-white/5 flex justify-end opacity-20 hover:opacity-100 transition-opacity">
-        <span className="text-[10px] font-black tracking-[0.3em] uppercase">
-          Total Value: <span className="text-white ml-2">${totalValue.toLocaleString()}</span>
-        </span>
-      </div>
+        {/* Footer Summary */}
+        <div className="mt-12 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 opacity-50 text-[10px] tracking-widest uppercase">
+          <div>
+            Total Line Items: {filteredInventory.length}
+          </div>
+          <div className="font-black text-zinc-300">
+            Estimated Total Replacement Value: <span className="text-white ml-2 text-sm">${totalValue.toLocaleString()}</span>
+          </div>
+        </div>
 
+      </div>
     </main>
   );
 }
