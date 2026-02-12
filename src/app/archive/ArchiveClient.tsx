@@ -1,252 +1,401 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, X, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import videos from '@/data/videos.json';
 
-// --- Sub-component for individual Category Sections ---
-function CategorySection({ 
-  category, 
-  videos, 
-  onPlay 
-}: { 
-  category: string; 
-  videos: any[]; 
-  onPlay: (url: string) => void; 
-}) {
-  // State to track which video is currently featured in the "Hero" slot for this category
-  const [activeVideo, setActiveVideo] = useState(videos[0]);
+// --- Types ---
+interface Video {
+  title: string;
+  thumbnail: string;
+  videoUrl: string;
+  category: string;
+  collection?: string;
+  uploadDate?: string;
+}
 
-  // Ensure activeVideo updates if videos prop changes (though unlikely for static json)
-  useEffect(() => {
-    setActiveVideo(videos[0]);
-  }, [videos]);
+// --- Helper Components ---
 
-  const categoryId = category.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+function HeroVideo({ video, onPlay }: { video: Video; onPlay: (url: string) => void }) {
+  return (
+    <motion.button
+      layoutId={`hero-${video.title}`} 
+      onClick={() => onPlay(video.videoUrl)}
+      className="group relative w-full aspect-video bg-neutral-900 rounded-sm overflow-hidden border border-white/10 shadow-2xl text-left block"
+    >
+      <img 
+        src={video.thumbnail} 
+        alt={video.title}
+        className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-700"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60" />
+      
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+         <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-90 group-hover:scale-100 transition-transform">
+            <Play className="w-8 h-8 text-white fill-white ml-1" />
+         </div>
+      </div>
+
+      <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
+         <h3 className="text-lg md:text-2xl font-black uppercase tracking-tight text-white leading-[1.2]">
+           {video.title}
+         </h3>
+      </div>
+    </motion.button>
+  );
+}
+
+function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeVideo: Video, onSelect: (v: Video) => void }) {
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.03
+      }
+    }
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0 }
+  };
 
   return (
-    <section id={categoryId} className="scroll-mt-32">
+    <motion.div 
+      variants={container}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true }}
+      className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 gap-4 pr-2"
+    >
+      {videos.map((video, index) => {
+        const isActive = video === activeVideo;
+        return (
+          <motion.button 
+            variants={item}
+            key={`${video.title}-${index}`}
+            onClick={() => onSelect(video)}
+            whileHover={{ scale: 1.03, zIndex: 20 }}
+            whileTap={{ scale: 0.97 }}
+            className={`group relative aspect-video bg-neutral-900 border transition-all duration-300 rounded-sm overflow-hidden text-left
+              ${isActive 
+                ? 'border-[var(--accent)] opacity-100 ring-1 ring-[var(--accent)] z-10' 
+                : 'border-white/10 opacity-70 hover:opacity-100 hover:border-white/30'
+              }
+            `}
+          >
+            <img 
+              src={video.thumbnail} 
+              alt={video.title}
+              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+            />
+            {isActive && (
+              <div className="absolute inset-0 bg-[var(--accent)]/20 flex items-center justify-center">
+                 <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              </div>
+            )}
+            <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/90 to-transparent">
+               <p className="text-[9px] font-bold text-white uppercase tracking-wider line-clamp-1">
+                 {video.title}
+               </p>
+            </div>
+          </motion.button>
+        );
+      })}
+   </motion.div>
+  );
+}
+
+function CategorySection({
+  categoryVideos,
+  onPlay 
+}: { 
+  categoryVideos: Video[]; 
+  onPlay: (url: string) => void; 
+}) {
+  const [activeVideo, setActiveVideo] = useState(categoryVideos[0]);
+
+  useEffect(() => {
+    if (!categoryVideos.includes(activeVideo)) {
+      setActiveVideo(categoryVideos[0]);
+    }
+  }, [categoryVideos, activeVideo]);
+
+  if (categoryVideos.length === 0) return null;
+
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8 animate-in fade-in duration-500">
+      <div className="xl:col-span-7 2xl:col-span-8">
+        <HeroVideo video={activeVideo} onPlay={onPlay} />
+      </div>
+      <div className="xl:col-span-5 2xl:col-span-4 relative min-h-[400px] xl:min-h-0">
+        <div className="xl:absolute xl:inset-0 overflow-y-auto no-scrollbar pb-10">
+          <VideoGrid 
+            key={categoryVideos[0]?.category || 'empty-grid'} 
+            videos={categoryVideos} 
+            activeVideo={activeVideo} 
+            onSelect={setActiveVideo} 
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+// --- Big Section Components ---
+
+function BigSection({ 
+  title, 
+  children,
+  id 
+}: { 
+  title: string; 
+  children: React.ReactNode; 
+  id?: string;
+}) {
+  return (
+    <section id={id} className="mb-20 scroll-mt-32">
       <motion.h2 
         initial={{ opacity: 0, x: -20 }}
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="text-2xl md:text-4xl font-bold uppercase tracking-widest mb-8 border-b border-white/10 pb-6 text-white/90"
+        className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-12 border-b-2 border-white/10 pb-6 text-white"
       >
-        {category}
+        {title}
       </motion.h2>
-
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8">
-        {/* --- HERO VIDEO (Left / Top) --- */}
-        {/* Takes up larger portion (e.g. 7/12 or 8/12) */}
-        <div className="xl:col-span-7 2xl:col-span-8">
-          <motion.button
-            layoutId={`hero-${category}-${activeVideo.title}`} 
-            onClick={() => onPlay(activeVideo.videoUrl)}
-            className="group relative w-full aspect-video bg-neutral-900 rounded-sm overflow-hidden border border-white/10 shadow-2xl text-left block"
-          >
-            <img 
-              src={activeVideo.thumbnail} 
-              alt={activeVideo.title}
-              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60" />
-            
-            {/* Play Button (Hero) */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-               <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-90 group-hover:scale-100 transition-transform">
-                  <Play className="w-8 h-8 text-white fill-white ml-1" />
-               </div>
-            </div>
-
-            <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
-               <h3 className="text-lg md:text-2xl font-black uppercase tracking-tight text-white leading-[1.2]">
-                 {activeVideo.title}
-               </h3>
-            </div>
-          </motion.button>
-        </div>
-
-        {/* --- THUMBNAIL GRID (Right) --- */}
-        {/* Scrollable container or Grid */}
-        <div className="xl:col-span-5 2xl:col-span-4">
-           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 gap-3 max-h-[600px] overflow-y-auto pr-2 no-scrollbar">
-              {videos.map((video, index) => {
-                const isActive = video === activeVideo;
-                return (
-                  <button 
-                    key={`${category}-thumb-${index}`}
-                    onClick={() => setActiveVideo(video)}
-                    className={`group relative aspect-video bg-neutral-900 border transition-all duration-300 rounded-sm overflow-hidden text-left
-                      ${isActive 
-                        ? 'border-[var(--accent)] opacity-100 ring-1 ring-[var(--accent)]' 
-                        : 'border-white/10 opacity-50 hover:opacity-100 hover:border-white/30'
-                      }
-                    `}
-                  >
-                    <img 
-                      src={video.thumbnail} 
-                      alt={video.title}
-                      className="w-full h-full object-cover"
-                    />
-                    {isActive && (
-                      <div className="absolute inset-0 bg-[var(--accent)]/20 flex items-center justify-center">
-                         <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                      </div>
-                    )}
-                    <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/90 to-transparent">
-                       <p className="text-[9px] font-bold text-white uppercase tracking-wider line-clamp-1">
-                         {video.title}
-                       </p>
-                    </div>
-                  </button>
-                );
-              })}
-           </div>
-        </div>
-      </div>
+      {children}
     </section>
   );
 }
 
+function PerformanceSection({ 
+  allVideos, 
+  onPlay 
+}: { 
+  allVideos: Record<string, Video[]>; 
+  onPlay: (url: string) => void; 
+}) {
+  const subCategories = ['Opening Nights', 'Reveals', 'Music', 'Broadway B-Roll'];
+  const [activeTab, setActiveTab] = useState(subCategories[0]);
+
+  return (
+    <BigSection title="Performance" id="performance">
+      <div className="flex flex-wrap gap-4 mb-8">
+        {subCategories.map(sub => (
+          <button
+            key={sub}
+            onClick={() => setActiveTab(sub)}
+            className={`px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest transition-all
+              ${activeTab === sub 
+                ? 'bg-white text-black' 
+                : 'bg-neutral-900 text-white/50 hover:bg-neutral-800 hover:text-white'
+              }
+            `}
+          >
+            {sub}
+          </button>
+        ))}
+      </div>
+      
+      <CategorySection categoryVideos={allVideos[activeTab] || []} onPlay={onPlay} />
+    </BigSection>
+  );
+}
+
+function BrandsNonprofitsSection({ 
+  allVideos, 
+  onPlay 
+}: { 
+  allVideos: Record<string, Video[]>; 
+  onPlay: (url: string) => void; 
+}) {
+  const subCategories = ['Brands', 'Nonprofits'];
+  const [activeTab, setActiveTab] = useState(subCategories[0]);
+
+  return (
+    <BigSection title="Brands" id="brands">
+      <div className="flex flex-wrap gap-4 mb-8">
+        {subCategories.map(sub => (
+          <button
+            key={sub}
+            onClick={() => setActiveTab(sub)}
+            className={`px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest transition-all
+              ${activeTab === sub 
+                ? 'bg-white text-black' 
+                : 'bg-neutral-900 text-white/50 hover:bg-neutral-800 hover:text-white'
+              }
+            `}
+          >
+            {sub}
+          </button>
+        ))}
+      </div>
+      
+      <CategorySection categoryVideos={allVideos[activeTab] || []} onPlay={onPlay} />
+    </BigSection>
+  );
+}
+
+function NewMediaSection({ 
+  allVideos, 
+  onPlay 
+}: { 
+  allVideos: Record<string, Video[]>; 
+  onPlay: (url: string) => void; 
+}) {
+  return (
+    <BigSection title="New Media" id="new-media">
+      <CategorySection categoryVideos={allVideos['New Media'] || []} onPlay={onPlay} />
+    </BigSection>
+  );
+}
+
+
+// --- Main Client Component ---
+
 export default function ArchiveClient() {
+  const router = useRouter();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [isExiting, setIsExiting] = useState(false);
 
   // Prevent scrolling when modal is open
   useEffect(() => {
-    if (selectedVideo) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
+    document.body.style.overflow = selectedVideo ? 'hidden' : 'auto';
+    return () => { document.body.style.overflow = 'auto'; };
   }, [selectedVideo]);
+
+  const handleBackToHome = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsExiting(true);
+  };
+
+  // Memoize video organization to prevent re-renders / shuffling
+  const { videosByCategory, recentWork } = useMemo(() => {
+    const rawVideos = videos as Video[];
+    
+    // Sort Helper
+    const sortVideos = (list: Video[]) => {
+      return [...list].sort((a: any, b: any) => {
+         // Priority 1: Social Clips
+         if (a.collection === 'social_clips' && b.collection !== 'social_clips') return -1;
+         if (a.collection !== 'social_clips' && b.collection === 'social_clips') return 1;
+         // Priority 2: Date
+         const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
+         const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
+         return dateB - dateA;
+      });
+    };
+
+    const grouped: Record<string, Video[]> = {};
+    const allCats = ['Opening Nights', 'Reveals', 'Music', 'Broadway B-Roll', 'Brands', 'Nonprofits', 'New Media'];
+    
+    allCats.forEach(cat => {
+      grouped[cat] = sortVideos(rawVideos.filter(v => v.category === cat));
+    });
+
+    // Recent Work (Top 6 overall, prioritizing Social Clips)
+    const recent = [...rawVideos].sort((a: any, b: any) => {
+        const SOCIAL_CLIPS_ORDER = [
+          "‘Good Fortune’ & Funny Set Confessions with Keanu Reeves, Seth Rogen and Aziz Ansari",
+          "Golden Hour | The Queen of Versailles on Broadway",
+          "Record-Breaking Signings, March Madness Mayhem & A Severance Waffle Party with Ben Stiller | Ep 130",
+          "The Most BROADWAY Broadway Opening Night | SMASH The Musical",
+          "For Her/My Green Light - The Great Gatsby on Broadway",
+          "Opening Night with Real Women Have Curves | The Musical"
+        ];
+        const indexA = SOCIAL_CLIPS_ORDER.indexOf(a.title);
+        const indexB = SOCIAL_CLIPS_ORDER.indexOf(b.title);
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        
+        if (a.collection === 'social_clips' && b.collection !== 'social_clips') return -1;
+        if (a.collection !== 'social_clips' && b.collection === 'social_clips') return 1;
+
+        const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
+        const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
+        return dateB - dateA;
+    }).slice(0, 6);
+
+    return { videosByCategory: grouped, recentWork: recent };
+  }, []);
 
   return (
     <main className="min-h-screen bg-black text-white p-6 md:p-12 pt-32 md:pt-40">
       <div className="max-w-[1800px] mx-auto">
-        <header className="mb-16 flex flex-col gap-8">
-          <Link href="/" className="flex items-center gap-2 text-sm uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-70 hover:opacity-100">
+        <header className="mb-20 flex flex-col gap-8">
+          <Link 
+            href="/" 
+            onClick={handleBackToHome}
+            className="flex items-center gap-2 text-sm uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-70 hover:opacity-100"
+          >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Link>
-          <div>
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter whitespace-nowrap leading-[0.9] py-2"
-            >
-              Video Repository
-            </motion.h1>
-          </div>
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter whitespace-nowrap leading-[0.9] py-2"
+          >
+            Video Repository
+          </motion.h1>
         </header>
 
-        <div className="flex flex-col gap-20 pb-20">
-          
-          {/* This Minute Section (Keep as Grid or convert? Keeping as Grid for variety as it's 'Just Added') */}
-          <section>
-            <motion.h2 
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-2xl md:text-4xl font-bold uppercase tracking-widest mb-10 border-b border-white/10 pb-6 text-[var(--accent)]"
-            >
-              Recent Work
-            </motion.h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-6 gap-y-10">
-              {[...videos]
-                .sort((a: any, b: any) => {
-                  const SOCIAL_CLIPS_ORDER = [
-                    "‘Good Fortune’ & Funny Set Confessions with Keanu Reeves, Seth Rogen and Aziz Ansari",
-                    "Golden Hour | The Queen of Versailles on Broadway",
-                    "Record-Breaking Signings, March Madness Mayhem & A Severance Waffle Party with Ben Stiller | Ep 130",
-                    "The Most BROADWAY Broadway Opening Night | SMASH The Musical",
-                    "For Her/My Green Light - The Great Gatsby on Broadway",
-                    "Opening Night with Real Women Have Curves | The Musical"
-                  ];
-
-                  const indexA = SOCIAL_CLIPS_ORDER.indexOf(a.title);
-                  const indexB = SOCIAL_CLIPS_ORDER.indexOf(b.title);
-
-                  // If both are in the specific list, sort by the list order
-                  if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-                  // If only A is in the list, it comes first
-                  if (indexA !== -1) return -1;
-                  // If only B is in the list, it comes first
-                  if (indexB !== -1) return 1;
-
-                  // Fallback: If tagged as social_clips but not in the specific list (safety), prioritize them
-                  if (a.collection === 'social_clips' && b.collection !== 'social_clips') return -1;
-                  if (a.collection !== 'social_clips' && b.collection === 'social_clips') return 1;
-
-                  // Default: Sort by date descending
-                  const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
-                  const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
-                  return dateB - dateA;
-                })
-                .slice(0, 6)
-                .map((video: any, index: number) => (
-                <button 
-                  key={`just-added-${index}`}
-                  onClick={() => setSelectedVideo(video.videoUrl)}
-                  className="group flex flex-col gap-3 text-left w-full hover:-translate-y-1 transition-transform duration-300"
-                >
-                  <div className="aspect-video w-full overflow-hidden bg-neutral-900 border border-white/5 relative rounded-sm shadow-lg group-hover:shadow-2xl group-hover:shadow-white/5 transition-all duration-500">
-                    <img 
-                      src={video.thumbnail} 
-                      alt={video.title}
-                      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700 ease-out"
-                    />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
-                    
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                        <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-                      </div>
+        {/* --- Recent Work Section --- */}
+        <section className="mb-32">
+          <h2 className="text-2xl md:text-4xl font-bold uppercase tracking-widest mb-10 border-b border-white/10 pb-6 text-[var(--accent)]">
+            Recent Work
+          </h2>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-6 gap-y-10"
+          >
+            {recentWork.map((video, index) => (
+              <motion.button 
+                key={`recent-${index}`}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05 }}
+                onClick={() => setSelectedVideo(video.videoUrl)}
+                whileHover={{ y: -5 }}
+                className="group flex flex-col gap-3 text-left w-full transition-all duration-300"
+              >
+                <div className="aspect-video w-full overflow-hidden bg-neutral-900 border border-white/5 relative rounded-sm shadow-lg group-hover:shadow-2xl group-hover:shadow-white/5 transition-all duration-500">
+                  <img 
+                    src={video.thumbnail} 
+                    alt={video.title}
+                    className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out"
+                  />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                      <Play className="w-4 h-4 text-white fill-white ml-0.5" />
                     </div>
                   </div>
-                  <h3 className="font-bold text-[10px] md:text-xs uppercase tracking-wider leading-snug group-hover:text-[var(--accent)] transition-colors opacity-60 group-hover:opacity-100 duration-300">
-                    {video.title}
-                  </h3>
-                </button>
-              ))}
-            </div>
-          </section>
+                </div>
+                <h3 className="font-bold text-[10px] md:text-xs uppercase tracking-wider leading-snug group-hover:text-[var(--accent)] transition-colors opacity-60 group-hover:opacity-100 duration-300">
+                  {video.title}
+                </h3>
+              </motion.button>
+            ))}
+          </motion.div>
+        </section>
 
-          {/* Categories with New Layout */}
-          {['Opening Nights', 'Reveals', 'Music', 'New Media', 'Broadway B-Roll', 'TVC'].map((category) => {
-            const categoryVideos = videos
-              .filter((v: any) => v.category === category)
-              .sort((a: any, b: any) => {
-                 // Priority 1: Social Clips (High Profile)
-                 if (a.collection === 'social_clips' && b.collection !== 'social_clips') return -1;
-                 if (a.collection !== 'social_clips' && b.collection === 'social_clips') return 1;
-                 
-                 // Priority 2: Date (Newest First)
-                 const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
-                 const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
-                 return dateB - dateA;
-              });
-
-            if (categoryVideos.length === 0) return null;
-            
-            return (
-              <CategorySection 
-                key={category} 
-                category={category} 
-                videos={categoryVideos} 
-                onPlay={(url) => setSelectedVideo(url)} 
-              />
-            );
-          })}
+        {/* --- Three Big Sections --- */}
+        <div className="flex flex-col gap-10">
+          <PerformanceSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
+          <NewMediaSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
+          <BrandsNonprofitsSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
         </div>
+
       </div>
 
       {/* Video Modal */}
@@ -265,7 +414,6 @@ export default function ArchiveClient() {
             >
               <X className="w-8 h-8 md:w-10 md:h-10" />
             </button>
-            
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -281,10 +429,22 @@ export default function ArchiveClient() {
                 allowFullScreen
               />
             </motion.div>
-            
-            {/* Close overlay on outside click */}
             <div className="absolute inset-0 -z-10" onClick={() => setSelectedVideo(null)} />
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Page Exit Overlay */}
+      <AnimatePresence>
+        {isExiting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="fixed inset-0 z-[200] bg-black"
+            onAnimationComplete={() => router.push('/')}
+          />
         )}
       </AnimatePresence>
     </main>

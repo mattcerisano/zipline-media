@@ -155,13 +155,13 @@ function Work() {
   };
 
   const categories = [
-    { id: 'performance', title: 'Performance', video: '/broadway-performance.mp4', link: '/archive#opening-nights' },
-    { id: 'brands', title: 'Brands', video: '/corporate.mp4', link: '/archive#tvc' },
+    { id: 'performance', title: 'Performance', video: '/broadway-performance.mp4', link: '/archive#performance' },
+    { id: 'brands', title: 'Brands', video: '/corporate.mp4', link: '/archive#brands' },
     { id: 'new-media', title: 'New Media', video: '/new-media.mp4', link: '/archive#new-media' },
   ];
 
   return (
-    <section id="work" className="bg-black py-10 md:py-20 px-6 scroll-mt-24">
+    <section id="work" className="bg-black py-8 md:py-16 px-6 scroll-mt-24">
       <div className="max-w-7xl mx-auto">
         
         {/* --- MOBILE LAYOUT (Simple Stack) --- */}
@@ -224,7 +224,7 @@ function Work() {
               </video>
             </motion.div>
             
-            <Link href="/archive#opening-nights" className="absolute inset-0 z-20" aria-label="View Performance Projects" />
+            <Link href="/archive#performance" className="absolute inset-0 z-20" aria-label="View Performance Projects" />
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-10 flex flex-col justify-end items-start pointer-events-none">
                <motion.div layout className="flex items-end gap-4">
@@ -239,18 +239,6 @@ function Work() {
                  >
                    Performance
                  </motion.h2>
-                 <motion.div
-                   initial={{ opacity: 0, x: -10 }}
-                   animate={{ 
-                     opacity: hoveredId === 'performance' ? 1 : 0,
-                     x: hoveredId === 'performance' ? 0 : -10 
-                   }}
-                   className="mb-2 md:mb-4"
-                 >
-                   <div className="bg-white text-black p-2 rounded-full">
-                     <Play className="w-4 h-4 fill-current" />
-                   </div>
-                 </motion.div>
                </motion.div>
             </div>
           </motion.div>
@@ -288,7 +276,7 @@ function Work() {
                 </video>
               </motion.div>
 
-              <Link href="/archive#tvc" className="absolute inset-0 z-20" aria-label="View Brands Projects" />
+              <Link href="/archive#brands" className="absolute inset-0 z-20" aria-label="View Brands Projects" />
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                  <motion.div layout className="flex items-end gap-4">
@@ -303,21 +291,9 @@ function Work() {
                    >
                      Brands
                    </motion.h2>
-                   <motion.div
-                     initial={{ opacity: 0, x: -10 }}
-                     animate={{ 
-                       opacity: hoveredId === 'brands' ? 1 : 0,
-                       x: hoveredId === 'brands' ? 0 : -10 
-                     }}
-                     className="mb-1 md:mb-2"
-                   >
-                     <div className="bg-white text-black p-1.5 rounded-full">
-                       <Play className="w-3 h-3 fill-current" />
-                     </div>
-                   </motion.div>
-                 </motion.div>
-              </div>
-            </motion.div>
+               </motion.div>
+            </div>
+          </motion.div>
 
             {/* BOTTOM RIGHT (New Media) */}
             <motion.div 
@@ -361,28 +337,16 @@ function Work() {
                    >
                      New Media
                    </motion.h2>
-                   <motion.div
-                     initial={{ opacity: 0, x: -10 }}
-                     animate={{ 
-                       opacity: hoveredId === 'new-media' ? 1 : 0,
-                       x: hoveredId === 'new-media' ? 0 : -10 
-                     }}
-                     className="mb-1 md:mb-2"
-                   >
-                     <div className="bg-white text-black p-1.5 rounded-full">
-                       <Play className="w-3 h-3 fill-current" />
-                     </div>
-                   </motion.div>
-                 </motion.div>
-              </div>
-            </motion.div>
+               </motion.div>
+            </div>
+          </motion.div>
 
           </motion.div>
         </div>
 
       </div>
 
-      <div className="mt-12 text-center">
+      <div className="mt-8 text-center">
         <a 
           href="/archive" 
           className="inline-block border border-white/20 px-8 py-5 md:px-12 md:py-6 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-black transition-all duration-300 w-full md:w-auto"
@@ -441,7 +405,7 @@ function Social() {
   ];
 
   return (
-    <section className="pt-16 pb-10 bg-black overflow-hidden">
+    <section className="pt-12 pb-8 bg-black overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 mb-12">
         <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase mb-4">Built for the Feed</h2>
         <p className="text-sm md:text-base opacity-60 max-w-xl">
@@ -494,38 +458,33 @@ function Social() {
 
 function About() {
   return (
-    <section id="about" className="py-16 px-6 max-w-7xl mx-auto flex flex-col items-center gap-8 md:gap-12">
+    <section id="about" className="py-12 px-6 max-w-7xl mx-auto flex flex-col items-center gap-6 md:gap-10 scroll-mt-24">
       
-      {/* 1. Header */}
-      <div className="text-center space-y-4">
-        <p className="text-sm md:text-lg font-medium tracking-[0.2em] uppercase opacity-50">
-          High drama for Broadway. No drama for you.
-        </p>
-      </div>
-
       {/* 2. Ticker */}
       <div className="w-full">
         <LogoTicker />
       </div>
 
       {/* 3. Mission Text */}
-      <div className="flex flex-col items-start w-full">
-        <motion.h2 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-3xl md:text-6xl font-black tracking-tighter uppercase leading-tight mb-8 md:mb-12 max-w-4xl"
-        >
-          We don&apos;t do &quot;Marketing Speak.&quot; <br/>
-          <span className="text-[var(--accent)]">We just make it look cool.</span>
-        </motion.h2>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 w-full items-start">
+        <div className="lg:col-span-5">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight"
+          >
+            We don&apos;t do &quot;Marketing Speak.&quot; <br/>
+            <span className="text-[var(--accent)]">We just make it look cool.</span>
+          </motion.h2>
+        </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 text-sm md:text-lg opacity-70 leading-relaxed font-medium">
-          <p>
-            Our process begins with a conversation to understand your objectives, brand story, and desired visual style.
-          </p>
+        <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium">
           <p>
             We are smart, adaptable, and innovative - whether you want stunning TV commercials, engaging TikToks, high-quality social media ads, or dynamic narrative videos, we got you covered.
+          </p>
+          <p>
+            Our process begins with a conversation to understand your objectives, brand story, and desired visual style.
           </p>
         </div>
       </div>
@@ -565,7 +524,7 @@ function Contact() {
   }
 
   return (
-    <section id="contact" className="py-16 md:py-20 px-6 max-w-7xl mx-auto flex flex-col justify-center scroll-mt-24">
+    <section id="contact" className="py-12 md:py-16 px-6 max-w-7xl mx-auto flex flex-col justify-center scroll-mt-24">
       <div className="flex flex-col lg:flex-row gap-20 items-start">
         <div className="w-full lg:w-1/2 text-left overflow-hidden py-4">
           <motion.div
@@ -625,19 +584,6 @@ function Contact() {
                 required
                 className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors uppercase text-sm" 
               />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.4em] uppercase opacity-40 font-bold">Project Type</label>
-              <select 
-                name="projectType"
-                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors appearance-none uppercase text-sm rounded-none"
-              >
-                <option className="bg-black">Performance / Narrative</option>
-                <option className="bg-black">Brand / Corporate</option>
-                <option className="bg-black">Creative / Social</option>
-                <option className="bg-black">Other</option>
-              </select>
             </div>
 
             <div className="space-y-2">

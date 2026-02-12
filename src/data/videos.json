@@ -3,7 +3,8 @@
     "title": "American Cancer Society | Allan Shedlin Memorial Golf Classic 2022",
     "thumbnail": "https://i.vimeocdn.com/video/1453556471-d183bde6cc856a27429579fddbcd54cecf1e9be49f017672386c0bbaaf1c8e34-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/721766009",
-    "category": "New Media"
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
   },
   {
     "title": "T-Mobile | Winners Circle Sizzle",
@@ -12,7 +13,8 @@
     "videoUrl": "https://player.vimeo.com/video/542369134",
     "uploadDate": "2026-01-21T08:19:55.745Z",
     "duration": "PT42S",
-    "category": "TVC"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Visible Mobile | Shatter the Family Drama",
@@ -21,19 +23,22 @@
     "videoUrl": "https://player.vimeo.com/video/681589910",
     "uploadDate": "2026-01-21T08:19:55.741Z",
     "duration": "PT1M55S",
-    "category": "TVC"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "American Cancer Society | Hope Lodge Gala",
     "thumbnail": "https://i.vimeocdn.com/video/1447988928-d8f534a4a822d332423bc4cf5963effe165bf533df4881e15d2d52d57421ef61-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/715301141",
-    "category": "New Media"
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
   },
   {
     "title": "American Cancer Society | Wine and Spirits",
     "thumbnail": "https://i.vimeocdn.com/video/1543234810-88adac140696fbaaaf819e53df8ee8fd54a39af7db5092a6d8b935f8bb2bacb9-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/768717251",
-    "category": "New Media"
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Heroes of New York Gala | YMCA of Greater New York",
@@ -42,61 +47,71 @@
     "videoUrl": "https://www.youtube.com/embed/ztz4D8zTpHY",
     "uploadDate": "2024-07-01T13:50:36.746Z",
     "duration": "PT1M51S",
-    "category": "New Media"
+    "category": "Nonprofits",
+    "hostedOn": "youtube"
   },
   {
     "title": "Elegant Music Group | DJ Jony Rahat Interview",
     "thumbnail": "https://i.vimeocdn.com/video/1643708350-2ebbce17b8f64c162ddd6d32a2d6e84bf853a07530caae46145b30699339661f-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/563342132",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Elegant Music Group | VLOG Six",
     "thumbnail": "https://i.vimeocdn.com/video/1711919927-5031143b1629b6e725b72b0f598293dae50526ac3e79d6ef6e0c898738c03188-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/855141398",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Elegant Music Group | Electric Boulevard at The Grove",
     "thumbnail": "https://i.vimeocdn.com/video/1820405148-db046e449c1e1c32a4dd058c17c2cb34018ddf149c48d57643fcdb9d42621cdc-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/926273323",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Elegant Music Group | DJ Bryan Festa at Shadowbrook",
     "thumbnail": "https://i.vimeocdn.com/video/1643710324-a18844e21bb610f628066496b80e82270f053b7ee53f4d649c9b3f8cf9c25f36-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/760636300",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Elegant Music Group | The Gramercy - Hip Hop",
     "thumbnail": "https://i.vimeocdn.com/video/1643714578-041a59cb3ed1d8574e42860bc82dcc2bbe8ee901a62b6ce71625a9ea338748bf-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/780244516",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "New York Sports Club | West Village",
     "thumbnail": "https://i.vimeocdn.com/video/837673413-75064a165ebb5607acec57568c49e49b0d0695265d1a9f17fad969c2236e9ab2-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/377871768",
-    "category": "TVC"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "New York Sports Club | Astor Place",
     "thumbnail": "https://i.vimeocdn.com/video/839987944-891478f70ba9f07ac8dd341137e01b944b47d008c5366407319165f6754e5fbc-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/378947564",
-    "category": "TVC"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "New York Sports Club | Hell's Kitchen",
     "thumbnail": "https://i.vimeocdn.com/video/841019119-d6c267c1a585cf531238706d66fcf94401b09a99cfc3e6505d444936b9c112cd-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/378723276",
-    "category": "TVC"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Queerty | Pride50 Red Carpet",
-    "thumbnail": "https://i.vimeocdn.com/video/1456933107-2b73cbdafc09977091cb75bb927ba32d69daef1b3a3f63fa91ea1c2ba0961f47-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/723596297",
-    "category": "New Media"
+    "thumbnail": "https://i.ytimg.com/vi/4EiznCbECBo/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/4EiznCbECBo",
+    "category": "Brands",
+    "hostedOn": "youtube"
   },
   {
     "title": "The Bachelor | Granted",
@@ -105,58 +120,67 @@
     "videoUrl": "https://player.vimeo.com/video/1056968490",
     "uploadDate": "2025-02-17T03:25:34.532Z",
     "duration": "PT1M19S",
-    "category": "TVC"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Rita Joseph for City Council",
-    "thumbnail": "https://i.vimeocdn.com/video/1134792220-ddeeaa96907897b3cbacbaacfab965abf5cee28dcade5cb38904103206cb5b0d-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/548118924",
-    "category": "New Media"
+    "thumbnail": "https://i.ytimg.com/vi/Vzpn1QFvF75/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/Vzpn1QFvF75",
+    "category": "Nonprofits",
+    "hostedOn": "youtube"
   },
   {
     "title": "Startup Story | Glow",
     "thumbnail": "https://i.ytimg.com/vi/Jer8XAvANd4/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/Jer8XAvANd4",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "youtube"
   },
   {
     "title": "50,000 Crypto Hackathon Competition | SZN 1 - Part 1",
     "thumbnail": "https://i.ytimg.com/vi/gq7lEcd2m38/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/gq7lEcd2m38",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "youtube"
   },
   {
     "title": "00,000 Hackathon | Season 3",
     "thumbnail": "https://i.ytimg.com/vi/6Nypbnbsvy8/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/6Nypbnbsvy8",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "youtube"
   },
   {
     "title": "Advice For Founders | Don't Overhire",
-    "thumbnail": "https://i.ytimg.com/vi/wHcZV-hZW6I/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/wHcZV-hZW6I/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/wHcZV-hZW6I",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "youtube"
   },
   {
     "title": "Advice For Founders | What Makes a Good One-Liner",
-    "thumbnail": "https://i.ytimg.com/vi/w3F4QshpWPo/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/w3F4QshpWPo/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/w3F4QshpWPo",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "youtube"
   },
   {
     "title": "Advice For Founders | Networking in the Age of AI",
-    "thumbnail": "https://i.ytimg.com/vi/YnLkEotw0o0/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/YnLkEotw0o0/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/YnLkEotw0o0",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "youtube"
   },
   {
     "title": "Sarah Snook | 2024 Tony Awards First Impressions",
     "description": "Tony Award-winner Cole Escola is congratulated by Bonnie Milligan at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 78th Annual Tony Awards on Sunday, June 8, 2025.About the 78th Annual Tony AwardsThe American Theatre Wing's 78th Annual Tony Awards, presented by the Broadway League and the American Theatre Wing, aired LIVE on Sunday, June 8, 2025 from Radio City Music Hall from 8:00-11:00 PM, ET/5:00-8:00 PM, PT on the CBS Television Network, and streaming live and on demand on Paramount+*.CBS and Pluto TV presented The Tony Awards: Act One, a pre-show of live, exclusive content leading into the 78th Annual Tony Awards. The celebration commenced at 6:40-8:00 PM, ET/3:30-5:00 PM PT, on Pluto TV.\\(live and on-demand for Paramount+ with SHOWTIME subscribers, or on-demand for Paramount+ Essential subscribers the day after the special airs).*",
-    "thumbnail": "https://i.ytimg.com/vi/1RW3OCUMp4s/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/1RW3OCUMp4s/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/1RW3OCUMp4s",
     "uploadDate": "2025-06-09T20:35:40.192Z",
     "duration": "PT4M51S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
     "title": "Daniel Radcliffe | 2024 Tony Awards First Impressions",
@@ -165,7 +189,8 @@
     "videoUrl": "https://www.youtube.com/embed/G8xeZQCjX6k",
     "uploadDate": "2024-06-17T18:44:34.934Z",
     "duration": "PT3M23S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
     "title": "Jodie Comer | 2023 Tony Awards First Impressions",
@@ -174,7 +199,8 @@
     "videoUrl": "https://www.youtube.com/embed/pI4CQYvOwD8",
     "uploadDate": "2023-06-13T18:38:06.754Z",
     "duration": "PT3M45S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
     "title": "Think of Me - The Phantom of the Opera Broadway Cast 2023",
@@ -183,7 +209,8 @@
     "videoUrl": "https://www.youtube.com/embed/FXfQzAHPa6g",
     "uploadDate": "2023-04-14T20:10:06.018Z",
     "duration": "PT2M51S",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "2022 Tony Awards First Impressions | Jesse Tyler Ferguson - Take Me Out",
@@ -192,7 +219,8 @@
     "videoUrl": "https://www.youtube.com/embed/XpyvXLCZMOo",
     "uploadDate": "2023-06-06T02:34:21.730Z",
     "duration": "PT1M55S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
     "title": "Robyn Hurder is Ivy Lynn | SMASH The Musical",
@@ -201,7 +229,8 @@
     "videoUrl": "https://www.youtube.com/embed/SzzqFdtpoAk",
     "uploadDate": "2025-01-30T19:04:49.639Z",
     "duration": "PT15S",
-    "category": "Reveals"
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "For Her/My Green Light - The Great Gatsby on Broadway",
@@ -211,7 +240,8 @@
     "uploadDate": "2024-03-12T18:58:46.727Z",
     "duration": "PT3M33S",
     "category": "Reveals",
-    "collection": "social_clips"
+    "collection": "social_clips",
+    "hostedOn": "youtube"
   },
   {
     "title": "\"Let Me Be Your Star (Opening Version)\" | SMASH The Musical",
@@ -220,7 +250,8 @@
     "videoUrl": "https://www.youtube.com/embed/ntYge3kewmQ",
     "uploadDate": "2025-02-10T16:12:52.378Z",
     "duration": "PT3M29S",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "Opening Night - JUST IN TIME is \"A SMASH HIT!\" | Now on Broadway",
@@ -229,7 +260,8 @@
     "videoUrl": "https://www.youtube.com/embed/3XLd9WYlfI0",
     "uploadDate": "2025-05-05T14:01:31.975Z",
     "duration": "PT1M35S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "The Most BROADWAY Broadway Opening Night | SMASH The Musical",
@@ -239,61 +271,71 @@
     "uploadDate": "2025-05-05T14:01:31.960Z",
     "duration": "PT1M48S",
     "category": "Opening Nights",
-    "collection": "social_clips"
+    "collection": "social_clips",
+    "hostedOn": "youtube"
   },
   {
     "title": "Moulin Rouge! The Musical | Come What May",
     "thumbnail": "https://i.vimeocdn.com/video/1703063812-6d875e9036147e7dca0cec786889a48144989cad8ae5221e6be7abec34176283-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/849162311",
-    "category": "Reveals"
+    "category": "Reveals",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Moulin Rouge! The Musical | Back to Broadway",
     "thumbnail": "https://i.vimeocdn.com/video/1237940901-736fd4dc27e44e0331d2ad894f9046c76ca4f6a396ebc8e952f8f3286580d5ba-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/601182916",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Moulin Rouge! The Musical | Automation & Carpentry",
-    "thumbnail": "https://i.ytimg.com/vi/tkQzaEmYQdo/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/tkQzaEmYQdo/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/tkQzaEmYQdo",
-    "category": "Broadway B-Roll"
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
   },
   {
     "title": "Moulin Rouge! The Musical | Lighting",
-    "thumbnail": "https://i.ytimg.com/vi/5nwy0Hylzd8/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/5nwy0Hylzd8/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/5nwy0Hylzd8",
-    "category": "Broadway B-Roll"
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
   },
   {
     "title": "Moulin Rouge! The Musical | Props",
-    "thumbnail": "https://i.ytimg.com/vi/JwCNbJ0ob7Q/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/JwCNbJ0ob7Q/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/JwCNbJ0ob7Q",
-    "category": "Broadway B-Roll"
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
   },
   {
     "title": "Moulin Rouge! The Musical | Aaron Tveit - Roxanne",
-    "thumbnail": "https://i.vimeocdn.com/video/1405078795-629e45e5858499dc329466b78358b688325f67a9cc9b0ce41181d7316272eb85-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/694493773",
-    "category": "Reveals"
+    "thumbnail": "https://i.ytimg.com/vi/vPTvwKthVIk/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/vPTvwKthVIk",
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "Moulin Rouge! The Musical | Derek Klena - Come What May",
-    "thumbnail": "https://i.vimeocdn.com/video/1702602127-63b3d9e3f52eee37efd538106d637327f94d1ebb44b323d6e408d176bd4515bf-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/848811462",
-    "category": "Reveals"
+    "thumbnail": "https://i.ytimg.com/vi/DpVvb77VKTg/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/DpVvb77VKTg",
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "Moulin Rouge! The Musical | Ashley Loren - Firework",
     "thumbnail": "https://i.vimeocdn.com/video/1643318139-0ca4d711f7e21edf652a0c59ad5413ffa00c1f53cab13abbb348a07c9f1ffb20-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/805687971",
-    "category": "Reveals"
+    "category": "Reveals",
+    "hostedOn": "vimeo"
   },
   {
     "title": "MAC x Moulin Rouge! The Musical | Satine Make Up Look",
-    "thumbnail": "https://i.vimeocdn.com/video/1259280237-5b66a3d2a145c57385f819b05dcd816dd66edb972a51f4229_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/617223649",
-    "category": "Reveals"
+    "thumbnail": "https://i.ytimg.com/vi/7funQCcxymc/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/7funQCcxymc",
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "Moulin Rouge! The Musical Celebrates 5 Years on Broadway",
@@ -302,7 +344,8 @@
     "videoUrl": "https://www.youtube.com/embed/rhWWITnK6-s",
     "uploadDate": "2024-07-29T14:29:03.805Z",
     "duration": "PT42S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
     "title": "Golden Hour | The Queen of Versailles on Broadway",
@@ -311,7 +354,8 @@
     "videoUrl": "https://www.youtube.com/embed/MOnGlcd3NxY",
     "uploadDate": "2025-06-09T20:35:40.188Z",
     "duration": "PT31S",
-    "category": "Reveals"
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "The Royal We | Queen of Versailles on Broadway",
@@ -320,7 +364,8 @@
     "videoUrl": "https://www.youtube.com/embed/D1x2rICBtl4",
     "uploadDate": "2025-11-16T16:24:43.103Z",
     "duration": "PT1M5S",
-    "category": "Reveals"
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "Golden Hour | The Queen of Versailles on Broadway",
@@ -330,7 +375,8 @@
     "uploadDate": "2025-11-16T16:24:43.095Z",
     "duration": "PT1M10S",
     "category": "Reveals",
-    "collection": "social_clips"
+    "collection": "social_clips",
+    "hostedOn": "youtube"
   },
   {
     "title": "\"Where I Wanna Be\" from Boop! The Musical",
@@ -339,7 +385,8 @@
     "videoUrl": "https://www.youtube.com/embed/rhyiqvVNsUo",
     "uploadDate": "2023-11-14T14:44:38.869Z",
     "duration": "PT2M19S",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "In The Recording Studio with BOOP! The Musical",
@@ -348,16 +395,18 @@
     "videoUrl": "https://www.youtube.com/embed/VEtXCE-t0HI",
     "uploadDate": "2025-02-18T15:44:46.366Z",
     "duration": "PT48S",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "A 30-Second Montage of Broadway's Lempicka",
     "description": "A 30-Second Montage of Broadway's Lempicka",
-    "thumbnail": "https://i.vimeocdn.com/video/1873950398-3be1e13e43cee9638dca5c72fca9486237d2ef7bc5df874e349386a9426cdb01-d_1920x1080?&r=pad&region=us",
-    "videoUrl": "https://player.vimeo.com/video/961298693",
+    "thumbnail": "https://i.ytimg.com/vi/NkpevV8YSNk/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/NkpevV8YSNk",
     "uploadDate": "2024-06-18T17:26:07.743Z",
     "duration": "PT30S",
-    "category": "Broadway B-Roll"
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
   },
   {
     "title": "LEMPICKA on Broadway",
@@ -366,7 +415,8 @@
     "videoUrl": "https://www.youtube.com/embed/fovrHNNiF-4",
     "uploadDate": "2023-10-30T22:26:42.555Z",
     "duration": "PT27S",
-    "category": "Reveals"
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "LEMPICKA | Opening Night on Broadway",
@@ -375,13 +425,15 @@
     "videoUrl": "https://www.youtube.com/embed/bRc5N7eIeuU",
     "uploadDate": "2024-04-16T22:24:04.757Z",
     "duration": "PT1M28S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "Phantom of the Opera: Opening Night",
     "thumbnail": "https://i.vimeocdn.com/video/1287432012-511c5ec3816a49222138c7cef1297a99cdf779743a0eda785_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/638822715",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Gutenberg! The Musical | Opening Night",
@@ -390,7 +442,8 @@
     "videoUrl": "https://www.youtube.com/embed/Kya8YUZxXAM",
     "uploadDate": "2023-10-16T13:52:57.866Z",
     "duration": "PT1M31S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "Broadway Meet and Greet | Gutenberg! The Musical",
@@ -399,37 +452,42 @@
     "videoUrl": "https://www.youtube.com/embed/17cRECRE4Nk",
     "uploadDate": "2023-09-05T16:41:41.046Z",
     "duration": "PT50S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
     "title": "Red Carpet Celebration | Merrily We Roll Along on Broadway",
     "description": "It's the best thing that ever could have happened! MERRILY is now open on Broadway and critics agree - it's a hit! \"IT'S A HIT. MARIA FRIEDMAN'S STAGING BRINGS STEPHEN SONDHEIM'SBRILLIANT, INGENIOUS SCORE FULLY ALIVE - and with DANIEL RADCLIFFE, JONATHAN GROFF and LINDSAY MENDEZ as the show's central trio, it is perfectly cast.\"Tickets and more information: https://merrilyonbroadway.com",
-    "thumbnail": "https://i.ytimg.com/vi/h4LY5dXCw6s/maxresdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/h4LY5dXCw6s/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/h4LY5dXCw6s",
     "uploadDate": "2023-10-12T01:44:46.687Z",
     "duration": "PT1M57S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
-    "title": "Bad Cinderella x Phantom 35th Anniversary",
+    "title": "Bad Cinderella Cast Announcement",
     "description": "Bad Cinderella x Phantom 35th Anniversary",
-    "thumbnail": "https://i.vimeocdn.com/video/1595636020-3faa32022531a789fd1b337ab4a57147e1fcc63c83a5bd18d60e4460d0c12aef-d_1920x1080?&r=pad&region=us",
-    "videoUrl": "https://player.vimeo.com/video/792707156",
+    "thumbnail": "https://i.ytimg.com/vi/kX_okloMl-s/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/kX_okloMl-s",
     "uploadDate": "2026-01-21T08:19:55.766Z",
     "duration": "PT1M49S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
     "title": "Camelot | Opening Night",
-    "thumbnail": "https://i.vimeocdn.com/video/1655706804-74cc5365329edc192d2872441472bc8edf227aa3cdd2627c539fadd57393899e-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/817793639",
-    "category": "Opening Nights"
+    "thumbnail": "https://i.ytimg.com/vi/fi2LDc1c96Q/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/fi2LDc1c96Q",
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "A Strange Loop | Opening Night",
-    "thumbnail": "https://i.vimeocdn.com/video/1422128445-bd799c1271512b506c1ebeef98993ecbfeb33d877656a8a18a67f8443af60b1b-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/703826830",
-    "category": "Opening Nights"
+    "thumbnail": "https://i.ytimg.com/vi/u1ZvsT5UyvU/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/u1ZvsT5UyvU",
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "CHESS the musical | Now Open on Broadway",
@@ -439,7 +497,8 @@
     "uploadDate": "2025-11-19T17:23:37.739Z",
     "duration": "PT1M25S",
     "category": "Opening Nights",
-    "collection": "social_clips"
+    "collection": "social_clips",
+    "hostedOn": "youtube"
   },
   {
     "title": "Real Women Have Curves | The Musical | Original Broadway Cast Recording (Official Album Trailer)",
@@ -448,7 +507,8 @@
     "videoUrl": "https://www.youtube.com/embed/pIoJRMK0wcw",
     "uploadDate": "2025-06-09T20:35:40.197Z",
     "duration": "PT2M30S",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "Opening Night with Real Women Have Curves | The Musical",
@@ -458,49 +518,57 @@
     "uploadDate": "2025-05-05T14:01:31.969Z",
     "duration": "PT1M19S",
     "category": "Opening Nights",
-    "collection": "social_clips"
+    "collection": "social_clips",
+    "hostedOn": "youtube"
   },
   {
     "title": "The Music Man | Opening Night",
-    "thumbnail": "https://i.vimeocdn.com/video/1370819785-b15f5f87aecdd3431e5f5fc7e8218999e06430b605b0360d62816dcd4e62f97d-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/676455273",
-    "category": "Opening Nights"
+    "thumbnail": "https://i.ytimg.com/vi/AOD6lKpgVnM/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/AOD6lKpgVnM",
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "GREY HOUSE Broadway | Opening Night",
     "thumbnail": "https://i.ytimg.com/vi/fK1IShVXLfE/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/fK1IShVXLfE",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "CULT OF LOVE | Opening Night",
-    "thumbnail": "https://i.ytimg.com/vi/9AsiBiPe6Pc/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/9AsiBiPe6Pc/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/9AsiBiPe6Pc",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "Take Me Out | Opening Night",
-    "thumbnail": "https://i.vimeocdn.com/video/1536060606-467020e73da5712ed5089119bdfe2fb79ad3e86718a0c8a41a482ad43ae20435-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/764940922",
-    "category": "Opening Nights"
+    "thumbnail": "https://i.ytimg.com/vi/MxBLSEuhBmQ/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/MxBLSEuhBmQ",
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "Clyde's | Opening Night",
     "thumbnail": "https://i.vimeocdn.com/video/1309110349-083e8b98649438d9bc13854e713c37d7d55dde84c8dd1abbc_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/649519516",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "vimeo"
   },
   {
-    "title": "Between Riverside and Crazy | Opening Night",
-    "thumbnail": "https://i.vimeocdn.com/video/2030826963-c4e7c666638b07eac69d417ba37a822f0ea6d0061993227f0d1447e293d5e7c4-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/783096442",
-    "category": "Opening Nights"
+    "title": "Between Riverside and Crazy Opening Night on Broadway!",
+    "thumbnail": "https://i.ytimg.com/vi/oc9lqsetd4E/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/oc9lqsetd4E",
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "Opening Night with Marjorie Prime",
-    "thumbnail": "https:\\/\\/i.vimeocdn.com\\/video\\/2093848804-b4a8f49d52df9b5eda6e0d91f0989dad3dad62dad4f9b85d9f0cbc9e0db80e95-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/1145043602",
-    "category": "Opening Nights"
+    "thumbnail": "https://i.ytimg.com/vi/ZD4VpzBu2jo/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/ZD4VpzBu2jo",
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "FLOYD COLLINS - Go Inside Opening Night",
@@ -509,7 +577,8 @@
     "videoUrl": "https://www.youtube.com/embed/2OktQGbpOcY",
     "uploadDate": "2025-05-05T14:01:31.996Z",
     "duration": "PT1M15S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "McNEAL - Go Inside Opening Night with the Cast!",
@@ -518,7 +587,8 @@
     "videoUrl": "https://www.youtube.com/embed/iDGEXosGibs",
     "uploadDate": "2024-10-07T20:34:01.216Z",
     "duration": "PT1M27S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "McNEAL Opening Night - get a sneak peek!",
@@ -527,7 +597,8 @@
     "videoUrl": "https://www.youtube.com/embed/H8xeyf3WUY0",
     "uploadDate": "2024-10-02T00:30:33.134Z",
     "duration": "PT46S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "THE HILLS OF CALIFORNIA | Opening Night!",
@@ -536,7 +607,8 @@
     "videoUrl": "https://www.youtube.com/embed/TK3NL7g5O0o",
     "uploadDate": "2024-10-04T21:45:57.485Z",
     "duration": "PT1M30S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "Walden | Opening Night",
@@ -545,7 +617,8 @@
     "videoUrl": "https://www.youtube.com/embed/by_YKHMJ8zM",
     "uploadDate": "2024-12-02T16:47:15.590Z",
     "duration": "PT1M32S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "An Opening Night Fairytale | Once Upon A Mattress on Broadway",
@@ -554,7 +627,8 @@
     "videoUrl": "https://www.youtube.com/embed/nCeEoEZuql8",
     "uploadDate": "2024-10-04T21:45:57.492Z",
     "duration": "PT1M31S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "Dead Outlaw on Broadway | Opening Night",
@@ -563,25 +637,29 @@
     "videoUrl": "https://www.youtube.com/embed/DnGR9dSFkmA",
     "uploadDate": "2025-05-05T14:01:31.954Z",
     "duration": "PT1M21S",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "youtube"
   },
   {
     "title": "To Kill a Mockingbird | Opening Night",
     "thumbnail": "https://i.vimeocdn.com/video/1268355516-77a29c53742758c3777036f995f65eadec0dfbddaab0e53ee_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/626006158",
-    "category": "Opening Nights"
+    "category": "Opening Nights",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Costume Spotlight - A Gentleman's Guide to Love & Murder at The Shakespeare Theatre of New Jersey",
-    "thumbnail": "https://i.ytimg.com/vi/6E6Wj0rVqTo/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/6E6Wj0rVqTo/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/6E6Wj0rVqTo",
-    "category": "Broadway B-Roll"
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
   },
   {
     "title": "FIRST LOOK - A Gentleman's Guide to Love & Murder at The Shakespeare Theatre of New Jersey",
-    "thumbnail": "https://i.ytimg.com/vi/MhWficDtDZY/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/MhWficDtDZY/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/MhWficDtDZY",
-    "category": "Reveals"
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "MACBETH at The Shakespeare Theatre of New Jersey",
@@ -590,31 +668,36 @@
     "videoUrl": "https://www.youtube.com/embed/jfy1qGwMuYM",
     "uploadDate": "2024-10-16T21:55:27.584Z",
     "duration": "PT42S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
     "title": "New Jersey Play Lab | Storyteller Studio",
     "thumbnail": "https://i.vimeocdn.com/video/1887459453-a6f109b868f3da92029f22518e69206752166d1f09551c2463b5b436ded96e0e-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/973331659",
-    "category": "Broadway B-Roll"
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
   },
   {
     "title": "To My Girls | About the Play",
-    "thumbnail": "https://i.vimeocdn.com/video/1391148963-f6fc9b6b0cb3117c9d6ec2ed6d85f647f68fd34564a4423484be037ee765f649-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/686609911",
-    "category": "New Media"
+    "thumbnail": "https://i.ytimg.com/vi/WQ5Fq8Hy8hc/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/WQ5Fq8Hy8hc",
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
     "title": "MAC x BEETLEJUICE The Musical | Juno Make Up Look",
-    "thumbnail": "https://i.vimeocdn.com/video/1531749743-49f0a2349584d88f89912c38bff11a3014510176675f90039f594fa366e24a41-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/762771373",
-    "category": "Reveals"
+    "thumbnail": "https://i.ytimg.com/vi/dS_NAC90kNI/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/dS_NAC90kNI",
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "American Ballet Theater Studio Company | Winter Season Teaser",
-    "thumbnail": "https://i.vimeocdn.com/video/1012828865-02571c2d229e32a556bbc2508d3ccda90464098c69f38b41b740852c79080812-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/480563031",
-    "category": "Reveals"
+    "thumbnail": "https://i.ytimg.com/vi/T_RwH3YGsbo/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/T_RwH3YGsbo",
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "Jean Smart in CALL ME IZZY | Now on Broadway",
@@ -623,7 +706,8 @@
     "videoUrl": "https://www.youtube.com/embed/NIkG1apqbUU",
     "uploadDate": "2025-06-25T17:44:35.777Z",
     "duration": "PT30S",
-    "category": "Reveals"
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "Death Becomes Her - Musical Comedy Revitalized",
@@ -632,7 +716,8 @@
     "videoUrl": "https://www.youtube.com/embed/mV5xdHHtQD0",
     "uploadDate": "2023-09-22T14:19:45.190Z",
     "duration": "PT31S",
-    "category": "Reveals"
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "DRAG | The Musical First Look",
@@ -641,7 +726,8 @@
     "videoUrl": "https://www.youtube.com/embed/TW1ckET5Fgg",
     "uploadDate": "2024-12-02T16:45:14.896Z",
     "duration": "PT55S",
-    "category": "Reveals"
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "Lea Salonga and David Korins Tour the Broadway Theatre for Here Lies Love",
@@ -650,7 +736,8 @@
     "videoUrl": "https://www.youtube.com/embed/nadDdEpnBdI",
     "uploadDate": "2023-03-30T17:49:56.157Z",
     "duration": "PT2M21S",
-    "category": "Broadway B-Roll"
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
   },
   {
     "title": "Bringing The Sign in Brustein's Window to Broadway",
@@ -659,19 +746,22 @@
     "videoUrl": "https://player.vimeo.com/video/832342962",
     "uploadDate": "2026-01-21T08:19:55.741Z",
     "duration": "PT33S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Sing Street Broadway - Behind the Scenes",
-    "thumbnail": "https://i.vimeocdn.com/video/846718915-f6665da4f0d4315bbb5fd92bf362d5d766bf855edc35891fa033f0969118225e-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/384454350",
-    "category": "Broadway B-Roll"
+    "thumbnail": "https://i.ytimg.com/vi/W-VAddb159I/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/W-VAddb159I",
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
   },
   {
     "title": "Shakespeare Theater of NJ | Romeo and Juliet Trailer",
-    "thumbnail": "https://i.vimeocdn.com/video/1268355516-77a29c53742758c3777036f995f65eadec0dfbddaab0e53ee_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/626006158",
-    "category": "Reveals"
+    "thumbnail": "https://i.ytimg.com/vi/yt6nLES3etE/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/yt6nLES3etE",
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "‘Good Fortune’ & Funny Set Confessions with Keanu Reeves, Seth Rogen and Aziz Ansari",
@@ -681,115 +771,134 @@
     "uploadDate": "2025-11-16T16:25:51.632Z",
     "duration": "PT50M21S",
     "category": "New Media",
-    "collection": "social_clips"
+    "collection": "social_clips",
+    "hostedOn": "youtube"
   },
   {
     "title": "Hoffman - Didn't Like Me Back",
-    "thumbnail": "https://i.vimeocdn.com/video/1523258812-34784807c793b3e2f83f34b12f1831e42caaa2cbae8c2c7cd795f726cf084325-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/758377863",
-    "category": "Music"
+    "thumbnail": "https://i.ytimg.com/vi/FtEe3wyxfYQ/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/FtEe3wyxfYQ",
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "The Lost Boys (Feat. Slash) - \"Have to Have You\"",
-    "thumbnail": "https://i.ytimg.com/vi/FupJLTtytz8/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/FupJLTtytz8",
-    "category": "Music"
+    "thumbnail": "https://i.ytimg.com/vi/bGr0zWPjpOI/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/bGr0zWPjpOI",
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "\"Wild\" Featuring Guest Artists Caissie Levy & Patrick Wilson",
-    "thumbnail": "https://i.ytimg.com/vi/RNFps5250JM/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/RNFps5250JM/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/RNFps5250JM",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "Marigold - \"Alpenglow\" Live",
-    "thumbnail": "https://i.ytimg.com/vi/n0573wFMbY0/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/n0573wFMbY0/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/n0573wFMbY0",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "Granite Garden - April",
     "thumbnail": "https://i.vimeocdn.com/video/1977080562-12b7ebb81efe440bccb6de2ac732fc581b8c78e23d5526280a8e08382e23ddd9-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/1052151410",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Hoffman - Reflection",
-    "thumbnail": "https://i.vimeocdn.com/video/1446914049-7afbb3f94c8d8d11c7e88e96a79c722e7dd28f8ad55ea8d023b5a5069af8387c-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/718138020",
-    "category": "Music"
+    "thumbnail": "https://i.ytimg.com/vi/9l26uUpUrHs/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/9l26uUpUrHs",
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "Inside Scoop - Marsoupial",
     "thumbnail": "https://i.vimeocdn.com/video/843581577-2684ba543f62b60d2d7afbf5e0c76c94eaec7f2b81e959579cc7266cb5eec904-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/338969089",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Pesh Milli - V Roy & Painless",
-    "thumbnail": "https://i.vimeocdn.com/video/1401967539-be003eb3a4acf76ca6bce4880986d6884dba62d6d96082bedcf7776d66a0ea9e-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/692694065",
-    "category": "Music"
+    "thumbnail": "https://i.ytimg.com/vi/pEDUsDjociU/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/pEDUsDjociU",
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "GNUdefRecords | Sundae Cypher #1",
-    "thumbnail": "https://i.vimeocdn.com/video/1705479520-046c86b175d06273af634151f5952208762bae9057e8084822cda7e99fe90918-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/850941432",
-    "category": "Music"
+    "thumbnail": "https://i.ytimg.com/vi/Y0OB111sI7g/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/Y0OB111sI7g",
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "GNUdefRecords | Sundae Cypher #2",
     "thumbnail": "https://i.vimeocdn.com/video/1765453161-4279d2dd78f9921f2f25b328fbf26aa0141886113ce5d5d3aa2fdd3774d4906a-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/892348596",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "vimeo"
   },
   {
     "title": "GNUdefRecords | Sundae Cypher #3",
     "thumbnail": "https://i.vimeocdn.com/video/1898107670-f15cf5157ce64392fd39415308d35f5786b9b6c3b5750b7d003d489f12c6b942-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/982735509",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Dr. Will - The Squeeze",
-    "thumbnail": "https://i.vimeocdn.com/video/1330258609-9c64d2fe70c6cd450c639877d80507f185bc327118ff5c92335d198a8147b2ef-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/597280904",
-    "category": "Music"
+    "thumbnail": "https://i.ytimg.com/vi/gyPAhTPShqQ/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/gyPAhTPShqQ",
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "Green Knuckle Material - Julia",
-    "thumbnail": "https://i.vimeocdn.com/video/1573119514-ea7fcb6b26a47c6325d119c1f41508a6cd9b87e4b4d6d4e0470d3ff966f13f77-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/780540226",
-    "category": "Music"
+    "thumbnail": "https://i.ytimg.com/vi/tfuWS2fgNeE/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/tfuWS2fgNeE",
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "Dr. Will - Wayne Campbell",
-    "thumbnail": "https://i.vimeocdn.com/video/1021473770-8121101e66c746e3a34942a76d8ced7a0f75aa2c0aff0b7e962ebce07bf2ca49-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/493986789",
-    "category": "Music"
+    "thumbnail": "https://i.ytimg.com/vi/jL_7Nz7eulg/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/jL_7Nz7eulg",
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "King of Spiderman One",
     "thumbnail": "https://i.vimeocdn.com/video/1465102618-6e323f13e5aa0842bd65dcb331ff9cbf4db0a0d2772e99a8ea9f9ef3c5f136b4-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/727626975",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Drug Seeker - Ghost",
-    "thumbnail": "https://i.vimeocdn.com/video/843582034-0fa6fa0534aea83b96f3a922d866c96c7e27bee82cc1e04aeb91dd1d51c5f1ca-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/372752699",
-    "category": "Music"
+    "thumbnail": "https://i.ytimg.com/vi/qj9U8ttEy4Q/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/qj9U8ttEy4Q",
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "Granite Garden - \"Am I Just Bored\"",
-    "thumbnail": "https://i.ytimg.com/vi/s1kwN9Hb6QM/hqdefault.jpg",
+    "thumbnail": "https://i.ytimg.com/vi/s1kwN9Hb6QM/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/s1kwN9Hb6QM",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "Sonoa: Live Session at Mount Moon",
-    "thumbnail": "https://i.vimeocdn.com/video/1142760600-e5b0fe3f7c2e6f64e1930bc925fee9eebc864416fd9c44389c7d672d18d962db-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/539966176",
-    "category": "Music"
+    "thumbnail": "https://i.ytimg.com/vi/CuT4Sg4lOoo/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/CuT4Sg4lOoo",
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "Record-Breaking Signings, March Madness Mayhem & A Severance Waffle Party with Ben Stiller | Ep 130",
@@ -799,7 +908,8 @@
     "uploadDate": "2025-05-05T14:01:31.984Z",
     "duration": "PT1H43M6S",
     "category": "New Media",
-    "collection": "social_clips"
+    "collection": "social_clips",
+    "hostedOn": "youtube"
   },
   {
     "title": "Camelot | Cast Recording",
@@ -808,31 +918,36 @@
     "videoUrl": "https://player.vimeo.com/video/828137458",
     "uploadDate": "2026-01-21T08:19:55.735Z",
     "duration": "PT1M48S",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "vimeo"
   },
   {
-    "title": "Ars Nova | Meet the Campers",
-    "thumbnail": "https://i.vimeocdn.com/video/1670949270-32970fc11f228fe799a5a07871a91629209a1b27fa756d2d2e7f25d3db551aef-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/827513975",
-    "category": "Broadway B-Roll"
+    "title": "Our 2023 CAMPers Talk CAMP!",
+    "thumbnail": "https://i.ytimg.com/vi/53VNlroxHiw/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/53VNlroxHiw",
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
   },
   {
     "title": "Dance Lab New York | Christian Denice",
     "thumbnail": "https://i.vimeocdn.com/video/1514335198-fe94f149679ed98df296b031d66e543832b7106e045c885cc8c69d90cc6a96fa-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/753537255",
-    "category": "Broadway B-Roll"
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Dance Lab New York | Dava Huesca",
     "thumbnail": "https://i.vimeocdn.com/video/1617008442-7bbfb54cda8d428c82a1b80a8f43b583d0c8a3af063dd822f8e088314554920d-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/801426525",
-    "category": "Broadway B-Roll"
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Dance Lab New York | Next Gen Connect",
     "thumbnail": "https://i.vimeocdn.com/video/1339629419-98aa33f6caf5c57c81ae383bee1060bb355772146a9ee3c76faab0c575b1d3d4-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/644985527",
-    "category": "Broadway B-Roll"
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
   },
   {
     "title": "I am an EMG Bride",
@@ -841,31 +956,36 @@
     "videoUrl": "https://player.vimeo.com/video/997344890",
     "uploadDate": "2024-10-04T21:40:57.945Z",
     "duration": "PT4M9S",
-    "category": "New Media"
+    "category": "Brands",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Inside Walden's First Rehearsal",
     "thumbnail": "https://i.ytimg.com/vi/WxiOqq4fYh8/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/WxiOqq4fYh8",
-    "category": "Broadway B-Roll"
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
   },
   {
     "title": "Take Me Out | Field of Dreams",
     "thumbnail": "https://i.vimeocdn.com/video/1540977827-812e081e10b8a55ec2a072168cde65015287bae4f5f3ea86d674c009db99f974-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/767526429",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Take Me Out | Touching Base",
-    "thumbnail": "https://i.vimeocdn.com/video/1447986266-60b91efe4495c2c21aed3c4f12bfb54d2d5c2b135389f55504b78fa72faf53f5-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/717537698",
-    "category": "New Media"
+    "thumbnail": "https://i.ytimg.com/vi/E8_RhW9lx4s/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/E8_RhW9lx4s",
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
     "title": "Hamptons Dance Project",
     "thumbnail": "https://i.vimeocdn.com/video/1000185757-80d501ca08bc78567f4d401f329fda53b79a5e14821c2750c37f5b79cd699f3b-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/472454292",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "vimeo"
   },
   {
     "title": "First Impressions | Wayne Brady and Lea Salonga",
@@ -874,7 +994,8 @@
     "videoUrl": "https://www.youtube.com/embed/843j0ATGiFg",
     "uploadDate": "2024-06-25T23:07:11.853Z",
     "duration": "PT2M3S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "youtube"
   },
   {
     "title": "Real Townspeople of Belleville",
@@ -883,7 +1004,8 @@
     "videoUrl": "https://player.vimeo.com/video/778732487",
     "uploadDate": "2026-01-21T08:19:55.742Z",
     "duration": "PT50S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "vimeo"
   },
   {
     "title": "Happily Ever After will never be the same.",
@@ -892,7 +1014,8 @@
     "videoUrl": "https://www.youtube.com/embed/O_adESuYNyw",
     "uploadDate": "2023-05-02T19:36:16.986Z",
     "duration": "PT16S",
-    "category": "Reveals"
+    "category": "Reveals",
+    "hostedOn": "youtube"
   },
   {
     "title": "Cult of Love - Behind The Scenes",
@@ -901,7 +1024,8 @@
     "videoUrl": "https://www.youtube.com/embed/WMuREsrAmSg",
     "uploadDate": "2024-12-02T16:45:14.890Z",
     "duration": "PT1M6S",
-    "category": "Broadway B-Roll"
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
   },
   {
     "title": "Inside Cult of Love's First Rehearsal",
@@ -910,7 +1034,8 @@
     "videoUrl": "https://www.youtube.com/embed/7XoQKtD5XDY",
     "uploadDate": "2024-12-02T16:47:15.597Z",
     "duration": "PT1M5S",
-    "category": "Broadway B-Roll"
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube"
   },
   {
     "title": "'If I Were a Bird' Performed by Joy Huerta (of Jesse and Joy) and Aline Mayagoitia",
@@ -919,15 +1044,141 @@
     "videoUrl": "https://www.youtube.com/embed/m6VjlZsAKNE",
     "uploadDate": "2024-12-19T19:52:55.898Z",
     "duration": "PT2M58S",
-    "category": "Music"
+    "category": "Music",
+    "hostedOn": "youtube"
   },
   {
     "title": "Behind-The-Scenes with Betty Boop",
     "description": "Behind-The-Scenes with Betty Boop",
-    "thumbnail": "https://i.vimeocdn.com/video/1730690040-d3e2460ace9b72d043cad99370f13fc4cc10c635a8e625455611c53d8199e7d8-d_1920x1080?&r=pad&region=us",
-    "videoUrl": "https://player.vimeo.com/video/868853252",
+    "thumbnail": "https://i.ytimg.com/vi/svaQG2YwX30/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/svaQG2YwX30",
     "uploadDate": "2026-01-21T08:19:55.738Z",
     "duration": "PT24S",
-    "category": "New Media"
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "DAD - \"Holy Water (Live at Scorpion Records)\"",
+    "videoUrl": "https://www.youtube.com/embed/jnrw0JQZBS4",
+    "thumbnail": "https://i.ytimg.com/vi/jnrw0JQZBS4/maxresdefault.jpg",
+    "category": "Music",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "#PROMASTERCLASS: Moulin Rouge 'Zidler' Tutorial with Sarah Cimino",
+    "videoUrl": "https://www.youtube.com/embed/KvQjeoiidWg",
+    "thumbnail": "https://i.ytimg.com/vi/KvQjeoiidWg/maxresdefault.jpg",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Bob The Drag Queen is Harold Zidler Beginning January 27",
+    "videoUrl": "https://www.youtube.com/embed/2tf1pGxy3Ks",
+    "thumbnail": "https://i.ytimg.com/vi/2tf1pGxy3Ks/hqdefault.jpg",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "TAKE ME OUT – First Rehearsal (2022)",
+    "videoUrl": "https://www.youtube.com/embed/rrefGrsEHUI",
+    "thumbnail": "https://i.ytimg.com/vi/rrefGrsEHUI/maxresdefault.jpg",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "LEMPICKA | The Muse (with Matt Gould)",
+    "videoUrl": "https://www.youtube.com/embed/FE4DR_dLazU",
+    "thumbnail": "https://i.ytimg.com/vi/FE4DR_dLazU/maxresdefault.jpg",
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T01:50:29.854Z"
+  },
+  {
+    "title": "LEMPICKA | The Role of a Lifetime",
+    "videoUrl": "https://www.youtube.com/embed/EJjJ5yaVKj0",
+    "thumbnail": "https://i.ytimg.com/vi/EJjJ5yaVKj0/hqdefault.jpg",
+    "category": "Broadway B-Roll",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T01:50:29.856Z"
+  },
+  {
+    "title": "LEMPICKA | \"Woman Is\" Official Music Video",
+    "videoUrl": "https://www.youtube.com/embed/hZpeyr11uVM",
+    "thumbnail": "https://i.ytimg.com/vi/hZpeyr11uVM/maxresdefault.jpg",
+    "category": "Music",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T01:50:29.856Z"
+  },
+  {
+    "title": "LEMPICKA | \"Speed\" (Give Back My Heart)",
+    "videoUrl": "https://www.youtube.com/embed/cShIqCXQMjI",
+    "thumbnail": "https://i.ytimg.com/vi/cShIqCXQMjI/maxresdefault.jpg",
+    "category": "Music",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T01:50:29.856Z"
+  },
+  {
+    "title": "Broadway Opening Night at BOOP! The Musical",
+    "videoUrl": "https://www.youtube.com/embed/TwnInDUg3EE",
+    "thumbnail": "https://i.ytimg.com/vi/TwnInDUg3EE/maxresdefault.jpg",
+    "category": "Opening Nights",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T01:50:29.856Z"
+  },
+  {
+    "title": "Heineken Employee Meeting 2025",
+    "videoUrl": "https://player.vimeo.com/video/1055650527",
+    "thumbnail": "/Heineken Thumbnail.png",
+    "category": "Brands",
+    "hostedOn": "vimeo",
+    "uploadDate": "2026-02-12T01:55:47.388Z"
+  },
+  {
+    "title": "T-Mobile Truck Stop",
+    "videoUrl": "https://player.vimeo.com/video/1069245286",
+    "thumbnail": "/Tmobile Rodeo Thumbnail.png",
+    "category": "Brands",
+    "hostedOn": "vimeo",
+    "uploadDate": "2026-02-12T01:55:47.390Z"
+  },
+  {
+    "title": "2025 Second Stage Gala Video",
+    "videoUrl": "https://www.youtube.com/embed/RZcjZy4LMqA",
+    "thumbnail": "https://i.ytimg.com/vi/RZcjZy4LMqA/maxresdefault.jpg",
+    "category": "Nonprofits",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T02:03:19.922Z"
+  },
+  {
+    "title": "Go inside opening night of Meet the Cartozians!",
+    "videoUrl": "https://www.youtube.com/embed/Xoq7bCxsU3Y",
+    "thumbnail": "https://i.ytimg.com/vi/Xoq7bCxsU3Y/maxresdefault.jpg",
+    "category": "Opening Nights",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T02:03:19.923Z"
+  },
+  {
+    "title": "#TheThanksgivingPlayBway Opening Night",
+    "videoUrl": "https://www.youtube.com/embed/XL6AbHiyDjQ",
+    "thumbnail": "https://i.ytimg.com/vi/XL6AbHiyDjQ/hqdefault.jpg",
+    "category": "Opening Nights",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T02:03:19.923Z"
+  },
+  {
+    "title": "What Is White Girl in Danger?",
+    "videoUrl": "https://www.youtube.com/embed/_6zYxX4OxUU",
+    "thumbnail": "https://i.ytimg.com/vi/_6zYxX4OxUU/maxresdefault.jpg",
+    "category": "New Media",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T02:03:19.923Z"
+  },
+  {
+    "title": "Stephanie Chou - Jazz at Lincoln Center - Appel Room",
+    "videoUrl": "https://www.youtube.com/embed/P9Snqtbahs0",
+    "thumbnail": "https://i.ytimg.com/vi/P9Snqtbahs0/hqdefault.jpg",
+    "category": "Music",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T02:39:22.498Z"
   }
 ]
