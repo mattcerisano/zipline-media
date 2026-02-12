@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { Camera, Calendar as CalendarIcon, Users, Briefcase, LogOut, FileText, Coffee, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { 
@@ -144,7 +145,14 @@ export default function CrewPage() {
       <header className="fixed top-0 left-0 w-full z-50 bg-black/90 backdrop-blur-md border-b border-white/5 h-20 flex items-center px-4 md:px-6 justify-between">
         <div className="flex items-center gap-4 shrink-0">
           <Link href="/" className="hover:opacity-70 transition-opacity">
-            <img src="/Zipline Logo 10x10_Black Text Blue.png" alt="ZIPLINE" className="h-8 w-auto" />
+            <div className="relative h-8 w-8">
+              <Image 
+                src="/Zipline Logo 10x10_Black Text Blue.png" 
+                alt="ZIPLINE" 
+                fill
+                className="object-contain"
+              />
+            </div>
           </Link>
           <div className="h-8 w-px bg-white/10 hidden md:block" />
           <h1 className="text-sm font-black tracking-[0.2em] uppercase hidden md:block">Crew Portal</h1>

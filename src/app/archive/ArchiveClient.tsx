@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, X, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,9 +27,11 @@ function HeroVideo({ video, onPlay }: { video: Video; onPlay: (url: string) => v
       onClick={() => onPlay(video.videoUrl)}
       className="group relative w-full aspect-video bg-neutral-900 rounded-sm overflow-hidden border border-white/10 shadow-2xl text-left block"
     >
-      <img 
+      <Image 
         src={video.thumbnail} 
         alt={video.title}
+        fill
+        unoptimized
         className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-700"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60" />
@@ -88,9 +91,11 @@ function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeV
               }
             `}
           >
-            <img 
+            <Image 
               src={video.thumbnail} 
               alt={video.title}
+              fill
+              unoptimized
               className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
             />
             {isActive && (
@@ -336,9 +341,11 @@ export default function ArchiveClient() {
                 className="group flex flex-col gap-3 text-left w-full transition-all duration-300"
               >
                 <div className="aspect-video w-full overflow-hidden bg-neutral-900 border border-white/5 relative rounded-sm shadow-lg group-hover:shadow-2xl group-hover:shadow-white/5 transition-all duration-500">
-                  <img 
+                  <Image 
                     src={video.thumbnail} 
                     alt={video.title}
+                    fill
+                    unoptimized
                     className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out"
                   />
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />

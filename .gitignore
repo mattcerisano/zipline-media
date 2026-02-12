@@ -43,9 +43,6 @@ yarn-error.log*
 next-env.d.ts
 *.log
 
-# large videos
-public/LandingPage.mp4
-public/broadway-performance.mp4
+# massive source videos / reels only
 public/broadway-reel.mp4
-public/corporate.mp4
-public/new-media.mp4
+# Keep individual category/hero videos allowed

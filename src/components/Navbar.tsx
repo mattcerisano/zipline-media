@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
@@ -48,10 +49,12 @@ export default function Navbar() {
               onClick={(e) => { setIsOpen(false); handleNav(e, '/#home'); }} 
               className="relative h-10 w-32 md:h-14 md:w-52"
             >
-              <img 
+              <Image 
                 src="/Zipline Logo FULL Blue.png" 
                 alt="ZIPLINE" 
-                className="h-full object-contain"
+                fill
+                className="object-contain"
+                priority
               />
             </Link>
           </div>

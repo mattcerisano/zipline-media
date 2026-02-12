@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import LogoTicker from '@/components/LogoTicker';
 import { Check, Play } from 'lucide-react';
@@ -98,9 +98,12 @@ function Hero() {
           transition={{ duration: 1, delay: 0.2 }}
           className="flex md:hidden justify-center items-center"
         >
-          <img 
+          <Image 
             src="/Zipline Logo FULL Blue.png" 
             alt="Zipline Media" 
+            width={300}
+            height={100}
+            priority
             className="w-[80vw] max-w-[300px] h-auto object-contain"
           />
         </motion.div>
