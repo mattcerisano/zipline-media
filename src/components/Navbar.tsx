@@ -41,13 +41,13 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="hidden md:block fixed top-0 left-0 w-full z-50 bg-black/90 backdrop-blur-md border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 flex justify-between items-center">
-          <div className="flex flex-col relative z-50">
+      <nav className="fixed top-0 left-0 w-full z-[100] bg-black/90 backdrop-blur-md border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-6 flex justify-between items-center">
+          <div className="flex items-center">
             <Link 
               href="/#home" 
               onClick={(e) => { setIsOpen(false); handleNav(e, '/#home'); }} 
-              className="relative h-10 w-32 md:h-14 md:w-52"
+              className="relative h-10 w-32 md:h-14 md:w-52 block"
             >
               <Image 
                 src="/Zipline Logo FULL Blue.png" 
