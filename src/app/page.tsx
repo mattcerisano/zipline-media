@@ -410,73 +410,73 @@ function Social() {
     {
       title: "Death Becomes Her | Hero",
       thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/mV5xdHHtQD0",
+      videoUrl: "https://www.instagram.com/reel/C22dScAOtLs/",
       localVideo: "/DBH_Hero_SocialThumbnail.mp4"
     },
     {
       title: "Moulin Rouge | Titus Burgess",
       thumbnail: "https://i.ytimg.com/vi/7funQCcxymc/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/7funQCcxymc",
+      videoUrl: "https://www.instagram.com/reel/CzwFK9hudGJ/",
       localVideo: "/MRTM_Titus_SocialThumbnail.mp4"
     },
     {
       title: "‘Good Fortune’ with Keanu Reeves, Seth Rogen and Aziz Ansari",
       thumbnail: "https://i.ytimg.com/vi/bCy3RdLHC0Q/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/bCy3RdLHC0Q",
+      videoUrl: "https://www.instagram.com/reel/DPwKObAEczB/",
       localVideo: "/Keke_SocialThumbnail_V2.mp4"
     },
     {
       title: "Golden Hour | The Queen of Versailles on Broadway",
       thumbnail: "https://i.ytimg.com/vi/w4xaJxeUIaw/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/w4xaJxeUIaw",
+      videoUrl: "https://www.instagram.com/reel/DQ1wezMjxox/",
       localVideo: "/QoV_SocialThumbnail_2.mp4"
     },
     {
       title: "New Heights with Ben Stiller",
       thumbnail: "https://i.ytimg.com/vi/G0oyW5uuVoI/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/G0oyW5uuVoI",
+      videoUrl: "https://www.instagram.com/reel/DHY8Ek9SH8L/",
       localVideo: "/NewHeights_SocialThumbnail.mp4"
     },
     {
       title: "SMASH The Musical | Opening Night",
       thumbnail: "https://i.ytimg.com/vi/9QCHsiR8QrQ/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/9QCHsiR8QrQ",
+      videoUrl: "https://www.instagram.com/reel/DMdil47PdZx/",
       localVideo: "/Just in Time_SocialThumbnail.mp4"
     },
     {
       title: "Lempicka | Broadway Montage",
       thumbnail: "https://i.ytimg.com/vi/fovrHNNiF-4/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/fovrHNNiF-4",
+      videoUrl: "https://www.instagram.com/reel/C5xFue1Na5r/",
       localVideo: "/Lempicka_SocialThumbnail.mp4"
     },
     {
       title: "Boop! The Musical | Recording Studio",
       thumbnail: "https://i.ytimg.com/vi/rhyiqvVNsUo/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/rhyiqvVNsUo",
+      videoUrl: "https://www.instagram.com/reel/DDsKJAFPPRV/",
       localVideo: "/Boop_SocialThumbnail.mp4"
     },
     {
       title: "Marjorie Prime | Opening Night",
       thumbnail: "https://i.ytimg.com/vi/ZD4VpzBu2jo/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/ZD4VpzBu2jo",
+      videoUrl: "https://www.instagram.com/reel/DUbfNv0knpW/",
       localVideo: "/Marjorie Prime_SocialThumbnail.mp4"
     },
     {
       title: "The Lost Boys | Have to Have You",
       thumbnail: "https://i.ytimg.com/vi/bGr0zWPjpOI/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/bGr0zWPjpOI",
+      videoUrl: "https://www.instagram.com/reel/DSApMrfgEVN/",
       localVideo: "/LostBoy_SocialThumbnail.mp4"
     },
     {
       title: "Bob The Drag Queen | Harold Zidler",
       thumbnail: "https://i.ytimg.com/vi/2tf1pGxy3Ks/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/2tf1pGxy3Ks",
+      videoUrl: "https://www.instagram.com/reel/DR2a5GfDj4-/",
       localVideo: "/Bob_SocialThumbnail.mp4"
     },
     {
       title: "Tony Awards | First Impressions",
       thumbnail: "https://i.ytimg.com/vi/XpyvXLCZMOo/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/XpyvXLCZMOo",
+      videoUrl: "https://www.instagram.com/reel/DKqmL-vMmQo/",
       localVideo: "/TonyAwards_SocialThumbnail.mp4"
     }
   ];
