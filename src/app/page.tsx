@@ -414,7 +414,7 @@ function Social() {
       title: "Golden Hour | The Queen of Versailles on Broadway",
       thumbnail: "https://i.ytimg.com/vi/w4xaJxeUIaw/mqdefault.jpg",
       videoUrl: "https://www.youtube.com/embed/w4xaJxeUIaw",
-      localVideo: "/QoV_SocialThumbnail.mp4"
+      localVideo: "/QoV_SocialThumbnail_2.mp4"
     },
     {
       title: "New Heights with Ben Stiller",
