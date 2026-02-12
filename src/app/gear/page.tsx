@@ -16,7 +16,7 @@ export default function GearPage() {
   const totalValue = INVENTORY.reduce((sum, item) => sum + (item.replacement * item.qty), 0);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-zinc-300 py-12 px-4 md:px-8 lg:px-12 font-mono">
+    <main className="min-h-screen bg-[#0a0a0a] text-zinc-300 pt-32 pb-12 px-4 md:px-8 lg:px-12 font-mono">
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}
