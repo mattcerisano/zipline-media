@@ -405,48 +405,68 @@ function Work() {
 function Social() {
   const clips = [
     {
-      title: "The Most BROADWAY Broadway Opening Night | SMASH The Musical",
+      title: "‘Good Fortune’ with Keanu Reeves, Seth Rogen and Aziz Ansari",
+      thumbnail: "https://i.ytimg.com/vi/bCy3RdLHC0Q/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/bCy3RdLHC0Q",
+      localVideo: "/Keke_SocialThumbnail.mp4"
+    },
+    {
+      title: "Golden Hour | The Queen of Versailles on Broadway",
+      thumbnail: "https://i.ytimg.com/vi/w4xaJxeUIaw/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/w4xaJxeUIaw",
+      localVideo: "/QoV_SocialThumbnail.mp4"
+    },
+    {
+      title: "New Heights with Ben Stiller",
+      thumbnail: "https://i.ytimg.com/vi/G0oyW5uuVoI/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/G0oyW5uuVoI",
+      localVideo: "/NewHeights_SocialThumbnail.mp4"
+    },
+    {
+      title: "SMASH The Musical | Opening Night",
       thumbnail: "https://i.ytimg.com/vi/9QCHsiR8QrQ/mqdefault.jpg",
       videoUrl: "https://www.youtube.com/embed/9QCHsiR8QrQ",
-      category: "Opening Nights",
-      localVideo: "/social-clip-1.mov"
+      localVideo: "/Just in Time_SocialThumbnail.mp4"
     },
     {
-      title: "Sarah Snook | 2024 Tony Awards First Impressions",
-      thumbnail: "https://i.ytimg.com/vi/1RW3OCUMp4s/hqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/1RW3OCUMp4s",
-      category: "New Media",
-      localVideo: "/social-clip-2.mov"
+      title: "Lempicka | Broadway Montage",
+      thumbnail: "https://i.ytimg.com/vi/fovrHNNiF-4/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/fovrHNNiF-4",
+      localVideo: "/Lempicka_SocialThumbnail.mp4"
     },
     {
-      title: "Moulin Rouge! The Musical | Automation & Carpentry",
-      thumbnail: "https://i.ytimg.com/vi/tkQzaEmYQdo/hqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/tkQzaEmYQdo",
-      category: "Broadway B-Roll",
-      localVideo: "/social-clip-3.mov"
-    },
-    {
-      title: "Robyn Hurder is Ivy Lynn | SMASH The Musical",
-      thumbnail: "https://i.ytimg.com/vi/SzzqFdtpoAk/mqdefault.jpg",
-      videoUrl: "https://www.youtube.com/embed/SzzqFdtpoAk",
-      category: "Reveals",
-      localVideo: "/social-clip-4.mov"
-    },
-    {
-      title: "T-Mobile | Winners Circle Sizzle",
-      thumbnail: "https://i.vimeocdn.com/video/1356334895-48a78ad477f304d334f5dba31b37bc8eac597308ae55584a9cb6b17ee4aaac5c-d_1920x1080?&r=pad&region=us",
-      videoUrl: "https://player.vimeo.com/video/542369134",
-      category: "TVC",
-      localVideo: "/social-clip-5.mov"
-    },
-    {
-      title: "\"Where I Wanna Be\" from Boop! The Musical",
+      title: "Boop! The Musical | Recording Studio",
       thumbnail: "https://i.ytimg.com/vi/rhyiqvVNsUo/mqdefault.jpg",
       videoUrl: "https://www.youtube.com/embed/rhyiqvVNsUo",
-      category: "Cast Recordings",
-      localVideo: "/social-clip-6.mov"
+      localVideo: "/Boop_SocialThumbnail.mp4"
+    },
+    {
+      title: "Marjorie Prime | Opening Night",
+      thumbnail: "https://i.ytimg.com/vi/ZD4VpzBu2jo/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/ZD4VpzBu2jo",
+      localVideo: "/Marjorie Prime_SocialThumbnail.mp4"
+    },
+    {
+      title: "The Lost Boys | Have to Have You",
+      thumbnail: "https://i.ytimg.com/vi/bGr0zWPjpOI/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/bGr0zWPjpOI",
+      localVideo: "/LostBoy_SocialThumbnail.mp4"
+    },
+    {
+      title: "Bob The Drag Queen | Harold Zidler",
+      thumbnail: "https://i.ytimg.com/vi/2tf1pGxy3Ks/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/2tf1pGxy3Ks",
+      localVideo: "/Bob_SocialThumbnail.mp4"
+    },
+    {
+      title: "Tony Awards | First Impressions",
+      thumbnail: "https://i.ytimg.com/vi/XpyvXLCZMOo/mqdefault.jpg",
+      videoUrl: "https://www.youtube.com/embed/XpyvXLCZMOo",
+      localVideo: "/TonyAwards_SocialThumbnail.mp4"
     }
   ];
+
+
 
   return (
     <section className="pt-12 pb-8 bg-black overflow-hidden">
