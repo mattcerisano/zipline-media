@@ -438,9 +438,9 @@ function Social() {
       localVideo: "/NewHeights_SocialThumbnail.mp4"
     },
     {
-      title: "SMASH The Musical | Opening Night",
+      title: "Just in Time | Opening Night",
       thumbnail: "https://i.ytimg.com/vi/9QCHsiR8QrQ/mqdefault.jpg",
-      videoUrl: "https://www.instagram.com/reel/DMdil47PdZx/",
+      videoUrl: "https://www.instagram.com/reel/DQHhmcBDh26/",
       localVideo: "/Just in Time_SocialThumbnail.mp4"
     },
     {

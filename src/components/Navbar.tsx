@@ -47,13 +47,14 @@ export default function Navbar() {
             <Link 
               href="/#home" 
               onClick={(e) => { setIsOpen(false); handleNav(e, '/#home'); }} 
-              className="relative h-10 w-32 md:h-14 md:w-52 block"
+              className="block hover:opacity-80 transition-opacity"
             >
               <Image 
                 src="/Zipline Logo FULL Blue.png" 
                 alt="ZIPLINE" 
-                fill
-                className="object-contain"
+                width={200}
+                height={54}
+                className="w-32 md:w-52 h-auto"
                 priority
               />
             </Link>
