@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { INVENTORY } from '@/data/inventory';
+import { INVENTORY, ALL_CATEGORIES } from '@/data/inventory';
 import { Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -15,14 +15,37 @@ export default function GearPage() {
     item.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Group items by category for the manifest layout
+  const groupedInventory = ALL_CATEGORIES.reduce((acc, category) => {
+    const items = filteredInventory.filter(item => item.category === category);
+    if (items.length > 0) acc[category] = items;
+    return acc;
+  }, {} as Record<string, typeof INVENTORY>);
+
   const totalValue = INVENTORY.reduce((sum, item) => sum + (item.replacement * item.qty), 0);
+
+  const scrollToCategory = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 160; // Adjust for sticky header and nav
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-zinc-300 pt-32 pb-12 px-4 md:px-8 lg:px-12 font-mono text-xs">
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12 border-b border-white/10 pb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8">
           <div className="space-y-4">
             <Link 
               href="/" 
@@ -48,74 +71,88 @@ export default function GearPage() {
           </div>
         </div>
 
-        {/* Table Section */}
-        <div className="relative px-4 md:px-0">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase text-left border-b border-white/10">
-                <th className="pb-4 font-black w-16">Preview</th>
-                <th className="pb-4 font-black w-12 text-center">Qty</th>
-                <th className="pb-4 font-black pl-4">Item Description</th>
-                <th className="pb-4 font-black hidden sm:table-cell">Category</th>
-                <th className="pb-4 font-black text-right hidden md:table-cell">Replacement</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredInventory.map((item, idx) => (
-                <tr key={idx} className="group hover:bg-white/[0.02] transition-colors">
-                  <td className="py-3">
-                    <motion.div 
-                      whileHover={{ 
-                        scale: 4.5, 
-                        x: 20,
-                        zIndex: 50, 
-                        boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.8)" 
-                      }}
-                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                      style={{ originX: 0, originY: 0.5 }}
-                      className="relative w-12 h-12 bg-white rounded-sm overflow-hidden border border-white/10"
-                    >
-                      {item.image ? (
-                        <Image 
-                          src={item.image}
-                          alt=""
-                          fill
-                          sizes="120px"
-                          className="object-contain p-1"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[8px] text-zinc-700 font-mono">NO IMG</div>
-                      )}
-                    </motion.div>
-                  </td>
-                  <td className="py-3 text-center font-mono">
-                    <span className={`text-xs font-bold ${item.qty > 1 ? 'text-accent' : 'text-zinc-500'}`}>
-                      {item.qty}x
-                    </span>
-                  </td>
-                  <td className="py-3 pl-4">
-                    <div className="font-bold text-zinc-200 group-hover:text-white transition-colors">
-                      {item.name}
-                    </div>
-                    {/* Category visible on small screens since column is hidden */}
-                    <div className="sm:hidden text-[8px] uppercase tracking-widest text-zinc-600 mt-1">
-                      {item.category}
-                    </div>
-                  </td>
-                  <td className="py-3 hidden sm:table-cell">
-                    <span className="text-[9px] px-2 py-1 bg-white/5 rounded-full tracking-widest uppercase font-bold text-zinc-500">
-                      {item.category}
-                    </span>
-                  </td>
-                  <td className="py-3 text-right hidden md:table-cell font-mono">
-                    <span className="text-[10px] tabular-nums font-medium text-zinc-500 group-hover:text-zinc-300">
-                      ${item.replacement.toLocaleString()}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Quick Nav Tabs */}
+        <div className="sticky top-20 z-40 bg-[#0a0a0a]/95 backdrop-blur-md border-y border-white/5 py-4 mb-12 -mx-4 px-4 md:mx-0 md:px-0 no-scrollbar overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            {Object.keys(groupedInventory).map((category) => (
+              <button
+                key={category}
+                onClick={() => scrollToCategory(category.replace(/\s+/g, '-'))}
+                className="px-3 py-1.5 rounded-full border border-white/10 text-[9px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Manifest Sections */}
+        <div className="space-y-20">
+          {Object.entries(groupedInventory).map(([category, items]) => (
+            <section key={category} id={category.replace(/\s+/g, '-')} className="scroll-mt-40">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent mb-6 flex items-center gap-4">
+                <span>{category}</span>
+                <div className="h-px bg-accent/20 flex-1" />
+              </h2>
+
+              <div className="relative">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase text-left border-b border-white/10">
+                      <th className="pb-4 font-black w-16">Preview</th>
+                      <th className="pb-4 font-black w-12 text-center">Qty</th>
+                      <th className="pb-4 font-black pl-4">Item Description</th>
+                      <th className="pb-4 font-black text-right hidden md:table-cell">Replacement</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {items.map((item, idx) => (
+                      <tr key={idx} className="group hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3">
+                          <motion.div 
+                            whileHover={{ 
+                              scale: 4.5, 
+                              x: 20,
+                              zIndex: 50, 
+                              boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.8)" 
+                            }}
+                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                            style={{ originX: 0, originY: 0.5 }}
+                            className="relative w-12 h-12 bg-white rounded-sm overflow-hidden border border-white/10"
+                          >
+                            {item.image ? (
+                              <Image 
+                                src={item.image}
+                                alt=""
+                                fill
+                                sizes="120px"
+                                className="object-contain p-1"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[8px] text-zinc-700 font-mono">NO IMG</div>
+                            )}
+                          </motion.div>
+                        </td>
+                        <td className="py-3 text-center font-mono">
+                          <span className={`text-xs font-bold ${item.qty > 1 ? 'text-accent' : 'text-zinc-500'}`}>
+                            {item.qty}x
+                          </span>
+                        </td>
+                        <td className="py-3 pl-4">
+                          <div className="font-bold text-zinc-200 group-hover:text-white transition-colors">
+                            {item.name}
+                          </div>
+                        </td>
+                        <td className="py-3 text-right hidden md:table-cell font-mono text-zinc-500 group-hover:text-zinc-300">
+                          ${item.replacement.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ))}
         </div>
 
         {/* Footer Summary */}
