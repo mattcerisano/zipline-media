@@ -49,8 +49,8 @@ export default function GearPage() {
         </div>
 
         {/* Table Section */}
-        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-          <table className="w-full border-collapse min-w-[600px] md:min-w-0">
+        <div className="relative px-4 md:px-0">
+          <table className="w-full border-collapse">
             <thead>
               <tr className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase text-left border-b border-white/10">
                 <th className="pb-4 font-black w-16">Preview</th>
@@ -66,12 +66,13 @@ export default function GearPage() {
                   <td className="py-3">
                     <motion.div 
                       whileHover={{ 
-                        scale: 4, 
+                        scale: 4.5, 
+                        x: 20,
                         zIndex: 50, 
-                        boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.7)" 
+                        boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.8)" 
                       }}
-                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                      style={{ originX: 0.5, originY: 0.5 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                      style={{ originX: 0, originY: 0.5 }}
                       className="relative w-12 h-12 bg-white rounded-sm overflow-hidden border border-white/10 cursor-zoom-in"
                     >
                       {item.image ? (
@@ -79,11 +80,11 @@ export default function GearPage() {
                           src={item.image}
                           alt=""
                           fill
-                          sizes="48px"
+                          sizes="120px"
                           className="object-contain p-1"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[8px] text-zinc-700">NO IMG</div>
+                        <div className="w-full h-full flex items-center justify-center text-[8px] text-zinc-700 font-mono">NO IMG</div>
                       )}
                     </motion.div>
                   </td>
