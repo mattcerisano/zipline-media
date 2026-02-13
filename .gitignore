@@ -46,3 +46,4 @@ next-env.d.ts
 # massive source videos / reels only
 public/broadway-reel.mp4
 # Keep individual category/hero videos allowed
+Website photos/
