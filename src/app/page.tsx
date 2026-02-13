@@ -408,6 +408,12 @@ function Work() {
 function Social() {
   const clips = [
     {
+      title: "SIX | Broadway",
+      thumbnail: "https://i.ytimg.com/vi/u_2Z_vExxeo/mqdefault.jpg",
+      videoUrl: "https://www.instagram.com/sixbroadway/reel/DLIK-qpu4fK/",
+      localVideo: "/Six_SocialThumbnail.mp4"
+    },
+    {
       title: "Death Becomes Her | Hero",
       thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg",
       videoUrl: "https://www.instagram.com/reel/C22dScAOtLs/",
