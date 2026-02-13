@@ -73,7 +73,7 @@ export default function GearPage() {
                       }}
                       transition={{ type: "spring", stiffness: 300, damping: 25 }}
                       style={{ originX: 0, originY: 0.5 }}
-                      className="relative w-12 h-12 bg-white rounded-sm overflow-hidden border border-white/10 cursor-zoom-in"
+                      className="relative w-12 h-12 bg-white rounded-sm overflow-hidden border border-white/10"
                     >
                       {item.image ? (
                         <Image 
