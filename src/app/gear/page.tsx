@@ -18,7 +18,7 @@ export default function GearPage() {
   const totalValue = INVENTORY.reduce((sum, item) => sum + (item.replacement * item.qty), 0);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-zinc-300 pt-32 pb-12 px-4 md:px-8 lg:px-12 font-mono">
+    <main className="min-h-screen bg-[#0a0a0a] text-zinc-300 pt-32 pb-12 px-4 md:px-8 lg:px-12 font-mono text-xs">
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}
@@ -32,7 +32,7 @@ export default function GearPage() {
             </Link>
             <div>
               <h1 className="text-white text-3xl font-black tracking-tighter uppercase mb-2">Internal Gear Manifest</h1>
-              <p className="text-xs text-zinc-500 tracking-widest uppercase">Zipline Media Production Assets // Inventory Control</p>
+              <p className="text-[10px] text-zinc-500 tracking-widest uppercase">Zipline Media Production Assets // Inventory Control</p>
             </div>
           </div>
           
@@ -65,8 +65,13 @@ export default function GearPage() {
                 <tr key={idx} className="group hover:bg-white/[0.02] transition-colors">
                   <td className="py-3">
                     <motion.div 
-                      whileHover={{ scale: 3.5, zIndex: 50, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.5)" }}
+                      whileHover={{ 
+                        scale: 4, 
+                        zIndex: 50, 
+                        boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.7)" 
+                      }}
                       transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      style={{ originX: 0.5, originY: 0.5 }}
                       className="relative w-12 h-12 bg-white rounded-sm overflow-hidden border border-white/10 cursor-zoom-in"
                     >
                       {item.image ? (
@@ -82,13 +87,13 @@ export default function GearPage() {
                       )}
                     </motion.div>
                   </td>
-                  <td className="py-3 text-center">
+                  <td className="py-3 text-center font-mono">
                     <span className={`text-xs font-bold ${item.qty > 1 ? 'text-accent' : 'text-zinc-500'}`}>
                       {item.qty}x
                     </span>
                   </td>
                   <td className="py-3 pl-4">
-                    <div className="text-xs md:text-sm font-bold text-zinc-200 group-hover:text-white transition-colors">
+                    <div className="font-bold text-zinc-200 group-hover:text-white transition-colors">
                       {item.name}
                     </div>
                     {/* Category visible on small screens since column is hidden */}
@@ -101,7 +106,7 @@ export default function GearPage() {
                       {item.category}
                     </span>
                   </td>
-                  <td className="py-3 text-right hidden md:table-cell">
+                  <td className="py-3 text-right hidden md:table-cell font-mono">
                     <span className="text-[10px] tabular-nums font-medium text-zinc-500 group-hover:text-zinc-300">
                       ${item.replacement.toLocaleString()}
                     </span>
