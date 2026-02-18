@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, X, Play } from 'lucide-react';
+import { ArrowLeft, X, Play, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import videos from '@/data/videos.json';
 
@@ -39,13 +39,13 @@ function HeroVideo({ video, onPlay }: { video: Video; onPlay: (url: string) => v
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60" />
       
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-         <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-90 group-hover:scale-100 transition-transform">
-            <Play className="w-8 h-8 text-white fill-white ml-1" />
+         <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-90 group-hover:scale-100 transition-transform">
+            <Play className="w-6 h-6 md:w-8 md:h-8 text-white fill-white ml-1" />
          </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
-         <h3 className="text-lg md:text-2xl font-black uppercase tracking-tight text-white leading-[1.2]">
+      <div className="absolute bottom-0 left-0 p-4 md:p-8 w-full">
+         <h3 className="text-sm md:text-2xl font-black uppercase tracking-tight text-white leading-[1.2] line-clamp-2 md:line-clamp-none">
            {video.title}
          </h3>
       </div>
@@ -75,7 +75,7 @@ function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeV
       initial="hidden"
       whileInView="show"
       viewport={{ once: true }}
-      className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 gap-4 pr-2"
+      className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pr-2"
     >
       {videos.map((video, index) => {
         const isActive = video === activeVideo;
@@ -106,7 +106,7 @@ function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeV
               </div>
             )}
             <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/90 to-transparent">
-               <p className="text-[9px] font-bold text-white uppercase tracking-wider line-clamp-1">
+               <p className="text-[10px] font-bold text-white uppercase tracking-wider line-clamp-1">
                  {video.title}
                </p>
             </div>
@@ -127,24 +127,26 @@ function CategorySection({
   const [activeVideo, setActiveVideo] = useState(categoryVideos[0]);
 
   useEffect(() => {
-    if (!categoryVideos.includes(activeVideo)) {
+    if (categoryVideos.length > 0 && !categoryVideos.includes(activeVideo)) {
       setActiveVideo(categoryVideos[0]);
     }
   }, [categoryVideos, activeVideo]);
 
-  if (categoryVideos.length === 0) return null;
+  if (categoryVideos.length === 0) return (
+    <div className="py-20 text-center opacity-40 uppercase tracking-widest text-sm">No videos found.</div>
+  );
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8 animate-in fade-in duration-500">
       <div className="xl:col-span-7 2xl:col-span-8">
-        <HeroVideo video={activeVideo} onPlay={onPlay} />
+        <HeroVideo video={activeVideo || categoryVideos[0]} onPlay={onPlay} />
       </div>
-      <div className="xl:col-span-5 2xl:col-span-4 relative min-h-[400px] xl:min-h-0">
+      <div className="xl:col-span-5 2xl:col-span-4 relative min-h-[300px] md:min-h-[400px] xl:min-h-0">
         <div className="xl:absolute xl:inset-0 overflow-y-auto no-scrollbar pb-10">
           <VideoGrid 
             key={categoryVideos[0]?.category || 'empty-grid'} 
             videos={categoryVideos} 
-            activeVideo={activeVideo} 
+            activeVideo={activeVideo || categoryVideos[0]} 
             onSelect={setActiveVideo} 
           />
         </div>
@@ -170,7 +172,7 @@ function BigSection({
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-12 border-b-2 border-white/10 pb-6 text-white"
+        className="text-2xl md:text-4xl lg:text-6xl font-black uppercase tracking-tighter mb-8 md:mb-12 border-b-2 border-white/10 pb-4 md:pb-6 text-white"
       >
         {title}
       </motion.h2>
@@ -191,12 +193,12 @@ function PerformanceSection({
 
   return (
     <BigSection title="Performance" id="performance">
-      <div className="flex flex-wrap gap-4 mb-8">
+      <div className="flex flex-wrap gap-2 md:gap-4 mb-8 overflow-x-auto no-scrollbar pb-2">
         {subCategories.map(sub => (
           <button
             key={sub}
             onClick={() => setActiveTab(sub)}
-            className={`px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest transition-all
+            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest transition-all whitespace-nowrap
               ${activeTab === sub 
                 ? 'bg-white text-black' 
                 : 'bg-neutral-900 text-white/50 hover:bg-neutral-800 hover:text-white'
@@ -225,12 +227,12 @@ function BrandsNonprofitsSection({
 
   return (
     <BigSection title="Brands" id="brands">
-      <div className="flex flex-wrap gap-4 mb-8">
+      <div className="flex flex-wrap gap-2 md:gap-4 mb-8">
         {subCategories.map(sub => (
           <button
             key={sub}
             onClick={() => setActiveTab(sub)}
-            className={`px-4 py-2 rounded-full text-sm font-bold uppercase tracking-widest transition-all
+            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest transition-all
               ${activeTab === sub 
                 ? 'bg-white text-black' 
                 : 'bg-neutral-900 text-white/50 hover:bg-neutral-800 hover:text-white'
@@ -268,6 +270,7 @@ export default function ArchiveClient() {
   const router = useRouter();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [isExiting, setIsExiting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Prevent scrolling when modal is open
   useEffect(() => {
@@ -281,7 +284,7 @@ export default function ArchiveClient() {
   };
 
   // Memoize video organization to prevent re-renders / shuffling
-  const { videosByCategory, recentWork } = useMemo(() => {
+  const { videosByCategory, recentWork, allVideos } = useMemo(() => {
     const rawVideos = videos as Video[];
     
     const grouped: Record<string, Video[]> = {};
@@ -295,8 +298,17 @@ export default function ArchiveClient() {
     // Recent Work (Filtered by category)
     const recent = grouped['Recent Work'] || [];
 
-    return { videosByCategory: grouped, recentWork: recent };
+    return { videosByCategory: grouped, recentWork: recent, allVideos: rawVideos };
   }, []);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const lowerQ = searchQuery.toLowerCase();
+    return allVideos.filter(v => 
+      v.title.toLowerCase().includes(lowerQ) || 
+      v.category.toLowerCase().includes(lowerQ)
+    );
+  }, [searchQuery, allVideos]);
 
   const getEmbedUrl = (url: string) => {
     if (url.includes('instagram.com')) {
@@ -308,78 +320,166 @@ export default function ArchiveClient() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 md:p-12 pt-32 md:pt-40">
+    <main className="min-h-screen bg-black text-white p-4 md:p-12 pt-24 md:pt-40">
       <div className="max-w-[1800px] mx-auto">
-        <header className="mb-20 flex flex-col gap-8">
+        <header className="mb-12 md:mb-20 flex flex-col gap-6 md:gap-8">
           <Link 
             href="/" 
             onClick={handleBackToHome}
-            className="flex items-center gap-2 text-sm uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-70 hover:opacity-100"
+            className="flex items-center gap-2 text-xs md:text-sm uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-70 hover:opacity-100 py-2"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Link>
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter whitespace-nowrap leading-[0.9] py-2"
-          >
-            Video Repository
-          </motion.h1>
+          <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-8">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter whitespace-nowrap leading-[0.9]"
+            >
+              Video Repository
+            </motion.h1>
+
+            {/* Search Bar */}
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
+              className="relative w-full xl:w-96"
+            >
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
+              <input 
+                type="text" 
+                placeholder="SEARCH ARCHIVE..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-neutral-900 border border-white/10 rounded-full py-3 md:py-4 pl-12 pr-6 text-xs md:text-sm font-bold tracking-widest uppercase focus:outline-none focus:border-[var(--accent)] transition-colors text-white placeholder:text-white/30"
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:text-[var(--accent)] transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </motion.div>
+          </div>
         </header>
 
-        {/* --- Recent Work Section --- */}
-        <section className="mb-32">
-          <h2 className="text-2xl md:text-4xl font-bold uppercase tracking-widest mb-10 border-b border-white/10 pb-6 text-[var(--accent)]">
-            Recent Work
-          </h2>
-          <motion.div 
+        {searchQuery ? (
+          /* --- Search Results --- */
+          <motion.section 
             initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-6 gap-y-10"
+            animate={{ opacity: 1 }}
+            className="mb-32"
           >
-            {recentWork.map((video, index) => (
-              <motion.button 
-                key={`recent-${index}`}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-                onClick={() => setSelectedVideo(video.videoUrl)}
-                whileHover={{ y: -5 }}
-                className="group flex flex-col gap-3 text-left w-full transition-all duration-300"
-              >
-                <div className="aspect-video w-full overflow-hidden bg-neutral-900 border border-white/5 relative rounded-sm shadow-lg group-hover:shadow-2xl group-hover:shadow-white/5 transition-all duration-500">
-                  <Image 
-                    src={video.thumbnail} 
-                    alt={video.title}
-                    fill
-                    unoptimized
-                    className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out"
-                  />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                      <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+            <h2 className="text-xl font-bold uppercase tracking-widest mb-8 text-[var(--accent)] flex items-center gap-2">
+              <Search className="w-5 h-5" />
+              Search Results ({searchResults.length})
+            </h2>
+            
+            {searchResults.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {searchResults.map((video, index) => (
+                  <motion.button 
+                    key={`${video.title}-${index}`}
+                    layoutId={`search-${video.title}-${index}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    onClick={() => setSelectedVideo(video.videoUrl)}
+                    className="group flex flex-col gap-3 text-left w-full relative"
+                  >
+                    <div className="aspect-video w-full overflow-hidden bg-neutral-900 border border-white/10 rounded-sm shadow-lg group-hover:shadow-white/10 transition-all duration-300 relative">
+                      <Image 
+                        src={video.thumbnail} 
+                        alt={video.title}
+                        fill
+                        unoptimized
+                        className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                      />
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
+                          <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <h3 className="font-bold text-[10px] md:text-xs uppercase tracking-wider leading-snug group-hover:text-[var(--accent)] transition-colors opacity-60 group-hover:opacity-100 duration-300">
-                  {video.title}
-                </h3>
-              </motion.button>
-            ))}
-          </motion.div>
-        </section>
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-white leading-snug group-hover:text-[var(--accent)] transition-colors line-clamp-2">
+                        {video.title}
+                      </h3>
+                      <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">
+                        {video.category}
+                      </p>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            ) : (
+              <div className="py-20 text-center opacity-40 uppercase tracking-widest text-sm">
+                No videos found matching "{searchQuery}"
+              </div>
+            )}
+          </motion.section>
+        ) : (
+          /* --- Standard Layout --- */
+          <>
+            {/* --- Recent Work Section --- */}
+            <section className="mb-20 md:mb-32">
+              <h2 className="text-xl md:text-2xl md:text-4xl font-bold uppercase tracking-widest mb-6 md:mb-10 border-b border-white/10 pb-4 md:pb-6 text-[var(--accent)]">
+                Recent Work
+              </h2>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-4 md:gap-x-6 gap-y-8 md:gap-y-10"
+              >
+                {recentWork.map((video, index) => (
+                  <motion.button 
+                    key={`recent-${index}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={() => setSelectedVideo(video.videoUrl)}
+                    whileHover={{ y: -5 }}
+                    className="group flex flex-col gap-3 text-left w-full transition-all duration-300"
+                  >
+                    <div className="aspect-video w-full overflow-hidden bg-neutral-900 border border-white/5 relative rounded-sm shadow-lg group-hover:shadow-2xl group-hover:shadow-white/5 transition-all duration-500">
+                      <Image 
+                        src={video.thumbnail} 
+                        alt={video.title}
+                        fill
+                        unoptimized
+                        className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out"
+                      />
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                          <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+                        </div>
+                      </div>
+                    </div>
+                    <h3 className="font-bold text-[10px] md:text-xs uppercase tracking-wider leading-snug group-hover:text-[var(--accent)] transition-colors opacity-60 group-hover:opacity-100 duration-300 line-clamp-2">
+                      {video.title}
+                    </h3>
+                  </motion.button>
+                ))}
+              </motion.div>
+            </section>
 
-        {/* --- Three Big Sections --- */}
-        <div className="flex flex-col gap-10">
-          <PerformanceSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
-          <NewMediaSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
-          <BrandsNonprofitsSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
-        </div>
+            {/* --- Three Big Sections --- */}
+            <div className="flex flex-col gap-10">
+              <PerformanceSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
+              <BrandsNonprofitsSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
+              <NewMediaSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
+            </div>
+          </>
+        )}
 
       </div>
 

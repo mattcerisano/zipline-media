@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import LogoTicker from '@/components/LogoTicker';
@@ -161,7 +161,7 @@ function Work() {
   const categories = [
     { id: 'performance', title: 'Performance', video: '/broadway-performance.mp4', link: '/archive#performance' },
     { id: 'brands', title: 'Brands', video: '/corporate.mp4', link: '/archive#brands' },
-    { id: 'new-media', title: 'New Media', video: '/Keke_SocialThumbnail_V2.mp4', link: '/archive#new-media' },
+    { id: 'new-media', title: 'New Media', video: '/new-media.mp4', link: '/archive#new-media' },
   ];
 
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -214,12 +214,9 @@ function Work() {
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                 <div className="flex items-end gap-3 mb-2">
-                  <h2 className="text-3xl font-black uppercase tracking-tighter text-white leading-none">
+                  <h2 className="text-xl font-black uppercase tracking-tighter text-white leading-none">
                     {cat.title}
                   </h2>
-                  <div className="bg-white text-black p-1.5 rounded-full mb-1">
-                    <Play className="w-3 h-3 fill-current" />
-                  </div>
                 </div>
               </div>
             </div>
@@ -360,7 +357,7 @@ function Work() {
                   playsInline
                   className="w-full h-full object-cover"
                 >
-                  <source src="/Keke_SocialThumbnail_V2.mp4" type="video/mp4" />
+                  <source src="/new-media.mp4" type="video/mp4" />
                 </video>
               </motion.div>
 
@@ -405,51 +402,26 @@ function Work() {
   );
 }
 
-function SocialVideo({ clip }: { clip: any }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  const handleMouseEnter = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = false;
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = true;
-    }
-  };
-
-  return (
-    <div 
-      className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-       {clip.localVideo ? (
-         <video 
-           ref={videoRef}
-           autoPlay 
-           muted 
-           loop 
-           playsInline 
-           className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
-         >
-           <source src={clip.localVideo} type="video/quicktime" />
-           <source src={clip.localVideo} type="video/mp4" />
-         </video>
-       ) : (
-         <div 
-           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
-           style={{ backgroundImage: `url(${clip.thumbnail})` }}
-         />
-       )}
-    </div>
-  );
-}
-
 function Social() {
   const clips = [
+    {
+      title: "Death Becomes Her | Slapping",
+      thumbnail: "",
+      videoUrl: "#",
+      localVideo: "/DBH_Slapping.mov"
+    },
+    {
+      title: "MAC | Getting Dressed",
+      thumbnail: "",
+      videoUrl: "#",
+      localVideo: "/Mac_GettingDressed.mov"
+    },
+    {
+      title: "MAC | Lipstick Pop Off",
+      thumbnail: "",
+      videoUrl: "#",
+      localVideo: "/Mac_Lipstick.mov"
+    },
     {
       title: "SIX | Broadway",
       thumbnail: "https://i.ytimg.com/vi/u_2Z_vExxeo/mqdefault.jpg",
@@ -547,13 +519,55 @@ function Social() {
           {/* First Set */}
           <div className="flex gap-6 px-3">
             {clips.map((clip, i) => (
-              <SocialVideo key={i} clip={clip} />
+              <div 
+                key={i} 
+                className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
+              >
+                 {clip.localVideo ? (
+                   <video 
+                     autoPlay 
+                     muted 
+                     loop 
+                     playsInline 
+                     className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
+                   >
+                     <source src={clip.localVideo} type="video/quicktime" />
+                     <source src={clip.localVideo} type="video/mp4" />
+                   </video>
+                 ) : (
+                   <div 
+                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
+                     style={{ backgroundImage: `url(${clip.thumbnail})` }}
+                   />
+                 )}
+              </div>
             ))}
           </div>
           {/* Second Set (Duplicate) */}
           <div className="flex gap-6 px-3">
             {clips.map((clip, i) => (
-              <SocialVideo key={`dup-${i}`} clip={clip} />
+              <div 
+                key={`dup-${i}`} 
+                className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
+              >
+                 {clip.localVideo ? (
+                   <video 
+                     autoPlay 
+                     muted 
+                     loop 
+                     playsInline 
+                     className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
+                   >
+                     <source src={clip.localVideo} type="video/quicktime" />
+                     <source src={clip.localVideo} type="video/mp4" />
+                   </video>
+                 ) : (
+                   <div 
+                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
+                     style={{ backgroundImage: `url(${clip.thumbnail})` }}
+                   />
+                 )}
+              </div>
             ))}
           </div>
         </div>
@@ -652,7 +666,7 @@ function Contact() {
             viewport={{ once: true }}
             transition={{ delay: 0.4, duration: 0.8 }}
           >
-            <p className="text-xl opacity-60 max-w-md mb-12">
+            <p className="hidden md:block text-xl opacity-60 max-w-md mb-12">
               Have a project in mind? We&apos;d love to hear about your vision and how we can help bring it to life.
             </p>
             

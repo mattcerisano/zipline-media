@@ -21,18 +21,30 @@ export default function Navbar() {
   const [isExiting, setIsExiting] = useState(false);
 
   const handleNav = (e: React.MouseEvent, href: string) => {
-    // Only apply fade transition if we are on the archive page
+    // 1. If we are on the homepage and clicking a hash link (e.g. /#work)
+    if (pathname === '/' && href.startsWith('/#')) {
+      e.preventDefault();
+      setIsOpen(false);
+      const targetId = href.replace('/#', '');
+      const element = document.getElementById(targetId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+        // Update URL without reload
+        window.history.pushState(null, '', href);
+      }
+      return;
+    }
+
+    // 2. If we are on the archive page, do the exit transition
     if (pathname === '/archive') {
       e.preventDefault();
       setIsExiting(true);
-      // Wait for fade in, then navigate
       setTimeout(() => {
         router.push(href);
-        // Reset exit state after navigation ensures it clears if we come back or for simple logic
-        // Though unmount usually handles it.
         setTimeout(() => setIsExiting(false), 500); 
       }, 500);
     } else {
+      // 3. Normal navigation (e.g. from /gear to /#home)
       setIsOpen(false);
     }
   };
