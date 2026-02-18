@@ -529,14 +529,14 @@ function Social() {
                      muted 
                      loop 
                      playsInline 
-                     className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
+                     className="absolute inset-0 w-full h-full object-cover opacity-100 transition-opacity duration-700"
                    >
                      <source src={clip.localVideo} type="video/quicktime" />
                      <source src={clip.localVideo} type="video/mp4" />
                    </video>
                  ) : (
                    <div 
-                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
+                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-100"
                      style={{ backgroundImage: `url(${clip.thumbnail})` }}
                    />
                  )}
@@ -556,14 +556,14 @@ function Social() {
                      muted 
                      loop 
                      playsInline 
-                     className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
+                     className="absolute inset-0 w-full h-full object-cover opacity-100 transition-opacity duration-700"
                    >
                      <source src={clip.localVideo} type="video/quicktime" />
                      <source src={clip.localVideo} type="video/mp4" />
                    </video>
                  ) : (
                    <div 
-                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
+                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-100"
                      style={{ backgroundImage: `url(${clip.thumbnail})` }}
                    />
                  )}
