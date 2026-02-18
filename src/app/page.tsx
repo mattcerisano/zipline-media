@@ -515,7 +515,7 @@ function Social() {
       
       {/* Marquee of 9:16 Videos */}
       <div className="relative overflow-hidden group/marquee">
-        <div className="flex w-fit animate-scroll whitespace-nowrap">
+        <div className="flex w-fit animate-scroll whitespace-nowrap pointer-events-none">
           {/* First Set */}
           <div className="flex gap-6 px-3">
             {clips.map((clip, i) => (
