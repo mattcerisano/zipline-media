@@ -606,7 +606,7 @@ function About() {
             We are smart, adaptable, and innovative - whether you want stunning TV commercials, engaging TikToks, high-quality social media ads, or dynamic narrative videos, we got you covered.
           </p>
           <p>
-            Yeah, we&apos;ve won a bunch of awards and worked with some very talented people, but that&apos;s not the point. We&apos;re just here to get it done.
+            Yeah, we&apos;ve won a bunch of awards and worked with some very talented people, but that&apos;s not the point. We&apos;re just here to get it done. And we&apos;re actually fun to be around, which helps.
           </p>
         </div>
       </div>
