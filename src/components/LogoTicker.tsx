@@ -59,7 +59,7 @@ const TickerLane = ({ title, items }: { title: string, items: TickerItem[] }) =>
   <div className="flex flex-col md:flex-row gap-8 md:items-center border-b border-white/10 pb-8 overflow-hidden">
     <h3 className="w-full md:w-32 text-[10px] font-bold tracking-[0.4em] uppercase text-white/40 shrink-0 mb-4 md:mb-0">{title}</h3>
     
-    <div className="flex-1 overflow-hidden relative pause-on-hover">
+    <div className="flex-1 overflow-hidden relative">
       <div className="flex w-fit animate-scroll-slow whitespace-nowrap items-center">
         {/* First Set */}
         <div className="flex gap-16 items-center pr-16">

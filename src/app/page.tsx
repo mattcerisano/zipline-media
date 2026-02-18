@@ -514,7 +514,7 @@ function Social() {
       </div>
       
       {/* Marquee of 9:16 Videos */}
-      <div className="relative overflow-hidden group/marquee pause-on-hover">
+      <div className="relative overflow-hidden group/marquee">
         <div className="flex w-fit animate-scroll whitespace-nowrap">
           {/* First Set */}
           <div className="flex gap-6 px-3">
