@@ -85,7 +85,6 @@ function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeV
             key={`${video.title}-${index}`}
             onClick={() => onSelect(video)}
             whileHover={{ scale: 1.03, zIndex: 20 }}
-            whileTap={{ scale: 0.97 }}
             className={`group relative aspect-video bg-neutral-900 border transition-all duration-300 rounded-sm overflow-hidden text-left
               ${isActive 
                 ? 'border-[var(--accent)] opacity-100 ring-1 ring-[var(--accent)] z-10' 
@@ -147,7 +146,15 @@ function CategorySection({
             key={categoryVideos[0]?.category || 'empty-grid'} 
             videos={categoryVideos} 
             activeVideo={activeVideo || categoryVideos[0]} 
-            onSelect={setActiveVideo} 
+            onSelect={(video) => {
+              // On mobile (below xl), clicking a grid item should open the player directly
+              // because the Hero video is hidden.
+              if (window.innerWidth < 1280) {
+                onPlay(video.videoUrl);
+              } else {
+                setActiveVideo(video);
+              }
+            }} 
           />
         </div>
       </div>
