@@ -20,8 +20,6 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
-  if (pathname?.startsWith('/crew')) return null;
-
   const handleNav = (e: React.MouseEvent, href: string) => {
     // Only apply fade transition if we are on the archive page
     if (pathname === '/archive') {

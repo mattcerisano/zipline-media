@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import LogoTicker from '@/components/LogoTicker';
@@ -161,7 +161,7 @@ function Work() {
   const categories = [
     { id: 'performance', title: 'Performance', video: '/broadway-performance.mp4', link: '/archive#performance' },
     { id: 'brands', title: 'Brands', video: '/corporate.mp4', link: '/archive#brands' },
-    { id: 'new-media', title: 'New Media', video: '/new-media.mp4', link: '/archive#new-media' },
+    { id: 'new-media', title: 'New Media', video: '/Keke_SocialThumbnail_V2.mp4', link: '/archive#new-media' },
   ];
 
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -360,7 +360,7 @@ function Work() {
                   playsInline
                   className="w-full h-full object-cover"
                 >
-                  <source src="/new-media.mp4" type="video/mp4" />
+                  <source src="/Keke_SocialThumbnail_V2.mp4" type="video/mp4" />
                 </video>
               </motion.div>
 
@@ -402,6 +402,49 @@ function Work() {
         </a>
       </div>
     </section>
+  );
+}
+
+function SocialVideo({ clip }: { clip: any }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handleMouseEnter = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = true;
+    }
+  };
+
+  return (
+    <div 
+      className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+       {clip.localVideo ? (
+         <video 
+           ref={videoRef}
+           autoPlay 
+           muted 
+           loop 
+           playsInline 
+           className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
+         >
+           <source src={clip.localVideo} type="video/quicktime" />
+           <source src={clip.localVideo} type="video/mp4" />
+         </video>
+       ) : (
+         <div 
+           className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
+           style={{ backgroundImage: `url(${clip.thumbnail})` }}
+         />
+       )}
+    </div>
   );
 }
 
@@ -504,75 +547,13 @@ function Social() {
           {/* First Set */}
           <div className="flex gap-6 px-3">
             {clips.map((clip, i) => (
-              <a 
-                key={i} 
-                href={clip.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-pointer"
-              >
-                 {clip.localVideo ? (
-                   <video 
-                     autoPlay 
-                     muted 
-                     loop 
-                     playsInline 
-                     className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
-                   >
-                     <source src={clip.localVideo} type="video/quicktime" />
-                     <source src={clip.localVideo} type="video/mp4" />
-                   </video>
-                 ) : (
-                   <div 
-                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
-                     style={{ backgroundImage: `url(${clip.thumbnail})` }}
-                   />
-                 )}
-                 
-                 {/* Play button overlay */}
-                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                       <Play className="w-5 h-5 text-white fill-white" />
-                    </div>
-                 </div>
-              </a>
+              <SocialVideo key={i} clip={clip} />
             ))}
           </div>
           {/* Second Set (Duplicate) */}
           <div className="flex gap-6 px-3">
             {clips.map((clip, i) => (
-              <a 
-                key={`dup-${i}`} 
-                href={clip.videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-pointer"
-              >
-                 {clip.localVideo ? (
-                   <video 
-                     autoPlay 
-                     muted 
-                     loop 
-                     playsInline 
-                     className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700"
-                   >
-                     <source src={clip.localVideo} type="video/quicktime" />
-                     <source src={clip.localVideo} type="video/mp4" />
-                   </video>
-                 ) : (
-                   <div 
-                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-60 group-hover:opacity-100"
-                     style={{ backgroundImage: `url(${clip.thumbnail})` }}
-                   />
-                 )}
-                 
-                 {/* Play button overlay */}
-                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                       <Play className="w-5 h-5 text-white fill-white" />
-                    </div>
-                 </div>
-              </a>
+              <SocialVideo key={`dup-${i}`} clip={clip} />
             ))}
           </div>
         </div>

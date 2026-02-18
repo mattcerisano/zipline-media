@@ -21,6 +21,8 @@ interface Video {
 // --- Helper Components ---
 
 function HeroVideo({ video, onPlay }: { video: Video; onPlay: (url: string) => void }) {
+  if (!video) return null;
+
   return (
     <motion.button
       layoutId={`hero-${video.title}`} 
@@ -184,7 +186,7 @@ function PerformanceSection({
   allVideos: Record<string, Video[]>; 
   onPlay: (url: string) => void; 
 }) {
-  const subCategories = ['Opening Nights', 'Reveals', 'Music', 'Broadway B-Roll'];
+  const subCategories = ['B-Roll', 'Commercial', 'Social', 'Events', 'Music'];
   const [activeTab, setActiveTab] = useState(subCategories[0]);
 
   return (
@@ -206,7 +208,7 @@ function PerformanceSection({
         ))}
       </div>
       
-      <CategorySection categoryVideos={allVideos[activeTab] || []} onPlay={onPlay} />
+      <CategorySection key={activeTab} categoryVideos={allVideos[activeTab] || []} onPlay={onPlay} />
     </BigSection>
   );
 }
@@ -240,7 +242,7 @@ function BrandsNonprofitsSection({
         ))}
       </div>
       
-      <CategorySection categoryVideos={allVideos[activeTab] || []} onPlay={onPlay} />
+      <CategorySection key={activeTab} categoryVideos={allVideos[activeTab] || []} onPlay={onPlay} />
     </BigSection>
   );
 }
@@ -283,18 +285,27 @@ export default function ArchiveClient() {
     const rawVideos = videos as Video[];
     
     const grouped: Record<string, Video[]> = {};
-    const allCats = ['Opening Nights', 'Reveals', 'Music', 'Broadway B-Roll', 'Brands', 'Nonprofits', 'New Media'];
+    const allCats = ['Recent Work', 'B-Roll', 'Commercial', 'Social', 'Events', 'Music', 'Brands', 'Nonprofits', 'New Media'];
     
     allCats.forEach(cat => {
       // Just filter, don't re-sort, to keep the JSON order
       grouped[cat] = rawVideos.filter(v => v.category === cat);
     });
 
-    // Recent Work (Top 6 overall from the JSON order)
-    const recent = rawVideos.slice(0, 6);
+    // Recent Work (Filtered by category)
+    const recent = grouped['Recent Work'] || [];
 
     return { videosByCategory: grouped, recentWork: recent };
   }, []);
+
+  const getEmbedUrl = (url: string) => {
+    if (url.includes('instagram.com')) {
+      return url.endsWith('/embed') || url.endsWith('/embed/') 
+        ? url 
+        : `${url.replace(/\/$/, '')}/embed`;
+    }
+    return url.includes('autoplay') ? url : `${url}${url.includes('?') ? '&' : '?'}autoplay=1`;
+  };
 
   return (
     <main className="min-h-screen bg-black text-white p-6 md:p-12 pt-32 md:pt-40">
@@ -397,7 +408,7 @@ export default function ArchiveClient() {
               onClick={(e) => e.stopPropagation()} 
             >
               <iframe 
-                src={selectedVideo.includes('autoplay') ? selectedVideo : `${selectedVideo}${selectedVideo.includes('?') ? '&' : '?'}autoplay=1`}
+                src={getEmbedUrl(selectedVideo)}
                 className="w-full h-full" 
                 allow="autoplay; fullscreen; picture-in-picture" 
                 allowFullScreen

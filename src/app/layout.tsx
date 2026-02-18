@@ -17,11 +17,6 @@ export const metadata: Metadata = {
     template: "%s | Zipline Media",
   },
   description: "Zipline is a video production agency of writers, actors, and filmmakers in NYC specializing in Broadway, Corporate, and Creative Storytelling.",
-  icons: {
-    icon: "/Zipline Logo 10x10_Black Text Blue.png",
-    shortcut: "/Zipline Logo 10x10_Black Text Blue.png",
-    apple: "/Zipline Logo 10x10_Black Text Blue.png",
-  },
   openGraph: {
     type: "website",
     locale: "en_US",
