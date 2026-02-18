@@ -1,14 +1,15 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import LogoTicker from '@/components/LogoTicker';
-import { Check, Play } from 'lucide-react';
+import { Check, Play, X } from 'lucide-react';
 
 function Hero() {
   const [isIntroComplete, setIsIntroComplete] = useState(false);
+  const [isPlayingReel, setIsPlayingReel] = useState(false);
   const text = "zzzzip";
   const letters = text.split("");
 
@@ -116,6 +117,20 @@ function Hero() {
         >
           PRE. PROD. POST.
         </motion.p>
+
+        {/* Watch Reel Button */}
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={isIntroComplete ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          transition={{ delay: 1.2, duration: 0.8 }}
+          onClick={() => setIsPlayingReel(true)}
+          className="mt-8 flex items-center gap-3 px-8 py-4 border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-500 group mx-auto backdrop-blur-sm bg-black/10"
+        >
+          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-black/10 transition-colors">
+            <Play className="w-3 h-3 fill-current ml-0.5" />
+          </div>
+          <span className="text-[10px] font-black tracking-[0.3em] uppercase">Watch Reel</span>
+        </motion.button>
       </div>
 
       <motion.div 
@@ -132,6 +147,43 @@ function Hero() {
           />
         </div>
       </motion.div>
+
+      {/* --- REEL MODAL --- */}
+      <AnimatePresence>
+        {isPlayingReel && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black p-4 md:p-12"
+          >
+            <button 
+              onClick={() => setIsPlayingReel(false)}
+              className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors z-[110]"
+            >
+              <X className="w-8 h-8" />
+            </button>
+            
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-6xl aspect-video bg-neutral-900 rounded-sm overflow-hidden shadow-2xl border border-white/10"
+            >
+              <video 
+                autoPlay 
+                controls 
+                playsInline 
+                className="w-full h-full object-contain"
+              >
+                <source src="/broadway-reel.mp4" type="video/mp4" />
+              </video>
+            </motion.div>
+            
+            <div className="absolute inset-0 -z-10" onClick={() => setIsPlayingReel(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
