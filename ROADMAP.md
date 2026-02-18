@@ -8,6 +8,11 @@
 - [ ] **Analytics:** Add Vercel Analytics or Google Analytics to track visitors.
 - [ ] **Domain:** Connect `zipline.media` to Vercel (requires DNS update).
 
+## 🎬 Content & Assets
+- [ ] **New Reel:** Edit and export a new 16:9 Company Reel to replace `broadway-reel.mp4` for the homepage modal.
+- [ ] **Landing Thumbnail:** Design a high-quality thumbnail/poster frame for the main landing page video.
+- [ ] **Social Splash Thumbnail:** Create a dedicated splash thumbnail for social media sharing and video embeds.
+
 ## 🛠 Internal Crew Portal (`/crew`) Roadmap
 - [ ] **Authentication:** Replace hardcoded `admin`/`zipline` with a real database auth (e.g., Supabase + NextAuth) for multi-user accounts.
 - [ ] **Database Integration:** Move `contacts.ts` and `inventory.ts` to a real database (Postgres/Supabase) so edits persist permanently.
