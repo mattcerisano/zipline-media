@@ -138,7 +138,7 @@ function CategorySection({
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 md:gap-8 animate-in fade-in duration-500">
-      <div className="xl:col-span-7 2xl:col-span-8">
+      <div className="hidden xl:block xl:col-span-7 2xl:col-span-8">
         <HeroVideo video={activeVideo || categoryVideos[0]} onPlay={onPlay} />
       </div>
       <div className="xl:col-span-5 2xl:col-span-4 relative min-h-[300px] md:min-h-[400px] xl:min-h-0">
