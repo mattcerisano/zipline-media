@@ -193,7 +193,7 @@ function PerformanceSection({
 
   return (
     <BigSection title="Performance" id="performance">
-      <div className="flex flex-wrap gap-2 md:gap-4 mb-8 overflow-x-auto no-scrollbar pb-2">
+      <div className="flex flex-nowrap gap-2 md:gap-4 mb-8 overflow-x-auto no-scrollbar pb-2">
         {subCategories.map(sub => (
           <button
             key={sub}
@@ -320,7 +320,7 @@ export default function ArchiveClient() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 md:p-12 pt-24 md:pt-40">
+    <main className="min-h-screen bg-black text-white p-4 md:p-12 pt-24 md:pt-40 overflow-x-hidden">
       <div className="max-w-[1800px] mx-auto">
         <header className="mb-12 md:mb-20 flex flex-col gap-6 md:gap-8">
           <Link 
