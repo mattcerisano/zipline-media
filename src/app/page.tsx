@@ -117,20 +117,6 @@ function Hero() {
         >
           PRE. PROD. POST.
         </motion.p>
-
-        {/* Watch Reel Button */}
-        <motion.button
-          initial={{ opacity: 0, y: 10 }}
-          animate={isIntroComplete ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-          transition={{ delay: 1.2, duration: 0.8 }}
-          onClick={() => setIsPlayingReel(true)}
-          className="mt-8 flex items-center gap-3 px-8 py-4 border border-white/20 rounded-full hover:bg-white hover:text-black transition-all duration-500 group mx-auto backdrop-blur-sm bg-black/10"
-        >
-          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-black/10 transition-colors">
-            <Play className="w-3 h-3 fill-current ml-0.5" />
-          </div>
-          <span className="text-[10px] font-black tracking-[0.3em] uppercase">Watch Reel</span>
-        </motion.button>
       </div>
 
       <motion.div 
