@@ -33,8 +33,7 @@ function HeroVideo({ video, onPlay }: { video: Video; onPlay: (url: string) => v
         src={video.thumbnail} 
         alt={video.title}
         fill
-        sizes="(max-width: 1280px) 100vw, 60vw"
-        priority
+        unoptimized
         className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-700"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60" />
@@ -97,7 +96,7 @@ function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeV
               src={video.thumbnail} 
               alt={video.title}
               fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+              unoptimized
               className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
             />
             {isActive && (
@@ -404,7 +403,7 @@ export default function ArchiveClient() {
                         src={video.thumbnail} 
                         alt={video.title}
                         fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        unoptimized
                         className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                       />
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
@@ -461,7 +460,7 @@ export default function ArchiveClient() {
                         src={video.thumbnail} 
                         alt={video.title}
                         fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                        unoptimized
                         className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out"
                       />
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
