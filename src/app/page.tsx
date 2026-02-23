@@ -567,6 +567,7 @@ function Social() {
                      muted 
                      loop 
                      playsInline 
+                     poster={clip.thumbnail || undefined}
                      className="absolute inset-0 w-full h-full object-cover opacity-100 transition-opacity duration-700"
                    >
                      <source src={clip.localVideo} type="video/quicktime" />
@@ -594,6 +595,7 @@ function Social() {
                      muted 
                      loop 
                      playsInline 
+                     poster={clip.thumbnail || undefined}
                      className="absolute inset-0 w-full h-full object-cover opacity-100 transition-opacity duration-700"
                    >
                      <source src={clip.localVideo} type="video/quicktime" />
