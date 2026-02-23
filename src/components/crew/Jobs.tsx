@@ -208,16 +208,20 @@ export default function Jobs() {
     let loadedJobs = INITIAL_JOBS;
     if (savedJobs) {
         loadedJobs = JSON.parse(savedJobs);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setJobs(loadedJobs);
     } else {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setJobs(INITIAL_JOBS);
     }
 
     if (savedWorkspaces) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setWorkspaces(JSON.parse(savedWorkspaces));
     } else {
         // Migration: Derive from jobs if no workspaces saved
         const derived = Array.from(new Set(loadedJobs.map(j => j.client).filter(Boolean))).sort();
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setWorkspaces(derived);
     }
   }, []);

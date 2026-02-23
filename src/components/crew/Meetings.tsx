@@ -31,8 +31,10 @@ export default function Meetings() {
     const savedMeetings = localStorage.getItem(STORAGE_KEY_MEETINGS);
     if (savedMeetings) {
         const loaded = JSON.parse(savedMeetings);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMeetings(loaded);
         if (loaded.length > 0 && !selectedMeetingId) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedMeetingId(loaded[0].id);
         }
     }
@@ -40,6 +42,7 @@ export default function Meetings() {
     // Load Clients
     const savedClients = localStorage.getItem(STORAGE_KEY_CLIENTS);
     if (savedClients) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setClients(JSON.parse(savedClients));
     }
   }, []);

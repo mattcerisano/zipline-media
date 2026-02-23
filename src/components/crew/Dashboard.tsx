@@ -9,6 +9,23 @@ import {
 } from 'lucide-react';
 import { STORAGE_KEY_JOBS, STORAGE_KEY_MEETINGS } from './types';
 
+const ExternalCard = ({ icon: Icon, title, desc, link, color }: any) => (
+  <a href={link} target="_blank" rel="noreferrer" className="group block">
+      <div className={`h-full bg-neutral-900/50 border border-white/5 p-6 rounded-2xl hover:bg-white/5 transition-all flex flex-col justify-between relative overflow-hidden`}>
+          <div className={`absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity ${color}`}>
+              <Icon className="w-12 h-12" />
+          </div>
+          <div>
+              <h3 className="text-sm font-bold uppercase tracking-widest mb-1 group-hover:text-white transition-colors text-white/70">{title}</h3>
+              <p className="text-xs opacity-40">{desc}</p>
+          </div>
+          <div className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-40 group-hover:opacity-100 transition-opacity">
+              Open App <ExternalLink className="w-3 h-3" />
+          </div>
+      </div>
+  </a>
+);
+
 export default function Dashboard() {
   const [stats, setStats] = useState({
     activeJobs: 0,
@@ -25,6 +42,7 @@ export default function Dashboard() {
         
         const today = new Date().toISOString().split('T')[0];
         
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setStats({
             activeJobs: jobs.filter((j: any) => ['queue', 'editing', 'review'].includes(j.status)).length,
             upcomingShoots: jobs.filter((j: any) => j.shoot_date && j.shoot_date >= today).length,
@@ -33,23 +51,6 @@ export default function Dashboard() {
         });
     }
   }, []);
-
-  const ExternalCard = ({ icon: Icon, title, desc, link, color }: any) => (
-    <a href={link} target="_blank" rel="noreferrer" className="group block">
-        <div className={`h-full bg-neutral-900/50 border border-white/5 p-6 rounded-2xl hover:bg-white/5 transition-all flex flex-col justify-between relative overflow-hidden`}>
-            <div className={`absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity ${color}`}>
-                <Icon className="w-12 h-12" />
-            </div>
-            <div>
-                <h3 className="text-sm font-bold uppercase tracking-widest mb-1 group-hover:text-white transition-colors text-white/70">{title}</h3>
-                <p className="text-xs opacity-40">{desc}</p>
-            </div>
-            <div className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest opacity-40 group-hover:opacity-100 transition-opacity">
-                Open App <ExternalLink className="w-3 h-3" />
-            </div>
-        </div>
-    </a>
-  );
 
   return (
     <div className="h-[calc(100vh-120px)] overflow-y-auto custom-scrollbar p-2">

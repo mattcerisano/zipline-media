@@ -123,13 +123,12 @@ function CategorySection({
   categoryVideos: Video[]; 
   onPlay: (url: string) => void; 
 }) {
-  const [activeVideo, setActiveVideo] = useState(categoryVideos[0]);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
-  useEffect(() => {
-    if (categoryVideos.length > 0 && !categoryVideos.includes(activeVideo)) {
-      setActiveVideo(categoryVideos[0]);
-    }
-  }, [categoryVideos, activeVideo]);
+  // Derive the active video safely without an effect
+  const activeVideo = (selectedVideo && categoryVideos.includes(selectedVideo)) 
+    ? selectedVideo 
+    : categoryVideos[0];
 
   if (categoryVideos.length === 0) return (
     <div className="py-20 text-center opacity-40 uppercase tracking-widest text-sm">No videos found.</div>
@@ -152,7 +151,7 @@ function CategorySection({
               if (window.innerWidth < 1280) {
                 onPlay(video.videoUrl);
               } else {
-                setActiveVideo(video);
+                setSelectedVideo(video);
               }
             }} 
           />

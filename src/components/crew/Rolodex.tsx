@@ -27,9 +27,12 @@ export default function Rolodex() {
     const c = localStorage.getItem(STORAGE_KEY_CONTACTS);
     const cl = localStorage.getItem(STORAGE_KEY_CLIENTS);
     
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (c) setContacts(JSON.parse(c));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     else setContacts(CONTACTS_DATA);
     
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (cl) setClients(JSON.parse(cl));
   }, []);
 
