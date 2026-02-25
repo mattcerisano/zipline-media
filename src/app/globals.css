@@ -90,6 +90,12 @@ p, span, label, input, textarea, select {
   animation: scroll 70s linear infinite;
 }
 
+@media (max-width: 767px) {
+  .animate-scroll {
+    animation-duration: 42s;
+  }
+}
+
 .animate-scroll-slow {
   animation: scroll 60s linear infinite;
 }
