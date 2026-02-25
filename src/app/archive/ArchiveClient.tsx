@@ -55,18 +55,21 @@ function HeroVideo({ video, onPlay }: { video: Video; onPlay: (url: string) => v
 }
 
 function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeVideo: Video, onSelect: (v: Video) => void }) {
+  // Disable staggering on mobile for instant loading
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   const container = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.03
+        staggerChildren: isMobile ? 0 : 0.03
       }
     }
   };
 
   const item = {
-    hidden: { opacity: 0, y: 10 },
+    hidden: isMobile ? { opacity: 1 } : { opacity: 0, y: 10 },
     show: { opacity: 1, y: 0 }
   };
 
@@ -175,10 +178,10 @@ function BigSection({
   return (
     <section id={id} className="mb-20 scroll-mt-32">
       <motion.h2 
-        initial={{ opacity: 0, x: -20 }}
-        whileInView={{ opacity: 1, x: 0 }}
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.4 }}
         className="text-2xl md:text-4xl lg:text-6xl font-black uppercase tracking-tighter mb-8 md:mb-12 border-b-2 border-white/10 pb-4 md:pb-6 text-white"
       >
         {title}
@@ -341,18 +344,16 @@ export default function ArchiveClient() {
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.9]"
+              className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.9]"
             >
               Video Repository
             </motion.h1>
 
             {/* Search Bar */}
             <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.8 }}
               className="relative w-full xl:w-96"
             >
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
@@ -378,7 +379,7 @@ export default function ArchiveClient() {
         {searchQuery ? (
           /* --- Search Results --- */
           <motion.section 
-            initial={{ opacity: 0 }}
+            initial={isMobile ? { opacity: 1 } : { opacity: 0 }}
             animate={{ opacity: 1 }}
             className="mb-32"
           >
@@ -393,9 +394,9 @@ export default function ArchiveClient() {
                   <motion.button 
                     key={`${video.title}-${index}`}
                     layoutId={`search-${video.title}-${index}`}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={isMobile ? { opacity: 1 } : { opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.03 }}
+                    transition={{ delay: isMobile ? 0 : index * 0.03 }}
                     onClick={() => setSelectedVideo(video.videoUrl)}
                     className="group flex flex-col gap-3 text-left w-full relative"
                   >
@@ -435,23 +436,21 @@ export default function ArchiveClient() {
           /* --- Standard Layout --- */
           <>
             {/* --- Recent Work Section --- */}
-            <section className="mb-20 md:mb-32">
-              <h2 className="text-xl md:text-2xl md:text-4xl font-bold uppercase tracking-widest mb-6 md:mb-10 border-b border-white/10 pb-4 md:pb-6 text-[var(--accent)]">
+            <section className="mb-20">
+              <h2 className="text-xl md:text-2xl font-bold uppercase tracking-widest mb-10 text-white/40 flex items-center gap-2">
+                <Star className="w-5 h-5 text-[var(--accent)]" />
                 Recent Work
               </h2>
-              <motion.div 
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
+              <div 
                 className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-4 md:gap-x-6 gap-y-8 md:gap-y-10"
               >
                 {recentWork.map((video, index) => (
                   <motion.button 
                     key={`recent-${index}`}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={isMobile ? { opacity: 1 } : { opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ delay: index * 0.05 }}
+                    transition={{ delay: isMobile ? 0 : index * 0.05 }}
                     onClick={() => setSelectedVideo(video.videoUrl)}
                     whileHover={{ y: -5 }}
                     className="group flex flex-col gap-3 text-left w-full transition-all duration-300"
