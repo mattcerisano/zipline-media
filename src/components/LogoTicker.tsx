@@ -57,35 +57,26 @@ const TickerLane = ({ title, items, scrollClass = "animate-scroll-slow" }: { tit
     <h3 className="w-full md:w-40 text-xs md:text-sm font-bold tracking-[0.3em] uppercase text-white/40 shrink-0 mb-4 md:mb-0">{title}</h3>
     
     <div className="flex-1 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
-      <div className={`flex w-fit ${scrollClass} whitespace-nowrap items-center pointer-events-none`}>
-        {/* First Set */}
-        <div className="flex gap-16 items-center pr-16">
-          {items.map((item, i) => (
-            item.type === 'svg' ? (
-              <svg key={i} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 flex-shrink-0">
-                <path d={svgLogos[item.value as keyof typeof svgLogos].path} />
-              </svg>
-            ) : (
-              <span key={i} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0">
-                {item.value}
-              </span>
-            )
-          ))}
-        </div>
-        {/* Second Set (Duplicate) */}
-        <div className="flex gap-16 items-center pr-16">
-          {items.map((item, i) => (
-            item.type === 'svg' ? (
-              <svg key={`dup-${i}`} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 flex-shrink-0">
-                <path d={svgLogos[item.value as keyof typeof svgLogos].path} />
-              </svg>
-            ) : (
-              <span key={`dup-${i}`} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0">
-                {item.value}
-              </span>
-            )
-          ))}
-        </div>
+      <div 
+        className={`flex w-fit ${scrollClass} whitespace-nowrap items-center pointer-events-none`}
+        style={{ willChange: 'transform', transform: 'translateZ(0)' }}
+      >
+        {/* Render exactly 2 Sets to match the -50% animation, using min-w-full to handle wide screens */}
+        {[...Array(2)].map((_, setIndex) => (
+          <div key={`set-${setIndex}`} className="flex gap-16 items-center pr-16 shrink-0 min-w-full w-max">
+            {items.map((item, i) => (
+              item.type === 'svg' ? (
+                <svg key={`${setIndex}-${i}`} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 flex-shrink-0">
+                  <path d={svgLogos[item.value as keyof typeof svgLogos].path} />
+                </svg>
+              ) : (
+                <span key={`${setIndex}-${i}`} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0">
+                  {item.value}
+                </span>
+              )
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   </div>

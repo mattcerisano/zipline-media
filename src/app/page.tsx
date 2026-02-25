@@ -437,7 +437,7 @@ function Work() {
 }
 
 function LazyVideo({ src, poster }: { src: string, poster?: string }) {
-  const [inView, setInView] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -445,13 +445,14 @@ function LazyVideo({ src, poster }: { src: string, poster?: string }) {
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
-        setInView(true);
-        // We rely on autoPlay and the onPlaying event to set isPlaying=true
+        setHasMounted(true);
+        setIsPlaying(true);
+        videoRef.current?.play().catch(() => {});
       } else {
         setIsPlaying(false);
-        setInView(false); // Unmount video to free up memory on mobile
+        videoRef.current?.pause();
       }
-    }, { rootMargin: '50px' });
+    }, { rootMargin: '600px' });
     
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -466,7 +467,7 @@ function LazyVideo({ src, poster }: { src: string, poster?: string }) {
           style={{ backgroundImage: `url(${poster})` }}
         />
       )}
-      {inView && (
+      {hasMounted && (
         <video 
           ref={videoRef}
           autoPlay
@@ -669,18 +670,13 @@ function Social() {
               key={`mob-${i}`} 
               className="shrink-0 w-[75vw] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 shadow-xl"
             >
-               {clip.thumbnail ? (
-                 <Image 
-                   src={clip.thumbnail} 
-                   alt={clip.title}
-                   fill
-                   sizes="75vw"
-                   className="object-cover"
-                 />
+               {clip.localVideo ? (
+                 <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
                ) : (
-                 <div className="absolute inset-0 flex items-center justify-center bg-neutral-800 text-[10px] opacity-20 text-center px-4 uppercase">
-                   {clip.title}
-                 </div>
+                 <div 
+                   className="absolute inset-0 bg-cover bg-center opacity-100"
+                   style={{ backgroundImage: `url(${clip.thumbnail})` }}
+                 />
                )}
             </div>
           ))}
