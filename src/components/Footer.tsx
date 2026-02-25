@@ -25,8 +25,6 @@ export default function Footer() {
 
           <p className="text-xs tracking-[0.2em] text-white/40 uppercase">New York, NY</p>
 
-          <p className="text-xs tracking-[0.2em] text-white/40 uppercase">Est. 2019</p>
-
         </div>
 
 
