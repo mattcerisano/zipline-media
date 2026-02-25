@@ -1,7 +1,6 @@
 'use client';
 
 const svgLogos = {
-  Spotify: { path: 'M68.456,48.956c-7.81-4.674-17.743-7.231-28.012-7.231c-6.555,0-11.06,0.935-15.469,2.146c-1.631,0.46-2.44,1.607-2.44,3.275c0,1.701,1.377,3.076,3.064,3.076c0.716,0,1.145-0.227,1.91-0.438c3.548-0.945,7.837-1.641,12.803', viewBox: '0 0 100 100' }
 };
 
 const lanes = {
@@ -38,7 +37,6 @@ const lanes = {
   ],
   Brand: [
     { type: 'text', value: 'HULU' },
-    { type: 'text', value: 'SPOTIFY' },
     { type: 'text', value: 'QUALCOMM' },
     { type: 'text', value: 'GOOD MORNING AMERICA' },
     { type: 'text', value: 'UNIVISION' },
@@ -55,12 +53,12 @@ interface TickerItem {
   value: string;
 }
 
-const TickerLane = ({ title, items }: { title: string, items: TickerItem[] }) => (
+const TickerLane = ({ title, items, scrollClass = "animate-scroll-slow" }: { title: string, items: TickerItem[], scrollClass?: string }) => (
   <div className="flex flex-col md:flex-row gap-8 md:items-center border-b border-white/10 pb-8 overflow-hidden">
-    <h3 className="w-full md:w-32 text-[10px] font-bold tracking-[0.4em] uppercase text-white/40 shrink-0 mb-4 md:mb-0">{title}</h3>
+    <h3 className="w-full md:w-40 text-xs md:text-sm font-bold tracking-[0.3em] uppercase text-white/40 shrink-0 mb-4 md:mb-0">{title}</h3>
     
     <div className="flex-1 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
-      <div className="flex w-fit animate-scroll-slow whitespace-nowrap items-center pointer-events-none">
+      <div className={`flex w-fit ${scrollClass} whitespace-nowrap items-center pointer-events-none`}>
         {/* First Set */}
         <div className="flex gap-16 items-center pr-16">
           {items.map((item, i) => (
@@ -97,9 +95,9 @@ const TickerLane = ({ title, items }: { title: string, items: TickerItem[] }) =>
 export default function LogoTicker() {
   return (
     <div className="w-full space-y-8">
-      <TickerLane title="Brand" items={lanes.Brand} />
-      <TickerLane title="Performance" items={lanes.Performance} />
-      <TickerLane title="Podcasts" items={lanes.Podcasts} />
+      <TickerLane title="Brands" items={lanes.Brand} />
+      <TickerLane title="Performance" items={lanes.Performance} scrollClass="animate-scroll-slower" />
+      <TickerLane title="New Media" items={lanes.Podcasts} />
     </div>
   );
 }

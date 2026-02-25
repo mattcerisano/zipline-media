@@ -93,3 +93,7 @@ p, span, label, input, textarea, select {
 .animate-scroll-slow {
   animation: scroll 60s linear infinite;
 }
+
+.animate-scroll-slower {
+  animation: scroll 120s linear infinite;
+}
