@@ -70,26 +70,22 @@ function Hero() {
         
         {/* Desktop: Text */}
         <div className="hidden md:flex flex-col items-center gap-2">
-          <div className="overflow-hidden py-2">
-            <motion.h1 
-              initial={{ y: "100%" }}
-              animate={isIntroComplete ? { y: 0 } : { y: "100%" }}
-              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-              className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-7xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
-            >
-              FULL SERVICE
-            </motion.h1>
-          </div>
-          <div className="overflow-hidden py-2">
-            <motion.h1 
-              initial={{ y: "100%" }}
-              animate={isIntroComplete ? { y: 0 } : { y: "100%" }}
-              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
-              className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-7xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
-            >
-              VIDEO PRODUCTION
-            </motion.h1>
-          </div>
+          <motion.h1 
+            initial={{ opacity: 0 }}
+            animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: 1.5, delay: 0.2 }}
+            className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-7xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
+          >
+            FULL SERVICE
+          </motion.h1>
+          <motion.h1 
+            initial={{ opacity: 0 }}
+            animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: 1.5, delay: 0.4 }}
+            className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-7xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
+          >
+            VIDEO PRODUCTION
+          </motion.h1>
         </div>
 
         {/* Mobile: Logo */}
@@ -112,7 +108,7 @@ function Hero() {
         <motion.p 
           initial={{ opacity: 0 }}
           animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
-          transition={{ delay: 0.8, duration: 0.8 }}
+          transition={{ delay: 0.6, duration: 1.2 }}
           className="text-sm md:text-xl font-bold tracking-[0.3em] uppercase opacity-80 text-white leading-relaxed mt-6"
         >
           PRE. PROD. POST.
