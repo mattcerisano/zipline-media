@@ -144,8 +144,8 @@
   {
     "title": "Golden Hour | The Queen of Versailles on Broadway",
     "description": "Broadway previews begin October 8 at the St. James Theatre.Based on the wildly astonishing documentary directed by award-winning filmmaker Lauren Greenfield, The Queen of Versailles reunites celebrated Academy Award-winning songwriter Stephen Schwartz with Tony and Emmy Award winner Kristin Chenoweth as Jackie Siegel. With a book by Lindsey Ferrentino (Ugly Lies the Bone, Amy and the Orphans) and direction by Tony Award winner Michael Arden (Parade, Once on This Island), The Queen of Versailles is a new musical exploring the true cost of fame, fortune, and family.Get tickets now at queenofversaillesmusical.com!",
-    "thumbnail": "https://i.ytimg.com/vi/MOnGlcd3NxY/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/MOnGlcd3NxY",
+    "thumbnail": "https://img.youtube.com/vi/w4xaJxeUIaw/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/w4xaJxeUIaw",
     "uploadDate": "2025-06-09T20:35:40.188Z",
     "duration": "PT31S",
     "category": "B-Roll",
@@ -466,13 +466,6 @@
     "title": "Sing Street Broadway - Behind the Scenes",
     "thumbnail": "https://i.ytimg.com/vi/W-VAddb159I/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/W-VAddb159I",
-    "category": "Social",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Our 2023 CAMPers Talk CAMP!",
-    "thumbnail": "https://i.ytimg.com/vi/53VNlroxHiw/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/53VNlroxHiw",
     "category": "Social",
     "hostedOn": "youtube"
   },
@@ -1108,16 +1101,6 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "T-Mobile | Winners Circle Sizzle",
-    "description": "T-Mobile: Winners Circle Sizzle",
-    "thumbnail": "https://i.vimeocdn.com/video/1356334895-48a78ad477f304d334f5dba31b37bc8eac597308ae55584a9cb6b17ee4aaac5c-d_1920x1080?&r=pad&region=us",
-    "videoUrl": "https://player.vimeo.com/video/542369134",
-    "uploadDate": "2026-01-21T08:19:55.745Z",
-    "duration": "PT42S",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
     "title": "T-Mobile Truck Stop",
     "videoUrl": "https://player.vimeo.com/video/1069245286",
     "thumbnail": "/Tmobile Rodeo Thumbnail.png",
@@ -1181,6 +1164,16 @@
     "title": "New York Sports Club | Astor Place",
     "thumbnail": "https://i.vimeocdn.com/video/839987944-891478f70ba9f07ac8dd341137e01b944b47d008c5366407319165f6754e5fbc-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/378947564",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "T-Mobile | Winners Circle Sizzle",
+    "description": "T-Mobile: Winners Circle Sizzle",
+    "thumbnail": "https://i.vimeocdn.com/video/1356334895-48a78ad477f304d334f5dba31b37bc8eac597308ae55584a9cb6b17ee4aaac5c-d_1920x1080?&r=pad&region=us",
+    "videoUrl": "https://player.vimeo.com/video/542369134",
+    "uploadDate": "2026-01-21T08:19:55.745Z",
+    "duration": "PT42S",
     "category": "Brands",
     "hostedOn": "vimeo"
   },
@@ -1260,25 +1253,11 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "American Cancer Society | Allan Shedlin Memorial Golf Classic 2022",
-    "thumbnail": "https://i.vimeocdn.com/video/1453556471-d183bde6cc856a27429579fddbcd54cecf1e9be49f017672386c0bbaaf1c8e34-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/721766009",
+    "title": "Our 2023 CAMPers Talk CAMP!",
+    "thumbnail": "https://i.ytimg.com/vi/53VNlroxHiw/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/53VNlroxHiw",
     "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "American Cancer Society | Hope Lodge Gala",
-    "thumbnail": "https://i.vimeocdn.com/video/1447988928-d8f534a4a822d332423bc4cf5963effe165bf533df4881e15d2d52d57421ef61-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/715301141",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "American Cancer Society | Wine and Spirits",
-    "thumbnail": "https://i.vimeocdn.com/video/1737988144-ad4cccb8d43f1c42e9efef007aed294107e0fcae7bf9ee32b903a1b000567b73-d_295x166?region=us",
-    "videoUrl": "https://player.vimeo.com/video/874147470",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
+    "hostedOn": "youtube"
   },
   {
     "title": "American Cancer Society | Hope Lodge Gala Video",
@@ -1287,27 +1266,6 @@
     "videoUrl": "https://player.vimeo.com/video/818450392",
     "uploadDate": "2026-02-18T17:11:20.839Z",
     "duration": "",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Dance Lab New York | Christian Denice",
-    "thumbnail": "https://i.vimeocdn.com/video/1514335198-fe94f149679ed98df296b031d66e543832b7106e045c885cc8c69d90cc6a96fa-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/753537255",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Dance Lab New York | Dava Huesca",
-    "thumbnail": "https://i.vimeocdn.com/video/1617008442-7bbfb54cda8d428c82a1b80a8f43b583d0c8a3af063dd822f8e088314554920d-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/801426525",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Dance Lab New York | Next Gen Connect",
-    "thumbnail": "https://i.vimeocdn.com/video/1339629419-98aa33f6caf5c57c81ae383bee1060bb355772146a9ee3c76faab0c575b1d3d4-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/644985527",
     "category": "Nonprofits",
     "hostedOn": "vimeo"
   },
@@ -1382,37 +1340,12 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "2025 Second Stage Gala Video",
-    "videoUrl": "https://www.youtube.com/embed/RZcjZy4LMqA",
-    "thumbnail": "https://i.ytimg.com/vi/RZcjZy4LMqA/maxresdefault.jpg",
-    "category": "Nonprofits",
-    "hostedOn": "youtube",
-    "uploadDate": "2026-02-12T02:03:19.922Z"
-  },
-  {
     "title": "Khari Edwards for Brooklyn Borough President - Launch",
     "description": "Khari Edwards for Brooklyn Borough President - Launch",
     "thumbnail": "https://i.vimeocdn.com/video/2008973006-da14fd7a2df24a9f3e89c6220f02b99eafff892403dc9f1db71ca1dbf8ea1c96-d_295x166?region=us",
     "videoUrl": "https://vimeo.com/1078691418/c3464b5d33",
     "uploadDate": "2026-02-18T16:15:44.878Z",
     "duration": "",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Khari Edwards for Brooklyn Borough President - Mom was My Hero",
-    "description": "Khari Edwards for Brooklyn Borough President - Mom was My Hero",
-    "thumbnail": "https://i.vimeocdn.com/video/2015659942-a94705d90ff0babf9ac2db75d83c486145a21ece6c148b2c200704924b168827-d_295x166?region=us",
-    "videoUrl": "https://vimeo.com/1084277789/31d6b479d4",
-    "uploadDate": "2026-02-18T16:15:44.878Z",
-    "duration": "",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "New Jersey Play Lab | Storyteller Studio",
-    "thumbnail": "https://i.vimeocdn.com/video/1887459453-a6f109b868f3da92029f22518e69206752166d1f09551c2463b5b436ded96e0e-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/973331659",
     "category": "Nonprofits",
     "hostedOn": "vimeo"
   },
@@ -1437,14 +1370,71 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "The Dream Blunt Rotation w/ Rico Nasty, Tony Hawk, Yamaneika Saunders & Derrick Beckles",
-    "description": "The Dream Blunt Rotation w/ Rico Nasty, Tony Hawk, Yamaneika Saunders & Derrick Beckles",
-    "thumbnail": "https://img.youtube.com/vi/FPdlYDZuwRM/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/FPdlYDZuwRM",
-    "uploadDate": "2026-02-23T00:00:00.000Z",
+    "title": "American Cancer Society | Allan Shedlin Memorial Golf Classic 2022",
+    "thumbnail": "https://i.vimeocdn.com/video/1453556471-d183bde6cc856a27429579fddbcd54cecf1e9be49f017672386c0bbaaf1c8e34-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/721766009",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Khari Edwards for Brooklyn Borough President - Mom was My Hero",
+    "description": "Khari Edwards for Brooklyn Borough President - Mom was My Hero",
+    "thumbnail": "https://i.vimeocdn.com/video/2015659942-a94705d90ff0babf9ac2db75d83c486145a21ece6c148b2c200704924b168827-d_295x166?region=us",
+    "videoUrl": "https://vimeo.com/1084277789/31d6b479d4",
+    "uploadDate": "2026-02-18T16:15:44.878Z",
     "duration": "",
-    "category": "New Media",
-    "hostedOn": "youtube"
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "American Cancer Society | Hope Lodge Gala",
+    "thumbnail": "https://i.vimeocdn.com/video/1447988928-d8f534a4a822d332423bc4cf5963effe165bf533df4881e15d2d52d57421ef61-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/715301141",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "American Cancer Society | Wine and Spirits",
+    "thumbnail": "https://i.vimeocdn.com/video/1737988144-ad4cccb8d43f1c42e9efef007aed294107e0fcae7bf9ee32b903a1b000567b73-d_295x166?region=us",
+    "videoUrl": "https://player.vimeo.com/video/874147470",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Dance Lab New York | Christian Denice",
+    "thumbnail": "https://i.vimeocdn.com/video/1514335198-fe94f149679ed98df296b031d66e543832b7106e045c885cc8c69d90cc6a96fa-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/753537255",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Dance Lab New York | Dava Huesca",
+    "thumbnail": "https://i.vimeocdn.com/video/1617008442-7bbfb54cda8d428c82a1b80a8f43b583d0c8a3af063dd822f8e088314554920d-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/801426525",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Dance Lab New York | Next Gen Connect",
+    "thumbnail": "https://i.vimeocdn.com/video/1339629419-98aa33f6caf5c57c81ae383bee1060bb355772146a9ee3c76faab0c575b1d3d4-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/644985527",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "2025 Second Stage Gala Video",
+    "videoUrl": "https://www.youtube.com/embed/RZcjZy4LMqA",
+    "thumbnail": "https://i.ytimg.com/vi/RZcjZy4LMqA/maxresdefault.jpg",
+    "category": "Nonprofits",
+    "hostedOn": "youtube",
+    "uploadDate": "2026-02-12T02:03:19.922Z"
+  },
+  {
+    "title": "New Jersey Play Lab | Storyteller Studio",
+    "thumbnail": "https://i.vimeocdn.com/video/1887459453-a6f109b868f3da92029f22518e69206752166d1f09551c2463b5b436ded96e0e-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/973331659",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
   },
   {
     "title": "‘Good Fortune’ & Funny Set Confessions with Keanu Reeves, Seth Rogen and Aziz Ansari",
@@ -1458,16 +1448,6 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Sitting Down with the Cast and EP of ‘The ’Burbs’ | Baby, this is Keke Palmer",
-    "description": "Sitting Down with the Cast and EP of ‘The ’Burbs’ | Baby, this is Keke Palmer",
-    "thumbnail": "https://img.youtube.com/vi/edNuZdVg38o/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/edNuZdVg38o",
-    "uploadDate": "2026-02-18T16:55:03.286Z",
-    "duration": "",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
     "title": "Record-Breaking Signings, March Madness Mayhem & A Severance Waffle Party with Ben Stiller | Ep 130",
     "description": "92%ers we are back with another episode of New Heights presented by Nike! When the world says you can't win, Nike says, \"So Win\" On today's episode, Jason and Travis weigh in on the latest news from NFL Free Agency including revealing how much players snitch on their old teams, why the Cowboys are fighting online, and if the Bengals made the right call by signing Ja'Marr Chase and Tee Higgins to record-breaking contracts. We also have an incredible conversation with Ben Stiller. We get into everything from the guy's love of \"Heavyweights\", what really happens at NFL training camps, who's idea it was for Tom Cruise to dance in \"Tropic Thunder\", if Ben would give up an Academy Award for a Knicks Title, and all of Jason and Travis' biggest questions about \"Severance.\" Finally, we have potentially the least helpful March Madness breakdown of all time. If your criteria for picking teams involves fighting ability, if they shoot underhand free throws, higher GPAs, or any other broad generalizations, this bracket preview is for you! You can participate in the New Heights March Madness Bracket Challenge with the links below: Men's Bracket Link: https://bit.ly/NHMensBracketWomen's Bracket Link: https://bit.ly/NHWomensBracketYou can listen to new episodes early and ad-free on Wondery+. Join Wondery+ in the Wondery App, Apple Podcasts or Spotify. ...Download the full podcast here:Wondery: https://wondery.app.link/s9hHTgtXpMbApple: https://podcasts.apple.com/us/podcast/new-heights/id1643745036Spotify:https://open.spotify.com/show/1y3SUbFMUSESC1N43tBleK?si=LsuQ4a5MRN6wGMcfVcuynwFollow New Heights on Social Media for all the best moments from the show: ://lnk.to/newheightshowCheck out all of our new merch' at https://homage.com/newheightsSupport the Show: NIKE: When the world says you can't win, Nike says So Win! https://www.nike.com/w/college-teams-2wq2g AMERICAN EXPRESS: For full terms and to learn more about the powerful backing of American Express, visit https://americanexpress.com/withAmexAUDIBLE: Visit https://audible.com/newheights and sign up for a free 30-Day TrialTHE FARMER'S DOG: Get 50% off your first box of fresh, healthy food at https://TheFarmersDog.com/newheights. Plus, you get FREE shipping! ALL STATE: Checking first is smart. So, check https://Allstate.com first for a quote that could save you hundreds.DRAFT KINGS: Don't miss out on all the action this week at DraftKings! Download the DraftKings app today! Sign-up using http://dkng.co/newheights or through my promo code NEWHEIGHTS.GAMBLING PROBLEM? CALL 1-800-GAMBLER, (800) 327-5050 or visit gamblinghelplinema.org (MA). Call 877-8-HOPENY/text HOPENY (467369) (NY).Please Gamble Responsibly. 888-789-7777/visit ccpg.org (CT), or visit www.mdgamblinghelp.org (MD). 21+ and present in most states. (18+ DC/KY/NH/WY). Void in ONT/OR/NH.Eligibility restrictions apply. On behalf of Boot Hill Casino & Resort (KS). 1 per new customer. $5+ first-time bet req. Max. $200 issued as non-withdrawable Bonus Bets that expire in 7 days (168 hours). Stake removed from payout. Terms: dkng.co/dk-offer-terms. Ends 3/30/25 at 11:59 PM ET. Sponsored by DK.Chapters: \\:00 - Intro :30 - Award-Winning Podcast :30 - Free Agency Snitching :15 - Cowboys Twitter Fight:40 - Chase and Higgins Get Paid :10 - Shout Out Kyle Frazier :20 - Ben Stiller Conversation :20 - Legacy of Heavyweights :00 - Answering Ben's Biggest NFL Questions :30 - Could you Make Tropic Thunder Today? :05 - Enjoying the Process :50 - Working with Tom Cruise:20 - Knicks Fandom :10 - Travis' Favorite Basketball Scene :30 - Severance Waffle Party :21:40 - That's Right, A \"Blank Man\" Discussion :23:30 - Reese's Final Four Debate :27:00 - New Heights March Madness Bracket Preview\\#nfl #newheights #traviskelce #jasonkelce #chiefs #eagles #cowboys #bengals #freeagency #benstiller #heavyweights #severance #tropicthunder #tomcruise #MarchMadness",
     "thumbnail": "https://i.ytimg.com/vi/G0oyW5uuVoI/maxresdefault.jpg",
@@ -1476,6 +1456,33 @@
     "duration": "PT1H43M6S",
     "category": "New Media",
     "collection": "social_clips",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "The Dream Blunt Rotation w/ Rico Nasty, Tony Hawk, Yamaneika Saunders & Derrick Beckles",
+    "description": "The Dream Blunt Rotation w/ Rico Nasty, Tony Hawk, Yamaneika Saunders & Derrick Beckles",
+    "thumbnail": "https://img.youtube.com/vi/FPdlYDZuwRM/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/FPdlYDZuwRM",
+    "uploadDate": "2026-02-23T00:00:00.000Z",
+    "duration": "",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Elegant Music Group | VLOG Six",
+    "thumbnail": "https://i.vimeocdn.com/video/1711919927-5031143b1629b6e725b72b0f598293dae50526ac3e79d6ef6e0c898738c03188-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/855141398",
+    "category": "New Media",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "Sitting Down with the Cast and EP of ‘The ’Burbs’ | Baby, this is Keke Palmer",
+    "description": "Sitting Down with the Cast and EP of ‘The ’Burbs’ | Baby, this is Keke Palmer",
+    "thumbnail": "https://img.youtube.com/vi/edNuZdVg38o/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/edNuZdVg38o",
+    "uploadDate": "2026-02-18T16:55:03.286Z",
+    "duration": "",
+    "category": "New Media",
     "hostedOn": "youtube"
   },
   {
@@ -1499,12 +1506,12 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Sarah Snook | 2024 Tony Awards First Impressions",
-    "description": "Tony Award-winner Cole Escola is congratulated by Bonnie Milligan at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 78th Annual Tony Awards on Sunday, June 8, 2025.About the 78th Annual Tony AwardsThe American Theatre Wing's 78th Annual Tony Awards, presented by the Broadway League and the American Theatre Wing, aired LIVE on Sunday, June 8, 2025 from Radio City Music Hall from 8:00-11:00 PM, ET/5:00-8:00 PM, PT on the CBS Television Network, and streaming live and on demand on Paramount+*.CBS and Pluto TV presented The Tony Awards: Act One, a pre-show of live, exclusive content leading into the 78th Annual Tony Awards. The celebration commenced at 6:40-8:00 PM, ET/3:30-5:00 PM PT, on Pluto TV.\\(live and on-demand for Paramount+ with SHOWTIME subscribers, or on-demand for Paramount+ Essential subscribers the day after the special airs).*",
-    "thumbnail": "https://i.ytimg.com/vi/1RW3OCUMp4s/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/1RW3OCUMp4s",
-    "uploadDate": "2025-06-09T20:35:40.192Z",
-    "duration": "PT4M51S",
+    "title": "EMG On The Move | Episode #7: The Gang's All Here",
+    "description": "EMG On The Move | Episode #7: The Gang's All Here",
+    "thumbnail": "https://img.youtube.com/vi/IPzHgbqLQ2o/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/IPzHgbqLQ2o",
+    "uploadDate": "2026-02-18T16:48:55.126Z",
+    "duration": "",
     "category": "New Media",
     "hostedOn": "youtube"
   },
@@ -1519,39 +1526,12 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "First Impressions | Wayne Brady and Lea Salonga",
-    "description": "Minutes after presenting, Wayne Brady and Lea Salonga visited the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 74th Annual Tony Awards on Sunday, September 26, 2021.",
-    "thumbnail": "https://i.ytimg.com/vi/843j0ATGiFg/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/843j0ATGiFg",
-    "uploadDate": "2024-06-25T23:07:11.853Z",
-    "duration": "PT2M3S",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "2022 Tony Awards First Impressions | Jesse Tyler Ferguson - Take Me Out",
-    "description": "Tony Award-winner Jesse Tyler Ferguson is congratulated by Andrew Keenan-Bolger at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 75th Annual Tony Awards on Sunday, June 12, 2022.\\---About the 75th Annual Tony Awards---The Tony Awards, presented by the Broadway League and the American Theatre Wing, hosted a multi-platform celebration on Sunday, June 12th. Academy Award winner and Tony nominee Ariana DeBose hosted The 75th Annual Tony Awards, aired live coast-to-coast (8:00-11:00 PM, LIVE ET/5:00-8:00 PM, LIVE PT) on the CBS Television Network, and streamed live and on demand on Paramount+. Julianne Hough and Darren Criss hosted \"The Tony Awards: Act One,\" one hour of exclusive content streaming live, only on Paramount+ (7:00-8:00 PM, ET/4:00-5:00 PM, PT.)",
-    "thumbnail": "https://i.ytimg.com/vi/XpyvXLCZMOo/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/XpyvXLCZMOo",
-    "uploadDate": "2023-06-06T02:34:21.730Z",
-    "duration": "PT1M55S",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Elegant Music Group | VLOG Six",
-    "thumbnail": "https://i.vimeocdn.com/video/1711919927-5031143b1629b6e725b72b0f598293dae50526ac3e79d6ef6e0c898738c03188-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/855141398",
-    "category": "New Media",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "EMG On The Move | Episode #7: The Gang's All Here",
-    "description": "EMG On The Move | Episode #7: The Gang's All Here",
-    "thumbnail": "https://img.youtube.com/vi/IPzHgbqLQ2o/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/IPzHgbqLQ2o",
-    "uploadDate": "2026-02-18T16:48:55.126Z",
-    "duration": "",
+    "title": "Sarah Snook | 2024 Tony Awards First Impressions",
+    "description": "Tony Award-winner Cole Escola is congratulated by Bonnie Milligan at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 78th Annual Tony Awards on Sunday, June 8, 2025.About the 78th Annual Tony AwardsThe American Theatre Wing's 78th Annual Tony Awards, presented by the Broadway League and the American Theatre Wing, aired LIVE on Sunday, June 8, 2025 from Radio City Music Hall from 8:00-11:00 PM, ET/5:00-8:00 PM, PT on the CBS Television Network, and streaming live and on demand on Paramount+*.CBS and Pluto TV presented The Tony Awards: Act One, a pre-show of live, exclusive content leading into the 78th Annual Tony Awards. The celebration commenced at 6:40-8:00 PM, ET/3:30-5:00 PM PT, on Pluto TV.\\(live and on-demand for Paramount+ with SHOWTIME subscribers, or on-demand for Paramount+ Essential subscribers the day after the special airs).*",
+    "thumbnail": "https://i.ytimg.com/vi/1RW3OCUMp4s/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/1RW3OCUMp4s",
+    "uploadDate": "2025-06-09T20:35:40.192Z",
+    "duration": "PT4M51S",
     "category": "New Media",
     "hostedOn": "youtube"
   },
@@ -1566,12 +1546,32 @@
     "hostedOn": "youtube"
   },
   {
+    "title": "First Impressions | Wayne Brady and Lea Salonga",
+    "description": "Minutes after presenting, Wayne Brady and Lea Salonga visited the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 74th Annual Tony Awards on Sunday, September 26, 2021.",
+    "thumbnail": "https://i.ytimg.com/vi/843j0ATGiFg/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/843j0ATGiFg",
+    "uploadDate": "2024-06-25T23:07:11.853Z",
+    "duration": "PT2M3S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
     "title": "EMG on the Move | Episode #4: Progress",
     "description": "EMG on the Move | Episode #4: Progress",
     "thumbnail": "https://img.youtube.com/vi/EHfRRNHX1-s/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/EHfRRNHX1-s",
     "uploadDate": "2026-02-18T16:48:55.126Z",
     "duration": "",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "2022 Tony Awards First Impressions | Jesse Tyler Ferguson - Take Me Out",
+    "description": "Tony Award-winner Jesse Tyler Ferguson is congratulated by Andrew Keenan-Bolger at the Tony Awards First Impressions Cam presented by City National Bank, backstage at the 75th Annual Tony Awards on Sunday, June 12, 2022.\\---About the 75th Annual Tony Awards---The Tony Awards, presented by the Broadway League and the American Theatre Wing, hosted a multi-platform celebration on Sunday, June 12th. Academy Award winner and Tony nominee Ariana DeBose hosted The 75th Annual Tony Awards, aired live coast-to-coast (8:00-11:00 PM, LIVE ET/5:00-8:00 PM, LIVE PT) on the CBS Television Network, and streamed live and on demand on Paramount+. Julianne Hough and Darren Criss hosted \"The Tony Awards: Act One,\" one hour of exclusive content streaming live, only on Paramount+ (7:00-8:00 PM, ET/4:00-5:00 PM, PT.)",
+    "thumbnail": "https://i.ytimg.com/vi/XpyvXLCZMOo/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/XpyvXLCZMOo",
+    "uploadDate": "2023-06-06T02:34:21.730Z",
+    "duration": "PT1M55S",
     "category": "New Media",
     "hostedOn": "youtube"
   },

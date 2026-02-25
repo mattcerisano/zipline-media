@@ -446,13 +446,12 @@ function LazyVideo({ src, poster }: { src: string, poster?: string }) {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         setInView(true);
-        setIsPlaying(true);
-        videoRef.current?.play().catch(() => {});
+        // We rely on autoPlay and the onPlaying event to set isPlaying=true
       } else {
         setIsPlaying(false);
-        videoRef.current?.pause();
+        setInView(false); // Unmount video to free up memory on mobile
       }
-    }, { rootMargin: '300px' });
+    }, { rootMargin: '50px' });
     
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -470,9 +469,11 @@ function LazyVideo({ src, poster }: { src: string, poster?: string }) {
       {inView && (
         <video 
           ref={videoRef}
+          autoPlay
           muted 
           loop 
           playsInline
+          onPlaying={() => setIsPlaying(true)}
           className="absolute inset-0 w-full h-full object-cover z-0"
         >
           <source src={src} type="video/mp4" />
@@ -668,13 +669,18 @@ function Social() {
               key={`mob-${i}`} 
               className="shrink-0 w-[75vw] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 shadow-xl"
             >
-               {clip.localVideo ? (
-                 <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
-               ) : (
-                 <div 
-                   className="absolute inset-0 bg-cover bg-center opacity-100"
-                   style={{ backgroundImage: `url(${clip.thumbnail})` }}
+               {clip.thumbnail ? (
+                 <Image 
+                   src={clip.thumbnail} 
+                   alt={clip.title}
+                   fill
+                   sizes="75vw"
+                   className="object-cover"
                  />
+               ) : (
+                 <div className="absolute inset-0 flex items-center justify-center bg-neutral-800 text-[10px] opacity-20 text-center px-4 uppercase">
+                   {clip.title}
+                 </div>
                )}
             </div>
           ))}
