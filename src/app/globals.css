@@ -87,7 +87,7 @@ p, span, label, input, textarea, select {
 }
 
 .animate-scroll {
-  animation: scroll 50s linear infinite;
+  animation: scroll 70s linear infinite;
 }
 
 .animate-scroll-slow {
