@@ -485,24 +485,6 @@ function LazyVideo({ src, poster }: { src: string, poster?: string }) {
 }
 
 function Social() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const isInteracting = useRef(false);
-
-  useEffect(() => {
-    let animationFrameId: number;
-    const scroll = () => {
-      if (scrollRef.current && !isInteracting.current) {
-        // Slowly scroll to the right until the end is reached
-        if (scrollRef.current.scrollLeft < scrollRef.current.scrollWidth - scrollRef.current.clientWidth - 1) {
-           scrollRef.current.scrollLeft += 0.5;
-        }
-      }
-      animationFrameId = requestAnimationFrame(scroll);
-    };
-    animationFrameId = requestAnimationFrame(scroll);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, []);
-
   const clips = [
     {
       title: "Death Becomes Her | Slapping",
@@ -616,15 +598,15 @@ function Social() {
       {/* Marquee of 9:16 Videos */}
       <div className="relative group/marquee">
         
-        {/* Desktop: Infinite Marquee */}
-        <div className="hidden md:flex overflow-hidden relative">
+        {/* Infinite Marquee (All screens) */}
+        <div className="flex overflow-hidden relative">
           <div className="flex w-fit animate-scroll whitespace-nowrap pointer-events-none">
             {/* First Set */}
-            <div className="flex gap-6 px-3">
+            <div className="flex gap-4 md:gap-6 px-2 md:px-3">
               {clips.map((clip, i) => (
                 <div 
                   key={i} 
-                  className="shrink-0 w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
+                  className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
                 >
                    {clip.localVideo ? (
                      <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
@@ -638,11 +620,11 @@ function Social() {
               ))}
             </div>
             {/* Second Set (Duplicate) */}
-            <div className="flex gap-6 px-3">
+            <div className="flex gap-4 md:gap-6 px-2 md:px-3">
               {clips.map((clip, i) => (
                 <div 
                   key={`dup-${i}`} 
-                  className="shrink-0 w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
+                  className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
                 >
                    {clip.localVideo ? (
                      <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
@@ -657,31 +639,6 @@ function Social() {
             </div>
           </div>
         </div>
-
-        {/* Mobile: Swipeable Container */}
-        <div 
-          ref={scrollRef}
-          onTouchStart={() => isInteracting.current = true}
-          onTouchEnd={() => setTimeout(() => isInteracting.current = false, 1500)}
-          className="flex md:hidden gap-4 px-6 overflow-x-auto no-scrollbar pb-6 w-full"
-        >
-          {clips.map((clip, i) => (
-            <div 
-              key={`mob-${i}`} 
-              className="shrink-0 w-[75vw] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 shadow-xl"
-            >
-               {clip.localVideo ? (
-                 <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
-               ) : (
-                 <div 
-                   className="absolute inset-0 bg-cover bg-center opacity-100"
-                   style={{ backgroundImage: `url(${clip.thumbnail})` }}
-                 />
-               )}
-            </div>
-          ))}
-        </div>
-
       </div>
     </section>
   );
@@ -801,6 +758,9 @@ function Contact() {
             onSubmit={handleSubmit}
             className="space-y-10 bg-neutral-900/30 p-8 md:p-12 border border-white/5 text-left"
           >
+            {/* Formspree Subject Customization */}
+            <input type="hidden" name="_subject" value="New Inquiry from Zipline Website" />
+            
             <div className="space-y-2">
               <label className="text-xs tracking-[0.4em] uppercase opacity-40 font-bold">Name</label>
               <input 
