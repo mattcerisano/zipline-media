@@ -438,43 +438,69 @@ function Work() {
 
 function LazyVideo({ src, poster }: { src: string, poster?: string }) {
   const [inView, setInView] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         setInView(true);
-        observer.disconnect();
+        setIsPlaying(true);
+        videoRef.current?.play().catch(() => {});
+      } else {
+        setIsPlaying(false);
+        videoRef.current?.pause();
       }
-    }, { rootMargin: '600px' });
+    }, { rootMargin: '300px' });
+    
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} className="absolute inset-0 w-full h-full">
-      {inView ? (
+    <div ref={ref} className="absolute inset-0 w-full h-full bg-neutral-900">
+      {/* Poster layer to hide black flash */}
+      {poster && (
+        <div 
+          className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 z-10 pointer-events-none ${isPlaying ? 'opacity-0' : 'opacity-100'}`}
+          style={{ backgroundImage: `url(${poster})` }}
+        />
+      )}
+      {inView && (
         <video 
-          autoPlay 
+          ref={videoRef}
           muted 
           loop 
-          playsInline 
-          poster={poster}
-          className="absolute inset-0 w-full h-full object-cover"
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover z-0"
         >
           <source src={src} type="video/mp4" />
         </video>
-      ) : (
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={poster ? { backgroundImage: `url(${poster})` } : undefined}
-        />
       )}
     </div>
   );
 }
 
 function Social() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isInteracting = useRef(false);
+
+  useEffect(() => {
+    let animationFrameId: number;
+    const scroll = () => {
+      if (scrollRef.current && !isInteracting.current) {
+        // Slowly scroll to the right until the end is reached
+        if (scrollRef.current.scrollLeft < scrollRef.current.scrollWidth - scrollRef.current.clientWidth - 1) {
+           scrollRef.current.scrollLeft += 0.5;
+        }
+      }
+      animationFrameId = requestAnimationFrame(scroll);
+    };
+    animationFrameId = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, []);
+
   const clips = [
     {
       title: "Death Becomes Her | Slapping",
@@ -586,45 +612,74 @@ function Social() {
       </div>
       
       {/* Marquee of 9:16 Videos */}
-      <div className="relative overflow-hidden group/marquee">
-        <div className="flex w-fit animate-scroll whitespace-nowrap pointer-events-none">
-          {/* First Set */}
-          <div className="flex gap-6 px-3">
-            {clips.map((clip, i) => (
-              <div 
-                key={i} 
-                className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
-              >
-                 {clip.localVideo ? (
-                   <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
-                 ) : (
-                   <div 
-                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-100"
-                     style={{ backgroundImage: `url(${clip.thumbnail})` }}
-                   />
-                 )}
-              </div>
-            ))}
-          </div>
-          {/* Second Set (Duplicate) */}
-          <div className="flex gap-6 px-3">
-            {clips.map((clip, i) => (
-              <div 
-                key={`dup-${i}`} 
-                className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
-              >
-                 {clip.localVideo ? (
-                   <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
-                 ) : (
-                   <div 
-                     className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-100"
-                     style={{ backgroundImage: `url(${clip.thumbnail})` }}
-                   />
-                 )}
-              </div>
-            ))}
+      <div className="relative group/marquee">
+        
+        {/* Desktop: Infinite Marquee */}
+        <div className="hidden md:flex overflow-hidden relative">
+          <div className="flex w-fit animate-scroll whitespace-nowrap pointer-events-none">
+            {/* First Set */}
+            <div className="flex gap-6 px-3">
+              {clips.map((clip, i) => (
+                <div 
+                  key={i} 
+                  className="shrink-0 w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
+                >
+                   {clip.localVideo ? (
+                     <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
+                   ) : (
+                     <div 
+                       className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-100"
+                       style={{ backgroundImage: `url(${clip.thumbnail})` }}
+                     />
+                   )}
+                </div>
+              ))}
+            </div>
+            {/* Second Set (Duplicate) */}
+            <div className="flex gap-6 px-3">
+              {clips.map((clip, i) => (
+                <div 
+                  key={`dup-${i}`} 
+                  className="shrink-0 w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
+                >
+                   {clip.localVideo ? (
+                     <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
+                   ) : (
+                     <div 
+                       className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-100"
+                       style={{ backgroundImage: `url(${clip.thumbnail})` }}
+                     />
+                   )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Mobile: Swipeable Container */}
+        <div 
+          ref={scrollRef}
+          onTouchStart={() => isInteracting.current = true}
+          onTouchEnd={() => setTimeout(() => isInteracting.current = false, 1500)}
+          className="flex md:hidden gap-4 px-6 overflow-x-auto no-scrollbar pb-6 w-full"
+        >
+          {clips.map((clip, i) => (
+            <div 
+              key={`mob-${i}`} 
+              className="shrink-0 w-[75vw] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 shadow-xl"
+            >
+               {clip.localVideo ? (
+                 <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
+               ) : (
+                 <div 
+                   className="absolute inset-0 bg-cover bg-center opacity-100"
+                   style={{ backgroundImage: `url(${clip.thumbnail})` }}
+                 />
+               )}
+            </div>
+          ))}
+        </div>
+
       </div>
     </section>
   );
