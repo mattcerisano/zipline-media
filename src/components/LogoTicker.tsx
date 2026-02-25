@@ -1,7 +1,6 @@
 'use client';
 
-const svgLogos = {
-};
+const svgLogos: Record<string, { path: string, viewBox: string }> = {};
 
 const lanes = {
   Podcasts: [
