@@ -671,7 +671,7 @@ function About() {
         
         <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium text-left">
           <p>
-            We&apos;re the kind of team that can pivot on a dime and still make it look intentional. Big, glossy TV spots? Done. TikToks that don&apos;t feel like ads? Absolutely. Social campaigns, branded docs, narrative pieces&mdash;this is our playground.
+            We&apos;re the kind of team that can pivot on a dime and still make it look intentional. Big, glossy TV spots? Done. TikToks that don&apos;t feel like ads? Absolutely. Social campaigns, branded docs, narrative pieces&mdash;this is our playground. We bridge the gap between high-end cinematic production and the fast-moving world of digital content.
           </p>
           <p>
             And sure, we&apos;ve picked up some awards and worked with names you&apos;d definitely recognize&mdash;but that&apos;s not the point. What matters is showing up, getting it done, and keeping the vibe good. Clients tend to like having us around, and we like keeping it that way.

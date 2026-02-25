@@ -56,24 +56,18 @@ const TickerLane = ({ title, items, scrollClass = "animate-scroll-slow" }: { tit
   <div className="flex flex-col md:flex-row gap-8 md:items-center border-b border-white/10 pb-8 overflow-hidden">
     <h3 className="w-full md:w-40 text-xs md:text-sm font-bold tracking-[0.3em] uppercase text-white/40 shrink-0 mb-4 md:mb-0">{title}</h3>
     
-    <div className="flex-1 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
+    <div className="flex-1 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)' }}>
       <div 
-        className={`flex w-fit ${scrollClass} whitespace-nowrap items-center pointer-events-none`}
-        style={{ willChange: 'transform', transform: 'translateZ(0)' }}
+        className={`flex w-max ${scrollClass} items-center pointer-events-none`}
+        style={{ willChange: 'transform', transform: 'translate3d(0,0,0)', WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden' }}
       >
-        {/* Render exactly 2 Sets to match the -50% animation, using min-w-full to handle wide screens */}
-        {[...Array(2)].map((_, setIndex) => (
-          <div key={`set-${setIndex}`} className="flex gap-16 items-center pr-16 shrink-0 min-w-full w-max">
+        {/* Render 4 Sets to ensure marquee never runs out of text on wide screens or short lists */}
+        {[...Array(4)].map((_, setIndex) => (
+          <div key={`set-${setIndex}`} className="flex gap-16 items-center pr-16 shrink-0" style={{ WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden' }}>
             {items.map((item, i) => (
-              item.type === 'svg' ? (
-                <svg key={`${setIndex}-${i}`} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 flex-shrink-0">
-                  <path d={svgLogos[item.value as keyof typeof svgLogos].path} />
-                </svg>
-              ) : (
-                <span key={`${setIndex}-${i}`} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0">
-                  {item.value}
-                </span>
-              )
+              <span key={`${setIndex}-${i}`} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0" style={{ transform: 'translateZ(0)', WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden' }}>
+                {item.value}
+              </span>
             ))}
           </div>
         ))}

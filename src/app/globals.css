@@ -83,7 +83,7 @@ p, span, label, input, textarea, select {
 
 @keyframes scroll {
   from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  to { transform: translateX(-25%); }
 }
 
 .animate-scroll {
