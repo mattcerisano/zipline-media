@@ -71,27 +71,6 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Moulin Rouge! The Musical | Aaron Tveit - Roxanne",
-    "thumbnail": "https://i.ytimg.com/vi/vPTvwKthVIk/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/vPTvwKthVIk",
-    "category": "B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Moulin Rouge! The Musical | Derek Klena - Come What May",
-    "thumbnail": "https://i.ytimg.com/vi/DpVvb77VKTg/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/DpVvb77VKTg",
-    "category": "B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Moulin Rouge! The Musical | Ashley Loren - Firework",
-    "thumbnail": "https://i.vimeocdn.com/video/1643318139-0ca4d711f7e21edf652a0c59ad5413ffa00c1f53cab13abbb348a07c9f1ffb20-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/805687971",
-    "category": "B-Roll",
-    "hostedOn": "vimeo"
-  },
-  {
     "title": "Six on CNN’s Thanksgiving in America",
     "description": "Six on CNN’s Thanksgiving in America",
     "thumbnail": "https://i.vimeocdn.com/video/2077686697-7df3fb31262c56224220c548cb0f4214be2976ccf650c8444e3ddde16b848747-d_295x166?region=us",
@@ -132,41 +111,28 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "The Queen of Versailles Broadway Teaser",
-    "description": "The Queen of Versailles Broadway Teaser",
-    "thumbnail": "https://img.youtube.com/vi/FomMQepKM9w/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/FomMQepKM9w",
-    "uploadDate": "2026-02-18T16:15:44.873Z",
-    "duration": "",
-    "category": "B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "Golden Hour | The Queen of Versailles on Broadway",
-    "description": "Broadway previews begin October 8 at the St. James Theatre.Based on the wildly astonishing documentary directed by award-winning filmmaker Lauren Greenfield, The Queen of Versailles reunites celebrated Academy Award-winning songwriter Stephen Schwartz with Tony and Emmy Award winner Kristin Chenoweth as Jackie Siegel. With a book by Lindsey Ferrentino (Ugly Lies the Bone, Amy and the Orphans) and direction by Tony Award winner Michael Arden (Parade, Once on This Island), The Queen of Versailles is a new musical exploring the true cost of fame, fortune, and family.Get tickets now at queenofversaillesmusical.com!",
-    "thumbnail": "https://img.youtube.com/vi/w4xaJxeUIaw/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/w4xaJxeUIaw",
-    "uploadDate": "2025-06-09T20:35:40.188Z",
-    "duration": "PT31S",
-    "category": "B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "The Royal We | Queen of Versailles on Broadway",
-    "description": "\"Because in this country, anyone can become American Royalty\" says Jackie Siegel. During \"The Royal We\", she dreams of her idol, Marie Antoinette. But the higher the throne, the harder the fall.Get Tickets Today",
-    "thumbnail": "https://i.ytimg.com/vi/D1x2rICBtl4/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/D1x2rICBtl4",
-    "uploadDate": "2025-11-16T16:24:43.103Z",
-    "duration": "PT1M5S",
-    "category": "B-Roll",
-    "hostedOn": "youtube"
-  },
-  {
     "title": "DRAG: The Musical off-Broadway | \"Queen Kitty\" starring Alaska Thunderf*ck",
     "description": "DRAG: The Musical off-Broadway | \"Queen Kitty\" starring Alaska Thunderf*ck",
     "thumbnail": "https://img.youtube.com/vi/ndBDbbzlXbA/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/ndBDbbzlXbA",
     "uploadDate": "2026-02-18T16:15:44.872Z",
+    "duration": "",
+    "category": "B-Roll",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Moulin Rouge! The Musical | Aaron Tveit - Roxanne",
+    "thumbnail": "https://i.ytimg.com/vi/vPTvwKthVIk/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/vPTvwKthVIk",
+    "category": "B-Roll",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "The Queen of Versailles Broadway Teaser",
+    "description": "The Queen of Versailles Broadway Teaser",
+    "thumbnail": "https://img.youtube.com/vi/FomMQepKM9w/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/FomMQepKM9w",
+    "uploadDate": "2026-02-18T16:15:44.873Z",
     "duration": "",
     "category": "B-Roll",
     "hostedOn": "youtube"
@@ -192,6 +158,13 @@
     "hostedOn": "youtube"
   },
   {
+    "title": "Moulin Rouge! The Musical | Derek Klena - Come What May",
+    "thumbnail": "https://i.ytimg.com/vi/DpVvb77VKTg/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/DpVvb77VKTg",
+    "category": "B-Roll",
+    "hostedOn": "youtube"
+  },
+  {
     "title": "Cult of Love on Broadway is a NYT Critic’s Pick!",
     "description": "Cult of Love on Broadway is a NYT Critic’s Pick!",
     "thumbnail": "https://img.youtube.com/vi/CI24F75w4Sk/maxresdefault.jpg",
@@ -202,9 +175,26 @@
     "hostedOn": "youtube"
   },
   {
+    "title": "Moulin Rouge! The Musical | Ashley Loren - Firework",
+    "thumbnail": "https://i.vimeocdn.com/video/1643318139-0ca4d711f7e21edf652a0c59ad5413ffa00c1f53cab13abbb348a07c9f1ffb20-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/805687971",
+    "category": "B-Roll",
+    "hostedOn": "vimeo"
+  },
+  {
     "title": "ABT Studio Company Winter Festival Trailer",
     "thumbnail": "https://i.ytimg.com/vi/T_RwH3YGsbo/maxresdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/T_RwH3YGsbo",
+    "category": "B-Roll",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Golden Hour | The Queen of Versailles on Broadway",
+    "description": "Broadway previews begin October 8 at the St. James Theatre.Based on the wildly astonishing documentary directed by award-winning filmmaker Lauren Greenfield, The Queen of Versailles reunites celebrated Academy Award-winning songwriter Stephen Schwartz with Tony and Emmy Award winner Kristin Chenoweth as Jackie Siegel. With a book by Lindsey Ferrentino (Ugly Lies the Bone, Amy and the Orphans) and direction by Tony Award winner Michael Arden (Parade, Once on This Island), The Queen of Versailles is a new musical exploring the true cost of fame, fortune, and family.Get tickets now at queenofversaillesmusical.com!",
+    "thumbnail": "https://img.youtube.com/vi/w4xaJxeUIaw/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/w4xaJxeUIaw",
+    "uploadDate": "2025-06-09T20:35:40.188Z",
+    "duration": "PT31S",
     "category": "B-Roll",
     "hostedOn": "youtube"
   },
@@ -215,6 +205,16 @@
     "videoUrl": "https://www.youtube.com/embed/TW1ckET5Fgg",
     "uploadDate": "2024-12-02T16:45:14.896Z",
     "duration": "PT55S",
+    "category": "B-Roll",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "The Royal We | Queen of Versailles on Broadway",
+    "description": "\"Because in this country, anyone can become American Royalty\" says Jackie Siegel. During \"The Royal We\", she dreams of her idol, Marie Antoinette. But the higher the throne, the harder the fall.Get Tickets Today",
+    "thumbnail": "https://i.ytimg.com/vi/D1x2rICBtl4/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/D1x2rICBtl4",
+    "uploadDate": "2025-11-16T16:24:43.103Z",
+    "duration": "PT1M5S",
     "category": "B-Roll",
     "hostedOn": "youtube"
   },
@@ -1107,6 +1107,16 @@
     "category": "Brands",
     "hostedOn": "vimeo",
     "uploadDate": "2026-02-12T01:55:47.390Z"
+  },
+  {
+    "title": "A Walk of Wonders Awaits",
+    "description": "A Walk of Wonders Awaits",
+    "thumbnail": "https://img.youtube.com/vi/47Vd5CezWiI/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/47Vd5CezWiI",
+    "uploadDate": "2026-02-23T00:00:00.000Z",
+    "duration": "",
+    "category": "Brands",
+    "hostedOn": "youtube"
   },
   {
     "title": "Visible Mobile | Shatter the Family Drama",
