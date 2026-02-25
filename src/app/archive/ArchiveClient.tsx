@@ -329,6 +329,8 @@ export default function ArchiveClient() {
     return url.includes('autoplay') ? url : `${url}${url.includes('?') ? '&' : '?'}autoplay=1`;
   };
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   return (
     <main className="min-h-screen bg-black text-white p-4 md:p-12 pt-24 md:pt-40 overflow-x-hidden">
       <div className="max-w-[1800px] mx-auto">
@@ -343,11 +345,11 @@ export default function ArchiveClient() {
           </Link>
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
             <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
+              initial={isMobile ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.9]"
+              className="text-[7.5vw] sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.9] whitespace-nowrap"
             >
               Video Repository
             </motion.h1>
