@@ -686,18 +686,15 @@ function Contact() {
   return (
     <section id="contact" className="py-12 md:py-16 px-6 max-w-7xl mx-auto flex flex-col justify-center scroll-mt-24">
       <div className="flex flex-col lg:flex-row gap-20 items-start">
-        <div className="w-full lg:w-1/2 text-left overflow-hidden py-4">
+        <div className="w-full lg:w-1/2 text-left py-4">
           <motion.div
-             initial={{ y: "100%" }}
-             whileInView={{ y: 0 }}
+             initial={{ opacity: 0, y: 20 }}
+             whileInView={{ opacity: 1, y: 0 }}
              viewport={{ once: true }}
              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
         <motion.h2 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-4xl md:text-8xl font-black tracking-tighter uppercase leading-[0.9] mb-12"
+          className="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-black tracking-tighter uppercase leading-[1.1] mb-12"
         >
           LET&apos;S CONNECT.
         </motion.h2>
