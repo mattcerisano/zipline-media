@@ -693,9 +693,14 @@ function Contact() {
              viewport={{ once: true }}
              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h2 className="text-5xl md:text-8xl font-black tracking-tighter mb-8 uppercase leading-[0.9]">
-              LET&apos;S ROLL.
-            </h2>
+        <motion.h2 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-4xl md:text-8xl font-black tracking-tighter uppercase leading-[0.9] mb-12"
+        >
+          LET&apos;S CONNECT.
+        </motion.h2>
           </motion.div>
           
           <motion.div 
