@@ -34,12 +34,12 @@ function Hero() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{
-                      delay: index * 0.01, // Near-instant typing
-                      duration: 0,
+                      delay: index * 0.12, // More deliberate typing
+                      duration: 0.1,
                     }}
                     onAnimationComplete={() => {
                       if (index === letters.length - 1) {
-                        setTimeout(() => setIsIntroComplete(true), 100); // Minimal pause
+                        setTimeout(() => setIsIntroComplete(true), 600); // Longer pause before revealing site
                       }
                     }}
                   >
@@ -440,6 +440,44 @@ function Work() {
   );
 }
 
+function LazyVideo({ src, poster }: { src: string, poster?: string }) {
+  const [inView, setInView] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setInView(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: '600px' });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="absolute inset-0 w-full h-full">
+      {inView ? (
+        <video 
+          autoPlay 
+          muted 
+          loop 
+          playsInline 
+          poster={poster}
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src={src} type="video/mp4" />
+        </video>
+      ) : (
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={poster ? { backgroundImage: `url(${poster})` } : undefined}
+        />
+      )}
+    </div>
+  );
+}
+
 function Social() {
   const clips = [
     {
@@ -562,16 +600,7 @@ function Social() {
                 className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
               >
                  {clip.localVideo ? (
-                   <video 
-                     autoPlay 
-                     muted 
-                     loop 
-                     playsInline 
-                     className="absolute inset-0 w-full h-full object-cover opacity-100 transition-opacity duration-700"
-                   >
-                     <source src={clip.localVideo} type="video/quicktime" />
-                     <source src={clip.localVideo} type="video/mp4" />
-                   </video>
+                   <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
                  ) : (
                    <div 
                      className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-100"
@@ -589,16 +618,7 @@ function Social() {
                 className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
               >
                  {clip.localVideo ? (
-                   <video 
-                     autoPlay 
-                     muted 
-                     loop 
-                     playsInline 
-                     className="absolute inset-0 w-full h-full object-cover opacity-100 transition-opacity duration-700"
-                   >
-                     <source src={clip.localVideo} type="video/quicktime" />
-                     <source src={clip.localVideo} type="video/mp4" />
-                   </video>
+                   <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
                  ) : (
                    <div 
                      className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-100"
