@@ -643,9 +643,6 @@ function Social() {
     </section>
   );
 }
-    </section>
-  );
-}
 
 // ... Clients component remains unchanged ...
 
