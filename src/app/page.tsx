@@ -444,6 +444,10 @@ function LazyVideo({ src, poster }: { src: string, poster?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    // Detect mobile to skip video loading if needed, though we handle it in the Social component now
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return;
+
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         setInView(true);
@@ -487,19 +491,19 @@ function Social() {
   const clips = [
     {
       title: "Death Becomes Her | Slapping",
-      thumbnail: "",
+      thumbnail: "/DBH_Hero_SocialThumbnail.mp4", // Using video as fallback if image missing, but best to have real thumb
       videoUrl: "#",
       localVideo: "/DBH_Slapping.mov"
     },
     {
       title: "MAC | Getting Dressed",
-      thumbnail: "",
+      thumbnail: "/Mac_GettingDressed.mov",
       videoUrl: "#",
       localVideo: "/Mac_GettingDressed.mov"
     },
     {
       title: "MAC | Lipstick Pop Off",
-      thumbnail: "",
+      thumbnail: "/Mac_Lipstick.mov",
       videoUrl: "#",
       localVideo: "/Mac_Lipstick.mov"
     },
@@ -601,11 +605,11 @@ function Social() {
         <div className="flex overflow-hidden relative">
           <div className="flex w-fit animate-scroll whitespace-nowrap pointer-events-none">
             {/* First Set */}
-            <div className="flex gap-4 md:gap-6 px-2 md:px-3">
+            <div className="flex gap-3 md:gap-6 px-2 md:px-3">
               {clips.map((clip, i) => (
                 <div 
                   key={i} 
-                  className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
+                  className="shrink-0 w-[160px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
                 >
                    {clip.localVideo ? (
                      <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
@@ -619,11 +623,11 @@ function Social() {
               ))}
             </div>
             {/* Second Set (Duplicate) */}
-            <div className="flex gap-4 md:gap-6 px-2 md:px-3">
+            <div className="flex gap-3 md:gap-6 px-2 md:px-3">
               {clips.map((clip, i) => (
                 <div 
                   key={`dup-${i}`} 
-                  className="shrink-0 w-[200px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
+                  className="shrink-0 w-[160px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
                 >
                    {clip.localVideo ? (
                      <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
@@ -723,7 +727,7 @@ function Contact() {
              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
         <motion.h2 
-          className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] mb-8"
+          className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.3] mb-8"
         >
           LET&apos;S CONNECT.
         </motion.h2>

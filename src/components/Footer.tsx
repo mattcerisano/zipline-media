@@ -107,16 +107,6 @@ export default function Footer() {
 
       </div>
 
-
-
-      <div className="max-w-7xl mx-auto mt-12 md:mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase tracking-widest text-white/20">
-
-        <p>&copy; {new Date().getFullYear()} Zipline Media LLC. All Rights Reserved.</p>
-
-        <p>People First. Creative Always.</p>
-
-      </div>
-
     </footer>
 
   );

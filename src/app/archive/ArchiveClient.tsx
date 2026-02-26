@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, X, Play, Search, Star } from 'lucide-react';
+import { ArrowLeft, X, Play, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import videos from '@/data/videos.json';
 
@@ -79,7 +79,7 @@ function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeV
       initial="hidden"
       whileInView="show"
       viewport={{ once: true }}
-      className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pr-2"
+      className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4 pr-2"
     >
       {videos.map((video, index) => {
         const isActive = video === activeVideo;
@@ -349,14 +349,14 @@ export default function ArchiveClient() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-[7.5vw] sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.9] whitespace-nowrap"
+              className="text-[5.5vw] sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.9] whitespace-nowrap"
             >
               Video Repository
             </motion.h1>
 
             {/* Search Bar */}
             <motion.div 
-              className="relative w-full xl:w-96"
+              className="relative w-full max-w-[240px] md:max-w-md xl:w-96"
             >
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
               <input 
@@ -391,7 +391,7 @@ export default function ArchiveClient() {
             </h2>
             
             {searchResults.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
                 {searchResults.map((video, index) => (
                   <motion.button 
                     key={`${video.title}-${index}`}
@@ -440,11 +440,10 @@ export default function ArchiveClient() {
             {/* --- Recent Work Section --- */}
             <section className="mb-20">
               <h2 className="text-xl md:text-2xl font-bold uppercase tracking-widest mb-10 text-white/40 flex items-center gap-2">
-                <Star className="w-5 h-5 text-[var(--accent)]" />
                 Recent Work
               </h2>
               <div 
-                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-4 md:gap-x-6 gap-y-8 md:gap-y-10"
+                className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-3 gap-y-6 md:gap-x-6 md:gap-y-10"
               >
                 {recentWork.map((video, index) => (
                   <motion.button 
