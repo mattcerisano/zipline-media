@@ -446,47 +446,49 @@ function Work() {
   );
 }
 
-function LazyVideo({ src, poster }: { src: string, poster?: string }) {
+function LazyVideo({ src, poster, title }: { src: string, poster?: string, title: string }) {
   const [inView, setInView] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    // Detect mobile to skip video loading if needed, though we handle it in the Social component now
-    const isMobile = window.innerWidth < 768;
-    if (isMobile) return;
-
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         setInView(true);
-      } else {
-        setInView(false);
-        setIsPlaying(false);
+        observer.disconnect();
       }
-    }, { rootMargin: '600px' });
+    }, { rootMargin: '400px' });
     
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
+  // Detection for mobile to avoid loading videos on slow connections
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   return (
-    <div ref={ref} className="absolute inset-0 w-full h-full bg-neutral-900">
-      {/* Poster layer to hide black flash */}
-      {poster && (
-        <div 
-          className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 z-10 pointer-events-none ${isPlaying ? 'opacity-0' : 'opacity-100'}`}
-          style={{ backgroundImage: `url(${poster})` }}
+    <div ref={ref} className="absolute inset-0 w-full h-full bg-neutral-900 flex items-center justify-center">
+      {/* If we have a valid image poster, show it. Otherwise show a placeholder with the title */}
+      {poster && (poster.endsWith('.jpg') || poster.endsWith('.png') || poster.includes('ytimg.com') || poster.includes('vimeocdn.com')) ? (
+        <Image 
+          src={poster} 
+          alt={title}
+          fill
+          unoptimized={poster.includes('ytimg.com') || poster.includes('vimeocdn.com')}
+          className={`object-cover transition-opacity duration-1000 ${(!isMobile && inView) ? 'opacity-0' : 'opacity-100'}`}
         />
+      ) : (
+        <div className="text-[10px] font-bold uppercase opacity-20 text-center px-4 leading-tight">
+          {title}
+        </div>
       )}
-      {inView && (
+
+      {/* Only load and play video on non-mobile devices when in view */}
+      {!isMobile && inView && (
         <video 
-          ref={videoRef}
           autoPlay
           muted 
           loop 
           playsInline
-          onPlaying={() => setIsPlaying(true)}
           className="absolute inset-0 w-full h-full object-cover z-0"
         >
           <source src={src} type="video/mp4" />
@@ -500,19 +502,19 @@ function Social() {
   const clips = [
     {
       title: "Death Becomes Her | Slapping",
-      thumbnail: "/DBH_Hero_SocialThumbnail.mp4", // Using video as fallback if image missing, but best to have real thumb
+      thumbnail: "/DBH_Hero_SocialThumbnail.mp4", // No image yet
       videoUrl: "#",
       localVideo: "/DBH_Slapping.mov"
     },
     {
       title: "MAC | Getting Dressed",
-      thumbnail: "/Mac_GettingDressed.mov",
+      thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg", // Temporary fallback image
       videoUrl: "#",
       localVideo: "/Mac_GettingDressed.mov"
     },
     {
       title: "MAC | Lipstick Pop Off",
-      thumbnail: "/Mac_Lipstick.mov",
+      thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg", // Temporary fallback image
       videoUrl: "#",
       localVideo: "/Mac_Lipstick.mov"
     },
@@ -600,9 +602,9 @@ function Social() {
 
   return (
     <section className="pt-12 pb-8 bg-black overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 mb-12">
+      <div className="max-w-7xl mx-auto px-6 mb-12 text-center md:text-left">
         <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase mb-4">Social First</h2>
-        <p className="text-sm md:text-base opacity-60 max-w-xl">
+        <p className="text-sm md:text-base opacity-60 max-w-xl mx-auto md:mx-0">
           If it can&apos;t fit into a 9:16, ya shoulda been wider. We consider the social post from the start of every project to stop the scroll.
         </p>
       </div>
@@ -620,14 +622,7 @@ function Social() {
                   key={i} 
                   className="shrink-0 w-[160px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
                 >
-                   {clip.localVideo ? (
-                     <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
-                   ) : (
-                     <div 
-                       className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-100"
-                       style={{ backgroundImage: `url(${clip.thumbnail})` }}
-                     />
-                   )}
+                   <LazyVideo src={clip.localVideo} poster={clip.thumbnail} title={clip.title} />
                 </div>
               ))}
             </div>
@@ -638,20 +633,16 @@ function Social() {
                   key={`dup-${i}`} 
                   className="shrink-0 w-[160px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
                 >
-                   {clip.localVideo ? (
-                     <LazyVideo src={clip.localVideo} poster={clip.thumbnail || undefined} />
-                   ) : (
-                     <div 
-                       className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-100"
-                       style={{ backgroundImage: `url(${clip.thumbnail})` }}
-                     />
-                   )}
+                   <LazyVideo src={clip.localVideo} poster={clip.thumbnail} title={clip.title} />
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
+    </section>
+  );
+}
     </section>
   );
 }
