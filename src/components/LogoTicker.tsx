@@ -59,15 +59,20 @@ const TickerLane = ({ title, items, scrollClass = "animate-scroll-slow" }: { tit
     <div className="flex-1 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)' }}>
       <div 
         className={`flex w-max ${scrollClass} items-center pointer-events-none`}
-        style={{ willChange: 'transform', transform: 'translate3d(0,0,0)', WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden' }}
       >
         {/* Render 4 Sets to ensure marquee never runs out of text on wide screens or short lists */}
         {[...Array(4)].map((_, setIndex) => (
-          <div key={`set-${setIndex}`} className="flex gap-16 items-center pr-16 shrink-0" style={{ WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden' }}>
+          <div key={`set-${setIndex}`} className="flex gap-16 items-center pr-16 shrink-0">
             {items.map((item, i) => (
-              <span key={`${setIndex}-${i}`} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0" style={{ transform: 'translateZ(0)', WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden' }}>
-                {item.value}
-              </span>
+              item.type === 'svg' ? (
+                <svg key={`${setIndex}-${i}`} viewBox={svgLogos[item.value as keyof typeof svgLogos].viewBox} className="h-8 w-auto fill-white opacity-40 flex-shrink-0" style={{ transform: 'translateZ(0)' }}>
+                  <path d={svgLogos[item.value as keyof typeof svgLogos].path} />
+                </svg>
+              ) : (
+                <div key={`${setIndex}-${i}`} className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0 inline-block" style={{ transform: 'translateZ(0)' }}>
+                  {item.value}
+                </div>
+              )
             ))}
           </div>
         ))}

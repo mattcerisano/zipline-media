@@ -119,11 +119,12 @@ function Hero() {
         initial={{ opacity: 0 }}
         animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
         transition={{ delay: 1.5, duration: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-3"
       >
-        <div className="w-px h-12 bg-white/20 relative overflow-hidden">
+        <span className="md:hidden text-[10px] font-bold tracking-[0.3em] uppercase opacity-50">Scroll</span>
+        <div className="w-[2px] md:w-px h-16 md:h-12 bg-white/20 relative overflow-hidden">
           <motion.div 
-            animate={{ y: [0, 48] }}
+            animate={{ y: [0, 64] }}
             transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
             className="absolute top-0 left-0 w-full h-1/2 bg-white"
           />
@@ -437,7 +438,7 @@ function Work() {
 }
 
 function LazyVideo({ src, poster }: { src: string, poster?: string }) {
-  const [hasMounted, setHasMounted] = useState(false);
+  const [inView, setInView] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -445,12 +446,10 @@ function LazyVideo({ src, poster }: { src: string, poster?: string }) {
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
-        setHasMounted(true);
-        setIsPlaying(true);
-        videoRef.current?.play().catch(() => {});
+        setInView(true);
       } else {
+        setInView(false);
         setIsPlaying(false);
-        videoRef.current?.pause();
       }
     }, { rootMargin: '600px' });
     
@@ -467,7 +466,7 @@ function LazyVideo({ src, poster }: { src: string, poster?: string }) {
           style={{ backgroundImage: `url(${poster})` }}
         />
       )}
-      {hasMounted && (
+      {inView && (
         <video 
           ref={videoRef}
           autoPlay
@@ -736,8 +735,8 @@ function Contact() {
             viewport={{ once: true }}
             transition={{ delay: 0.4, duration: 0.8 }}
           >
-            <p className="hidden md:block text-xl opacity-60 max-w-md mb-12">
-              Have a project in mind? We&apos;d love to hear about your vision and how we can help bring it to life.
+            <p className="text-lg md:text-xl opacity-60 max-w-md mb-12">
+              Have a project and don&apos;t know where to begin? Drop us a line and say hello!
             </p>
             
             <div className="space-y-4">
@@ -767,7 +766,7 @@ function Contact() {
                 type="text" 
                 name="name"
                 required
-                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors uppercase text-sm" 
+                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors uppercase text-base md:text-sm" 
               />
             </div>
             
@@ -777,7 +776,7 @@ function Contact() {
                 type="email" 
                 name="email"
                 required
-                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors uppercase text-sm" 
+                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors uppercase text-base md:text-sm" 
               />
             </div>
 
@@ -787,7 +786,7 @@ function Contact() {
                 name="message"
                 rows={4} 
                 required
-                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors resize-none uppercase text-sm" 
+                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors resize-none uppercase text-base md:text-sm" 
               />
             </div>
 
