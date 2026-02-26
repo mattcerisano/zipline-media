@@ -454,12 +454,9 @@ function LazyVideo({ src, poster, title }: { src: string, poster?: string, title
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       setInView(entry.isIntersecting);
-      if (!entry.isIntersecting) {
-        setVideoLoaded(false);
-      }
     }, { 
-      // Very tight margin for mobile to keep active video count low
-      rootMargin: window.innerWidth < 768 ? '100px' : '400px',
+      // Large margin to ensure videos are buffered before they enter the screen
+      rootMargin: '1200px',
       threshold: 0.01 
     });
     
@@ -468,7 +465,7 @@ function LazyVideo({ src, poster, title }: { src: string, poster?: string, title
   }, []);
 
   return (
-    <div ref={ref} className="absolute inset-0 w-full h-full bg-neutral-900 flex items-center justify-center">
+    <div ref={ref} className="absolute inset-0 w-full h-full bg-black flex items-center justify-center">
       {/* Poster layer: always present as fallback, fades out when video is ready */}
       {poster && (
         <Image 
@@ -481,20 +478,21 @@ function LazyVideo({ src, poster, title }: { src: string, poster?: string, title
       )}
       
       {!poster && (
-        <div className={`absolute inset-0 flex items-center justify-center bg-neutral-800 text-[10px] font-bold uppercase opacity-20 text-center px-4 leading-tight z-10 transition-opacity ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`absolute inset-0 flex items-center justify-center bg-neutral-900 text-[10px] font-bold uppercase opacity-20 text-center px-4 leading-tight z-10 transition-opacity duration-500 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}>
           {title}
         </div>
       )}
 
-      {/* Load video when in view. Unmounting when out of view is key for mobile stability. */}
+      {/* Load video when in view. */}
       {inView && (
         <video 
           autoPlay
           muted 
           loop 
           playsInline
+          preload="auto"
           onPlaying={() => setVideoLoaded(true)}
-          className="absolute inset-0 w-full h-full object-cover z-0"
+          className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
         >
           <source src={src} type="video/mp4" />
         </video>
@@ -619,29 +617,20 @@ function Social() {
         
         {/* Infinite Marquee (All screens) */}
         <div className="flex overflow-hidden relative">
-          <div className="flex w-fit animate-scroll whitespace-nowrap pointer-events-none">
-            {/* First Set */}
-            <div className="flex gap-3 md:gap-6 px-2 md:px-3">
-              {clips.map((clip, i) => (
-                <div 
-                  key={i} 
-                  className="shrink-0 w-[160px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
-                >
-                   <LazyVideo src={clip.localVideo} poster={clip.thumbnail} title={clip.title} />
-                </div>
-              ))}
-            </div>
-            {/* Second Set (Duplicate) */}
-            <div className="flex gap-3 md:gap-6 px-2 md:px-3">
-              {clips.map((clip, i) => (
-                <div 
-                  key={`dup-${i}`} 
-                  className="shrink-0 w-[160px] md:w-[300px] aspect-[9/16] bg-neutral-900 relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
-                >
-                   <LazyVideo src={clip.localVideo} poster={clip.thumbnail} title={clip.title} />
-                </div>
-              ))}
-            </div>
+          <div className="flex w-max animate-scroll whitespace-nowrap pointer-events-none">
+            {/* Render 4 sets to ensure seamless loop with -25% animation */}
+            {[...Array(4)].map((_, setIndex) => (
+              <div key={`set-${setIndex}`} className="flex gap-3 md:gap-6 px-2 md:px-3">
+                {clips.map((clip, i) => (
+                  <div 
+                    key={`${setIndex}-${i}`} 
+                    className="shrink-0 w-[160px] md:w-[300px] aspect-[9/16] bg-black relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
+                  >
+                     <LazyVideo src={clip.localVideo} poster={clip.thumbnail} title={clip.title} />
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       </div>

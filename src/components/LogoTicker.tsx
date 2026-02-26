@@ -57,18 +57,18 @@ const TickerLane = ({ title, items, scrollClass = "animate-scroll-slow" }: { tit
     <h3 className="w-full md:w-40 text-xs md:text-sm font-bold tracking-[0.3em] uppercase text-white/40 shrink-0 mb-4 md:mb-0 z-20">{title}</h3>
     
     <div className="flex-1 overflow-hidden relative">
-      {/* Edge Fades (Replacement for mask-image which is buggy in Safari) */}
-      <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-      <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+      {/* Edge Fades */}
+      <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
+      <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
 
-      <div className={`flex w-fit ${scrollClass} items-center pointer-events-none`}>
-        {/* Render exactly 2 Sets for a perfect -50% CSS loop */}
-        {[...Array(2)].map((_, setIndex) => (
+      <div className={`flex w-max ${scrollClass} items-center pointer-events-none`}>
+        {/* Render 4 Sets for a truly seamless loop on all screen sizes */}
+        {[...Array(4)].map((_, setIndex) => (
           <div key={`set-${setIndex}`} className="flex gap-16 items-center pr-16 shrink-0">
             {items.map((item, i) => (
               <div 
                 key={`${setIndex}-${i}`} 
-                className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0 inline-block"
+                className="text-xl md:text-2xl font-black tracking-tighter opacity-60 cursor-default flex-shrink-0 inline-block" 
               >
                 {item.value}
               </div>

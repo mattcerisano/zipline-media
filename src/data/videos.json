@@ -1119,6 +1119,16 @@
     "hostedOn": "youtube"
   },
   {
+    "title": "A Walk of Wonders Awaits",
+    "description": "A Walk of Wonders Awaits",
+    "thumbnail": "https://img.youtube.com/vi/47Vd5CezWiI/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/47Vd5CezWiI",
+    "uploadDate": "2026-02-18T16:15:44.877Z",
+    "duration": "",
+    "category": "Brands",
+    "hostedOn": "youtube"
+  },
+  {
     "title": "Visible Mobile | Shatter the Family Drama",
     "description": "Visible Mobile: Shatter the Family Drama",
     "thumbnail": "https://i.vimeocdn.com/video/1381460762-a9430fb606c7cf641f2d42a81e405acc1bb04ebc9cb2ec668d076892d3a2488e-d_1920x1080?&r=pad&region=us",
@@ -1147,19 +1157,19 @@
     "uploadDate": "2026-02-12T01:55:47.388Z"
   },
   {
-    "title": "A Walk of Wonders Awaits",
-    "description": "A Walk of Wonders Awaits",
-    "thumbnail": "https://img.youtube.com/vi/47Vd5CezWiI/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/47Vd5CezWiI",
-    "uploadDate": "2026-02-18T16:15:44.877Z",
-    "duration": "",
-    "category": "Brands",
-    "hostedOn": "youtube"
-  },
-  {
     "title": "New York Sports Club | Hell's Kitchen",
     "thumbnail": "https://i.vimeocdn.com/video/841019119-d6c267c1a585cf531238706d66fcf94401b09a99cfc3e6505d444936b9c112cd-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/378723276",
+    "category": "Brands",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "T-Mobile | Winners Circle Sizzle",
+    "description": "T-Mobile: Winners Circle Sizzle",
+    "thumbnail": "https://i.vimeocdn.com/video/1356334895-48a78ad477f304d334f5dba31b37bc8eac597308ae55584a9cb6b17ee4aaac5c-d_1920x1080?&r=pad&region=us",
+    "videoUrl": "https://player.vimeo.com/video/542369134",
+    "uploadDate": "2026-01-21T08:19:55.745Z",
+    "duration": "PT42S",
     "category": "Brands",
     "hostedOn": "vimeo"
   },
@@ -1174,16 +1184,6 @@
     "title": "New York Sports Club | Astor Place",
     "thumbnail": "https://i.vimeocdn.com/video/839987944-891478f70ba9f07ac8dd341137e01b944b47d008c5366407319165f6754e5fbc-d_1280?region=us",
     "videoUrl": "https://player.vimeo.com/video/378947564",
-    "category": "Brands",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "T-Mobile | Winners Circle Sizzle",
-    "description": "T-Mobile: Winners Circle Sizzle",
-    "thumbnail": "https://i.vimeocdn.com/video/1356334895-48a78ad477f304d334f5dba31b37bc8eac597308ae55584a9cb6b17ee4aaac5c-d_1920x1080?&r=pad&region=us",
-    "videoUrl": "https://player.vimeo.com/video/542369134",
-    "uploadDate": "2026-01-21T08:19:55.745Z",
-    "duration": "PT42S",
     "category": "Brands",
     "hostedOn": "vimeo"
   },
@@ -1263,9 +1263,12 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Our 2023 CAMPers Talk CAMP!",
-    "thumbnail": "https://i.ytimg.com/vi/53VNlroxHiw/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/53VNlroxHiw",
+    "title": "Akira Uchida, DLNY Lab Cycle Choreographer",
+    "description": "Akira Uchida, DLNY Lab Cycle Choreographer",
+    "thumbnail": "https://img.youtube.com/vi/S57xZUnhwuI/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/S57xZUnhwuI",
+    "uploadDate": "2026-02-18T17:07:21.785Z",
+    "duration": "",
     "category": "Nonprofits",
     "hostedOn": "youtube"
   },
@@ -1280,20 +1283,30 @@
     "hostedOn": "vimeo"
   },
   {
-    "title": "Akira Uchida, DLNY Lab Cycle Choreographer",
-    "description": "Akira Uchida, DLNY Lab Cycle Choreographer",
-    "thumbnail": "https://img.youtube.com/vi/S57xZUnhwuI/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/S57xZUnhwuI",
-    "uploadDate": "2026-02-18T17:07:21.785Z",
+    "title": "DLNY Tap Dance Project, Spring 2021",
+    "description": "DLNY Tap Dance Project, Spring 2021",
+    "thumbnail": "https://img.youtube.com/vi/TMR_OZ8Au2Q/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/TMR_OZ8Au2Q",
+    "uploadDate": "2026-02-18T17:07:21.786Z",
     "duration": "",
     "category": "Nonprofits",
     "hostedOn": "youtube"
   },
   {
-    "title": "Will Ervin Jr, DLNY Lab Cycle Choreographer",
-    "description": "Will Ervin Jr, DLNY Lab Cycle Choreographer",
-    "thumbnail": "https://img.youtube.com/vi/jgkvtXK42a0/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/jgkvtXK42a0",
+    "title": "Dan Cohen for New York City Council District 7",
+    "description": "Dan Cohen for New York City Council District 7",
+    "thumbnail": "https://img.youtube.com/vi/tOWeQQruXcs/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/tOWeQQruXcs",
+    "uploadDate": "2026-02-18T17:12:13.856Z",
+    "duration": "",
+    "category": "Nonprofits",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Dava Huesca, DLNY Lab Cycle Choreographer",
+    "description": "Dava Huesca, DLNY Lab Cycle Choreographer",
+    "thumbnail": "https://img.youtube.com/vi/Gsc566JYiFg/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/Gsc566JYiFg",
     "uploadDate": "2026-02-18T17:07:21.786Z",
     "duration": "",
     "category": "Nonprofits",
@@ -1310,14 +1323,14 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "DLNY Tap Dance Project, Spring 2021",
-    "description": "DLNY Tap Dance Project, Spring 2021",
-    "thumbnail": "https://img.youtube.com/vi/TMR_OZ8Au2Q/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/TMR_OZ8Au2Q",
-    "uploadDate": "2026-02-18T17:07:21.786Z",
+    "title": "Khari Edwards for Brooklyn Borough President - Launch",
+    "description": "Khari Edwards for Brooklyn Borough President - Launch",
+    "thumbnail": "https://i.vimeocdn.com/video/2008973006-da14fd7a2df24a9f3e89c6220f02b99eafff892403dc9f1db71ca1dbf8ea1c96-d_295x166?region=us",
+    "videoUrl": "https://vimeo.com/1078691418/c3464b5d33",
+    "uploadDate": "2026-02-18T16:15:44.878Z",
     "duration": "",
     "category": "Nonprofits",
-    "hostedOn": "youtube"
+    "hostedOn": "vimeo"
   },
   {
     "title": "Madison Hicks, DLNY Lab Cycle Choreographer",
@@ -1330,11 +1343,18 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Dava Huesca, DLNY Lab Cycle Choreographer",
-    "description": "Dava Huesca, DLNY Lab Cycle Choreographer",
-    "thumbnail": "https://img.youtube.com/vi/Gsc566JYiFg/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/Gsc566JYiFg",
-    "uploadDate": "2026-02-18T17:07:21.786Z",
+    "title": "Our 2023 CAMPers Talk CAMP!",
+    "thumbnail": "https://i.ytimg.com/vi/53VNlroxHiw/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/53VNlroxHiw",
+    "category": "Nonprofits",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Rita Joseph for City Council - Vision",
+    "description": "Rita Joseph for City Council - Vision",
+    "thumbnail": "https://img.youtube.com/vi/y1cEemTOONs/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/y1cEemTOONs",
+    "uploadDate": "2026-02-18T17:12:13.855Z",
     "duration": "",
     "category": "Nonprofits",
     "hostedOn": "youtube"
@@ -1350,41 +1370,14 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Khari Edwards for Brooklyn Borough President - Launch",
-    "description": "Khari Edwards for Brooklyn Borough President - Launch",
-    "thumbnail": "https://i.vimeocdn.com/video/2008973006-da14fd7a2df24a9f3e89c6220f02b99eafff892403dc9f1db71ca1dbf8ea1c96-d_295x166?region=us",
-    "videoUrl": "https://vimeo.com/1078691418/c3464b5d33",
-    "uploadDate": "2026-02-18T16:15:44.878Z",
-    "duration": "",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
-  },
-  {
-    "title": "Rita Joseph for City Council - Vision",
-    "description": "Rita Joseph for City Council - Vision",
-    "thumbnail": "https://img.youtube.com/vi/y1cEemTOONs/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/y1cEemTOONs",
-    "uploadDate": "2026-02-18T17:12:13.855Z",
+    "title": "Will Ervin Jr, DLNY Lab Cycle Choreographer",
+    "description": "Will Ervin Jr, DLNY Lab Cycle Choreographer",
+    "thumbnail": "https://img.youtube.com/vi/jgkvtXK42a0/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/jgkvtXK42a0",
+    "uploadDate": "2026-02-18T17:07:21.786Z",
     "duration": "",
     "category": "Nonprofits",
     "hostedOn": "youtube"
-  },
-  {
-    "title": "Dan Cohen for New York City Council District 7",
-    "description": "Dan Cohen for New York City Council District 7",
-    "thumbnail": "https://img.youtube.com/vi/tOWeQQruXcs/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/tOWeQQruXcs",
-    "uploadDate": "2026-02-18T17:12:13.856Z",
-    "duration": "",
-    "category": "Nonprofits",
-    "hostedOn": "youtube"
-  },
-  {
-    "title": "American Cancer Society | Allan Shedlin Memorial Golf Classic 2022",
-    "thumbnail": "https://i.vimeocdn.com/video/1453556471-d183bde6cc856a27429579fddbcd54cecf1e9be49f017672386c0bbaaf1c8e34-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/721766009",
-    "category": "Nonprofits",
-    "hostedOn": "vimeo"
   },
   {
     "title": "Khari Edwards for Brooklyn Borough President - Mom was My Hero",
@@ -1393,6 +1386,13 @@
     "videoUrl": "https://vimeo.com/1084277789/31d6b479d4",
     "uploadDate": "2026-02-18T16:15:44.878Z",
     "duration": "",
+    "category": "Nonprofits",
+    "hostedOn": "vimeo"
+  },
+  {
+    "title": "American Cancer Society | Allan Shedlin Memorial Golf Classic 2022",
+    "thumbnail": "https://i.vimeocdn.com/video/1453556471-d183bde6cc856a27429579fddbcd54cecf1e9be49f017672386c0bbaaf1c8e34-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/721766009",
     "category": "Nonprofits",
     "hostedOn": "vimeo"
   },
@@ -1469,16 +1469,6 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Elton John and Shamina Singh discuss a world where no-one gets left behind",
-    "description": "Elton John and Shamina Singh discuss a world where no-one gets left behind",
-    "thumbnail": "https://img.youtube.com/vi/WSwkAGxzpfc/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/WSwkAGxzpfc",
-    "uploadDate": "2026-02-23T00:00:00.000Z",
-    "duration": "",
-    "category": "New Media",
-    "hostedOn": "youtube"
-  },
-  {
     "title": "The Dream Blunt Rotation w/ Rico Nasty, Tony Hawk, Yamaneika Saunders & Derrick Beckles",
     "description": "The Dream Blunt Rotation w/ Rico Nasty, Tony Hawk, Yamaneika Saunders & Derrick Beckles",
     "thumbnail": "https://img.youtube.com/vi/FPdlYDZuwRM/maxresdefault.jpg",
@@ -1489,11 +1479,14 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "Elegant Music Group | VLOG Six",
-    "thumbnail": "https://i.vimeocdn.com/video/1711919927-5031143b1629b6e725b72b0f598293dae50526ac3e79d6ef6e0c898738c03188-d_1280?region=us",
-    "videoUrl": "https://player.vimeo.com/video/855141398",
+    "title": "Elton John and Shamina Singh discuss a world where no-one gets left behind",
+    "description": "Elton John and Shamina Singh discuss a world where no-one gets left behind",
+    "thumbnail": "https://img.youtube.com/vi/WSwkAGxzpfc/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/WSwkAGxzpfc",
+    "uploadDate": "2026-02-23T00:00:00.000Z",
+    "duration": "",
     "category": "New Media",
-    "hostedOn": "vimeo"
+    "hostedOn": "youtube"
   },
   {
     "title": "Sitting Down with the Cast and EP of ‘The ’Burbs’ | Baby, this is Keke Palmer",
@@ -1526,14 +1519,11 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "EMG On The Move | Episode #7: The Gang's All Here",
-    "description": "EMG On The Move | Episode #7: The Gang's All Here",
-    "thumbnail": "https://img.youtube.com/vi/IPzHgbqLQ2o/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/IPzHgbqLQ2o",
-    "uploadDate": "2026-02-18T16:48:55.126Z",
-    "duration": "",
+    "title": "Elegant Music Group | VLOG Six",
+    "thumbnail": "https://i.vimeocdn.com/video/1711919927-5031143b1629b6e725b72b0f598293dae50526ac3e79d6ef6e0c898738c03188-d_1280?region=us",
+    "videoUrl": "https://player.vimeo.com/video/855141398",
     "category": "New Media",
-    "hostedOn": "youtube"
+    "hostedOn": "vimeo"
   },
   {
     "title": "Jodie Comer | 2023 Tony Awards First Impressions",
@@ -1556,10 +1546,10 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "EMG on the Move | Episode #5: Unexpected Expansion",
-    "description": "EMG on the Move | Episode #5: Unexpected Expansion",
-    "thumbnail": "https://img.youtube.com/vi/WCFU8GlKOq4/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/WCFU8GlKOq4",
+    "title": "EMG On The Move | Episode #7: The Gang's All Here",
+    "description": "EMG On The Move | Episode #7: The Gang's All Here",
+    "thumbnail": "https://img.youtube.com/vi/IPzHgbqLQ2o/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/IPzHgbqLQ2o",
     "uploadDate": "2026-02-18T16:48:55.126Z",
     "duration": "",
     "category": "New Media",
@@ -1576,10 +1566,10 @@
     "hostedOn": "youtube"
   },
   {
-    "title": "EMG on the Move | Episode #4: Progress",
-    "description": "EMG on the Move | Episode #4: Progress",
-    "thumbnail": "https://img.youtube.com/vi/EHfRRNHX1-s/hqdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/EHfRRNHX1-s",
+    "title": "EMG on the Move | Episode #5: Unexpected Expansion",
+    "description": "EMG on the Move | Episode #5: Unexpected Expansion",
+    "thumbnail": "https://img.youtube.com/vi/WCFU8GlKOq4/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/WCFU8GlKOq4",
     "uploadDate": "2026-02-18T16:48:55.126Z",
     "duration": "",
     "category": "New Media",
@@ -1592,6 +1582,16 @@
     "videoUrl": "https://www.youtube.com/embed/XpyvXLCZMOo",
     "uploadDate": "2023-06-06T02:34:21.730Z",
     "duration": "PT1M55S",
+    "category": "New Media",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "EMG on the Move | Episode #4: Progress",
+    "description": "EMG on the Move | Episode #4: Progress",
+    "thumbnail": "https://img.youtube.com/vi/EHfRRNHX1-s/hqdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/EHfRRNHX1-s",
+    "uploadDate": "2026-02-18T16:48:55.126Z",
+    "duration": "",
     "category": "New Media",
     "hostedOn": "youtube"
   },
