@@ -333,6 +333,20 @@ export default function ArchiveClient() {
 
   return (
     <main className="min-h-screen bg-black text-white p-4 md:p-12 pt-24 md:pt-40 overflow-x-hidden">
+      {/* Mobile Logo */}
+      <div className="md:hidden flex justify-center mb-8">
+        <Link href="/">
+          <Image 
+            src="/Zipline Logo FULL Blue.png" 
+            alt="ZIPLINE" 
+            width={180}
+            height={50}
+            className="w-40 h-auto object-contain"
+            priority
+          />
+        </Link>
+      </div>
+
       <div className="max-w-[1800px] mx-auto">
         <header className="mb-12 md:mb-20 flex flex-col gap-6 md:gap-8">
           <Link 

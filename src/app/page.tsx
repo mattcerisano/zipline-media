@@ -13,6 +13,15 @@ function Hero() {
   const text = "zzzzip";
   const letters = text.split("");
 
+  useEffect(() => {
+    if (!isIntroComplete) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => { document.body.style.overflow = 'auto'; };
+  }, [isIntroComplete]);
+
   return (
     <section id="home" className="relative h-dvh w-full overflow-hidden flex items-center justify-center bg-black">
       {/* --- INTRO ANIMATION LAYER --- */}
