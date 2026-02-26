@@ -605,9 +605,9 @@ function Social() {
 
   return (
     <section className="pt-12 pb-8 bg-black overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 mb-12 text-center md:text-left">
+      <div className="max-w-7xl mx-auto px-6 mb-12 text-center">
         <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase mb-4">Social First</h2>
-        <p className="text-sm md:text-base opacity-60 max-w-xl mx-auto md:mx-0">
+        <p className="text-sm md:text-base opacity-60 max-w-xl mx-auto">
           If it can&apos;t fit into a 9:16, ya shoulda been wider. We consider the social post from the start of every project to stop the scroll.
         </p>
       </div>
