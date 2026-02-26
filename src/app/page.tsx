@@ -656,20 +656,18 @@ function About() {
       </div>
 
       {/* 3. Mission Text */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 w-full items-start">
-        <div className="lg:col-span-5">
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight"
-          >
-            We don&apos;t do &quot;Marketing Speak.&quot; <br/>
-            <span className="text-[var(--accent)]">We just make it look cool.</span>
-          </motion.h2>
-        </div>
+      <div className="max-w-4xl mx-auto text-center space-y-12">
+        <motion.h2 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight"
+        >
+          We don&apos;t do &quot;Marketing Speak.&quot; <br/>
+          <span className="text-[var(--accent)]">We just make it look cool.</span>
+        </motion.h2>
         
-        <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium text-left">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium text-left md:text-center">
           <p>
             We&apos;re the kind of team that can pivot on a dime and still make it look intentional. Big, glossy TV spots? Done. TikToks that don&apos;t feel like ads? Absolutely. Social campaigns, branded docs, narrative pieces&mdash;this is our playground.
           </p>
@@ -714,20 +712,18 @@ function Contact() {
   }
 
   return (
-    <section id="contact" className="py-12 md:py-16 px-6 max-w-7xl mx-auto flex flex-col justify-center scroll-mt-24">
-      <div className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-start">
-        <div className="w-full lg:w-[35%] text-left py-4">
+    <section id="contact" className="py-12 md:py-24 px-6 max-w-4xl mx-auto flex flex-col items-center justify-center scroll-mt-24 text-center">
+      <div className="w-full space-y-16">
+        <div className="space-y-8">
           <motion.div
              initial={{ opacity: 0, y: 20 }}
              whileInView={{ opacity: 1, y: 0 }}
              viewport={{ once: true }}
              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
-        <motion.h2 
-          className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.5] mb-8"
-        >
-          LET&apos;S CONNECT.
-        </motion.h2>
+            <h2 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter uppercase leading-none">
+              LET&apos;S CONNECT.
+            </h2>
           </motion.div>
           
           <motion.div 
@@ -735,12 +731,13 @@ function Contact() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.4, duration: 0.8 }}
+            className="flex flex-col items-center"
           >
-            <p className="text-lg md:text-xl opacity-60 max-w-md mb-12">
+            <p className="text-lg md:text-xl opacity-60 max-w-2xl mb-8">
               Have a project and don&apos;t know where to begin? Drop us a line and say hello!
             </p>
             
-            <div className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-12">
               <p className="text-xs tracking-[0.3em] font-bold uppercase">CONTACT@ZIPLINE.MEDIA</p>
               <p className="text-xs tracking-[0.3em] font-bold uppercase opacity-40">NEW YORK, NY</p>
             </div>
@@ -748,15 +745,15 @@ function Contact() {
         </div>
 
         <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          whileInView={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="w-full lg:w-[65%]"
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="w-full"
         >
           <form 
             onSubmit={handleSubmit}
-            className="space-y-10 bg-neutral-900/30 p-8 md:p-12 border border-white/5 text-left"
+            className="space-y-10 bg-neutral-900/30 p-8 md:p-12 border border-white/5 text-left max-w-3xl mx-auto"
           >
             {/* Formspree Subject Customization */}
             <input type="hidden" name="_subject" value="New Inquiry from Zipline Website" />
