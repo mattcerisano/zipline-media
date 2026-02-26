@@ -716,7 +716,7 @@ function Contact() {
              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
             <h2 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter uppercase leading-none">
-              LET&apos;S CONNECT.
+              LET&apos;S&nbsp;&nbsp;CONNECT.
             </h2>
           </motion.div>
           
