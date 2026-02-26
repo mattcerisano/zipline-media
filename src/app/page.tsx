@@ -715,8 +715,10 @@ function Contact() {
              viewport={{ once: true }}
              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h2 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter uppercase leading-none">
-              LET&apos;S&nbsp;&nbsp;CONNECT.
+            <h2 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter uppercase leading-[0.9] md:leading-none">
+              LET&apos;S<br className="md:hidden" />
+              <span className="hidden md:inline">&nbsp;&nbsp;</span>
+              CONNECT.
             </h2>
           </motion.div>
           
