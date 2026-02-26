@@ -35,6 +35,7 @@ function HeroVideo({ video, onPlay }: { video: Video; onPlay: (url: string) => v
         fill
         sizes="(max-width: 1280px) 100vw, 60vw"
         priority
+        unoptimized
         className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-700"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60" />
@@ -101,6 +102,7 @@ function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeV
               alt={video.title}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+              unoptimized
               className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
             />
             {isActive && (
@@ -332,9 +334,9 @@ export default function ArchiveClient() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 md:p-12 pt-24 md:pt-40 overflow-x-hidden">
+    <main className="min-h-screen bg-black text-white p-4 md:p-12 pt-12 md:pt-20 overflow-x-hidden">
       {/* Mobile Logo */}
-      <div className="md:hidden flex justify-center mb-6 mt-[-20px]">
+      <div className="md:hidden flex justify-center mb-4 mt-[-10px]">
         <Link href="/">
           <Image 
             src="/Zipline Logo FULL Blue.png" 
@@ -378,7 +380,7 @@ export default function ArchiveClient() {
                 placeholder="SEARCH ARCHIVE..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-neutral-900 border border-white/10 rounded-full py-2 md:py-4 pl-10 md:pl-12 pr-6 text-[10px] md:text-sm font-bold tracking-widest uppercase focus:outline-none focus:border-[var(--accent)] transition-colors text-white placeholder:text-white/30"
+                className="w-full bg-neutral-900 border border-white/10 rounded-full py-2 md:py-4 pl-10 md:pl-12 pr-6 text-base md:text-sm font-bold tracking-widest uppercase focus:outline-none focus:border-[var(--accent)] transition-colors text-white placeholder:text-white/30"
               />
               {searchQuery && (
                 <button 
@@ -422,6 +424,7 @@ export default function ArchiveClient() {
                         alt={video.title}
                         fill
                         sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        unoptimized
                         className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                       />
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
@@ -476,6 +479,7 @@ export default function ArchiveClient() {
                         alt={video.title}
                         fill
                         sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                        unoptimized
                         className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out"
                       />
                       <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
