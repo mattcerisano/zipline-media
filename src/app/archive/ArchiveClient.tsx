@@ -91,7 +91,7 @@ function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeV
             whileHover={{ scale: 1.03, zIndex: 20 }}
             className={`group relative aspect-video bg-neutral-900 border transition-all duration-300 rounded-sm overflow-hidden text-left
               ${isActive 
-                ? 'border-white/10 xl:border-[var(--accent)] opacity-100 xl:ring-1 xl:ring-[var(--accent)] z-10' 
+                ? 'border-white/10 xl:border-[var(--accent)] opacity-70 xl:opacity-100 xl:ring-1 xl:ring-[var(--accent)] z-10' 
                 : 'border-white/10 opacity-70 hover:opacity-100 hover:border-white/30'
               }
             `}

@@ -448,47 +448,52 @@ function Work() {
 
 function LazyVideo({ src, poster, title }: { src: string, poster?: string, title: string }) {
   const [inView, setInView] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setInView(true);
-        observer.disconnect();
+      setInView(entry.isIntersecting);
+      if (!entry.isIntersecting) {
+        setVideoLoaded(false);
       }
-    }, { rootMargin: '400px' });
+    }, { 
+      // Very tight margin for mobile to keep active video count low
+      rootMargin: window.innerWidth < 768 ? '100px' : '400px',
+      threshold: 0.01 
+    });
     
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
-  // Detection for mobile to avoid loading videos on slow connections
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-
   return (
     <div ref={ref} className="absolute inset-0 w-full h-full bg-neutral-900 flex items-center justify-center">
-      {/* If we have a valid image poster, show it. Otherwise show a placeholder with the title */}
-      {poster && (poster.endsWith('.jpg') || poster.endsWith('.png') || poster.includes('ytimg.com') || poster.includes('vimeocdn.com')) ? (
+      {/* Poster layer: always present as fallback, fades out when video is ready */}
+      {poster && (
         <Image 
           src={poster} 
           alt={title}
           fill
           unoptimized={poster.includes('ytimg.com') || poster.includes('vimeocdn.com')}
-          className={`object-cover transition-opacity duration-1000 ${(!isMobile && inView) ? 'opacity-0' : 'opacity-100'}`}
+          className={`object-cover transition-opacity duration-500 z-10 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}
         />
-      ) : (
-        <div className="text-[10px] font-bold uppercase opacity-20 text-center px-4 leading-tight">
+      )}
+      
+      {!poster && (
+        <div className={`absolute inset-0 flex items-center justify-center bg-neutral-800 text-[10px] font-bold uppercase opacity-20 text-center px-4 leading-tight z-10 transition-opacity ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}>
           {title}
         </div>
       )}
 
-      {/* Only load and play video on non-mobile devices when in view */}
-      {!isMobile && inView && (
+      {/* Load video when in view. Unmounting when out of view is key for mobile stability. */}
+      {inView && (
         <video 
           autoPlay
           muted 
           loop 
           playsInline
+          onPlaying={() => setVideoLoaded(true)}
           className="absolute inset-0 w-full h-full object-cover z-0"
         >
           <source src={src} type="video/mp4" />
