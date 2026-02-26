@@ -502,21 +502,21 @@ function Social() {
   const clips = [
     {
       title: "Death Becomes Her | Slapping",
-      thumbnail: "/DBH_Hero_SocialThumbnail.mp4", // No image yet
+      thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg", // Temporary fallback
       videoUrl: "#",
-      localVideo: "/DBH_Slapping.mov"
+      localVideo: "/DBH_Slapping.mp4"
     },
     {
       title: "MAC | Getting Dressed",
-      thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg", // Temporary fallback image
+      thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg", 
       videoUrl: "#",
-      localVideo: "/Mac_GettingDressed.mov"
+      localVideo: "/Mac_GettingDressed.mp4"
     },
     {
       title: "MAC | Lipstick Pop Off",
-      thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg", // Temporary fallback image
+      thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg", 
       videoUrl: "#",
-      localVideo: "/Mac_Lipstick.mov"
+      localVideo: "/Mac_Lipstick.mp4"
     },
     {
       title: "SIX | Broadway",
