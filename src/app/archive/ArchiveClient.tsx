@@ -334,58 +334,58 @@ export default function ArchiveClient() {
   return (
     <main className="min-h-screen bg-black text-white p-4 md:p-12 pt-24 md:pt-40 overflow-x-hidden">
       {/* Mobile Logo */}
-      <div className="md:hidden flex justify-center mb-8">
+      <div className="md:hidden flex justify-center mb-6 mt-[-20px]">
         <Link href="/">
           <Image 
             src="/Zipline Logo FULL Blue.png" 
             alt="ZIPLINE" 
             width={180}
             height={50}
-            className="w-40 h-auto object-contain"
+            className="w-32 h-auto object-contain"
             priority
           />
         </Link>
       </div>
 
       <div className="max-w-[1800px] mx-auto">
-        <header className="mb-12 md:mb-20 flex flex-col gap-6 md:gap-8">
+        <header className="mb-6 md:mb-20 flex flex-col gap-4 md:gap-8">
           <Link 
             href="/" 
             onClick={handleBackToHome}
-            className="flex items-center gap-2 text-xs md:text-sm uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-70 hover:opacity-100 py-2"
+            className="flex items-center gap-2 text-[10px] md:text-sm uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-70 hover:opacity-100 py-1 md:py-2"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3 h-3 md:w-4 md:h-4" />
             Back to Home
           </Link>
-          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 md:gap-8">
             <motion.h1 
               initial={isMobile ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-[5.5vw] sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.9] whitespace-nowrap"
+              className="text-[6vw] sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.9] whitespace-nowrap"
             >
               Video Repository
             </motion.h1>
 
             {/* Search Bar */}
             <motion.div 
-              className="relative w-full max-w-[240px] md:max-w-md xl:w-96"
+              className="relative w-full xl:w-96"
             >
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 text-white/50" />
               <input 
                 type="text" 
                 placeholder="SEARCH ARCHIVE..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-neutral-900 border border-white/10 rounded-full py-3 md:py-4 pl-12 pr-6 text-xs md:text-sm font-bold tracking-widest uppercase focus:outline-none focus:border-[var(--accent)] transition-colors text-white placeholder:text-white/30"
+                className="w-full bg-neutral-900 border border-white/10 rounded-full py-2 md:py-4 pl-10 md:pl-12 pr-6 text-[10px] md:text-sm font-bold tracking-widest uppercase focus:outline-none focus:border-[var(--accent)] transition-colors text-white placeholder:text-white/30"
               />
               {searchQuery && (
                 <button 
                   onClick={() => setSearchQuery('')}
                   className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:text-[var(--accent)] transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3 h-3 md:w-4 md:h-4" />
                 </button>
               )}
             </motion.div>
@@ -399,7 +399,7 @@ export default function ArchiveClient() {
             animate={{ opacity: 1 }}
             className="mb-32"
           >
-            <h2 className="text-xl font-bold uppercase tracking-widest mb-8 text-[var(--accent)] flex items-center gap-2">
+            <h2 className="hidden md:flex text-xl font-bold uppercase tracking-widest mb-8 text-[var(--accent)] items-center gap-2">
               <Search className="w-5 h-5" />
               Search Results ({searchResults.length})
             </h2>
