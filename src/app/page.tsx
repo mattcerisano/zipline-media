@@ -256,7 +256,7 @@ function Work() {
                 aria-label={`View ${cat.title} Projects`} 
               />
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                 <div className="flex items-end gap-3 mb-2">
                   <h2 className="text-xl font-black uppercase tracking-tighter text-white leading-none">
                     {cat.title}
@@ -300,7 +300,7 @@ function Work() {
               aria-label="View Performance Projects" 
             />
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent p-10 flex flex-col justify-end items-start pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent p-10 flex flex-col justify-end items-start pointer-events-none">
                <motion.div layout className="flex items-end gap-4">
                  <motion.h2 
                    layout
@@ -353,7 +353,7 @@ function Work() {
                 aria-label="View Brands Projects" 
               />
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                  <motion.div layout className="flex items-end gap-4">
                    <motion.h2 
                      layout
@@ -400,7 +400,7 @@ function Work() {
                 aria-label="View New Media Projects" 
               />
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                  <motion.div layout className="flex items-end gap-4">
                    <motion.h2 
                      layout
