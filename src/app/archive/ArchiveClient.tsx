@@ -35,9 +35,9 @@ function HeroVideo({ video, onPlay }: { video: Video; onPlay: (url: string) => v
         fill
         sizes="(max-width: 1280px) 100vw, 60vw"
         priority
-        className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-700"
+        className="w-full h-full object-cover transition-all duration-700"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
       
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-90 group-hover:scale-100 transition-transform">
@@ -91,8 +91,8 @@ function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeV
             whileHover={{ scale: 1.03, zIndex: 20 }}
             className={`group relative aspect-video bg-neutral-900 border transition-all duration-300 rounded-sm overflow-hidden text-left
               ${isActive 
-                ? 'border-white/10 xl:border-[var(--accent)] opacity-70 xl:opacity-100 xl:ring-1 xl:ring-[var(--accent)] z-10' 
-                : 'border-white/10 opacity-70 hover:opacity-100 hover:border-white/30'
+                ? 'border-white/10 xl:border-[var(--accent)] xl:ring-1 xl:ring-[var(--accent)] z-10' 
+                : 'border-white/10 hover:border-white/30'
               }
             `}
           >
@@ -101,7 +101,7 @@ function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeV
               alt={video.title}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw"
-              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+              className="w-full h-full object-cover transition-opacity duration-500"
             />
             {isActive && (
               <div className="hidden xl:flex absolute inset-0 bg-[var(--accent)]/20 items-center justify-center">
@@ -422,9 +422,9 @@ export default function ArchiveClient() {
                         alt={video.title}
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                        className="w-full h-full object-cover opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-all duration-500"
                       />
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                      <div className="absolute inset-0 bg-transparent transition-colors" />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
                           <Play className="w-5 h-5 text-white fill-white ml-0.5" />
@@ -476,16 +476,16 @@ export default function ArchiveClient() {
                         alt={video.title}
                         fill
                         sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 20vw, 15vw"
-                        className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700 ease-out"
                       />
-                      <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500" />
+                      <div className="absolute inset-0 bg-transparent transition-colors duration-500" />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
                           <Play className="w-4 h-4 text-white fill-white ml-0.5" />
                         </div>
                       </div>
                     </div>
-                    <h3 className="font-bold text-[10px] md:text-xs uppercase tracking-wider leading-snug group-hover:text-[var(--accent)] transition-colors opacity-60 group-hover:opacity-100 duration-300 line-clamp-2">
+                    <h3 className="font-bold text-[10px] md:text-xs uppercase tracking-wider leading-snug group-hover:text-[var(--accent)] transition-colors duration-300 line-clamp-2">
                       {video.title}
                     </h3>
                   </motion.button>
