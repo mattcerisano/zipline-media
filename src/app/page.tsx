@@ -238,13 +238,13 @@ function Work() {
         {/* --- MOBILE LAYOUT (Simple Stack) --- */}
         <div className="flex flex-col gap-6 md:hidden">
           {categories.map((cat) => (
-            <div key={cat.id} className="relative w-full h-[50vh] rounded-2xl overflow-hidden border border-white/10 bg-neutral-900 group">
+            <div key={cat.id} className="relative w-full h-[50vh] rounded-2xl overflow-hidden border border-white/10 bg-black group">
               <video
                 autoPlay
                 muted
                 loop
                 playsInline
-                className="absolute inset-0 w-full h-full object-cover opacity-60"
+                className="absolute inset-0 w-full h-full object-cover"
               >
                 <source src={cat.video} type="video/mp4" />
               </video>
@@ -256,7 +256,7 @@ function Work() {
                 aria-label={`View ${cat.title} Projects`} 
               />
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                 <div className="flex items-end gap-3 mb-2">
                   <h2 className="text-xl font-black uppercase tracking-tighter text-white leading-none">
                     {cat.title}
@@ -276,15 +276,11 @@ function Work() {
             onMouseEnter={() => setHoveredId('performance')}
             onMouseLeave={() => setHoveredId(null)}
             transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="relative overflow-hidden group rounded-2xl border border-white/10 bg-neutral-900 h-full cursor-pointer"
+            className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black h-full cursor-pointer"
             style={{ flex: getFlexGrow('performance') }}
           >
             <motion.div 
               className="absolute inset-0 w-full h-full"
-              animate={{ 
-                opacity: (hoveredId && hoveredId !== 'performance') ? 0.4 : 1,
-              }}
-              transition={{ duration: 0.5 }}
             >
               <video
                 autoPlay
@@ -304,7 +300,7 @@ function Work() {
               aria-label="View Performance Projects" 
             />
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-10 flex flex-col justify-end items-start pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent p-10 flex flex-col justify-end items-start pointer-events-none">
                <motion.div layout className="flex items-end gap-4">
                  <motion.h2 
                    layout
@@ -333,15 +329,11 @@ function Work() {
               onMouseEnter={() => setHoveredId('brands')}
               onMouseLeave={() => setHoveredId(null)}
               transition={{ duration: 0.4, ease: "easeInOut" }}
-              className="relative overflow-hidden group rounded-2xl border border-white/10 bg-neutral-900 w-full cursor-pointer"
+              className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black w-full cursor-pointer"
               style={{ flex: getFlexGrow('brands', true) }}
             >
                <motion.div 
                  className="absolute inset-0 w-full h-full"
-                 animate={{ 
-                   opacity: (hoveredId && hoveredId !== 'brands') ? 0.4 : 1,
-                 }}
-                 transition={{ duration: 0.5 }}
                >
                  <video
                   autoPlay
@@ -361,7 +353,7 @@ function Work() {
                 aria-label="View Brands Projects" 
               />
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                  <motion.div layout className="flex items-end gap-4">
                    <motion.h2 
                      layout
@@ -384,15 +376,11 @@ function Work() {
               onMouseEnter={() => setHoveredId('new-media')}
               onMouseLeave={() => setHoveredId(null)}
               transition={{ duration: 0.4, ease: "easeInOut" }}
-              className="relative overflow-hidden group rounded-2xl border border-white/10 bg-neutral-900 w-full cursor-pointer"
+              className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black w-full cursor-pointer"
               style={{ flex: getFlexGrow('new-media', true) }}
             >
                <motion.div 
                  className="absolute inset-0 w-full h-full"
-                 animate={{ 
-                   opacity: (hoveredId && hoveredId !== 'new-media') ? 0.4 : 1,
-                 }}
-                 transition={{ duration: 0.5 }}
                >
                  <video
                   autoPlay
@@ -412,7 +400,7 @@ function Work() {
                 aria-label="View New Media Projects" 
               />
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
                  <motion.div layout className="flex items-end gap-4">
                    <motion.h2 
                      layout
