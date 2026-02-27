@@ -661,7 +661,7 @@ function About() {
           <span className="text-[var(--accent)]">We just make it look cool.</span>
         </motion.h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium text-left md:text-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium text-center">
           <p>
             We&apos;re the kind of team that can pivot on a dime and still make it look intentional. Big, glossy TV spots? Done. TikToks that don&apos;t feel like ads? Absolutely. Social campaigns, branded docs, narrative pieces&mdash;this is our playground.
           </p>
@@ -717,7 +717,7 @@ function Contact() {
           >
             <h2 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter uppercase leading-[1.3] md:leading-none">
               LET&apos;S<br className="md:hidden" />
-              <span className="hidden md:inline">&nbsp;&nbsp;&nbsp;&nbsp;</span>
+              <span className="hidden md:inline">&nbsp;</span>
               CONNECT.
             </h2>
           </motion.div>
@@ -729,7 +729,7 @@ function Contact() {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="flex flex-col items-center"
           >
-            <p className="text-lg md:text-xl opacity-60 max-w-2xl mb-8">
+            <p className="text-lg md:text-xl opacity-60 max-w-2xl mb-8 text-center">
               Have a project and don&apos;t know where to begin? Drop us a line and say hello!
             </p>
             
