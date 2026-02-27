@@ -12,8 +12,8 @@
     "dist": "electron-builder"
   },
   "build": {
-    "appId": "com.ziplinemedia.crew",
-    "productName": "Zipline Crew",
+    "appId": "com.ziplinemedia.app",
+    "productName": "Zipline Media",
     "mac": {
       "category": "public.app-category.productivity",
       "target": "dmg"

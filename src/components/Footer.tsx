@@ -5,10 +5,6 @@ import { usePathname } from 'next/navigation';
 import { Instagram, Linkedin, Video } from 'lucide-react'; // Using Video as Vimeo placeholder if needed, or text
 
 export default function Footer() {
-  const pathname = usePathname();
-
-  if (pathname?.startsWith('/crew')) return null;
-
   return (
 
     <footer className="bg-black border-t border-white/10 pt-12 md:pt-20 pb-8 md:pb-10 px-6">

@@ -10,7 +10,7 @@ const createMainWindow = () => {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
-    title: "Zipline Crew",
+    title: "Zipline Media",
     icon: path.join(__dirname, '../public/Zipline Logo 10x10_Black Text Blue.png'),
     webPreferences: {
       nodeIntegration: false,
@@ -21,8 +21,8 @@ const createMainWindow = () => {
 
   const isDev = !app.isPackaged;
   const startUrl = isDev 
-    ? 'http://localhost:3000/crew' 
-    : 'https://www.zipline.media/crew';
+    ? 'http://localhost:3000' 
+    : 'https://www.zipline.media';
 
   console.log(`Loading URL: ${startUrl}`);
   mainWindow.loadURL(startUrl, {

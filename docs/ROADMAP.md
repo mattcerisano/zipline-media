@@ -13,13 +13,6 @@
 - [ ] **Landing Thumbnail:** Design a high-quality thumbnail/poster frame for the main landing page video.
 - [x] **Social Splash Thumbnail:** Create a dedicated splash thumbnail for social media sharing and video embeds.
 
-## 🛠 Internal Crew Portal (`/crew`) Roadmap
-- [ ] **Authentication:** Replace hardcoded `admin`/`zipline` with a real database auth (e.g., Supabase + NextAuth) for multi-user accounts.
-- [ ] **Database Integration:** Move `contacts.ts` and `inventory.ts` to a real database (Postgres/Supabase) so edits persist permanently.
-- [ ] **Calendar:** Build out the "Production Calendar" tab (currently a placeholder).
-- [ ] **PDF Styling:** Refine the PDF export style for Call Sheets to match the new "cinematic" brand.
-- [ ] **Gear Check-In/Out:** Add logic to track who has what gear (inventory management).
-
 ## 📂 Project Structure
 Your project is consolidated in:  
 `~/Documents/zipline-media`
