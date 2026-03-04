@@ -122,6 +122,20 @@ function Hero() {
         >
           PRE. PROD. POST.
         </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
+          transition={{ delay: 1, duration: 1.2 }}
+          className="mt-10"
+        >
+          <a 
+            href="/archive" 
+            className="inline-block border border-white/20 px-8 py-4 text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase hover:bg-white hover:text-black transition-all duration-300"
+          >
+            See our work
+          </a>
+        </motion.div>
       </div>
 
       <motion.div 
@@ -182,25 +196,6 @@ function Hero() {
 
 function Work() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-
-  // Helper to determine flex-grow values based on hover state (Desktop Only)
-  const getFlexGrow = (id: string, isRightColumn = false) => {
-    if (!hoveredId) return isRightColumn ? 1 : 1.5; 
-    
-    if (isRightColumn) {
-       if (hoveredId === id) return 3; 
-       if (['brands', 'new-media'].includes(hoveredId)) return 1; 
-       return 1; 
-    }
-
-    if (id === 'performance') {
-       return hoveredId === 'performance' ? 2 : 1;
-    }
-    if (id === 'right-wrapper') {
-       return ['brands', 'new-media'].includes(hoveredId) ? 2 : 1;
-    }
-    return 1;
-  };
 
   const categories = [
     { id: 'performance', title: 'Performance', video: '/broadway-performance.mp4', link: '/archive#performance' },
@@ -272,12 +267,13 @@ function Work() {
           
           {/* LEFT COLUMN (Performance) */}
           <motion.div 
-            layout
             onMouseEnter={() => setHoveredId('performance')}
             onMouseLeave={() => setHoveredId(null)}
+            animate={{ 
+              opacity: hoveredId && hoveredId !== 'performance' ? 0.3 : 1
+            }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black h-full cursor-pointer"
-            style={{ flex: getFlexGrow('performance') }}
+            className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black h-full cursor-pointer flex-[1.5]"
           >
             <motion.div 
               className="absolute inset-0 w-full h-full"
@@ -301,9 +297,8 @@ function Work() {
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent p-10 flex flex-col justify-end items-start pointer-events-none">
-               <motion.div layout className="flex items-end gap-4">
+               <div className="flex items-end gap-4">
                  <motion.h2 
-                   layout
                    className="font-black uppercase tracking-tighter text-white leading-none whitespace-nowrap"
                    animate={{ 
                      scale: hoveredId === 'performance' ? 1.05 : 1,
@@ -313,24 +308,23 @@ function Work() {
                  >
                    Performance
                  </motion.h2>
-               </motion.div>
+               </div>
             </div>
           </motion.div>
 
           {/* RIGHT COLUMN WRAPPER */}
-          <motion.div 
-            layout
-            className="flex flex-col gap-4 h-full"
-            style={{ flex: getFlexGrow('right-wrapper') }}
+          <div 
+            className="flex flex-col gap-4 h-full flex-1"
           >
             {/* TOP RIGHT (Brands) */}
             <motion.div 
-              layout
               onMouseEnter={() => setHoveredId('brands')}
               onMouseLeave={() => setHoveredId(null)}
+              animate={{ 
+                opacity: hoveredId && hoveredId !== 'brands' ? 0.3 : 1
+              }}
               transition={{ duration: 0.4, ease: "easeInOut" }}
-              className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black w-full cursor-pointer"
-              style={{ flex: getFlexGrow('brands', true) }}
+              className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black w-full cursor-pointer flex-1"
             >
                <motion.div 
                  className="absolute inset-0 w-full h-full"
@@ -354,9 +348,8 @@ function Work() {
               />
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
-                 <motion.div layout className="flex items-end gap-4">
+                 <div className="flex items-end gap-4">
                    <motion.h2 
-                     layout
                      className="font-black uppercase tracking-tighter text-white leading-none"
                      animate={{ 
                        scale: hoveredId === 'brands' ? 1.05 : 1,
@@ -366,18 +359,19 @@ function Work() {
                    >
                      Brands
                    </motion.h2>
-               </motion.div>
+               </div>
             </div>
           </motion.div>
 
             {/* BOTTOM RIGHT (New Media) */}
             <motion.div 
-              layout
               onMouseEnter={() => setHoveredId('new-media')}
               onMouseLeave={() => setHoveredId(null)}
+              animate={{ 
+                opacity: hoveredId && hoveredId !== 'new-media' ? 0.3 : 1
+              }}
               transition={{ duration: 0.4, ease: "easeInOut" }}
-              className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black w-full cursor-pointer"
-              style={{ flex: getFlexGrow('new-media', true) }}
+              className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black w-full cursor-pointer flex-1"
             >
                <motion.div 
                  className="absolute inset-0 w-full h-full"
@@ -401,9 +395,8 @@ function Work() {
               />
 
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent p-8 flex flex-col justify-end items-start pointer-events-none">
-                 <motion.div layout className="flex items-end gap-4">
+                 <div className="flex items-end gap-4">
                    <motion.h2 
-                     layout
                      className="font-black uppercase tracking-tighter text-white leading-none"
                      animate={{ 
                        scale: hoveredId === 'new-media' ? 1.05 : 1,
@@ -413,11 +406,11 @@ function Work() {
                    >
                      New Media
                    </motion.h2>
-               </motion.div>
+               </div>
             </div>
           </motion.div>
 
-          </motion.div>
+          </div>
         </div>
 
       </div>

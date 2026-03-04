@@ -332,9 +332,9 @@ export default function ArchiveClient() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 md:p-12 pt-12 md:pt-20 overflow-x-hidden">
+    <main className="min-h-screen bg-black text-white p-4 md:p-12 pt-20 md:pt-32 overflow-x-hidden">
       {/* Mobile Logo */}
-      <div className="md:hidden flex justify-center mb-4 mt-[-10px]">
+      <div className="md:hidden flex justify-center mb-8">
         <Link href="/">
           <Image 
             src="/Zipline Logo FULL Blue.png" 
