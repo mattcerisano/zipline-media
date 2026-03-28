@@ -21,6 +21,7 @@ export const ALL_CATEGORIES = [
   "Comms",
   "Carts/Cases",
   "Computing",
+  "Backdrops",
   "Specialty"
 ];
 
@@ -114,6 +115,7 @@ export const INVENTORY: InventoryItem[] = [
   {name: 'Flycam Flowline (Camera Support Rig)', category: 'Grip/Support', qty: 1, replacement: 349, image: '/gear/flycam_flowline__camera_support_rig_.jpg'},
   {name: 'Glide Gear SNC100 Snorricam DSLR Vest Harness', category: 'Grip/Support', qty: 1, replacement: 149, image: '/gear/glide_gear_snc100_snorricam_dslr_vest_harness.jpg'},
   {name: 'Tiltaing Pocket Follow Focus', category: 'Grip/Support', qty: 1, replacement: 99, image: '/gear/tilta_tiltaing_pocket_follow_focus.jpg'},
+  {name: 'Universal Shoulder Rig kit (Compatible with Sony VCT-14 Plate)', category: 'Grip/Support', qty: 1, replacement: 350, image: '/gear/universal_shoulder_rig.jpg'},
   // --- STANDS / GRIP ---
   {name: 'Avenger Turtle Base C-Stand Grip Arm Kit', category: 'Stands/Grip', qty: 6, replacement: 249, image: '/gear/avenger_turtle_base_c-stand_grip_arm_kit.jpg'},
   {name: 'Manfrotto Alu Master Air-Cushioned Light Stand', category: 'Stands/Grip', qty: 7, replacement: 189, image: '/gear/manfrotto_alu_master_air-cushioned_stand.jpg'},
