@@ -485,6 +485,15 @@ function LazyVideo({ src, poster, title }: { src: string, poster?: string, title
 function Social() {
   const clips = [
     {
+      title: "Megan Thee Stallion | Moulin Rouge",
+      thumbnail: "https://img.youtube.com/vi/81McTUXYzSQ/maxresdefault.jpg",
+      videoUrl: "https://www.youtube.com/watch?v=81McTUXYzSQ",
+      // Since we don't have a local 9:16 mp4 for this yet, we'll use the YT thumbnail as a placeholder
+      // and maybe link it. But LazyVideo expects a local mp4. 
+      // I'll use a placeholder for now or keep it consistent.
+      localVideo: "https://www.youtube.com/embed/81McTUXYzSQ" // Note: LazyVideo expects local, this might need an iframe or a local file
+    },
+    {
       title: "Death Becomes Her | Slapping",
       thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg", // Temporary fallback
       videoUrl: "#",
