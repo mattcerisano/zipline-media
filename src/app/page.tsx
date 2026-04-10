@@ -587,36 +587,6 @@ function Social() {
       thumbnail: "https://i.ytimg.com/vi/XpyvXLCZMOo/mqdefault.jpg",
       videoUrl: "https://www.instagram.com/reel/DKqmL-vMmQo/",
       localVideo: "/TonyAwards_SocialThumbnail.mp4"
-    },
-    {
-      title: "Go inside opening night of BECKY SHAW on Broadway",
-      thumbnail: "https://img.youtube.com/vi/LtzS0ySK6Qw/maxresdefault.jpg",
-      videoUrl: "https://www.youtube.com/watch?v=LtzS0ySK6Qw",
-      localVideo: "https://www.youtube.com/watch?v=LtzS0ySK6Qw"
-    },
-    {
-      title: "Inside the first rehearsal of THE RECEPTIONIST",
-      thumbnail: "https://img.youtube.com/vi/B8FFucIDGAM/maxresdefault.jpg",
-      videoUrl: "https://www.youtube.com/watch?v=B8FFucIDGAM",
-      localVideo: "https://www.youtube.com/watch?v=B8FFucIDGAM"
-    },
-    {
-      title: "BECKY SHAW | About the Play",
-      thumbnail: "https://img.youtube.com/vi/ZLSIav8DEjo/maxresdefault.jpg",
-      videoUrl: "https://www.youtube.com/watch?v=ZLSIav8DEjo",
-      localVideo: "https://www.youtube.com/watch?v=ZLSIav8DEjo"
-    },
-    {
-      title: "Inside the first rehearsal of BECKY SHAW on Broadway",
-      thumbnail: "https://img.youtube.com/vi/bIdxnFrJVe4/maxresdefault.jpg",
-      videoUrl: "https://www.youtube.com/watch?v=bIdxnFrJVe4",
-      localVideo: "https://www.youtube.com/watch?v=bIdxnFrJVe4"
-    },
-    {
-      title: "Go inside the first rehearsal of MEAT SUIT!",
-      thumbnail: "https://img.youtube.com/vi/ozZylJHVUGg/maxresdefault.jpg",
-      videoUrl: "https://www.youtube.com/watch?v=ozZylJHVUGg",
-      localVideo: "https://www.youtube.com/watch?v=ozZylJHVUGg"
     }
   ];
 
@@ -835,14 +805,80 @@ function Contact() {
   );
 }
 
+function AgencyManifesto() {
+  const capabilities = [
+    { 
+      number: "01",
+      title: "Pre-Production & Strategy", 
+      description: "Concept development and campaign architecture that targets the right audience from the start." 
+    },
+    { 
+      number: "02",
+      title: "Production & Capture", 
+      description: "Cinematic execution on set and in the theatre. We bridge the gap from proscenium to the digital screen." 
+    },
+    { 
+      number: "03",
+      title: "Post-Production & Polish", 
+      description: "Expert editing, motion graphics, and color grading that turns raw footage into pulse-pounding marketing." 
+    }
+  ];
+
+  return (
+    <section className="py-16 md:py-24 px-6 border-t border-white/5 bg-black relative overflow-hidden">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* Section Header */}
+        <div className="flex flex-col gap-4 mb-16 md:mb-20">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1] max-w-4xl"
+          >
+            The Definitive Voice of <br className="hidden md:block"/>
+            <span className="text-[var(--accent)]">Entertainment</span> Marketing.
+          </motion.h2>
+        </div>
+
+        {/* Capabilities Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 border-t border-white/10 pt-12">
+          {capabilities.map((cap, i) => (
+            <motion.div 
+              key={cap.title}
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.6 }}
+              className="space-y-4"
+            >
+              <span className="text-2xl md:text-3xl font-black text-[var(--accent)] block">
+                {cap.number}
+              </span>
+              <div className="space-y-2">
+                <h3 className="text-lg md:text-xl font-black uppercase tracking-tight text-white">{cap.title}</h3>
+                <p className="text-sm opacity-50 leading-relaxed max-w-xs">
+                  {cap.description}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Page() {
   return (
     <main className="bg-black">
       <Hero />
       <Work />
-      <Mission />
+      <AgencyManifesto />
       <Social />
       <About />
+      <Mission />
       <Contact />
     </main>
   );
