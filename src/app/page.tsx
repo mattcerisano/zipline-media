@@ -835,10 +835,10 @@ function AgencyManifesto() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1] max-w-4xl"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] md:leading-[1] max-w-4xl break-words"
           >
             The Definitive Voice of <br className="hidden md:block"/>
-            <span className="text-[var(--accent)]">Entertainment</span> Marketing.
+            <span className="text-[var(--accent)] whitespace-normal">Entertainment</span> Marketing.
           </motion.h2>
         </div>
 
