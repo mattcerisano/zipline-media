@@ -621,16 +621,9 @@ function Social() {
 
 // ... Clients component remains unchanged ...
 
-function About() {
+function Mission() {
   return (
-    <section id="about" className="py-12 px-6 max-w-7xl mx-auto flex flex-col items-center gap-6 md:gap-10 scroll-mt-24">
-      
-      {/* 2. Ticker */}
-      <div className="w-full">
-        <LogoTicker />
-      </div>
-
-      {/* 3. Mission Text */}
+    <section className="py-12 px-6 max-w-7xl mx-auto flex flex-col items-center gap-6 md:gap-10 scroll-mt-24">
       <div className="max-w-4xl mx-auto text-center space-y-12">
         <motion.h2 
           initial={{ opacity: 0, y: 20 }}
@@ -650,6 +643,18 @@ function About() {
             And sure, we&apos;ve picked up some awards and worked with names you&apos;d definitely recognize&mdash;but that&apos;s not the point. What matters is showing up, getting it done, and keeping the vibe good. Clients tend to like having us around, and we like keeping it that way.
           </p>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function About() {
+  return (
+    <section id="about" className="py-12 px-6 max-w-7xl mx-auto flex flex-col items-center gap-6 md:gap-10 scroll-mt-24">
+      
+      {/* 2. Ticker */}
+      <div className="w-full">
+        <LogoTicker />
       </div>
     </section>
   );
@@ -797,6 +802,7 @@ export default function Page() {
     <main className="bg-black">
       <Hero />
       <Work />
+      <Mission />
       <Social />
       <About />
       <Contact />
