@@ -465,7 +465,7 @@ function LazyVideo({ src, poster, title }: { src: string, poster?: string, title
       )}
 
       {/* Load video when in view. */}
-      {inView && (
+      {inView && !src.includes('youtube.com') && (
         <video 
           autoPlay
           muted 
@@ -477,6 +477,14 @@ function LazyVideo({ src, poster, title }: { src: string, poster?: string, title
         >
           <source src={src} type="video/mp4" />
         </video>
+      )}
+
+      {src.includes('youtube.com') && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 group-hover:bg-black/20 transition-colors">
+          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-90 group-hover:scale-100 transition-transform">
+            <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+          </div>
+        </div>
       )}
     </div>
   );
@@ -579,6 +587,36 @@ function Social() {
       thumbnail: "https://i.ytimg.com/vi/XpyvXLCZMOo/mqdefault.jpg",
       videoUrl: "https://www.instagram.com/reel/DKqmL-vMmQo/",
       localVideo: "/TonyAwards_SocialThumbnail.mp4"
+    },
+    {
+      title: "Go inside opening night of BECKY SHAW on Broadway",
+      thumbnail: "https://img.youtube.com/vi/LtzS0ySK6Qw/maxresdefault.jpg",
+      videoUrl: "https://www.youtube.com/watch?v=LtzS0ySK6Qw",
+      localVideo: "https://www.youtube.com/watch?v=LtzS0ySK6Qw"
+    },
+    {
+      title: "Inside the first rehearsal of THE RECEPTIONIST",
+      thumbnail: "https://img.youtube.com/vi/B8FFucIDGAM/maxresdefault.jpg",
+      videoUrl: "https://www.youtube.com/watch?v=B8FFucIDGAM",
+      localVideo: "https://www.youtube.com/watch?v=B8FFucIDGAM"
+    },
+    {
+      title: "BECKY SHAW | About the Play",
+      thumbnail: "https://img.youtube.com/vi/ZLSIav8DEjo/maxresdefault.jpg",
+      videoUrl: "https://www.youtube.com/watch?v=ZLSIav8DEjo",
+      localVideo: "https://www.youtube.com/watch?v=ZLSIav8DEjo"
+    },
+    {
+      title: "Inside the first rehearsal of BECKY SHAW on Broadway",
+      thumbnail: "https://img.youtube.com/vi/bIdxnFrJVe4/maxresdefault.jpg",
+      videoUrl: "https://www.youtube.com/watch?v=bIdxnFrJVe4",
+      localVideo: "https://www.youtube.com/watch?v=bIdxnFrJVe4"
+    },
+    {
+      title: "Go inside the first rehearsal of MEAT SUIT!",
+      thumbnail: "https://img.youtube.com/vi/ozZylJHVUGg/maxresdefault.jpg",
+      videoUrl: "https://www.youtube.com/watch?v=ozZylJHVUGg",
+      localVideo: "https://www.youtube.com/watch?v=ozZylJHVUGg"
     }
   ];
 

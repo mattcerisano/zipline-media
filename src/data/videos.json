@@ -1624,5 +1624,40 @@
     "duration": "",
     "category": "New Media",
     "hostedOn": "youtube"
+  },
+  {
+    "title": "Go inside opening night of BECKY SHAW on Broadway",
+    "thumbnail": "https://img.youtube.com/vi/LtzS0ySK6Qw/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/LtzS0ySK6Qw",
+    "category": "Events",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Inside the first rehearsal of THE RECEPTIONIST",
+    "thumbnail": "https://img.youtube.com/vi/B8FFucIDGAM/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/B8FFucIDGAM",
+    "category": "Social",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "BECKY SHAW | About the Play",
+    "thumbnail": "https://img.youtube.com/vi/ZLSIav8DEjo/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/ZLSIav8DEjo",
+    "category": "Social",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Inside the first rehearsal of BECKY SHAW on Broadway",
+    "thumbnail": "https://img.youtube.com/vi/bIdxnFrJVe4/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/bIdxnFrJVe4",
+    "category": "Social",
+    "hostedOn": "youtube"
+  },
+  {
+    "title": "Go inside the first rehearsal of MEAT SUIT!",
+    "thumbnail": "https://img.youtube.com/vi/ozZylJHVUGg/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/ozZylJHVUGg",
+    "category": "Social",
+    "hostedOn": "youtube"
   }
 ]
