@@ -536,14 +536,14 @@ export default function Rentals() {
       return;
     }
 
-    const newJob: Omit<Job, 'id'> = {
+    const dbJob = {
       title: jobTitle.toUpperCase(),
       client_name: contactEmail.toUpperCase(),
       production_company: companyName.toUpperCase(),
-      job_status: 'Planning',
+      job_status: 'Planning' as const,
       type: 'production',
       shoot_date: shootDate,
-      location_name: '', // Optional
+      location_name: '', 
       location_address: companyAddr,
       nearest_hospital_name: nearestHospital?.name || '',
       nearest_hospital_address: nearestHospital?.address || '',
@@ -552,19 +552,18 @@ export default function Rentals() {
       weather_summary: weatherSummary || '',
       gear_manifest: manifest,
       notes_general: notes,
-      job_roles: [], // For now
       updated_at: new Date().toISOString()
     };
 
     try {
       // Check if job with same title and date exists for updating
-      const existingJob = jobs.find(j => j.title === newJob.title && j.shoot_date === newJob.shoot_date);
+      const existingJob = jobs.find(j => j.title === dbJob.title && j.shoot_date === dbJob.shoot_date);
 
       let res;
       if (existingJob) {
-        res = await supabase.from('jobs').update(newJob).eq('id', existingJob.id).select();
+        res = await supabase.from('jobs').update(dbJob).eq('id', existingJob.id).select();
       } else {
-        res = await supabase.from('jobs').insert(newJob).select();
+        res = await supabase.from('jobs').insert(dbJob).select();
       }
 
       if (res.error) throw res.error;
