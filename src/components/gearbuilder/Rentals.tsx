@@ -1131,8 +1131,6 @@ export default function Rentals() {
           className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg resize-none"
         />
       </div>
-      </>
-      )}
 
       <div className="flex-1 overflow-y-auto min-h-[300px] mb-8 pr-2 custom-scrollbar">
         <AnimatePresence mode="popLayout">
