@@ -569,18 +569,20 @@ export default function Rentals() {
 
       if (res.error) throw res.error;
 
-      if (res.data) {
-        if (existingJob) {
-          setJobs(prev => prev.map(j => j.id === existingJob.id ? res.data![0] as Job : j));
-          alert('Job updated on Slate successfully!');
-        } else {
-          setJobs(prev => [...prev, res.data![0] as Job]);
-          alert('Job logged to Slate successfully!');
-        }
+      if (!res.data || res.data.length === 0) {
+        throw new Error('No data returned from database');
       }
-    } catch (err) {
+
+      if (existingJob) {
+        setJobs(prev => prev.map(j => j.id === existingJob.id ? res.data![0] as Job : j));
+        alert('Job updated on Slate successfully!');
+      } else {
+        setJobs(prev => [...prev, res.data![0] as Job]);
+        alert('Job logged to Slate successfully!');
+      }
+    } catch (err: any) {
       console.error('Error saving job:', err);
-      alert('Failed to save job to Slate.');
+      alert('Failed to save job to Slate: ' + (err.message || 'Unknown error'));
     }
   };
   const exportPDF = async () => {
