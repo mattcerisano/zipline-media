@@ -27,6 +27,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@supabase/supabase-js": "^2.103.0",
     "@vercel/analytics": "^1.6.1",
     "duckduckgo-images-api": "^1.0.5",
     "framer-motion": "^12.28.1",

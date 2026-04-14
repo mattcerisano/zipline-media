@@ -809,18 +809,18 @@ function AgencyManifesto() {
   const capabilities = [
     { 
       number: "01",
-      title: "Pre-Production & Strategy", 
-      description: "Concept development and campaign architecture that targets the right audience from the start." 
+      title: "Pre-Production", 
+      description: "We align our team with your technical needs, creative vision, and unique voice. We direct the project in our minds." 
     },
     { 
       number: "02",
-      title: "Production & Capture", 
-      description: "Cinematic execution on set and in the theatre. We bridge the gap from proscenium to the digital screen." 
+      title: "Production", 
+      description: "We take care to get it right on the day, while working efficiently to stay on time and on budget. We direct the project in the room." 
     },
     { 
       number: "03",
-      title: "Post-Production & Polish", 
-      description: "Expert editing, motion graphics, and color grading that turns raw footage into pulse-pounding marketing." 
+      title: "Post-Production", 
+      description: "On deadline and on target, our edits adhere to your vision with our perspective, creating expressive content that gets results. We direct the project in the edit." 
     }
   ];
 
@@ -837,8 +837,8 @@ function AgencyManifesto() {
             transition={{ duration: 0.6 }}
             className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.2] md:leading-[1] max-w-4xl"
           >
-            The Definitive Voice of <br className="hidden md:block"/>
-            <span className="text-[var(--accent)] whitespace-nowrap md:whitespace-normal">Entertainment</span> Marketing.
+            Vision and <br className="hidden md:block"/>
+            <span className="text-[var(--accent)] whitespace-nowrap md:whitespace-normal">Perspective</span>
           </motion.h2>
         </div>
 
