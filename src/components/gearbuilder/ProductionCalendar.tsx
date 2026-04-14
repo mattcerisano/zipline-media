@@ -6,7 +6,8 @@ import {
   ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
   Clock, MapPin, User, AlertCircle 
 } from 'lucide-react';
-import { Job, STORAGE_KEY_JOBS } from './types';
+import { Job } from './types';
+import { supabase } from '@/lib/supabase';
 
 interface ProductionCalendarProps {
   onSelectDate?: (date: string) => void;
@@ -20,12 +21,20 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onSelect
   const [jobs, setJobs] = useState<Job[]>([]);
   const [rangeStart, setRangeStart] = useState<string | null>(null);
 
-  // Load jobs from localStorage
+  // Load jobs from Supabase
   React.useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_JOBS);
-    if (saved) {
-      setJobs(JSON.parse(saved));
-    }
+    const fetchJobs = async () => {
+      try {
+        const { data, error } = await supabase.from('jobs').select('*');
+        if (error) throw error;
+        if (data) {
+          setJobs(data as Job[]);
+        }
+      } catch (err) {
+        console.error('Error fetching jobs for calendar:', err);
+      }
+    };
+    fetchJobs();
   }, []);
 
   // Calendar Helpers

@@ -53,9 +53,10 @@ import {
 import { jsPDF } from 'jspdf';
 import Autocomplete from 'react-google-autocomplete';
 
-import { INVENTORY, ALL_CATEGORIES, type InventoryItem } from '@/data/inventory';
+import { ALL_CATEGORIES, type InventoryItem } from '@/data/inventory';
 import { STORAGE_KEY_CLIENTS, STORAGE_KEY_JOBS, Client, Job } from './types';
 import ProductionCalendar from './ProductionCalendar';
+import { supabase } from '@/lib/supabase';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -238,13 +239,6 @@ export default function Rentals() {
   const [isMobileManifestOpen, setIsMobileManifestOpen] = useState(false);
   const [isJobPickerOpen, setIsJobPickerOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [isRentalCalendarOpen, setIsRentalCalendarOpen] = useState(false); // For Rental Mode
-
-  // Rental Mode State
-  const [isRentalMode, setIsRentalMode] = useState(false);
-  const [rentalStartDate, setRentalStartDate] = useState('');
-  const [rentalEndDate, setRentalEndDate] = useState('');
-  const [renterName, setRenterName] = useState('');
 
   // External API States
   const [weatherLoading, setWeatherLoading] = useState(false);
@@ -262,19 +256,52 @@ export default function Rentals() {
   // Rolodex Data
   const [clients, setClients] = useState<Client[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [dbInventory, setDbInventory] = useState<InventoryItem[]>([]);
+  const [isLoadingInventory, setIsLoadingInventory] = useState(true);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const cl = localStorage.getItem(STORAGE_KEY_CLIENTS);
     if (cl) setClients(JSON.parse(cl));
     
-    const j = localStorage.getItem(STORAGE_KEY_JOBS);
-    if (j) setJobs(JSON.parse(j));
+    // We fetch jobs from Supabase now
+
+    const fetchInventory = async () => {
+      setIsLoadingInventory(true);
+      try {
+        const { data, error } = await supabase.from('inventory').select('*');
+        if (error) throw error;
+        if (data) {
+          setDbInventory(data as InventoryItem[]);
+        }
+      } catch (err) {
+        console.error('Error fetching inventory:', err);
+      } finally {
+        setIsLoadingInventory(false);
+      }
+    };
+
+    const fetchJobs = async () => {
+      try {
+        const { data, error } = await supabase.from('jobs').select('*');
+        if (error) throw error;
+        if (data) {
+          // Note: supabase returns job_roles separately or as nested if joined
+          // For now, we'll just set the jobs. The schema has job_roles table.
+          setJobs(data as Job[]);
+        }
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+      }
+    };
+    
+    fetchInventory();
+    fetchJobs();
   }, []);
 
   const allInventory = useMemo(() => {
-    return [...INVENTORY, ...customGear].sort((a, b) => a.name.localeCompare(b.name));
-  }, [customGear]);
+    return [...dbInventory, ...customGear].sort((a, b) => a.name.localeCompare(b.name));
+  }, [dbInventory, customGear]);
 
   const filteredItems = useMemo(() => {
     const term = search.toLowerCase().trim();
@@ -503,41 +530,59 @@ export default function Rentals() {
       }
   };
 
-  const saveRental = () => {
-      if (!renterName || !rentalStartDate || !rentalEndDate) {
-          alert('Please fill in Renter Name, Start Date, and End Date.');
-          return;
+  const saveJob = async () => {
+    if (!jobTitle || !shootDate) {
+      alert('Please enter a Job Title and Shoot Date to log to Slate.');
+      return;
+    }
+
+    const newJob: Omit<Job, 'id'> = {
+      title: jobTitle.toUpperCase(),
+      client_name: contactEmail.toUpperCase(),
+      production_company: companyName.toUpperCase(),
+      job_status: 'Planning',
+      type: 'production',
+      shoot_date: shootDate,
+      location_name: '', // Optional
+      location_address: companyAddr,
+      nearest_hospital_name: nearestHospital?.name || '',
+      nearest_hospital_address: nearestHospital?.address || '',
+      nearest_parking_name: nearestParking?.name || '',
+      nearest_parking_address: nearestParking?.address || '',
+      weather_summary: weatherSummary || '',
+      gear_manifest: manifest,
+      notes_general: notes,
+      job_roles: [], // For now
+      updated_at: new Date().toISOString()
+    };
+
+    try {
+      // Check if job with same title and date exists for updating
+      const existingJob = jobs.find(j => j.title === newJob.title && j.shoot_date === newJob.shoot_date);
+
+      let res;
+      if (existingJob) {
+        res = await supabase.from('jobs').update(newJob).eq('id', existingJob.id).select();
+      } else {
+        res = await supabase.from('jobs').insert(newJob).select();
       }
 
-      const newRental: Job = {
-          id: crypto.randomUUID(),
-          title: `Rental: ${renterName}`,
-          client_name: renterName,
-          type: 'rental',
-          shoot_date: rentalStartDate,
-          end_date: rentalEndDate,
-          job_status: 'Booked', // Rentals are usually booked if logged
-          gear_manifest: manifest,
-          notes_general: notes,
-          job_roles: [],
-          updated_at: new Date().toISOString()
-      };
+      if (res.error) throw res.error;
 
-      const savedJobs = localStorage.getItem(STORAGE_KEY_JOBS);
-      const currentJobs = savedJobs ? JSON.parse(savedJobs) : [];
-      const updatedJobs = [...currentJobs, newRental];
-      
-      localStorage.setItem(STORAGE_KEY_JOBS, JSON.stringify(updatedJobs));
-      setJobs(updatedJobs); // Update local state if needed
-      
-      alert('Rental logged to calendar successfully!');
-      // Optional: Reset rental fields
-      setIsRentalMode(false);
-      setRentalStartDate('');
-      setRentalEndDate('');
-      setRenterName('');
+      if (res.data) {
+        if (existingJob) {
+          setJobs(prev => prev.map(j => j.id === existingJob.id ? res.data![0] as Job : j));
+          alert('Job updated on Slate successfully!');
+        } else {
+          setJobs(prev => [...prev, res.data![0] as Job]);
+          alert('Job logged to Slate successfully!');
+        }
+      }
+    } catch (err) {
+      console.error('Error saving job:', err);
+      alert('Failed to save job to Slate.');
+    }
   };
-
   const exportPDF = async () => {
     // Helper to load assets
     const loadAsset = async (path: string): Promise<string> => {
@@ -858,23 +903,6 @@ export default function Rentals() {
           <ClipboardList className="w-5 h-5 text-accent" />
           <h2 className="text-xl font-black uppercase tracking-tighter">Current Manifest</h2>
         </div>
-        
-        {/* Mode Toggle */}
-        <div className="flex bg-black/50 p-1 rounded-lg border border-white/10">
-            <button 
-                onClick={() => setIsRentalMode(false)}
-                className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-all ${!isRentalMode ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
-            >
-                Production
-            </button>
-            <button 
-                onClick={() => setIsRentalMode(true)}
-                className={`px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-all ${isRentalMode ? 'bg-white text-black' : 'text-white/40 hover:text-white'}`}
-            >
-                Rental
-            </button>
-        </div>
-
         <div className="flex items-center gap-4">
           {Object.keys(manifest).length > 0 && (
             <button 
@@ -893,72 +921,7 @@ export default function Rentals() {
         </div>
       </div>
 
-      {isRentalMode ? (
-        <div className="space-y-4 mb-6 p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-4 flex items-center gap-2">
-                <Car className="w-4 h-4" /> Rental Logistics
-            </h3>
-            
-            <div className="space-y-0.5">
-                <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Renter Name</label>
-                <input 
-                    type="text" 
-                    value={renterName}
-                    onChange={(e) => setRenterName(e.target.value)}
-                    placeholder="CLIENT OR RENTER"
-                    list="client-options"
-                    className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-blue-500 transition-colors uppercase text-sm font-bold rounded-lg"
-                />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-0.5">
-                    <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Start Date</label>
-                    <input 
-                        type="date" 
-                        value={rentalStartDate}
-                        onChange={(e) => setRentalStartDate(e.target.value)}
-                        className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-blue-500 transition-colors uppercase text-sm font-bold rounded-lg"
-                    />
-                </div>
-                <div className="space-y-0.5">
-                    <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">End Date</label>
-                    <div className="flex gap-2">
-                        <input 
-                            type="date" 
-                            value={rentalEndDate}
-                            onChange={(e) => setRentalEndDate(e.target.value)}
-                            className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-blue-500 transition-colors uppercase text-sm font-bold rounded-lg"
-                        />
-                        <button 
-                            onClick={() => setIsRentalCalendarOpen(true)}
-                            className="bg-white/10 hover:bg-white/20 p-3 rounded-lg transition-colors text-white"
-                            title="Select Dates from Calendar"
-                        >
-                            <Calendar className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {rentalStartDate && rentalEndDate && (
-                <div className="text-right">
-                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                        Duration: {Math.max(1, Math.ceil((new Date(rentalEndDate).getTime() - new Date(rentalStartDate).getTime()) / (1000 * 60 * 60 * 24)) + 1)} Days
-                    </p>
-                </div>
-            )}
-
-            <button 
-                onClick={saveRental}
-                className="w-full bg-blue-500 text-white py-3 font-bold uppercase text-xs tracking-widest rounded-lg hover:bg-blue-400 transition-colors shadow-lg shadow-blue-500/20"
-            >
-                Log Rental to Calendar
-            </button>
-        </div>
-      ) : (
-        <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
         <div className="space-y-0.5">
           <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Job Title</label>
           <input 
@@ -1259,19 +1222,26 @@ export default function Rentals() {
           </label>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-2">
           <button 
             onClick={resetApp}
-            className="flex items-center justify-center gap-2 border border-white/10 py-4 font-black tracking-widest uppercase text-[10px] hover:bg-white hover:text-black transition-all rounded-xl"
+            className="flex items-center justify-center gap-1 border border-white/10 py-4 font-black tracking-widest uppercase text-[9px] hover:bg-white hover:text-black transition-all rounded-xl"
           >
             <RotateCcw className="w-3 h-3" /> Reset
           </button>
           <button 
+            onClick={saveJob}
+            disabled={Object.keys(manifest).length === 0}
+            className="flex items-center justify-center gap-1 border border-accent/20 bg-accent/5 py-4 font-black tracking-widest uppercase text-[9px] text-accent hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-accent/5"
+          >
+            <ClipboardList className="w-3 h-3" /> Slate
+          </button>
+          <button 
             onClick={exportPDF}
             disabled={Object.keys(manifest).length === 0}
-            className="flex items-center justify-center gap-2 bg-accent py-4 font-black tracking-widest uppercase text-[10px] hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl shadow-lg shadow-accent/20"
+            className="flex items-center justify-center gap-1 bg-accent py-4 font-black tracking-widest uppercase text-[9px] hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl shadow-lg shadow-accent/20"
           >
-            <FileDown className="w-3 h-3" /> Export PDF
+            <FileDown className="w-3 h-3" /> PDF
           </button>
         </div>
       </div>
@@ -1393,42 +1363,6 @@ export default function Rentals() {
         </AnimatePresence>
 
         <AnimatePresence>
-          {isRentalCalendarOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-8">
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsRentalCalendarOpen(false)}
-                className="absolute inset-0 bg-black/90 backdrop-blur-sm"
-              />
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="relative bg-neutral-900 border border-white/10 w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6"
-              >
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-black uppercase tracking-tighter">Select Rental Dates (Start & End)</h2>
-                    <button onClick={() => setIsRentalCalendarOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-                
-                <ProductionCalendar 
-                    selectionMode="range"
-                    onSelectRange={(start, end) => {
-                        setRentalStartDate(start);
-                        setRentalEndDate(end);
-                        setIsRentalCalendarOpen(false);
-                    }}
-                />
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
           {isCalendarOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-8">
               <motion.div 
@@ -1470,6 +1404,9 @@ export default function Rentals() {
                             setNearestParking(null);
                         }
                         if (job.notes_general) setNotes(job.notes_general);
+                        if (job.gear_manifest) {
+                          setManifest(job.gear_manifest as Record<string, number>);
+                        }
                         setIsCalendarOpen(false);
                     }}
                 />
