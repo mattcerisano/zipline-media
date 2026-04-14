@@ -239,6 +239,7 @@ export default function Rentals() {
   const [isMobileManifestOpen, setIsMobileManifestOpen] = useState(false);
   const [isJobPickerOpen, setIsJobPickerOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'gear' | 'library'>('gear');
 
   // External API States
   const [weatherLoading, setWeatherLoading] = useState(false);
@@ -584,6 +585,40 @@ export default function Rentals() {
       alert('Failed to save job to Slate: ' + (err.message || 'Unknown error'));
     }
   };
+
+  const loadJob = (job: Job) => {
+    setJobTitle(job.title);
+    if (job.shoot_date) setShootDate(job.shoot_date);
+    if (job.client_name) setContactEmail(job.client_name);
+    if (job.location_address) {
+        setCompanyAddr(job.location_address);
+        setWeatherSuccess(false);
+        setHospitalSuccess(false);
+        setParkingSuccess(false);
+        setWeatherSummary(null);
+        setNearestHospital(null);
+        setNearestParking(null);
+    }
+    if (job.notes_general) setNotes(job.notes_general);
+    if (job.gear_manifest) {
+      setManifest(job.gear_manifest as Record<string, number>);
+    }
+    setIsCalendarOpen(false);
+  };
+
+  const deleteJob = async (jobId: string) => {
+    if (!confirm('Are you sure you want to permanently delete this job from Slate?')) return;
+    
+    try {
+      const { error } = await supabase.from('jobs').delete().eq('id', jobId);
+      if (error) throw error;
+      setJobs(prev => prev.filter(j => j.id !== jobId));
+    } catch (err: any) {
+      console.error('Error deleting job:', err);
+      alert('Failed to delete job: ' + (err.message || 'Unknown error'));
+    }
+  };
+
   const exportPDF = async () => {
     // Helper to load assets
     const loadAsset = async (path: string): Promise<string> => {
@@ -1258,80 +1293,150 @@ export default function Rentals() {
             <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-[80vh] md:h-[calc(100vh-140px)] sticky top-24">
               
               <div className="bg-neutral-900/90 backdrop-blur-md p-4 md:p-0 z-20 sticky top-0 border-b md:border-b-0 border-white/10 space-y-4">
-                <div className="flex gap-4">
-                  <select 
-                    value={filterCategory}
-                    onChange={(e) => setFilterCategory(e.target.value)}
-                    className="flex-1 bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-xl appearance-none cursor-pointer"
+                {/* Tab Toggle */}
+                <div className="flex gap-2 p-1 bg-black/40 border border-white/5 rounded-xl">
+                  <button 
+                    onClick={() => setActiveSidebarTab('gear')}
+                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all ${activeSidebarTab === 'gear' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
                   >
-                    <option value="All">ALL CATEGORIES</option>
-                    {ALL_CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>{cat.toUpperCase()}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={openAddModal}
-                    className="bg-white text-black px-4 font-black uppercase text-[10px] tracking-widest hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-white/5 whitespace-nowrap flex items-center gap-2"
+                    Gear Selection
+                  </button>
+                  <button 
+                    onClick={() => setActiveSidebarTab('library')}
+                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all ${activeSidebarTab === 'library' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
                   >
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden md:inline">Custom</span>
+                    Slate Library
                   </button>
                 </div>
 
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
-                  <input 
-                    type="text" 
-                    placeholder="SEARCH GEAR..." 
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-10 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-xl"
-                  />
-                  {search && (
-                    <button 
-                      onClick={() => setSearch('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/40 hover:text-white transition-colors"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
+                {activeSidebarTab === 'gear' ? (
+                  <>
+                    <div className="flex gap-4">
+                      <select 
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="flex-1 bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-xl appearance-none cursor-pointer"
+                      >
+                        <option value="All">ALL CATEGORIES</option>
+                        {ALL_CATEGORIES.map(cat => (
+                          <option key={cat} value={cat}>{cat.toUpperCase()}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={openAddModal}
+                        className="bg-white text-black px-4 font-black uppercase text-[10px] tracking-widest hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-white/5 whitespace-nowrap flex items-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span className="hidden md:inline">Custom</span>
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
+                      <input 
+                        type="text" 
+                        placeholder="SEARCH GEAR..." 
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-10 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-xl"
+                      />
+                      {search && (
+                        <button 
+                          onClick={() => setSearch('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/40 hover:text-white transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent">Saved Production Slates</h3>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{jobs.length} Total</p>
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 md:px-0 custom-scrollbar">
-                {filteredGroupedItems ? (
-                   Object.keys(filteredGroupedItems).sort().map(cat => (
-                     <div key={cat} className="mb-8 last:mb-0">
-                       <h3 className="sticky top-0 bg-neutral-900/95 backdrop-blur z-10 py-3 text-sm font-bold tracking-[0.4em] uppercase text-accent mb-2 border-b border-white/10">{cat}</h3>
-                       <div className="space-y-2">
-                         {filteredGroupedItems[cat].map(item => (
+                {activeSidebarTab === 'gear' ? (
+                  <>
+                    {filteredGroupedItems ? (
+                      Object.keys(filteredGroupedItems).sort().map(cat => (
+                        <div key={cat} className="mb-8 last:mb-0">
+                          <h3 className="sticky top-0 bg-neutral-900/95 backdrop-blur z-10 py-3 text-sm font-bold tracking-[0.4em] uppercase text-accent mb-2 border-b border-white/10">{cat}</h3>
+                          <div className="space-y-2">
+                            {filteredGroupedItems[cat].map(item => (
+                                <GearItem 
+                                  key={item.name} 
+                                  item={item} 
+                                  manifestCount={manifest[item.name] || 0}
+                                  onUpdate={updateManifest} 
+                                  onHover={setHoveredImage}
+                                />
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="space-y-2">
+                        {filteredItems.length === 0 ? (
+                          <div className="py-20 text-center opacity-40">
+                            <Package className="w-12 h-12 mx-auto mb-4" />
+                            <p className="uppercase text-xs tracking-widest font-bold">No gear found</p>
+                          </div>
+                        ) : (
+                          filteredItems.map((item) => (
                             <GearItem 
                               key={item.name} 
                               item={item} 
                               manifestCount={manifest[item.name] || 0}
-                              onUpdate={updateManifest} 
-                              onHover={setHoveredImage}
+                              onUpdate={updateManifest}
+                              onHover={setHoveredImage} 
                             />
-                         ))}
-                       </div>
-                     </div>
-                   ))
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <div className="space-y-2">
-                    {filteredItems.length === 0 ? (
-                      <div className="py-20 text-center opacity-40">
-                        <Package className="w-12 h-12 mx-auto mb-4" />
-                        <p className="uppercase text-xs tracking-widest font-bold">No gear found</p>
+                  <div className="space-y-3 pb-8">
+                    {jobs.length === 0 ? (
+                      <div className="py-32 text-center opacity-20">
+                        <ClipboardList className="w-16 h-16 mx-auto mb-4" />
+                        <p className="uppercase text-xs tracking-[0.3em] font-black">Slate is empty</p>
                       </div>
                     ) : (
-                      filteredItems.map((item) => (
-                        <GearItem 
-                          key={item.name} 
-                          item={item} 
-                          manifestCount={manifest[item.name] || 0}
-                          onUpdate={updateManifest}
-                          onHover={setHoveredImage} 
-                        />
+                      [...jobs].sort((a,b) => new Date(b.shoot_date || 0).getTime() - new Date(a.shoot_date || 0).getTime()).map(job => (
+                        <div 
+                          key={job.id}
+                          className="group flex items-center justify-between p-4 border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all rounded-xl cursor-pointer"
+                          onClick={() => {
+                            loadJob(job);
+                            setActiveSidebarTab('gear');
+                          }}
+                        >
+                          <div className="flex-1 min-w-0 pr-4">
+                            <h4 className="text-sm font-black uppercase tracking-tight mb-1 group-hover:text-accent transition-colors truncate">{job.title}</h4>
+                            <div className="flex items-center gap-3 opacity-40">
+                              <p className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
+                                <Calendar className="w-3 h-3" /> {job.shoot_date}
+                              </p>
+                              <p className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
+                                <User className="w-3 h-3" /> {job.client_name || 'NO CLIENT'}
+                              </p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteJob(job.id);
+                            }}
+                            className="p-3 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       ))
                     )}
                   </div>
@@ -1389,25 +1494,7 @@ export default function Rentals() {
                         setShootDate(date);
                         setIsCalendarOpen(false);
                     }}
-                    onSelectJob={(job) => {
-                        setJobTitle(job.title);
-                        if (job.shoot_date) setShootDate(job.shoot_date);
-                        if (job.client_name) setContactEmail(job.client_name);
-                        if (job.location_address) {
-                            setCompanyAddr(job.location_address);
-                            setWeatherSuccess(false);
-                            setHospitalSuccess(false);
-                            setParkingSuccess(false);
-                            setWeatherSummary(null);
-                            setNearestHospital(null);
-                            setNearestParking(null);
-                        }
-                        if (job.notes_general) setNotes(job.notes_general);
-                        if (job.gear_manifest) {
-                          setManifest(job.gear_manifest as Record<string, number>);
-                        }
-                        setIsCalendarOpen(false);
-                    }}
+                    onSelectJob={loadJob}
                 />
               </motion.div>
             </div>
