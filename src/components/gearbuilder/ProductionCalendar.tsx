@@ -12,11 +12,12 @@ import { supabase } from '@/lib/supabase';
 interface ProductionCalendarProps {
   onSelectDate?: (date: string) => void;
   onSelectJob?: (job: Job) => void;
+  onDeleteJob?: (jobId: string) => void;
   onSelectRange?: (start: string, end: string) => void;
   selectionMode?: 'single' | 'range';
 }
 
-export default function ProductionCalendar({ onSelectDate, onSelectJob, onSelectRange, selectionMode = 'single' }: ProductionCalendarProps) {
+export default function ProductionCalendar({ onSelectDate, onSelectJob, onDeleteJob, onSelectRange, selectionMode = 'single' }: ProductionCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [jobs, setJobs] = useState<Job[]>([]);
   const [rangeStart, setRangeStart] = useState<string | null>(null);
@@ -179,14 +180,27 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onSelect
                                 onSelectJob(job);
                             }
                         }}
-                        className={`p-1.5 rounded bg-white/5 border-l-2 border-accent group/job hover:bg-white/10 cursor-pointer overflow-hidden transition-all ${onSelectJob ? 'hover:scale-105 active:scale-95' : ''}`}
+                        className={`group/job-item p-1.5 rounded bg-white/5 border-l-2 border-accent group/job hover:bg-white/10 cursor-pointer overflow-hidden transition-all flex items-center justify-between ${onSelectJob ? 'hover:scale-105 active:scale-95' : ''}`}
                         style={{ borderLeftColor: `var(--accent)` }}
                       >
-                        <p className="text-[9px] font-black uppercase leading-tight truncate">{job.title}</p>
-                        <div className="flex items-center gap-1 mt-0.5 opacity-40">
-                           <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor(job)}`} />
-                           <p className="text-[7px] font-bold uppercase tracking-tighter truncate">{job.client_name || 'No Client'}</p>
+                        <div className="flex-1 min-w-0 pr-2">
+                          <p className="text-[9px] font-black uppercase leading-tight truncate">{job.title}</p>
+                          <div className="flex items-center gap-1 mt-0.5 opacity-40">
+                             <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor(job)}`} />
+                             <p className="text-[7px] font-bold uppercase tracking-tighter truncate">{job.client_name || 'No Client'}</p>
+                          </div>
                         </div>
+                        {onDeleteJob && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteJob(job.id);
+                            }}
+                            className="opacity-0 group-hover/job-item:opacity-100 p-1 hover:text-red-500 transition-all"
+                          >
+                            <AlertCircle className="w-3 h-3" />
+                          </button>
+                        )}
                       </motion.div>
                     ))}
                   </div>

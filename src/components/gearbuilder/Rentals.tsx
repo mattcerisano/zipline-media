@@ -262,10 +262,17 @@ export default function Rentals() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const cl = localStorage.getItem(STORAGE_KEY_CLIENTS);
-    if (cl) setClients(JSON.parse(cl));
     
-    // We fetch jobs from Supabase now
+    // Fetch clients from Supabase
+    const fetchClients = async () => {
+      try {
+        const { data, error } = await supabase.from('clients').select('*');
+        if (error) throw error;
+        if (data) setClients(data as Client[]);
+      } catch (err) {
+        console.error('Error fetching clients:', err);
+      }
+    };
 
     const fetchInventory = async () => {
       setIsLoadingInventory(true);
@@ -557,6 +564,24 @@ export default function Rentals() {
     };
 
     try {
+      // 1. Handle Client Saving (for autofill future situation)
+      if (contactEmail) {
+        const clientName = contactEmail.trim().toUpperCase();
+        const existingClient = clients.find(c => c.name.toUpperCase() === clientName);
+        
+        if (!existingClient) {
+          const { data: newClient, error: clientError } = await supabase
+            .from('clients')
+            .insert({ name: clientName })
+            .select();
+          
+          if (!clientError && newClient) {
+            setClients(prev => [...prev, newClient[0] as Client]);
+          }
+        }
+      }
+
+      // 2. Handle Job Saving
       // Check if job with same title and date exists for updating
       const existingJob = jobs.find(j => j.title === dbJob.title && j.shoot_date === dbJob.shoot_date);
 
@@ -904,7 +929,7 @@ export default function Rentals() {
       y += lineH;
     }
 
-    // Save to Rolodex History
+    // Update local client list for immediate UI feedback if needed
     if (contactEmail) {
         const clientName = contactEmail.trim();
         const existingClientIndex = clients.findIndex(c => c.name.toLowerCase() === clientName.toLowerCase());
@@ -924,7 +949,8 @@ export default function Rentals() {
             client.updated_at = new Date().toISOString();
             
             setClients(updatedClients);
-            localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(updatedClients));
+            // Client history persistent in Supabase requires updating the 'clients' table record
+            // For now we'll skip the localStorage sync as we are moving to DB
         }
     }
 
@@ -1495,6 +1521,7 @@ export default function Rentals() {
                         setIsCalendarOpen(false);
                     }}
                     onSelectJob={loadJob}
+                    onDeleteJob={deleteJob}
                 />
               </motion.div>
             </div>
