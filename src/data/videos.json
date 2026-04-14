@@ -843,12 +843,11 @@
     "uploadDate": "2026-02-12T02:03:19.923Z"
   },
   {
-    "title": "Bad Cinderella Cast Announcement",
-    "description": "Bad Cinderella x Phantom 35th Anniversary",
-    "thumbnail": "https://i.ytimg.com/vi/kX_okloMl-s/maxresdefault.jpg",
-    "videoUrl": "https://www.youtube.com/embed/kX_okloMl-s",
-    "uploadDate": "2026-01-21T08:19:55.766Z",
-    "duration": "PT1M49S",
+    "title": "Performance Event",
+    "description": "Featured Performance Event",
+    "thumbnail": "https://img.youtube.com/vi/-XPq0UyhaYY/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/-XPq0UyhaYY",
+    "uploadDate": "2026-04-14T12:00:00.000Z",
     "category": "Events",
     "hostedOn": "youtube"
   },
