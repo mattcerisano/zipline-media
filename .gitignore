@@ -47,3 +47,4 @@ next-env.d.ts
 public/broadway-reel.mp4
 # Keep individual category/hero videos allowed
 Website photos/
+.env*.local

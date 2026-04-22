@@ -22,11 +22,11 @@ const items = [];
 
 // Parse inventory manually to avoid needing TS compilation
 lines.forEach(line => {
-  const match = line.match(/\{name:\s*\"(.*?)\",\s*category:/);
+  const match = line.match(/\{name:\s*['"](.*?)['"],\s*category:/);
   if (match) {
     totalItems++;
     const name = match[1];
-    const imageMatch = line.match(/image:\s*\"(.*?)\"/);
+    const imageMatch = line.match(/image:\s*['"](.*?)['"]/);
     
     if (imageMatch) {
       const imagePath = imageMatch[1];

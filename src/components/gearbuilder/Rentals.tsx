@@ -672,13 +672,18 @@ export default function Rentals() {
 
     // --- LOAD ASSETS ---
     const logoData = await loadAsset('/Zipline Logo FULL Blue.png');
-    const fontData = await loadAsset('/Webrush Demo.ttf');
+    const fontData = await loadAsset('/lulo-clean/LuloClean-Bold.otf');
 
     // Add Font
-    if (fontData) {
-        const fontBase64 = fontData.split(',')[1];
-        doc.addFileToVFS('Webrush.ttf', fontBase64);
-        doc.addFont('Webrush.ttf', 'Webrush', 'normal');
+    if (fontData && fontData.includes('base64')) {
+        try {
+            const fontBase64 = fontData.split(',')[1];
+            doc.addFileToVFS('LuloClean-Bold.otf', fontBase64);
+            doc.addFont('LuloClean-Bold.otf', 'LuloClean-Bold', 'normal');
+            console.log("Custom font loaded successfully");
+        } catch (e) {
+            console.error("Error registering custom font:", e);
+        }
     }
 
     // --- COLORS ---
@@ -713,22 +718,21 @@ export default function Rentals() {
     }
 
     // Title (Right)
-    doc.setTextColor(TEXT_DARK);
-    if (fontData) {
-        doc.setFont('Webrush', 'normal');
-        doc.setFontSize(40);
-        doc.text('Gear Manifest', pageWidth - margin, 45, { align: 'right' });
-    } else {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(30);
-        doc.text('GEAR MANIFEST', pageWidth - margin, 45, { align: 'right' });
-    }
+    const titleX = pageWidth - margin;
+    const titleY = 45; 
 
+    // Use standard Helvetica to ensure visibility
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(28);
+    doc.setTextColor(0, 0, 0); // Black
+    doc.text('EQUIPMENT LIST', titleX, titleY, { align: 'right' });
+
+    // Reset color for date
+    doc.setTextColor(TEXT_GRAY);
     // Generated Date
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(TEXT_GRAY);
-    doc.text(`Generated: ${date}`, pageWidth - margin, 58, { align: 'right' });
+    doc.text(`Generated: ${date}`, pageWidth - margin, 60, { align: 'right' });
 
     y = 70;
 
@@ -940,7 +944,7 @@ export default function Rentals() {
                 id: crypto.randomUUID(),
                 type: 'gear' as const,
                 date: shootDate || new Date().toISOString(),
-                title: jobTitle || 'Gear Manifest',
+                title: jobTitle || 'Equipment List',
                 summary: `Value: $${grandTotal.toLocaleString()}`
             };
             
@@ -954,8 +958,8 @@ export default function Rentals() {
         }
     }
 
-    const safeJob = jobTitle ? jobTitle.replace(/[^a-z0-9\-_\s]/gi, "").trim().replace(/\s+/g, "_") : "Gear_Manifest";
-    doc.save(`${safeJob || "Gear_Manifest"}.pdf`);
+    const safeJob = jobTitle ? jobTitle.replace(/[^a-z0-9\-_\s]/gi, "").trim().replace(/\s+/g, "_") : "Equipment_List";
+    doc.save(`${safeJob || "Equipment_List"}.pdf`);
   };
 
   const ManifestContent = (
@@ -1189,8 +1193,8 @@ export default function Rentals() {
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={1}
-          placeholder="CALL TIME, PARKING, ETC..."
-          className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg resize-none"
+          placeholder="Call time, parking, etc..."
+          className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors text-sm font-bold rounded-lg resize-none"
         />
       </div>
 

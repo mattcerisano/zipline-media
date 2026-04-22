@@ -41,10 +41,10 @@ async function main() {
 
   // Identify broken items
   lines.forEach((line, index) => {
-    const match = line.match(/\{name:\s*"(.*?)",\s*category:/);
+    const match = line.match(/\{name:\s*['"](.*?)['"],\s*category:/);
     if (match) {
         const name = match[1];
-        const imageMatch = line.match(/image:\s*"(.*?)"/);
+        const imageMatch = line.match(/image:\s*['"](.*?)['"]/);
         
         let needsFix = false;
         
@@ -97,7 +97,7 @@ async function main() {
         if (downloaded) {
             let line = lines[item.lineIndex];
             if (line.includes('image:')) {
-                lines[item.lineIndex] = line.replace(/image:\s*".*?"/, `image: "${localPath}"`);
+                lines[item.lineIndex] = line.replace(/image:\s*['"].*?['"]/, `image: '${localPath}'`);
             } else {
                 lines[item.lineIndex] = line.replace('}', `, image: "${localPath}"}`);
             }

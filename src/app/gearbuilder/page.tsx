@@ -78,9 +78,6 @@ export default function GearBuilderPage() {
               <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-accent">Active Manifest</p>
             </div>
             <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">Gear Builder</h1>
-            <p className="text-sm font-bold uppercase tracking-[0.3em] opacity-40 max-w-md leading-relaxed">
-              Technical Equipment Management & Logistics Planner.
-            </p>
           </div>
           
           <button 
