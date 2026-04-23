@@ -33,7 +33,7 @@ export default function EquipmentPage() {
     : [activeCategory].filter(cat => groupedInventory[cat]);
 
   return (
-    <main className="min-h-screen bg-black text-white pt-32 pb-24 px-4 md:px-8 lg:px-12 selection:bg-accent selection:text-white font-montserrat">
+    <main className="min-h-screen bg-black text-white pt-32 pb-24 px-4 md:px-8 lg:px-12 selection:bg-accent selection:text-white">
       <div className="max-w-7xl mx-auto">
         
         {/* Header Section */}

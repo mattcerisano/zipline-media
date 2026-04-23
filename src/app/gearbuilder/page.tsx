@@ -69,8 +69,8 @@ export default function GearBuilderPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 md:p-8 pt-24 md:pt-32">
-      <div className="max-w-[1400px] mx-auto">
+    <main className="min-h-screen bg-black text-white px-4 md:px-8 lg:px-12 pt-24 md:pt-32">
+      <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3 mb-1">

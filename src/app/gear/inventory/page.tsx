@@ -61,7 +61,7 @@ export default function GearPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-zinc-300 pt-32 pb-12 px-4 md:px-8 lg:px-12 font-mono text-xs">
+    <main className="min-h-screen bg-black text-zinc-300 pt-32 pb-12 px-4 md:px-8 lg:px-12 font-mono text-xs">
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}

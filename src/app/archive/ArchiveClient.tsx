@@ -332,7 +332,7 @@ export default function ArchiveClient() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 md:p-12 pt-20 md:pt-32 overflow-x-hidden">
+    <main className="min-h-screen bg-black text-white px-4 md:px-8 lg:px-12 pt-20 md:pt-32 overflow-x-hidden">
       {/* Mobile Logo */}
       <div className="md:hidden flex justify-center mb-8">
         <Link href="/">
@@ -347,7 +347,7 @@ export default function ArchiveClient() {
         </Link>
       </div>
 
-      <div className="max-w-[1800px] mx-auto">
+      <div className="max-w-7xl mx-auto">
         <header className="mb-6 md:mb-20 flex flex-col gap-4 md:gap-8">
           <Link 
             href="/" 

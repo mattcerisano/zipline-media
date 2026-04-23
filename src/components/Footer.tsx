@@ -7,7 +7,7 @@ import { Instagram, Linkedin, Video } from 'lucide-react'; // Using Video as Vim
 export default function Footer() {
   return (
 
-    <footer className="bg-black border-t border-white/10 pt-12 md:pt-20 pb-8 md:pb-10 px-6">
+    <footer className="bg-black border-t border-white/10 pt-12 md:pt-20 pb-8 md:pb-10 px-4 md:px-8 lg:px-12">
 
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-10 md:gap-12">
 

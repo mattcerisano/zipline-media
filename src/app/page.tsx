@@ -7,6 +7,88 @@ import { useRouter } from 'next/navigation';
 import LogoTicker from '@/components/LogoTicker';
 import { Check, Play, X } from 'lucide-react';
 
+/**
+ * Hook to detect if the browser is in low power mode 
+ * or if autoplay is restricted.
+ */
+function useLowPowerMode() {
+  const [isLowPower, setIsLowPower] = useState(false);
+
+  useEffect(() => {
+    // We attempt to autoplay a tiny video or check for play() promise rejection
+    const video = document.createElement('video');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('muted', '');
+    video.src = 'data:video/mp4;base64,AAAAHGZ0eXBtcDQyAAAAAG1wNDJpc29tYXZjMQAAAZptb292AAAAbG12aGQAAAAA3u992N7vfdgAAAPoAAAAKAABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAGWlveHNoAAAAEHRyYWsAAABcaWRhdAAAAAA=';
+    
+    video.play().then(() => {
+      setIsLowPower(false);
+    }).catch(() => {
+      setIsLowPower(true);
+    });
+  }, []);
+
+  return isLowPower;
+}
+
+/**
+ * Performance-optimized video component with .webm support 
+ * and low-power mode handling.
+ */
+function OptimizedVideo({ 
+  src, 
+  className = "", 
+  autoPlay = true, 
+  muted = true, 
+  loop = true, 
+  poster = "" 
+}: { 
+  src: string, 
+  className?: string, 
+  autoPlay?: boolean, 
+  muted?: boolean, 
+  loop?: boolean, 
+  poster?: string 
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const isLowPower = useLowPowerMode();
+  
+  // Try to find .webm equivalent if not already webm
+  const webmSrc = src.endsWith('.mp4') ? src.replace('.mp4', '.webm') : null;
+
+  return (
+    <div className={`relative overflow-hidden ${className}`}>
+      {/* Poster / Fallback Image */}
+      {poster && (
+        <Image
+          src={poster}
+          alt=""
+          fill
+          priority={autoPlay}
+          className={`object-cover transition-opacity duration-700 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}
+        />
+      )}
+      
+      {!isLowPower && (
+        <video
+          ref={videoRef}
+          autoPlay={autoPlay}
+          muted={muted}
+          loop={loop}
+          playsInline
+          preload="auto"
+          onPlaying={() => setIsLoaded(true)}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        >
+          {webmSrc && <source src={webmSrc} type="video/webm" />}
+          <source src={src} type="video/mp4" />
+        </video>
+      )}
+    </div>
+  );
+}
+
 function Hero() {
   const [isIntroComplete, setIsIntroComplete] = useState(false);
   const [isPlayingReel, setIsPlayingReel] = useState(false);
@@ -63,15 +145,10 @@ function Hero() {
 
       {/* --- MAIN HERO CONTENT (Revealed after intro) --- */}
       <div className="hidden md:block absolute inset-0 z-0">
-        <video 
-          autoPlay 
-          muted 
-          loop 
-          playsInline 
-          className="w-full h-full object-cover"
-        >
-          <source src="/LandingPage.mp4" type="video/mp4" />
-        </video>
+        <OptimizedVideo 
+          src="/LandingPage.mp4" 
+          className="w-full h-full"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70 z-10" />
       </div>
 
@@ -234,15 +311,10 @@ function Work() {
         <div className="flex flex-col gap-6 md:hidden">
           {categories.map((cat) => (
             <div key={cat.id} className="relative w-full h-[50vh] rounded-2xl overflow-hidden border border-white/10 bg-black group">
-              <video
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="absolute inset-0 w-full h-full object-cover"
-              >
-                <source src={cat.video} type="video/mp4" />
-              </video>
+              <OptimizedVideo 
+                src={cat.video}
+                className="absolute inset-0 w-full h-full"
+              />
               
               <a 
                 href={cat.link} 
@@ -275,19 +347,10 @@ function Work() {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black h-full cursor-pointer flex-[1.5]"
           >
-            <motion.div 
+            <OptimizedVideo 
+              src="/broadway-performance.mp4"
               className="absolute inset-0 w-full h-full"
-            >
-              <video
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="w-full h-full object-cover"
-              >
-                <source src="/broadway-performance.mp4" type="video/mp4" />
-              </video>
-            </motion.div>
+            />
             
             <a 
               href="/archive#performance" 
@@ -326,19 +389,10 @@ function Work() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
               className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black w-full cursor-pointer flex-1"
             >
-               <motion.div 
-                 className="absolute inset-0 w-full h-full"
-               >
-                 <video
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  className="w-full h-full object-cover"
-                >
-                  <source src="/corporate.mp4" type="video/mp4" />
-                </video>
-              </motion.div>
+              <OptimizedVideo 
+                src="/corporate.mp4"
+                className="absolute inset-0 w-full h-full"
+              />
 
               <a 
                 href="/archive#brands" 
@@ -373,19 +427,10 @@ function Work() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
               className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black w-full cursor-pointer flex-1"
             >
-               <motion.div 
-                 className="absolute inset-0 w-full h-full"
-               >
-                 <video
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  className="w-full h-full object-cover"
-                >
-                  <source src="/new-media.mp4" type="video/mp4" />
-                </video>
-              </motion.div>
+              <OptimizedVideo 
+                src="/new-media.mp4"
+                className="absolute inset-0 w-full h-full"
+              />
 
               <a 
                 href="/archive#new-media" 
@@ -418,7 +463,7 @@ function Work() {
       <div className="mt-8 text-center">
         <a 
           href="/archive" 
-          className="inline-block border border-white/20 px-8 py-5 md:px-12 md:py-6 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-black transition-all duration-300 w-full md:w-auto"
+          className="inline-block border border-white/20 px-8 py-5 md:px-12 md:py-6 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-black hover:border-accent transition-all duration-300 w-full md:w-auto"
         >
           See more
         </a>
@@ -429,14 +474,12 @@ function Work() {
 
 function LazyVideo({ src, poster, title }: { src: string, poster?: string, title: string }) {
   const [inView, setInView] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       setInView(entry.isIntersecting);
     }, { 
-      // Large margin to ensure videos are buffered before they enter the screen
       rootMargin: '1200px',
       threshold: 0.01 
     });
@@ -446,45 +489,31 @@ function LazyVideo({ src, poster, title }: { src: string, poster?: string, title
   }, []);
 
   return (
-    <div ref={ref} className="absolute inset-0 w-full h-full bg-black flex items-center justify-center">
-      {/* Poster layer: always present as fallback, fades out when video is ready */}
-      {poster && (
-        <Image 
-          src={poster} 
-          alt={title}
-          fill
-          unoptimized={poster.includes('ytimg.com') || poster.includes('vimeocdn.com')}
-          className={`object-cover transition-opacity duration-500 z-10 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}
-        />
-      )}
-      
-      {!poster && (
-        <div className={`absolute inset-0 flex items-center justify-center bg-neutral-900 text-[10px] font-bold uppercase opacity-20 text-center px-4 leading-tight z-10 transition-opacity duration-500 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}>
-          {title}
-        </div>
-      )}
-
-      {/* Load video when in view. */}
+    <div ref={ref} className="absolute inset-0 w-full h-full bg-black">
       {inView && !src.includes('youtube.com') && (
-        <video 
-          autoPlay
-          muted 
-          loop 
-          playsInline
-          preload="auto"
-          onPlaying={() => setVideoLoaded(true)}
-          className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
-        >
-          <source src={src} type="video/mp4" />
-        </video>
+        <OptimizedVideo 
+          src={src} 
+          poster={poster}
+          className="w-full h-full"
+        />
       )}
 
       {src.includes('youtube.com') && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 group-hover:bg-black/20 transition-colors">
-          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-90 group-hover:scale-100 transition-transform">
-            <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+        <>
+          {poster && (
+            <Image 
+              src={poster} 
+              alt={title}
+              fill
+              className="object-cover"
+            />
+          )}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 group-hover:bg-black/20 transition-colors">
+            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-90 group-hover:scale-100 transition-transform">
+              <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
@@ -637,10 +666,11 @@ function Mission() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-2xl md:text-5xl font-black tracking-tighter uppercase leading-tight"
+          className="text-[6.5vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1]"
         >
-          We don&apos;t do &quot;Marketing Speak.&quot; <br/>
-          <span className="text-[var(--accent)]">We just make it look cool.</span>
+          <span className="block md:inline whitespace-nowrap">We don&apos;t do &quot;Marketing Speak.&quot;</span>
+          <br className="hidden md:block" />
+          <span className="text-accent block md:inline whitespace-nowrap">We just make it look cool.</span>
         </motion.h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium text-center">

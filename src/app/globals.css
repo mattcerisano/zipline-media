@@ -14,6 +14,8 @@ html {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
+  --font-sans: var(--font-montserrat);
+  --font-montserrat: var(--font-montserrat);
 }
 
 @font-face {
@@ -35,7 +37,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'LuloClean', sans-serif;
+  font-family: var(--font-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -88,11 +90,11 @@ body {
 h1, h2, h3, h4, h5, h6, nav a, button {
   font-family: 'LuloClean', sans-serif;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 p, span, label, input, textarea, select {
-  font-family: 'LuloClean', sans-serif;
-  letter-spacing: 0.05em;
+  font-family: var(--font-sans), sans-serif;
 }
 
 @keyframes scroll {
