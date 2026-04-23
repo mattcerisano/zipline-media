@@ -235,10 +235,16 @@ function Work() {
         <div className="flex flex-col gap-6 md:hidden">
           {categories.map((cat) => (
             <div key={cat.id} className="relative w-full h-[50vh] rounded-2xl overflow-hidden border border-white/10 bg-black group">
-              <OptimizedVideo 
-                src={cat.video}
-                className="absolute inset-0 w-full h-full"
-              />
+              <video 
+                autoPlay 
+                muted 
+                loop 
+                playsInline 
+                className="absolute inset-0 w-full h-full object-cover"
+              >
+                <source src={cat.video.replace('.mp4', '.webm')} type="video/webm" />
+                <source src={cat.video} type="video/mp4" />
+              </video>
               
               <a 
                 href={cat.link} 
@@ -271,10 +277,16 @@ function Work() {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black h-full cursor-pointer flex-[1.5]"
           >
-            <OptimizedVideo 
-              src="/broadway-performance.mp4"
-              className="absolute inset-0 w-full h-full"
-            />
+            <video 
+              autoPlay 
+              muted 
+              loop 
+              playsInline 
+              className="absolute inset-0 w-full h-full object-cover"
+            >
+              <source src="/broadway-performance.webm" type="video/webm" />
+              <source src="/broadway-performance.mp4" type="video/mp4" />
+            </video>
             
             <a 
               href="/archive#performance" 
