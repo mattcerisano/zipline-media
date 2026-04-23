@@ -1,53 +1,28 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-
-import NextImage from 'next/image';
-
 import { motion, AnimatePresence } from 'framer-motion';
-
 import { 
-
   Search, 
-
   Plus, 
-
   Minus, 
-
   Trash2, 
-
   FileDown, 
-
   RotateCcw, 
-
   Package,
-
   X,
-
   ClipboardList,
-
   Check,
-
   ChevronDown,
-
   Layers,
-
   User,
-
   Pencil,
-
   Sun,
-
   Car,
-
   Stethoscope,
-
   MapPin,
-
   ExternalLink,
-
   Calendar
-
 } from 'lucide-react';
 
 import { jsPDF } from 'jspdf';
@@ -85,102 +60,18 @@ interface ManifestItem {
 
 
 
-// Optimized Tooltip
-
-const ImageTooltip = ({ src }: { src: string }) => {
-
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-
-
-
-  useEffect(() => {
-
-    const handleMove = (e: MouseEvent) => {
-
-      setPos({ x: e.clientX, y: e.clientY });
-
-    };
-
-    window.addEventListener('mousemove', handleMove);
-
-    return () => window.removeEventListener('mousemove', handleMove);
-
-  }, []);
-
-
-
-  return (
-
-    <motion.div
-
-      initial={{ opacity: 0, scale: 0.9 }}
-
-      animate={{ opacity: 1, scale: 1 }}
-
-      exit={{ opacity: 0, scale: 0.9 }}
-
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-
-      style={{ 
-
-        position: 'fixed', 
-
-        left: pos.x + 20, 
-
-        top: pos.y - 140,
-
-        zIndex: 100 
-
-      }}
-
-      className="pointer-events-none hidden md:block"
-
-    >
-
-      <div className="w-64 h-64 bg-neutral-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl shadow-black/80 p-2 backdrop-blur-xl">
-
-        <div className="w-full h-full bg-white rounded-xl overflow-hidden relative">
-
-          <NextImage 
-
-            src={src} 
-
-            alt="Gear Preview" 
-
-            fill
-
-            sizes="256px"
-
-            className="object-contain p-2"
-
-          />
-
-        </div>
-
-      </div>
-
-    </motion.div>
-
-  );
-
-};
-
 const GearItem = ({ 
   item, 
   manifestCount, 
-  onUpdate, 
-  onHover 
+  onUpdate
 }: { 
   item: InventoryItem, 
   manifestCount: number, 
-  onUpdate: (name: string, dir: number) => void,
-  onHover: (img: string | null) => void 
+  onUpdate: (name: string, dir: number) => void
 }) => (
   <div className="group flex items-center justify-between p-3 md:p-4 border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all rounded-xl">
     <div 
-      onMouseEnter={() => item.image && onHover(item.image)}
-      onMouseLeave={() => onHover(null)}
-      className="flex-1 min-w-0 pr-2 md:pr-4 cursor-help"
+      className="flex-1 min-w-0 pr-2 md:pr-4"
     >
       <h3 className="text-sm font-bold uppercase tracking-tight mb-1 leading-tight">{item.name}</h3>
       <p className="text-[10px] opacity-40 font-bold uppercase tracking-[0.2em] leading-relaxed">
@@ -214,7 +105,7 @@ export default function Rentals() {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [manifest, setManifest] = useState<Record<string, number>>({});
-  const [hoveredImage, setHoveredImage] = useState<string | null>(null);
+  const [savedOwners, setSavedOwners] = useState<string[]>([]);
   
   // Custom Gear State
   const [customGear, setCustomGear] = useState<InventoryItem[]>([]);
@@ -305,6 +196,16 @@ export default function Rentals() {
     
     fetchInventory();
     fetchJobs();
+
+    // Load saved owners
+    const stored = localStorage.getItem('zipline_saved_owners');
+    if (stored) {
+      try {
+        setSavedOwners(JSON.parse(stored));
+      } catch (e) {
+        console.error('Error parsing saved owners:', e);
+      }
+    }
   }, []);
 
   const allInventory = useMemo(() => {
@@ -417,6 +318,20 @@ export default function Rentals() {
         }
         return newManifest;
     });
+
+    // Save owner to list for autofill
+    if (customOwner.trim()) {
+      const owner = customOwner.trim();
+      setSavedOwners(prev => {
+        if (!prev.includes(owner)) {
+          const next = [...prev, owner];
+          localStorage.setItem('zipline_saved_owners', JSON.stringify(next));
+          return next;
+        }
+        return prev;
+      });
+    }
+
     setIsCustomModalOpen(false);
   };
 
@@ -1314,10 +1229,6 @@ export default function Rentals() {
 
   return (
     <div className="pt-8 pb-32 lg:pb-8">
-        <AnimatePresence>
-          {hoveredImage && <ImageTooltip src={hoveredImage} />}
-        </AnimatePresence>
-
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-7 space-y-8">
             <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-[80vh] md:h-[calc(100vh-140px)] sticky top-24">
@@ -1402,7 +1313,6 @@ export default function Rentals() {
                                   item={item} 
                                   manifestCount={manifest[item.name] || 0}
                                   onUpdate={updateManifest} 
-                                  onHover={setHoveredImage}
                                 />
                             ))}
                           </div>
@@ -1422,7 +1332,6 @@ export default function Rentals() {
                               item={item} 
                               manifestCount={manifest[item.name] || 0}
                               onUpdate={updateManifest}
-                              onHover={setHoveredImage} 
                             />
                           ))
                         )}
@@ -1565,8 +1474,14 @@ export default function Rentals() {
                         value={customOwner}
                         onChange={(e) => setCustomOwner(e.target.value)}
                         placeholder="E.G. RENTAL HOUSE A"
+                        list="saved-owners"
                         className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-4 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg"
                       />
+                      <datalist id="saved-owners">
+                        {savedOwners.map(owner => (
+                          <option key={owner} value={owner} />
+                        ))}
+                      </datalist>
                     </div>
                   </div>
 

@@ -1658,5 +1658,14 @@
     "videoUrl": "https://www.youtube.com/embed/ozZylJHVUGg",
     "category": "Social",
     "hostedOn": "youtube"
+  },
+  {
+    "title": "KENREX | FIRST PREVIEW IN NYC!",
+    "description": "KENREX | FIRST PREVIEW IN NYC!",
+    "thumbnail": "https://img.youtube.com/vi/2dOycEJC5BE/maxresdefault.jpg",
+    "videoUrl": "https://www.youtube.com/embed/2dOycEJC5BE",
+    "uploadDate": "2024-10-22T00:00:00.000Z",
+    "category": "Events",
+    "hostedOn": "youtube"
   }
 ]
