@@ -7,88 +7,6 @@ import { useRouter } from 'next/navigation';
 import LogoTicker from '@/components/LogoTicker';
 import { Check, Play, X } from 'lucide-react';
 
-/**
- * Hook to detect if the browser is in low power mode 
- * or if autoplay is restricted.
- */
-function useLowPowerMode() {
-  const [isLowPower, setIsLowPower] = useState(false);
-
-  useEffect(() => {
-    // We attempt to autoplay a tiny video or check for play() promise rejection
-    const video = document.createElement('video');
-    video.setAttribute('playsinline', '');
-    video.setAttribute('muted', '');
-    video.src = 'data:video/mp4;base64,AAAAHGZ0eXBtcDQyAAAAAG1wNDJpc29tYXZjMQAAAZptb292AAAAbG12aGQAAAAA3u992N7vfdgAAAPoAAAAKAABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAGWlveHNoAAAAEHRyYWsAAABcaWRhdAAAAAA=';
-    
-    video.play().then(() => {
-      setIsLowPower(false);
-    }).catch(() => {
-      setIsLowPower(true);
-    });
-  }, []);
-
-  return isLowPower;
-}
-
-/**
- * Performance-optimized video component with .webm support 
- * and low-power mode handling.
- */
-function OptimizedVideo({ 
-  src, 
-  className = "", 
-  autoPlay = true, 
-  muted = true, 
-  loop = true, 
-  poster = "" 
-}: { 
-  src: string, 
-  className?: string, 
-  autoPlay?: boolean, 
-  muted?: boolean, 
-  loop?: boolean, 
-  poster?: string 
-}) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const isLowPower = useLowPowerMode();
-  
-  // Try to find .webm equivalent if not already webm
-  const webmSrc = src.endsWith('.mp4') ? src.replace('.mp4', '.webm') : null;
-
-  return (
-    <div className={`relative overflow-hidden ${className}`}>
-      {/* Poster / Fallback Image */}
-      {poster && (
-        <Image
-          src={poster}
-          alt=""
-          fill
-          priority={autoPlay}
-          className={`object-cover transition-opacity duration-700 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}
-        />
-      )}
-      
-      {!isLowPower && (
-        <video
-          ref={videoRef}
-          autoPlay={autoPlay}
-          muted={muted}
-          loop={loop}
-          playsInline
-          preload="auto"
-          onPlaying={() => setIsLoaded(true)}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
-        >
-          {webmSrc && <source src={webmSrc} type="video/webm" />}
-          <source src={src} type="video/mp4" />
-        </video>
-      )}
-    </div>
-  );
-}
-
 function Hero() {
   const [isIntroComplete, setIsIntroComplete] = useState(false);
   const [isPlayingReel, setIsPlayingReel] = useState(false);
@@ -145,10 +63,16 @@ function Hero() {
 
       {/* --- MAIN HERO CONTENT (Revealed after intro) --- */}
       <div className="hidden md:block absolute inset-0 z-0">
-        <OptimizedVideo 
-          src="/LandingPage.mp4" 
-          className="w-full h-full"
-        />
+        <video 
+          autoPlay 
+          muted 
+          loop 
+          playsInline 
+          className="w-full h-full object-cover"
+        >
+          <source src="/LandingPage.webm" type="video/webm" />
+          <source src="/LandingPage.mp4" type="video/mp4" />
+        </video>
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70 z-10" />
       </div>
 
@@ -389,10 +313,20 @@ function Work() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
               className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black w-full cursor-pointer flex-1"
             >
-              <OptimizedVideo 
-                src="/corporate.mp4"
-                className="absolute inset-0 w-full h-full"
-              />
+               <motion.div 
+                 className="absolute inset-0 w-full h-full"
+               >
+                 <video
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="w-full h-full object-cover"
+                >
+                  <source src="/corporate.webm" type="video/webm" />
+                  <source src="/corporate.mp4" type="video/mp4" />
+                </video>
+              </motion.div>
 
               <a 
                 href="/archive#brands" 
@@ -427,10 +361,20 @@ function Work() {
               transition={{ duration: 0.4, ease: "easeInOut" }}
               className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black w-full cursor-pointer flex-1"
             >
-              <OptimizedVideo 
-                src="/new-media.mp4"
-                className="absolute inset-0 w-full h-full"
-              />
+               <motion.div 
+                 className="absolute inset-0 w-full h-full"
+               >
+                 <video
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="w-full h-full object-cover"
+                >
+                  <source src="/new-media.webm" type="video/webm" />
+                  <source src="/new-media.mp4" type="video/mp4" />
+                </video>
+              </motion.div>
 
               <a 
                 href="/archive#new-media" 
@@ -474,6 +418,7 @@ function Work() {
 
 function LazyVideo({ src, poster, title }: { src: string, poster?: string, title: string }) {
   const [inView, setInView] = useState(false);
+  const [videoLoaded, setVideoLoaded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -489,31 +434,46 @@ function LazyVideo({ src, poster, title }: { src: string, poster?: string, title
   }, []);
 
   return (
-    <div ref={ref} className="absolute inset-0 w-full h-full bg-black">
-      {inView && !src.includes('youtube.com') && (
-        <OptimizedVideo 
-          src={src} 
-          poster={poster}
-          className="w-full h-full"
+    <div ref={ref} className="absolute inset-0 w-full h-full bg-black flex items-center justify-center">
+      {/* Poster layer: always present as fallback, fades out when video is ready */}
+      {poster && (
+        <Image 
+          src={poster} 
+          alt={title}
+          fill
+          unoptimized={poster.includes('ytimg.com') || poster.includes('vimeocdn.com')}
+          className={`object-cover transition-opacity duration-500 z-10 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}
         />
+      )}
+      
+      {!poster && (
+        <div className={`absolute inset-0 flex items-center justify-center bg-neutral-900 text-[10px] font-bold uppercase opacity-20 text-center px-4 leading-tight z-10 transition-opacity duration-500 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}>
+          {title}
+        </div>
+      )}
+
+      {/* Load video when in view. */}
+      {inView && !src.includes('youtube.com') && (
+        <video 
+          autoPlay
+          muted 
+          loop 
+          playsInline
+          preload="auto"
+          onPlaying={() => setVideoLoaded(true)}
+          className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500 ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <source src={src.replace('.mp4', '.webm')} type="video/webm" />
+          <source src={src} type="video/mp4" />
+        </video>
       )}
 
       {src.includes('youtube.com') && (
-        <>
-          {poster && (
-            <Image 
-              src={poster} 
-              alt={title}
-              fill
-              className="object-cover"
-            />
-          )}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 group-hover:bg-black/20 transition-colors">
-            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-90 group-hover:scale-100 transition-transform">
-              <Play className="w-5 h-5 text-white fill-white ml-0.5" />
-            </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20 group-hover:bg-black/20 transition-colors">
+          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 scale-90 group-hover:scale-100 transition-transform">
+            <Play className="w-5 h-5 text-white fill-white ml-0.5" />
           </div>
-        </>
+        </div>
       )}
     </div>
   );
