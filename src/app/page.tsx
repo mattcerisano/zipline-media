@@ -84,7 +84,7 @@ function Hero() {
             initial={{ opacity: 0 }}
             animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 1.5, delay: 0.2 }}
-            className="text-[10vw] sm:text-[9vw] md:text-[8vw] lg:text-9xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
+            className="text-[5vw] sm:text-[4.5vw] md:text-[4vw] lg:text-6xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
           >
             FULL SERVICE
           </motion.h1>
@@ -92,7 +92,7 @@ function Hero() {
             initial={{ opacity: 0 }}
             animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 1.5, delay: 0.4 }}
-            className="text-[10vw] sm:text-[9vw] md:text-[8vw] lg:text-9xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
+            className="text-[5vw] sm:text-[4.5vw] md:text-[4vw] lg:text-6xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
           >
             VIDEO PRODUCTION
           </motion.h1>
