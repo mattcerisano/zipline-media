@@ -33,11 +33,11 @@ export default function EquipmentPage() {
     : [activeCategory].filter(cat => groupedInventory[cat]);
 
   return (
-    <main className="min-h-screen bg-black text-white pt-32 pb-24 px-4 md:px-8 lg:px-12 selection:bg-accent selection:text-white">
+    <main className="min-h-screen bg-black text-white pt-20 md:pt-24 pb-24 px-4 md:px-8 lg:px-12 selection:bg-accent selection:text-white">
       <div className="max-w-7xl mx-auto">
         
         {/* Header Section */}
-        <div className="flex flex-col gap-4 mb-16">
+        <div className="flex flex-col gap-4 mb-8 md:mb-12">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

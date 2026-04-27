@@ -71,13 +71,13 @@ export default function Navbar() {
           </div>
           
           {/* Desktop Nav */}
-          <div className="hidden md:flex gap-8">
+          <div className="hidden md:flex gap-10">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={(e) => handleNav(e, link.href)}
-                className="relative text-[10px] font-bold tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase"
+                className="relative text-[14px] font-bold tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase"
               >
                 {link.name}
               </Link>

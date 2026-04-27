@@ -176,13 +176,13 @@ function BigSection({
   id?: string;
 }) {
   return (
-    <section id={id} className="mb-20 scroll-mt-32">
+    <section id={id} className="mb-12 scroll-mt-32">
       <motion.h2 
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.4 }}
-        className="text-2xl md:text-4xl lg:text-6xl font-black uppercase tracking-tighter mb-8 md:mb-12 border-b-2 border-white/10 pb-4 md:pb-6 text-white"
+        className="text-2xl md:text-4xl lg:text-6xl font-black uppercase tracking-tighter mb-6 md:mb-8 border-b-2 border-white/10 pb-2 md:pb-4 text-white"
       >
         {title}
       </motion.h2>
@@ -203,7 +203,7 @@ function PerformanceSection({
 
   return (
     <BigSection title="Performance" id="performance">
-      <div className="flex flex-nowrap gap-2 md:gap-4 mb-8 overflow-x-auto no-scrollbar pb-2">
+      <div className="flex flex-nowrap gap-2 md:gap-4 mb-6 overflow-x-auto no-scrollbar pb-2">
         {subCategories.map(sub => (
           <button
             key={sub}
@@ -237,7 +237,7 @@ function BrandsNonprofitsSection({
 
   return (
     <BigSection title="Brands" id="brands">
-      <div className="flex flex-wrap gap-2 md:gap-4 mb-8">
+      <div className="flex flex-wrap gap-2 md:gap-4 mb-6">
         {subCategories.map(sub => (
           <button
             key={sub}
@@ -332,7 +332,7 @@ export default function ArchiveClient() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
-    <main className="min-h-screen bg-black text-white px-4 md:px-8 lg:px-12 pt-20 md:pt-32 overflow-x-hidden">
+    <main className="min-h-screen bg-black text-white px-4 md:px-8 lg:px-12 pt-16 md:pt-24 overflow-x-hidden">
       {/* Mobile Logo */}
       <div className="md:hidden flex justify-center mb-8">
         <Link href="/">
@@ -348,7 +348,7 @@ export default function ArchiveClient() {
       </div>
 
       <div className="max-w-7xl mx-auto">
-        <header className="mb-6 md:mb-20 flex flex-col gap-4 md:gap-8">
+        <header className="mb-6 md:mb-12 flex flex-col gap-4 md:gap-8">
           <Link 
             href="/" 
             onClick={handleBackToHome}
@@ -393,11 +393,10 @@ export default function ArchiveClient() {
         </header>
 
         {searchQuery ? (
-          /* --- Search Results --- */
           <motion.section 
             initial={isMobile ? { opacity: 1 } : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mb-32"
+            className="mb-24"
           >
             <h2 className="hidden md:flex text-xl font-bold uppercase tracking-widest mb-8 text-[var(--accent)] items-center gap-2">
               <Search className="w-5 h-5" />
@@ -449,11 +448,9 @@ export default function ArchiveClient() {
             )}
           </motion.section>
         ) : (
-          /* --- Standard Layout --- */
           <>
-            {/* --- Recent Work Section --- */}
-            <section className="mb-20">
-              <h2 className="text-xl md:text-2xl font-bold uppercase tracking-widest mb-10 text-white/40 flex items-center gap-2">
+            <section className="mb-12">
+              <h2 className="text-xl md:text-2xl font-bold uppercase tracking-widest mb-6 text-white/40 flex items-center gap-2">
                 Recent Work
               </h2>
               <div 
@@ -493,8 +490,7 @@ export default function ArchiveClient() {
               </div>
             </section>
 
-            {/* --- Three Big Sections --- */}
-            <div className="flex flex-col gap-10">
+            <div className="flex flex-col gap-6">
               <PerformanceSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
               <BrandsNonprofitsSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
               <NewMediaSection allVideos={videosByCategory} onPlay={setSelectedVideo} />

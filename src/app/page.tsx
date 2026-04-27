@@ -216,7 +216,7 @@ function Work() {
   };
 
   return (
-    <section id="work" className="bg-black py-8 md:py-16 px-6 scroll-mt-24 relative">
+    <section id="work" className="bg-black pt-4 pb-2 md:pt-8 md:pb-4 px-6 scroll-mt-24 relative">
       {/* Page Transition Overlay */}
       <AnimatePresence>
         {isTransitioning && (
@@ -416,7 +416,7 @@ function Work() {
 
       </div>
 
-      <div className="mt-8 text-center">
+      <div className="mt-4 text-center">
         <a 
           href="/archive" 
           className="inline-block border border-white/20 px-8 py-5 md:px-12 md:py-6 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-black hover:border-accent transition-all duration-300 w-full md:w-auto"
@@ -594,8 +594,8 @@ function Social() {
 
 
   return (
-    <section className="pt-12 pb-8 bg-black overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 mb-12 text-center">
+    <section className="pt-6 pb-4 bg-black overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6 mb-6 text-center">
         <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase mb-4">Social First</h2>
         <p className="text-sm md:text-base opacity-60 max-w-xl mx-auto">
           If it can&apos;t fit into a 9:16, ya shoulda been wider. We consider the social post from the start of every project to stop the scroll.
@@ -630,46 +630,6 @@ function Social() {
 
 // ... Clients component remains unchanged ...
 
-function Mission() {
-  return (
-    <section className="py-24 md:py-32 px-6 max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[60vh] scroll-mt-24">
-      <div className="max-w-4xl mx-auto text-center space-y-12">
-        <motion.h2 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-[6.5vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] text-center"
-        >
-          <span className="block md:inline whitespace-nowrap">We don&apos;t do &quot;Marketing Speak.&quot;</span>
-          <br className="hidden md:block" />
-          <span className="text-accent block md:inline whitespace-nowrap">We just make it look cool.</span>
-        </motion.h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium text-center">
-          <p>
-            We&apos;re the kind of team that can pivot on a dime and still make it look intentional. Big, glossy TV spots? Done. TikToks that don&apos;t feel like ads? Absolutely. Social campaigns, branded docs, narrative pieces&mdash;this is our playground.
-          </p>
-          <p>
-            And sure, we&apos;ve picked up some awards and worked with names you&apos;d definitely recognize&mdash;but that&apos;s not the point. What matters is showing up, getting it done, and keeping the vibe good. Clients tend to like having us around, and we like keeping it that way.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function About() {
-  return (
-    <section id="about" className="py-12 px-6 max-w-7xl mx-auto flex flex-col items-center gap-6 md:gap-10 scroll-mt-24">
-      
-      {/* 2. Ticker */}
-      <div className="w-full">
-        <LogoTicker />
-      </div>
-    </section>
-  );
-}
-
 function Contact() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
@@ -702,9 +662,9 @@ function Contact() {
   }
 
   return (
-    <section id="contact" className="py-12 md:py-24 px-6 max-w-4xl mx-auto flex flex-col items-center justify-center scroll-mt-24 text-center">
-      <div className="w-full space-y-16">
-        <div className="space-y-8">
+    <section id="contact" className="py-8 md:py-16 px-6 max-w-4xl mx-auto flex flex-col items-center justify-center scroll-mt-24 text-center">
+      <div className="w-full space-y-8">
+        <div className="space-y-4">
           <motion.div
              initial={{ opacity: 0, y: 20 }}
              whileInView={{ opacity: 1, y: 0 }}
@@ -745,7 +705,7 @@ function Contact() {
         >
           <form 
             onSubmit={handleSubmit}
-            className="space-y-10 bg-neutral-900/30 p-8 md:p-12 border border-white/5 text-left max-w-3xl mx-auto"
+            className="space-y-10 bg-neutral-900/30 p-6 md:p-8 border border-white/5 text-left max-w-3xl mx-auto"
           >
             {/* Formspree Subject Customization */}
             <input type="hidden" name="_subject" value="New Inquiry from Zipline Website" />
@@ -827,21 +787,31 @@ function AgencyManifesto() {
   ];
 
   return (
-    <section className="pb-16 md:pb-24 pt-8 md:pt-12 px-6 border-t border-white/5 bg-black relative overflow-hidden">
+    <section id="about" className="pb-8 md:pb-12 pt-12 md:pt-16 px-6 border-t border-white/5 bg-black relative overflow-hidden scroll-mt-24">
       <div className="max-w-7xl mx-auto">
         
-        {/* Section Header */}
-        <div className="flex flex-col gap-4 mb-16 md:mb-20">
+        {/* Section Header: Integrated Mission */}
+        <div className="max-w-4xl mb-16 md:mb-20">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.2] md:leading-[1] max-w-4xl"
+            className="text-[6.5vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] mb-8"
           >
-            Vision and <br className="hidden md:block"/>
-            <span className="text-[var(--accent)] whitespace-nowrap md:whitespace-normal">Perspective</span>
+            <span className="block md:inline whitespace-nowrap">We obsess over the details</span>
+            <br className="hidden md:block" />
+            <span className="text-accent block md:inline whitespace-nowrap">so you don&apos;t have to.</span>
           </motion.h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium">
+            <p>
+              We&apos;re the kind of team that can pivot on a dime and still make it look intentional. Big, glossy TV spots? Done. TikToks that don&apos;t feel like ads? Absolutely. Social campaigns, branded docs, narrative pieces&mdash;this is our playground.
+            </p>
+            <p>
+              And sure, we&apos;ve picked up some awards and worked with names you&apos;d definitely recognize&mdash;but that&apos;s not the point. What matters is showing up, getting it done, and keeping the vibe good. Clients tend to like having us around.
+            </p>
+          </div>
         </div>
 
         {/* Capabilities Grid */}
@@ -879,8 +849,9 @@ export default function Page() {
       <Work />
       <AgencyManifesto />
       <Social />
-      <About />
-      <Mission />
+      <section className="py-12 md:py-20 px-6 max-w-7xl mx-auto">
+        <LogoTicker />
+      </section>
       <Contact />
     </main>
   );

@@ -53,7 +53,7 @@ interface TickerItem {
 }
 
 const TickerLane = ({ title, items, scrollClass = "animate-scroll-slow" }: { title: string, items: TickerItem[], scrollClass?: string }) => (
-  <div className="flex flex-col md:flex-row gap-8 md:items-center border-b border-white/10 pb-8 overflow-hidden relative">
+  <div className="flex flex-col md:flex-row gap-8 md:items-center border-b border-white/10 pb-4 overflow-hidden relative">
     <h3 className="w-full md:w-40 text-xs md:text-sm font-bold tracking-[0.3em] uppercase text-white/40 shrink-0 mb-4 md:mb-0 z-20">{title}</h3>
     
     <div className="flex-1 overflow-hidden relative">
@@ -82,7 +82,7 @@ const TickerLane = ({ title, items, scrollClass = "animate-scroll-slow" }: { tit
 
 export default function LogoTicker() {
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-4">
       <TickerLane title="Brands" items={lanes.Brand} />
       <TickerLane title="Performance" items={lanes.Performance} scrollClass="animate-scroll-slower" />
       <TickerLane title="New Media" items={lanes.Podcasts} />
