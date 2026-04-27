@@ -84,7 +84,7 @@ function Hero() {
             initial={{ opacity: 0 }}
             animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 1.5, delay: 0.2 }}
-            className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-7xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
+            className="text-[10vw] sm:text-[9vw] md:text-[8vw] lg:text-9xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
           >
             FULL SERVICE
           </motion.h1>
@@ -92,7 +92,7 @@ function Hero() {
             initial={{ opacity: 0 }}
             animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 1.5, delay: 0.4 }}
-            className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-7xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
+            className="text-[10vw] sm:text-[9vw] md:text-[8vw] lg:text-9xl font-black tracking-tighter text-white leading-none whitespace-nowrap"
           >
             VIDEO PRODUCTION
           </motion.h1>
@@ -111,7 +111,7 @@ function Hero() {
             width={300}
             height={100}
             priority
-            className="w-[80vw] max-w-[300px] h-auto object-contain"
+            className="w-[80vw] max-w-[350px] h-auto object-contain"
           />
         </motion.div>
 
@@ -119,7 +119,7 @@ function Hero() {
           initial={{ opacity: 0 }}
           animate={isIntroComplete ? { opacity: 1 } : { opacity: 0 }}
           transition={{ delay: 0.6, duration: 1.2 }}
-          className="text-sm md:text-xl font-bold tracking-[0.3em] uppercase opacity-80 text-white leading-relaxed mt-6"
+          className="text-base md:text-2xl font-bold tracking-[0.4em] uppercase opacity-80 text-white leading-relaxed mt-8"
         >
           PRE. PROD. POST.
         </motion.p>
