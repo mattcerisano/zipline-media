@@ -632,13 +632,13 @@ function Social() {
 
 function Mission() {
   return (
-    <section className="py-12 px-6 max-w-7xl mx-auto flex flex-col items-center gap-6 md:gap-10 scroll-mt-24">
+    <section className="py-24 md:py-32 px-6 max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[60vh] scroll-mt-24">
       <div className="max-w-4xl mx-auto text-center space-y-12">
         <motion.h2 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-[6.5vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1]"
+          className="text-[6.5vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] text-center"
         >
           <span className="block md:inline whitespace-nowrap">We don&apos;t do &quot;Marketing Speak.&quot;</span>
           <br className="hidden md:block" />
@@ -827,7 +827,7 @@ function AgencyManifesto() {
   ];
 
   return (
-    <section className="py-16 md:py-24 px-6 border-t border-white/5 bg-black relative overflow-hidden">
+    <section className="pb-16 md:pb-24 pt-8 md:pt-12 px-6 border-t border-white/5 bg-black relative overflow-hidden">
       <div className="max-w-7xl mx-auto">
         
         {/* Section Header */}
