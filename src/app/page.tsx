@@ -792,16 +792,16 @@ function AgencyManifesto() {
         
         {/* Section Header: Integrated Mission */}
         <div className="max-w-4xl mb-16 md:mb-20">
-          <motion.h2 
+            <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-[6.5vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] mb-8"
+            className="text-[6.5vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] mb-8 text-balance"
           >
-            <span className="block md:inline">We obsess over the details</span>
+            We obsess over the details{' '}
             <br className="hidden md:block" />
-            <span className="text-accent block md:inline">so you don&apos;t have to.</span>
+            <span className="text-accent">so you don&apos;t have to.</span>
           </motion.h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium">
