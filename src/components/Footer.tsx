@@ -13,33 +13,12 @@ export default function Footer() {
         
 
         {/* Brand Column */}
-
         <div className="flex flex-col gap-2 md:gap-4">
-
           <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Zipline Media</h2>
-
           <p className="text-xs tracking-[0.2em] text-white/40 uppercase">New York, NY</p>
-
         </div>
 
-
-
-        {/* Links Column */}
-
-                <div className="flex flex-col gap-3 md:gap-4 text-xs font-bold tracking-[0.2em] uppercase">
-
-                  <Link href="/#work" className="text-white hover:text-[var(--accent)] transition-colors">Work</Link>
-
-                  <Link href="/#about" className="text-white hover:text-[var(--accent)] transition-colors">About</Link>
-
-                  <Link href="/#contact" className="text-white hover:text-[var(--accent)] transition-colors">Contact</Link>
-
-                </div>
-
-
-
         {/* Socials & Contact */}
-
         <div className="flex flex-col gap-4 md:gap-6">
 
           <a href="mailto:contact@zipline.media" className="text-sm font-bold tracking-[0.1em] text-white hover:text-[var(--accent)] transition-colors">

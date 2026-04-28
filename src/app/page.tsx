@@ -665,7 +665,7 @@ function Contact() {
   }
 
   return (
-    <>
+    <div id="contact" className="scroll-mt-24">
       {/* Mobile-only Contact Section */}
       <section className="md:hidden py-16 px-6 bg-black border-t border-white/5 text-center">
         <div className="max-w-xl mx-auto space-y-8">
@@ -710,7 +710,7 @@ function Contact() {
       </section>
 
       {/* Desktop-only Contact Form */}
-      <section id="contact" className="hidden md:flex py-8 md:py-16 px-6 max-w-4xl mx-auto flex-col items-center justify-center scroll-mt-24 text-center">
+      <section className="hidden md:flex py-8 md:py-16 px-6 max-w-4xl mx-auto flex-col items-center justify-center text-center">
       <div className="w-full space-y-8">
         <div className="space-y-4">
           <motion.div
@@ -813,7 +813,7 @@ function Contact() {
         </motion.div>
       </div>
     </section>
-    </>
+    </div>
   );
 }
 
