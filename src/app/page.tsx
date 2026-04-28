@@ -217,7 +217,7 @@ function Work() {
   };
 
   return (
-    <section id="work" className="bg-black py-12 md:py-24 px-6 scroll-mt-24 relative">
+    <section id="work" className="bg-black py-8 md:py-24 px-6 scroll-mt-24 relative">
       {/* Page Transition Overlay */}
       <AnimatePresence>
         {isTransitioning && (
@@ -595,7 +595,7 @@ function Social() {
 
 
   return (
-    <section className="pt-6 pb-4 bg-black overflow-hidden">
+    <section className="pt-8 pb-4 bg-black overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 mb-6 text-center">
         <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase mb-4">Social First</h2>
         <p className="text-sm md:text-base opacity-60 max-w-xl mx-auto">
@@ -791,7 +791,7 @@ function AgencyManifesto() {
   ];
 
   return (
-    <section id="about" className="py-16 md:py-24 px-6 border-t border-white/5 bg-black relative overflow-hidden scroll-mt-24">
+    <section id="about" className="py-10 md:py-24 px-6 border-t border-white/5 bg-black relative overflow-hidden scroll-mt-24">
       <div className="max-w-7xl mx-auto">
         
         {/* Section Header: Integrated Mission */}
