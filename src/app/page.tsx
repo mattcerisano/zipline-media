@@ -763,7 +763,7 @@ function Contact() {
               )}
               {status === 'error' && "Error - Try Again"}
               {status === 'idle' && "Send Inquiry"}
-            </button>
+            </motion.button>
           </form>
         </motion.div>
       </div>
