@@ -130,12 +130,13 @@ function Hero() {
           transition={{ delay: 1, duration: 1.2 }}
           className="mt-10"
         >
-          <a 
+          <motion.a 
             href="/archive" 
-            className="inline-block border border-white/20 px-8 py-4 text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase hover:bg-white hover:text-black transition-all duration-300"
+            whileTap={{ scale: 0.95 }}
+            className="inline-block border border-white/20 px-8 py-4 text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase hover:bg-white hover:text-black transition-all duration-300 active:bg-white active:text-black"
           >
             See our work
-          </a>
+          </motion.a>
         </motion.div>
       </div>
 
@@ -216,7 +217,7 @@ function Work() {
   };
 
   return (
-    <section id="work" className="bg-black pt-4 pb-2 md:pt-8 md:pb-4 px-6 scroll-mt-24 relative">
+    <section id="work" className="bg-black py-12 md:py-24 px-6 scroll-mt-24 relative">
       {/* Page Transition Overlay */}
       <AnimatePresence>
         {isTransitioning && (
@@ -417,14 +418,14 @@ function Work() {
       </div>
 
       <div className="mt-4 text-center">
-        <a 
-          href="/archive" 
-          className="inline-block border border-white/20 px-8 py-5 md:px-12 md:py-6 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-black hover:border-accent transition-all duration-300 w-full md:w-auto"
+        <motion.a
+          href="/archive"
+          whileTap={{ scale: 0.95 }}
+          className="inline-block border border-white/20 px-8 py-5 md:px-12 md:py-6 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-black hover:border-accent transition-all duration-300 w-full md:w-auto active:bg-white active:text-black"
         >
           See more
-        </a>
-      </div>
-    </section>
+        </motion.a>
+      </div>    </section>
   );
 }
 
@@ -612,12 +613,14 @@ function Social() {
             {[...Array(4)].map((_, setIndex) => (
               <div key={`set-${setIndex}`} className="flex gap-3 md:gap-6 px-2 md:px-3">
                 {clips.map((clip, i) => (
-                  <div 
+                  <motion.div 
                     key={`${setIndex}-${i}`} 
-                    className="shrink-0 w-[160px] md:w-[300px] aspect-[9/16] bg-black relative rounded-lg overflow-hidden border border-white/10 group cursor-default"
+                    whileHover={{ y: -8, scale: 1.02 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="shrink-0 w-[160px] md:w-[300px] aspect-[9/16] bg-black relative rounded-lg overflow-hidden border border-white/10 group cursor-default transition-shadow hover:shadow-2xl hover:shadow-accent/20"
                   >
                      <LazyVideo src={clip.localVideo} poster={clip.thumbnail} title={clip.title} />
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             ))}
@@ -740,10 +743,11 @@ function Contact() {
               />
             </div>
 
-            <button 
+            <motion.button 
               type="submit" 
+              whileTap={{ scale: 0.95 }}
               disabled={status === 'submitting' || status === 'success'}
-              className={`w-full font-black py-5 tracking-[0.3em] uppercase transition-all text-xs duration-300 flex items-center justify-center gap-2
+              className={`w-full font-black py-5 tracking-[0.3em] uppercase transition-all text-xs duration-300 flex items-center justify-center gap-2 active:scale-95
                 ${status === 'success' 
                   ? 'bg-green-500 text-black' 
                   : 'bg-white text-black hover:bg-[var(--accent)] hover:text-white'
@@ -787,7 +791,7 @@ function AgencyManifesto() {
   ];
 
   return (
-    <section id="about" className="pb-8 md:pb-12 pt-12 md:pt-16 px-6 border-t border-white/5 bg-black relative overflow-hidden scroll-mt-24">
+    <section id="about" className="py-16 md:py-24 px-6 border-t border-white/5 bg-black relative overflow-hidden scroll-mt-24">
       <div className="max-w-7xl mx-auto">
         
         {/* Section Header: Integrated Mission */}
@@ -797,11 +801,10 @@ function AgencyManifesto() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-[6.5vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] mb-8 text-balance"
+            className="text-[6.5vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] mb-8"
           >
-            We obsess over the details
-            <br />
-            <span className="text-accent">so you don&apos;t have to.</span>
+            <span className="block whitespace-nowrap">We obsess over the details</span>
+            <span className="text-accent block whitespace-nowrap">so you don&apos;t have to.</span>
           </motion.h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium">
