@@ -665,7 +665,7 @@ function Contact() {
   }
 
   return (
-    <section id="contact" className="py-8 md:py-16 px-6 max-w-4xl mx-auto flex flex-col items-center justify-center scroll-mt-24 text-center">
+    <section id="contact" className="hidden md:flex py-8 md:py-16 px-6 max-w-4xl mx-auto flex-col items-center justify-center scroll-mt-24 text-center">
       <div className="w-full space-y-8">
         <div className="space-y-4">
           <motion.div
