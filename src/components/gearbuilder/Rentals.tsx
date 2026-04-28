@@ -1231,7 +1231,7 @@ export default function Rentals() {
     <div className="pt-8 pb-32 lg:pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-7 space-y-8">
-            <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-[80vh] md:h-[calc(100vh-140px)] sticky top-24">
+            <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-fit max-h-[75vh] md:h-[calc(100vh-140px)] sticky top-24">
               
               <div className="bg-neutral-900/90 backdrop-blur-md p-4 md:p-0 z-20 sticky top-0 border-b md:border-b-0 border-white/10 space-y-4">
                 {/* Tab Toggle */}
@@ -1396,14 +1396,48 @@ export default function Rentals() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-0 z-50 bg-neutral-950 lg:hidden flex flex-col"
+              className="fixed inset-0 z-[110] bg-neutral-950 lg:hidden flex flex-col"
             >
-              <div className="flex-1 overflow-y-auto p-4 pt-12 custom-scrollbar">
+              <div className="flex items-center justify-between p-6 border-b border-white/10 bg-neutral-900/50 backdrop-blur-lg sticky top-0 z-20">
+                <div className="flex items-center gap-3">
+                  <Package className="w-5 h-5 text-accent" />
+                  <h2 className="text-xl font-black uppercase tracking-tighter">Manifest</h2>
+                  <span className="bg-accent/20 text-accent text-[10px] font-black px-2 py-0.5 rounded-full">
+                    {Object.values(manifest).reduce((a, b) => a + b, 0)} ITEMS
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setIsMobileManifestOpen(false)}
+                  className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6 pb-32 custom-scrollbar">
                 {ManifestContent}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Floating Mobile Trigger */}
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[105] lg:hidden w-full px-6">
+          <motion.button
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsMobileManifestOpen(true)}
+            className="w-full bg-accent text-white py-5 px-8 rounded-2xl shadow-2xl shadow-accent/40 flex items-center justify-between font-black uppercase tracking-widest text-xs"
+          >
+            <div className="flex items-center gap-3">
+              <ClipboardList className="w-5 h-5" />
+              <span>Review Manifest</span>
+            </div>
+            <div className="bg-white/20 px-3 py-1 rounded-full text-[10px]">
+              {Object.values(manifest).reduce((a, b) => a + b, 0)}
+            </div>
+          </motion.button>
+        </div>
 
         <AnimatePresence>
           {isCalendarOpen && (
