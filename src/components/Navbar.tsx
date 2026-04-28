@@ -105,7 +105,7 @@ export default function Navbar() {
             className="fixed inset-0 z-40 bg-black flex flex-col items-center justify-center md:hidden"
           >
             <div className="flex flex-col gap-8 text-center">
-              {navLinks.map((link, i) => (
+              {navLinks.filter(link => link.name !== 'CONTACT').map((link, i) => (
                 <motion.div
                   key={link.href}
                   initial={{ opacity: 0, y: 20 }}
