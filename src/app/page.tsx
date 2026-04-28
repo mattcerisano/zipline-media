@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import LogoTicker from '@/components/LogoTicker';
-import { Check, Play, X } from 'lucide-react';
+import { Check, Play, X, ChevronRight } from 'lucide-react';
 
 function Hero() {
   const [isIntroComplete, setIsIntroComplete] = useState(false);
@@ -813,6 +813,7 @@ function Contact() {
         </motion.div>
       </div>
     </section>
+    </>
   );
 }
 
