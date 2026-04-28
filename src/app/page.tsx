@@ -665,7 +665,52 @@ function Contact() {
   }
 
   return (
-    <section id="contact" className="hidden md:flex py-8 md:py-16 px-6 max-w-4xl mx-auto flex-col items-center justify-center scroll-mt-24 text-center">
+    <>
+      {/* Mobile-only Contact Section */}
+      <section className="md:hidden py-16 px-6 bg-black border-t border-white/5 text-center">
+        <div className="max-w-xl mx-auto space-y-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="space-y-4"
+          >
+            <h2 className="text-4xl font-black tracking-tighter uppercase leading-tight">
+              LET&apos;S<br />CONNECT.
+            </h2>
+            <p className="text-sm opacity-60 font-medium leading-relaxed">
+              Have a project in mind? Drop us a line and we&apos;ll get back to you ASAP.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            <motion.a 
+              href="mailto:CONTACT@ZIPLINE.MEDIA"
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-3 bg-white text-black px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-white/5 active:bg-accent active:text-white transition-colors"
+            >
+              Email Us
+              <div className="w-5 h-5 bg-black/5 rounded-full flex items-center justify-center">
+                <ChevronRight className="w-3 h-3" />
+              </div>
+            </motion.a>
+          </motion.div>
+
+          <div className="pt-4">
+            <p className="text-[10px] font-bold tracking-[0.4em] uppercase opacity-30">
+              CONTACT@ZIPLINE.MEDIA
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Desktop-only Contact Form */}
+      <section id="contact" className="hidden md:flex py-8 md:py-16 px-6 max-w-4xl mx-auto flex-col items-center justify-center scroll-mt-24 text-center">
       <div className="w-full space-y-8">
         <div className="space-y-4">
           <motion.div
