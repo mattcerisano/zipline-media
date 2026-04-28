@@ -799,8 +799,8 @@ function AgencyManifesto() {
             transition={{ duration: 0.6 }}
             className="text-[6.5vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] mb-8 text-balance"
           >
-            We obsess over the details{' '}
-            <br className="hidden md:block" />
+            We obsess over the details
+            <br />
             <span className="text-accent">so you don&apos;t have to.</span>
           </motion.h2>
 
