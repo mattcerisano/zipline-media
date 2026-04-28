@@ -801,10 +801,10 @@ function AgencyManifesto() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-[5.8vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] mb-8"
+            className="text-[5.2vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] mb-8 font-sans"
           >
-            <span className="block">We obsess over the details</span>
-            <span className="text-accent block">so you don&apos;t have to.</span>
+            <span className="block whitespace-nowrap">We obsess over the details</span>
+            <span className="text-accent block whitespace-nowrap">so you don&apos;t have to.</span>
           </motion.h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium">
