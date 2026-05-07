@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 // Helper to calculate distance (Haversine)
 function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -40,7 +40,11 @@ export async function GET(request: Request) {
     const geoData = await geoRes.json();
 
     if (geoData.status !== 'OK' || !geoData.results[0]) {
-      return NextResponse.json({ error: 'Address not found' }, { status: 404 });
+      return NextResponse.json({ 
+        error: 'Address not found',
+        googleStatus: geoData.status,
+        googleError: geoData.error_message
+      }, { status: 404 });
     }
 
     const { lat, lng } = geoData.results[0].geometry.location;
@@ -53,7 +57,11 @@ export async function GET(request: Request) {
     const placesData = await placesRes.json();
 
     if (!placesData.results || placesData.results.length === 0) {
-      return NextResponse.json({ error: 'No parking found nearby' }, { status: 404 });
+      return NextResponse.json({ 
+        error: 'No parking found nearby',
+        googleStatus: placesData.status,
+        googleError: placesData.error_message
+      }, { status: 404 });
     }
 
     // 3. Filter and Sort

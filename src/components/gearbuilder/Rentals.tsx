@@ -374,12 +374,15 @@ export default function Rentals() {
     setWeatherLoading(true);
     setWeatherSuccess(false);
     try {
-        // 1. Geocode with Google
-        const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(companyAddr)}&key=${GOOGLE_MAPS_API_KEY}`);
+        // 1. Geocode with our internal API to avoid CORS issues
+        const geoRes = await fetch(`/api/geocode?address=${encodeURIComponent(companyAddr)}`);
         const geoData = await geoRes.json();
         
-        if (geoData.status !== 'OK' || !geoData.results[0]) throw new Error('Address not found');
-        const { lat, lng } = geoData.results[0].geometry.location;
+        if (!geoRes.ok) {
+            const msg = geoData.status ? `${geoData.error} (Google: ${geoData.status})` : (geoData.error || 'Address not found');
+            throw new Error(msg);
+        }
+        const { lat, lng } = geoData;
 
         // 2. Weather
         const date = new Date(shootDate).toISOString().slice(0, 10);
@@ -394,9 +397,9 @@ export default function Rentals() {
             setWeatherLink(`https://www.wunderground.com/weather/${lat},${lng}`);
             setWeatherSuccess(true);
         }
-    } catch (err) {
+    } catch (err: any) {
         console.error(err);
-        alert('Could not fetch weather. Check address and date.');
+        alert(err.message || 'Could not fetch weather. Check address and date.');
     } finally {
         setWeatherLoading(false);
     }
@@ -418,7 +421,8 @@ export default function Rentals() {
              setNearestHospital({ name: data.name, address: data.address });
              setHospitalSuccess(true);
          } else {
-             alert(data.error || 'No hospital found nearby.');
+             const errorMsg = data.googleStatus ? `${data.error} (Google: ${data.googleStatus})` : (data.error || 'No hospital found nearby.');
+             alert(errorMsg);
          }
      } catch (err) {
          console.error(err);
@@ -443,7 +447,8 @@ export default function Rentals() {
               setNearestParking({ name: data.name, address: data.address });
               setParkingSuccess(true);
           } else {
-              alert(data.error || 'No legitimate parking found nearby.');
+              const errorMsg = data.googleStatus ? `${data.error} (Google: ${data.googleStatus})` : (data.error || 'No legitimate parking found nearby.');
+              alert(errorMsg);
           }
       } catch (err) {
           console.error(err);
