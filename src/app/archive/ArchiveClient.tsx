@@ -146,7 +146,7 @@ function CategorySection({
       <div className="xl:col-span-5 2xl:col-span-4 relative min-h-[300px] md:min-h-[400px] xl:min-h-0">
         <div className="xl:absolute xl:inset-0 overflow-y-auto no-scrollbar pb-10">
           <VideoGrid 
-            key={categoryVideos[0]?.category || 'empty-grid'} 
+            key={String(categoryVideos[0]?.category || 'empty-grid')} 
             videos={categoryVideos} 
             activeVideo={activeVideo || categoryVideos[0]} 
             onSelect={(video) => {
