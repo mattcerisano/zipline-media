@@ -316,10 +316,13 @@ export default function ArchiveClient() {
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const lowerQ = searchQuery.toLowerCase();
-    return allVideos.filter(v => 
-      v.title.toLowerCase().includes(lowerQ) || 
-      v.category.toLowerCase().includes(lowerQ)
-    );
+    return allVideos.filter(v => {
+      const titleMatch = v.title.toLowerCase().includes(lowerQ);
+      const categoryMatch = Array.isArray(v.category) 
+        ? v.category.some(cat => cat.toLowerCase().includes(lowerQ))
+        : v.category.toLowerCase().includes(lowerQ);
+      return titleMatch || categoryMatch;
+    });
   }, [searchQuery, allVideos]);
 
   const getEmbedUrl = (url: string) => {
