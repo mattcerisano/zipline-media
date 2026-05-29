@@ -13,7 +13,7 @@ interface Video {
   title: string;
   thumbnail: string;
   videoUrl: string;
-  category: string;
+  category: string | string[];
   collection?: string;
   uploadDate?: string;
 }
@@ -302,7 +302,9 @@ export default function ArchiveClient() {
     
     allCats.forEach(cat => {
       // Just filter, don't re-sort, to keep the JSON order
-      grouped[cat] = rawVideos.filter(v => v.category === cat);
+      grouped[cat] = rawVideos.filter(v => 
+        Array.isArray(v.category) ? v.category.includes(cat) : v.category === cat
+      );
     });
 
     // Recent Work (Filtered by category)

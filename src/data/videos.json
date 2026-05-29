@@ -6,7 +6,10 @@
     "videoUrl": "https://www.youtube.com/embed/_jxiL2Zs5bg",
     "uploadDate": "2026-05-29T12:58:15.119Z",
     "duration": "",
-    "category": "Recent Work",
+    "category": [
+      "Recent Work",
+      "New Media"
+    ],
     "hostedOn": "youtube"
   },
   {
@@ -16,7 +19,10 @@
     "videoUrl": "https://www.youtube.com/embed/_PKnDnJOTIA",
     "uploadDate": "2026-05-29T12:57:13.964Z",
     "duration": "",
-    "category": "Recent Work",
+    "category": [
+      "Recent Work",
+      "Music"
+    ],
     "hostedOn": "youtube"
   },
   {
@@ -26,7 +32,10 @@
     "videoUrl": "https://www.youtube.com/embed/I0Jqt2C1XVc",
     "uploadDate": "2026-05-29T12:57:13.969Z",
     "duration": "",
-    "category": "Recent Work",
+    "category": [
+      "Recent Work",
+      "Music"
+    ],
     "hostedOn": "youtube"
   },
   {
@@ -36,7 +45,10 @@
     "videoUrl": "https://www.youtube.com/embed/IWAfcwuXwek",
     "uploadDate": "2026-05-29T12:57:13.969Z",
     "duration": "",
-    "category": "Recent Work",
+    "category": [
+      "Recent Work",
+      "B-Roll"
+    ],
     "hostedOn": "youtube"
   },
   {
@@ -46,17 +58,23 @@
     "videoUrl": "https://www.youtube.com/embed/6EIA9rUm5pI",
     "uploadDate": "2026-05-29T12:57:13.969Z",
     "duration": "",
-    "category": "Recent Work",
+    "category": [
+      "Recent Work",
+      "B-Roll"
+    ],
     "hostedOn": "youtube"
   },
   {
     "title": "\"If I Believed\" from Two Strangers (Carry a Cake Across New York) - Official Music Video",
     "description": "\"If I Believed\" from Two Strangers (Carry a Cake Across New York) - Official Music Video",
-    "thumbnail": "https://img.youtube.com/vi/ZZ2bIBqlMtg/maxresdefault.jpg",
+    "thumbnail": "https://img.youtube.com/vi/ZZ2bIBqlMtg/hqdefault.jpg",
     "videoUrl": "https://www.youtube.com/embed/ZZ2bIBqlMtg",
     "uploadDate": "2026-05-29T12:57:13.969Z",
     "duration": "",
-    "category": "Music",
+    "category": [
+      "Recent Work",
+      "Music"
+    ],
     "hostedOn": "youtube"
   },
   {
