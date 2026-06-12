@@ -13,7 +13,8 @@ import {
   User,
   MoreVertical,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
