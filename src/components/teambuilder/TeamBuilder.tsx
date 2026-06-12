@@ -20,7 +20,8 @@ import {
   Calendar,
   DollarSign,
   ClipboardList,
-  LayoutTemplate
+  LayoutTemplate,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
