@@ -48,8 +48,17 @@ export interface JobRole {
   phone?: string;
   email?: string;
   call_time?: string;
+  day_rate?: number;
+  flat_fee?: number;
+  is_overtime?: boolean;
   notes?: string;
   contact?: Contact; // Hydrated
+}
+
+export interface JobLink {
+  label: string;
+  url: string;
+  category?: 'Review' | 'Archive' | 'Discord' | 'Folder' | 'Other';
 }
 
 export interface Job {
@@ -81,7 +90,19 @@ export interface Job {
   review_link?: string; // Frame.io / Vimeo
   review_password?: string;
   drive_folder_url?: string;
+  links?: JobLink[]; // Array of custom links
+  edit_status?: 'Filmed' | 'WIP' | 'V1' | 'Revisions' | 'Delivered' | 'Wrapped';
+  editor_id?: string;
+  editor?: Contact; // Hydrated
   updated_at?: string;
+}
+
+export interface JobTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  roles: Partial<JobRole>[];
+  created_at?: string;
 }
 
 export const STORAGE_KEY_CONTACTS = 'zipline_rolodex_contacts';
