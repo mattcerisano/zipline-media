@@ -151,7 +151,7 @@ export default function EditTracker() {
     // If it's a new job being created from the modal
     if (isCreatingNew) {
        try {
-          const { editor, ...dbData } = updatedJob;
+          const { editor, id, ...dbData } = updatedJob; // Remove the dummy 'draft-' ID so Supabase generates a valid UUID
           const { data, error } = await supabase
             .from('jobs')
             .insert([dbData])
@@ -165,6 +165,7 @@ export default function EditTracker() {
           setIsCreatingNew(false);
        } catch (err) {
           console.error('Error creating standalone edit:', err);
+          alert('Failed to create new card.');
        }
        return;
     }
