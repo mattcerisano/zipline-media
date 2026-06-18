@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { supabase } from '@/lib/supabase';
 import { Job, STATUSES, JobLink, Client } from '@/components/gearbuilder/types';
 import Autocomplete from 'react-google-autocomplete';
@@ -47,9 +48,9 @@ export default function Slate() {
   // Manage Job Modal (Team Builder)
   const [manageJobId, setManageJobId] = useState<string | null>(null);
   
-  // New Job Modal
-  const [isNewJobModalOpen, setIsNewJobModalOpen] = useState(false);
-  const [newJob, setNewJob] = useState<Partial<Job>>({
+  // Edit Job Modal
+  const [isJobModalOpen, setIsJobModalOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState<Partial<Job>>({
     title: '',
     client_name: '',
     production_company: '',
@@ -62,6 +63,28 @@ export default function Slate() {
     notes_general: '',
     links: []
   });
+
+  const openNewJobModal = () => {
+    setEditingJob({
+      title: '',
+      client_name: '',
+      production_company: '',
+      job_status: 'Planning',
+      type: 'production',
+      shoot_date: new Date().toISOString().split('T')[0],
+      call_time: '08:00 AM',
+      location_name: '',
+      location_address: '',
+      notes_general: '',
+      links: []
+    });
+    setIsJobModalOpen(true);
+  };
+
+  const openEditJobModal = (job: Job) => {
+    setEditingJob(job);
+    setIsJobModalOpen(true);
+  };
 
   // Link Modal
   const [linkModalJob, setLinkModalJob] = useState<Job | null>(null);
@@ -90,37 +113,76 @@ export default function Slate() {
     }
   };
 
-  const handleCreateJob = async (e: React.FormEvent) => {
+  const handleSaveJob = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newJob.title) return;
+    if (!editingJob.title) return;
 
     try {
-      const { data, error } = await supabase
-        .from('jobs')
-        .insert([newJob])
-        .select()
-        .single();
+      let savedJobData;
 
-      if (error) throw error;
+      if (editingJob.id) {
+        const { data, error } = await supabase
+          .from('jobs')
+          .update(editingJob)
+          .eq('id', editingJob.id)
+          .select()
+          .single();
+        if (error) throw error;
+        savedJobData = data;
+        setJobs(prev => prev.map(j => j.id === editingJob.id ? data as Job : j).sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')));
+      } else {
+        const { data, error } = await supabase
+          .from('jobs')
+          .insert([editingJob])
+          .select()
+          .single();
+        if (error) throw error;
+        savedJobData = data;
+        setJobs(prev => [...prev, data as Job].sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')));
+        
+        // Trigger Discord Webhook
+        try {
+          await fetch('/api/integrations/discord', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: `🎬 **New Production Added!**`,
+              embed: {
+                title: editingJob.title,
+                color: 3447003, // Blue
+                fields: [
+                  { name: 'Client / Prod Co', value: editingJob.client_name || editingJob.production_company || 'Internal', inline: true },
+                  { name: 'Shoot Date', value: editingJob.shoot_date || 'TBD', inline: true },
+                  { name: 'Location', value: editingJob.location_name || 'TBD', inline: true }
+                ]
+              }
+            })
+          });
+        } catch (discordErr) {
+          console.error('Failed to send Discord alert:', discordErr);
+        }
+      }
       
-      setJobs(prev => [...prev, data].sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')));
-      setIsNewJobModalOpen(false);
-      setNewJob({
-        title: '',
-        client_name: '',
-        production_company: '',
-        job_status: 'Planning',
-        type: 'production',
-        shoot_date: new Date().toISOString().split('T')[0],
-        call_time: '08:00 AM',
-        location_name: '',
-        location_address: '',
-        notes_general: '',
-        links: []
-      });
+      // Auto-save client if they entered a client name that doesn't exist
+      if (editingJob.client_name && editingJob.client_name.trim()) {
+        const clientExists = clients.some(c => c.name.toLowerCase() === editingJob.client_name!.toLowerCase());
+        if (!clientExists) {
+          const { data: newClientData } = await supabase
+            .from('clients')
+            .insert([{ name: editingJob.client_name.trim() }])
+            .select()
+            .single();
+          
+          if (newClientData) {
+             setClients(prev => [...prev, newClientData as Client]);
+          }
+        }
+      }
+
+      setIsJobModalOpen(false);
     } catch (err) {
-      console.error('Error creating job:', err);
-      alert('Failed to create job');
+      console.error('Error saving job:', err);
+      alert('Failed to save job');
     }
   };
 
@@ -175,163 +237,123 @@ export default function Slate() {
         .eq('job_id', job.id);
 
       if (rolesError) throw rolesError;
-
       const roles = rolesData || [];
 
       const doc = new jsPDF({ unit: "pt", format: "letter" });
       const pageWidth = doc.internal.pageSize.getWidth();
       const margin = 40;
-      let y = 40;
-
+      
       const ZIPLINE_BLUE = '#0077FF';
       const TEXT_DARK = '#111111';
       const TEXT_GRAY = '#666666';
 
-      // Header
+      // Title & Header (Left)
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(24);
-      doc.setTextColor(ZIPLINE_BLUE);
-      doc.text('CALL SHEET', margin, y);
-      
-      doc.setFontSize(10);
-      doc.setTextColor(TEXT_GRAY);
-      doc.text(new Date().toLocaleDateString(), pageWidth - margin, y, { align: 'right' });
-      
-      y += 30;
-      doc.setDrawColor(ZIPLINE_BLUE);
-      doc.setLineWidth(2);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 30;
-
-      // Job Info
-      doc.setFontSize(16);
+      doc.setFontSize(20);
       doc.setTextColor(TEXT_DARK);
-      doc.text(job.title.toUpperCase(), margin, y);
+      doc.text(`${job.title.toUpperCase()}`, margin, margin);
       
       doc.setFontSize(10);
-      doc.setTextColor(TEXT_GRAY);
-      doc.text(`CLIENT: ${job.client_name || 'N/A'}`, margin, y + 15);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Client: ${job.client_name || 'N/A'}`, margin, margin + 15);
       if (job.production_company) {
-         doc.text(`PROD CO: ${job.production_company}`, margin, y + 30);
+         doc.text(`Prod Co: ${job.production_company}`, margin, margin + 28);
       }
-      
-      y += 60;
 
-      // Logistics Section
-      doc.setFillColor(240, 240, 240);
-      doc.rect(margin, y, pageWidth - (margin * 2), 120, 'F');
-      
-      let logY = y + 20;
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(TEXT_DARK);
-      doc.text('LOGISTICS', margin + 10, logY);
-      
-      doc.setFontSize(9);
-      logY += 20;
-      doc.setFont('helvetica', 'bold');
-      doc.text('DATE:', margin + 10, logY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(job.shoot_date || 'TBD', margin + 60, logY);
+      // Date & Header (Right)
+      const formattedDate = job.shoot_date ? new Date(job.shoot_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : 'TBD';
+      doc.setFontSize(10);
+      doc.text(formattedDate, pageWidth - margin, margin, { align: 'right' });
 
-      doc.setFont('helvetica', 'bold');
-      doc.text('CALL TIME:', margin + 200, logY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(job.call_time || 'TBD', margin + 270, logY);
-      
-      logY += 20;
-      doc.setFont('helvetica', 'bold');
-      doc.text('LOCATION:', margin + 10, logY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(job.location_name || 'TBD', margin + 80, logY);
-      doc.text(job.location_address || '', margin + 80, logY + 15);
+      // Logistics Table Header Grid
+      autoTable(doc, {
+        startY: margin + 45,
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 4, lineColor: [200, 200, 200], lineWidth: 0.5 },
+        columnStyles: {
+          0: { cellWidth: 100, fontStyle: 'bold', fillColor: [240, 240, 240] },
+          1: { cellWidth: 160 },
+          2: { cellWidth: 100, fontStyle: 'bold', fillColor: [240, 240, 240] },
+          3: { cellWidth: 'auto' },
+        },
+        body: [
+          ['CALL TIME:', job.call_time || 'TBD', 'WEATHER:', job.weather_summary || 'TBD'],
+          ['LOCATION:', job.location_name || 'TBD', 'HOSPITAL:', job.nearest_hospital_name || 'TBD'],
+          ['ADDRESS:', job.location_address || '', 'PARKING:', job.nearest_parking_name || 'TBD'],
+        ],
+        margin: { left: margin, right: margin }
+      });
 
-      logY += 35;
-      doc.setFont('helvetica', 'bold');
-      doc.text('HOSPITAL:', margin + 10, logY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(job.nearest_hospital_name || 'TBD', margin + 80, logY);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('PARKING:', margin + 280, logY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(job.nearest_parking_name || 'TBD', margin + 340, logY);
-
-      y += 140;
+      let finalY = (doc as any).lastAutoTable.finalY + 15;
 
       // Notes Section
       if (job.notes_general) {
         doc.setFont('helvetica', 'bold');
-        doc.text('GENERAL NOTES:', margin, y);
-        doc.setFont('helvetica', 'normal');
-        const splitNotes = doc.splitTextToSize(job.notes_general, pageWidth - (margin * 2));
-        doc.text(splitNotes, margin, y + 15);
-        y += 20 + (splitNotes.length * 12);
+        doc.setFontSize(10);
+        doc.text('GENERAL NOTES', margin, finalY);
+        finalY += 5;
+        
+        autoTable(doc, {
+          startY: finalY,
+          theme: 'plain',
+          styles: { fontSize: 9, cellPadding: 8, fillColor: [250, 250, 250], textColor: TEXT_DARK },
+          body: [[job.notes_general]],
+          margin: { left: margin, right: margin }
+        });
+        finalY = (doc as any).lastAutoTable.finalY + 20;
       }
 
-      y += 10;
-
       // Crew Section
-      doc.setFillColor(TEXT_DARK);
-      doc.rect(margin, y, pageWidth - (margin * 2), 20, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.text('POSITION', margin + 10, y + 13);
-      doc.text('NAME', margin + 180, y + 13);
-      doc.text('CONTACT', margin + 350, y + 13);
-      doc.text('CALL', margin + 480, y + 13);
-      
-      y += 35;
-      doc.setTextColor(TEXT_DARK);
-      doc.setFont('helvetica', 'normal');
-
-      roles.forEach(role => {
+      if (roles.length > 0) {
         doc.setFont('helvetica', 'bold');
-        doc.text((role as any).position.toUpperCase(), margin + 10, y);
-        
-        doc.setFont('helvetica', 'normal');
-        doc.text((role as any).contact?.name || (role as any).name || 'TBD', margin + 180, y);
-        
-        doc.setFontSize(8);
-        doc.text((role as any).contact?.email || '—', margin + 350, y);
-        doc.text((role as any).contact?.phone || '—', margin + 350, y + 10);
-        
-        doc.setFontSize(9);
-        doc.text((role as any).call_time || job.call_time || '—', margin + 480, y);
-        
-        y += 25;
-        doc.setDrawColor(230);
-        doc.setLineWidth(0.5);
-        doc.line(margin, y - 15, pageWidth - margin, y - 15);
-        
-        if (y > 700) {
-          doc.addPage();
-          y = 40;
-        }
-      });
+        doc.setFontSize(11);
+        doc.setTextColor(ZIPLINE_BLUE);
+        doc.text('CREW & TALENT', margin, finalY);
+        finalY += 10;
+
+        const crewData = roles.map(role => [
+          (role as any).position.toUpperCase(),
+          (role as any).contact?.name || (role as any).name || 'TBD',
+          (role as any).contact?.email || '—',
+          (role as any).contact?.phone || '—',
+          (role as any).call_time || job.call_time || '—'
+        ]);
+
+        autoTable(doc, {
+          startY: finalY,
+          head: [['POSITION', 'NAME', 'EMAIL', 'PHONE', 'IN']],
+          body: crewData,
+          theme: 'grid',
+          headStyles: { fillColor: [17, 17, 17], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+          styles: { fontSize: 9, textColor: TEXT_DARK },
+          margin: { left: margin, right: margin }
+        });
+        finalY = (doc as any).lastAutoTable.finalY + 20;
+      }
 
       // Gear Manifest Section
       const manifestObj = job.gear_manifest as Record<string, number> | undefined;
       if (manifestObj && Object.keys(manifestObj).length > 0) {
-        if (y > 600) { doc.addPage(); y = 40; } else { y += 30; }
-        
-        doc.setFillColor(ZIPLINE_BLUE);
-        doc.rect(margin, y, pageWidth - (margin * 2), 20, 'F');
-        doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
-        doc.text('EQUIPMENT MANIFEST', margin + 10, y + 13);
-        
-        y += 35;
-        doc.setTextColor(TEXT_DARK);
-        
-        Object.keys(manifestObj).forEach(itemName => {
-           doc.setFont('helvetica', 'bold');
-           doc.text(`[ ]  ${manifestObj[itemName]}X`, margin + 10, y);
-           doc.setFont('helvetica', 'normal');
-           doc.text(itemName, margin + 50, y);
-           y += 20;
-           
-           if (y > 750) { doc.addPage(); y = 40; }
+        doc.setFontSize(11);
+        doc.setTextColor(ZIPLINE_BLUE);
+        doc.text('EQUIPMENT MANIFEST', margin, finalY);
+        finalY += 10;
+
+        const gearData = Object.keys(manifestObj).map(itemName => [
+          `${manifestObj[itemName]}X`,
+          itemName
+        ]);
+
+        autoTable(doc, {
+          startY: finalY,
+          head: [['QTY', 'ITEM']],
+          body: gearData,
+          theme: 'grid',
+          headStyles: { fillColor: [0, 119, 255], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+          styles: { fontSize: 9, textColor: TEXT_DARK },
+          columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' }, 1: { cellWidth: 'auto' } },
+          margin: { left: margin, right: margin }
         });
       }
 
@@ -435,7 +457,7 @@ export default function Slate() {
         </div>
 
         <button 
-          onClick={() => setIsNewJobModalOpen(true)}
+          onClick={openNewJobModal}
           className="bg-accent text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center gap-3 w-full lg:w-auto justify-center"
         >
           <Plus className="w-4 h-4" /> New Production
@@ -462,6 +484,7 @@ export default function Slate() {
                 onAddLink={() => setLinkModalJob(job)}
                 onManage={() => setManageJobId(job.id)}
                 onExportCallSheet={() => generateCallSheet(job)}
+                onEdit={() => openEditJobModal(job)}
               />
             ))}
             {upcomingJobs.length === 0 && (
@@ -490,15 +513,16 @@ export default function Slate() {
                 onAddLink={() => setLinkModalJob(job)}
                 onManage={() => setManageJobId(job.id)}
                 onExportCallSheet={() => generateCallSheet(job)}
+                onEdit={() => openEditJobModal(job)}
               />
             ))}
           </div>
         </section>
       </div>
 
-      {/* New Job Modal */}
+      {/* Edit Job Modal */}
       <AnimatePresence>
-        {isNewJobModalOpen && (
+        {isJobModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -507,13 +531,15 @@ export default function Slate() {
               className="w-full max-w-4xl bg-neutral-900 border border-white/10 rounded-3xl p-8 shadow-2xl my-8"
             >
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Create New Production</h2>
-                <button onClick={() => setIsNewJobModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
+                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">
+                  {editingJob.id ? 'Edit Production' : 'Create New Production'}
+                </h2>
+                <button onClick={() => setIsJobModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
                   <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateJob} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <form onSubmit={handleSaveJob} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Basic Info */}
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Project Title</label>
@@ -521,8 +547,8 @@ export default function Slate() {
                     required
                     type="text"
                     placeholder="E.G. BROADWAY OPENING NIGHT"
-                    value={newJob.title}
-                    onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
+                    value={editingJob.title}
+                    onChange={(e) => setEditingJob({ ...editingJob, title: e.target.value })}
                     className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-black uppercase text-sm text-white"
                   />
                 </div>
@@ -532,8 +558,8 @@ export default function Slate() {
                   <input 
                     type="text"
                     placeholder="CLIENT NAME"
-                    value={newJob.client_name || ''}
-                    onChange={(e) => setNewJob({ ...newJob, client_name: e.target.value })}
+                    value={editingJob.client_name || ''}
+                    onChange={(e) => setEditingJob({ ...editingJob, client_name: e.target.value })}
                     list="slate-clients"
                     className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold uppercase text-sm text-white"
                   />
@@ -549,8 +575,8 @@ export default function Slate() {
                     <input 
                       type="text"
                       placeholder="PRODUCTION CO"
-                      value={newJob.production_company || ''}
-                      onChange={(e) => setNewJob({ ...newJob, production_company: e.target.value })}
+                      value={editingJob.production_company || ''}
+                      onChange={(e) => setEditingJob({ ...editingJob, production_company: e.target.value })}
                       className="w-full bg-black/50 border border-white/10 p-4 pl-12 rounded-xl outline-none focus:border-accent font-black uppercase text-sm text-white"
                     />
                   </div>
@@ -563,8 +589,8 @@ export default function Slate() {
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 pointer-events-none" />
                     <input 
                       type="date"
-                      value={newJob.shoot_date}
-                      onChange={(e) => setNewJob({ ...newJob, shoot_date: e.target.value })}
+                      value={editingJob.shoot_date}
+                      onChange={(e) => setEditingJob({ ...editingJob, shoot_date: e.target.value })}
                       className="w-full bg-black/50 border border-white/10 p-4 pl-12 rounded-xl outline-none focus:border-accent font-bold text-sm text-white cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-2 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                   </div>
@@ -576,8 +602,8 @@ export default function Slate() {
                     <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 pointer-events-none" />
                     <input 
                       type="time"
-                      value={newJob.call_time || ''}
-                      onChange={(e) => setNewJob({ ...newJob, call_time: e.target.value })}
+                      value={editingJob.call_time || ''}
+                      onChange={(e) => setEditingJob({ ...editingJob, call_time: e.target.value })}
                       className="w-full bg-black/50 border border-white/10 p-4 pl-12 rounded-xl outline-none focus:border-accent font-bold text-sm text-white cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-2 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                   </div>
@@ -589,8 +615,8 @@ export default function Slate() {
                   <input 
                     type="text"
                     placeholder="E.G. HUDSON THEATRE"
-                    value={newJob.location_name || ''}
-                    onChange={(e) => setNewJob({ ...newJob, location_name: e.target.value })}
+                    value={editingJob.location_name || ''}
+                    onChange={(e) => setEditingJob({ ...editingJob, location_name: e.target.value })}
                     className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-black uppercase text-sm text-white"
                   />
                 </div>
@@ -601,12 +627,41 @@ export default function Slate() {
                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 z-10" />
                     <Autocomplete
                       apiKey={GOOGLE_MAPS_API_KEY}
-                      onPlaceSelected={(place) => setNewJob({ ...newJob, location_address: place.formatted_address || '' })}
-                      defaultValue={newJob.location_address || ''}
+                      onPlaceSelected={(place) => setEditingJob({ ...editingJob, location_address: place.formatted_address || '' })}
+                      defaultValue={editingJob.location_address || ''}
                       placeholder="STREET, CITY, STATE, ZIP"
                       className="w-full bg-black/50 border border-white/10 p-4 pl-12 rounded-xl outline-none focus:border-accent font-bold text-sm text-white uppercase tracking-widest"
                     />
                   </div>
+                </div>
+
+                {/* Additional Logistics overrides */}
+                <div className="space-y-2 md:col-span-2">
+                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-accent mb-2">Logistics Overrides (Optional)</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <input 
+                        type="text"
+                        placeholder="NEAREST HOSPITAL"
+                        value={editingJob.nearest_hospital_name || ''}
+                        onChange={(e) => setEditingJob({ ...editingJob, nearest_hospital_name: e.target.value })}
+                        className="w-full bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent font-bold text-xs text-white"
+                      />
+                      <input 
+                        type="text"
+                        placeholder="NEAREST PARKING"
+                        value={editingJob.nearest_parking_name || ''}
+                        onChange={(e) => setEditingJob({ ...editingJob, nearest_parking_name: e.target.value })}
+                        className="w-full bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent font-bold text-xs text-white"
+                      />
+                      <input 
+                        type="text"
+                        placeholder="WEATHER OVERRIDE"
+                        value={editingJob.weather_summary || ''}
+                        onChange={(e) => setEditingJob({ ...editingJob, weather_summary: e.target.value })}
+                        className="w-full bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent font-bold text-xs text-white"
+                      />
+                   </div>
+                   <p className="text-[8px] text-white/30 italic mt-1">If left blank, logistics will auto-fetch in the Gear Builder based on the Full Address.</p>
                 </div>
 
                 {/* Status & Type */}
@@ -615,8 +670,8 @@ export default function Slate() {
                   <div className="relative">
                     <Activity className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
                     <select 
-                      value={newJob.job_status}
-                      onChange={(e) => setNewJob({ ...newJob, job_status: e.target.value as any })}
+                      value={editingJob.job_status}
+                      onChange={(e) => setEditingJob({ ...editingJob, job_status: e.target.value as any })}
                       className="w-full bg-black/50 border border-white/10 p-4 pl-12 rounded-xl outline-none focus:border-accent font-black uppercase text-sm text-white appearance-none"
                     >
                       {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -627,8 +682,8 @@ export default function Slate() {
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Type</label>
                   <select 
-                    value={newJob.type}
-                    onChange={(e) => setNewJob({ ...newJob, type: e.target.value as any })}
+                    value={editingJob.type}
+                    onChange={(e) => setEditingJob({ ...editingJob, type: e.target.value as any })}
                     className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-black uppercase text-sm text-white appearance-none"
                   >
                     <option value="production">PRODUCTION</option>
@@ -642,8 +697,8 @@ export default function Slate() {
                     <FileText className="absolute left-4 top-4 w-4 h-4 text-white/20" />
                     <textarea 
                       placeholder="ADDITIONAL PRODUCTION NOTES..."
-                      value={newJob.notes_general || ''}
-                      onChange={(e) => setNewJob({ ...newJob, notes_general: e.target.value })}
+                      value={editingJob.notes_general || ''}
+                      onChange={(e) => setEditingJob({ ...editingJob, notes_general: e.target.value })}
                       className="w-full bg-black/50 border border-white/10 p-4 pl-12 rounded-xl outline-none focus:border-accent font-bold text-sm text-white h-32"
                     />
                   </div>
@@ -652,7 +707,7 @@ export default function Slate() {
                 <div className="md:col-span-2 flex justify-end gap-4 mt-8 border-t border-white/5 pt-8">
                    <button 
                     type="button"
-                    onClick={() => setIsNewJobModalOpen(false)}
+                    onClick={() => setIsJobModalOpen(false)}
                     className="px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
                   >
                     Cancel
@@ -661,7 +716,7 @@ export default function Slate() {
                     type="submit"
                     className="bg-accent text-white px-12 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
                   >
-                    Create Production
+                    {editingJob.id ? 'Save Changes' : 'Create Production'}
                   </button>
                 </div>
               </form>
@@ -760,7 +815,8 @@ function JobCard({
   onDelete,
   onAddLink,
   onManage,
-  onExportCallSheet
+  onExportCallSheet,
+  onEdit
 }: { 
   job: Job, 
   getStatusIcon: (s?: string) => React.ReactNode,
@@ -768,7 +824,8 @@ function JobCard({
   onDelete: () => void,
   onAddLink: () => void,
   onManage: () => void,
-  onExportCallSheet: () => void
+  onExportCallSheet: () => void,
+  onEdit: () => void
 }) {
   const shootDate = job.shoot_date ? new Date(job.shoot_date).toLocaleDateString('en-US', { 
     month: 'short', 
@@ -779,7 +836,10 @@ function JobCard({
   const gearCount = job.gear_manifest ? Object.values(job.gear_manifest as Record<string, number>).reduce((a, b) => a + b, 0) : 0;
 
   return (
-    <div className="group bg-neutral-900/40 border border-white/5 p-6 rounded-2xl hover:border-accent/30 hover:bg-neutral-900/60 transition-all relative flex flex-col h-full overflow-hidden">
+    <div 
+      onClick={onEdit}
+      className="group bg-neutral-900/40 border border-white/5 p-6 rounded-2xl hover:border-accent/30 hover:bg-neutral-900/60 transition-all relative flex flex-col h-full overflow-hidden cursor-pointer"
+    >
       {/* Background Decor */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-accent/10 transition-colors" />
       
@@ -823,20 +883,30 @@ function JobCard({
 
       <div className="flex-1 relative z-10 text-white">
         <h3 className="text-base font-black uppercase tracking-tight mb-1 group-hover:text-accent transition-colors line-clamp-2">{job.title}</h3>
-        <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-6">{job.client_name || 'Individual Client'}</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-4">{job.client_name || 'Individual Client'}</p>
 
-        <div className="space-y-3 mb-8">
+        <div className="space-y-3 mb-6">
           <div className="flex items-center gap-3 text-[11px] font-bold text-white/40">
-            <Calendar className="w-4 h-4 text-accent/50" />
-            <span className="uppercase tracking-widest">{shootDate}</span>
+            <Calendar className="w-4 h-4 text-accent/50 shrink-0" />
+            <span className="uppercase tracking-widest">{shootDate} {job.call_time && `• ${job.call_time}`}</span>
           </div>
-          {job.location_address && (
-            <div className="flex items-center gap-3 text-[11px] font-bold text-white/40">
-              <MapPin className="w-4 h-4 text-accent/50" />
-              <span className="truncate uppercase tracking-widest">{job.location_address.split(',')[0]}</span>
+          {(job.location_name || job.location_address) && (
+            <div className="flex items-start gap-3 text-[11px] font-bold text-white/40">
+              <MapPin className="w-4 h-4 text-accent/50 shrink-0 mt-0.5" />
+              <span className="uppercase tracking-widest leading-snug">
+                {job.location_name && <span className="block text-white/80">{job.location_name}</span>}
+                {job.location_address && <span className="block text-[9px] opacity-60 mt-0.5">{job.location_address}</span>}
+              </span>
             </div>
           )}
         </div>
+
+        {job.notes_general && (
+           <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-1">Notes</p>
+              <p className="text-xs text-white/80 line-clamp-3 leading-relaxed">{job.notes_general}</p>
+           </div>
+        )}
 
         {/* Links Section */}
         <div className="space-y-2 mb-6">

@@ -1,0 +1,3 @@
+ALTER TABLE jobs 
+ADD COLUMN IF NOT EXISTS due_date TEXT,
+ADD COLUMN IF NOT EXISTS edit_labels JSONB DEFAULT '[]'::jsonb;

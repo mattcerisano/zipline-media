@@ -576,7 +576,7 @@ function RoleItem({ role, onUpdate, onDelete, contacts }: {
         </div>
       </div>
 
-      <div className="px-4 pb-4 grid grid-cols-1 md:grid-cols-4 gap-4 border-t border-white/5 pt-4">
+      <div className="px-4 pb-4 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-white/5 pt-4">
          <div className="flex items-center gap-2 opacity-60">
             <Clock className="w-3 h-3 text-accent" />
             <input 
@@ -589,18 +589,6 @@ function RoleItem({ role, onUpdate, onDelete, contacts }: {
             />
          </div>
          
-         <div className="flex items-center gap-2 opacity-60">
-            <DollarSign className="w-3 h-3 text-green-500" />
-            <input 
-              type="number"
-              value={localRole.day_rate || ''}
-              onChange={(e) => handleChange('day_rate', parseFloat(e.target.value))}
-              onBlur={handleSave}
-              placeholder="DAY RATE"
-              className="bg-transparent border-none p-0 focus:ring-0 text-[9px] font-bold uppercase tracking-widest w-full"
-            />
-         </div>
-
          <div className="flex items-center gap-2 opacity-60">
             <ClipboardList className="w-3 h-3 text-blue-500" />
             <input 

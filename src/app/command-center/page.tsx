@@ -15,7 +15,8 @@ import {
   Briefcase,
   User as UserIcon,
   Mail,
-  Scissors
+  Scissors,
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
@@ -26,7 +27,7 @@ import Slate from '@/components/teambuilder/Slate';
 import EditTracker from '@/components/teambuilder/EditTracker';
 import ProductionCalendar from '@/components/gearbuilder/ProductionCalendar';
 
-type Tab = 'dashboard' | 'slate' | 'gear' | 'edits' | 'rolodex';
+type Tab = 'dashboard' | 'calendar' | 'slate' | 'gear' | 'edits' | 'rolodex';
 
 export default function CommandCenterPage() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -41,7 +42,6 @@ export default function CommandCenterPage() {
 
   // UI State
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   useEffect(() => {
     // Get initial session
@@ -197,6 +197,7 @@ export default function CommandCenterPage() {
 
         <nav className="flex-1 px-4 py-6 space-y-2">
           <NavItem id="dashboard" label="Dashboard" icon={LayoutDashboard} />
+          <NavItem id="calendar" label="Calendar" icon={Calendar} />
           <NavItem id="slate" label="Slate" icon={Briefcase} />
           <NavItem id="edits" label="Edit Tracker" icon={Scissors} />
           <NavItem id="gear" label="Gear Builder" icon={Package} />
@@ -223,14 +224,14 @@ export default function CommandCenterPage() {
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative custom-scrollbar">
+      <main className="flex-1 overflow-y-auto relative custom-scrollbar flex flex-col">
         <header className="sticky top-0 z-40 bg-black/50 backdrop-blur-md border-b border-white/5 p-6 flex items-center justify-between">
           <div>
             <h2 className="text-[10px] font-bold uppercase tracking-[0.5em] text-accent mb-1">
-              {activeTab === 'dashboard' ? 'Studio Overview' : activeTab === 'slate' ? 'Production Schedule' : activeTab === 'edits' ? 'Post-Production Pipeline' : activeTab === 'gear' ? 'Inventory & Manifests' : 'Contacts & Clients'}
+              {activeTab === 'dashboard' ? 'Studio Overview' : activeTab === 'calendar' ? 'Monthly Schedule' : activeTab === 'slate' ? 'Production Schedule' : activeTab === 'edits' ? 'Post-Production Pipeline' : activeTab === 'gear' ? 'Inventory & Manifests' : 'Contacts & Clients'}
             </h2>
             <h1 className="text-2xl font-black uppercase tracking-tighter text-white">
-              {activeTab === 'dashboard' ? 'Command Center' : activeTab === 'slate' ? 'Slate' : activeTab === 'edits' ? 'Edit Tracker' : activeTab === 'gear' ? 'Gear Builder' : 'Rolodex'}
+              {activeTab === 'dashboard' ? 'Command Center' : activeTab === 'calendar' ? 'Calendar' : activeTab === 'slate' ? 'Slate' : activeTab === 'edits' ? 'Edit Tracker' : activeTab === 'gear' ? 'Gear Builder' : 'Rolodex'}
             </h1>
           </div>
 
@@ -242,7 +243,7 @@ export default function CommandCenterPage() {
           </div>
         </header>
 
-        <div className="p-6 md:p-8 lg:p-12">
+        <div className={`flex-1 ${activeTab === 'calendar' ? 'p-0' : 'p-6 md:p-8 lg:p-12'}`}>
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -250,12 +251,40 @@ export default function CommandCenterPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
+              className={activeTab === 'calendar' ? 'h-full flex flex-col' : ''}
             >
               {activeTab === 'dashboard' && (
                 <DashboardOverview 
                   onSwitchTab={setActiveTab} 
-                  onOpenCalendar={() => setIsCalendarOpen(true)} 
                 />
+              )}
+              {activeTab === 'calendar' && (
+                <div className="h-full flex-1 bg-neutral-900/40">
+                  <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/20">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-accent" />
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-black uppercase tracking-tighter text-white">Production Calendar</h2>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.3em] opacity-40 text-white">Live Studio Schedule</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => window.open('https://calendar.google.com', '_blank')}
+                      className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-white"
+                    >
+                      Open Google Calendar <ExternalLink className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="p-6 md:p-8">
+                    <ProductionCalendar 
+                      onSelectJob={(job) => {
+                        // Action when job clicked in calendar tab
+                      }}
+                    />
+                  </div>
+                </div>
               )}
               {activeTab === 'slate' && <Slate />}
               {activeTab === 'edits' && <EditTracker />}
@@ -264,65 +293,15 @@ export default function CommandCenterPage() {
             </motion.div>
           </AnimatePresence>
         </div>
-
-        {/* Calendar Modal */}
-        <AnimatePresence>
-          {isCalendarOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-black/90 backdrop-blur-md">
-               <motion.div 
-                 initial={{ opacity: 0, scale: 0.95 }}
-                 animate={{ opacity: 1, scale: 1 }}
-                 exit={{ opacity: 0, scale: 0.95 }}
-                 className="w-full max-w-6xl bg-neutral-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-               >
-                 <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/20 shrink-0">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center">
-                        <LayoutDashboard className="w-5 h-5 text-accent" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-black uppercase tracking-tighter text-white">Production Calendar</h2>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.3em] opacity-40 text-white">Live Studio Schedule</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <button 
-                        onClick={() => window.open('https://calendar.google.com', '_blank')}
-                        className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-white"
-                      >
-                        Open Google Calendar <ExternalLink className="w-3 h-3" />
-                      </button>
-                      <button 
-                        onClick={() => setIsCalendarOpen(false)}
-                        className="p-3 hover:bg-white/5 rounded-full transition-colors text-white"
-                      >
-                        <X className="w-6 h-6" />
-                      </button>
-                    </div>
-                 </div>
-                 <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar bg-black/10">
-                    <ProductionCalendar 
-                      onSelectJob={(job) => {
-                        setActiveTab('gear');
-                        setIsCalendarOpen(false);
-                      }}
-                    />
-                 </div>
-               </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
       </main>
     </div>
   );
 }
 
 function DashboardOverview({ 
-  onSwitchTab, 
-  onOpenCalendar 
+  onSwitchTab
 }: { 
-  onSwitchTab: (tab: Tab) => void, 
-  onOpenCalendar: () => void 
+  onSwitchTab: (tab: Tab) => void
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -365,7 +344,7 @@ function DashboardOverview({
           />
           <ActionButton 
             label="View Calendar" 
-            onClick={onOpenCalendar}
+            onClick={() => onSwitchTab('calendar')}
             icon={LayoutDashboard}
           />
         </div>

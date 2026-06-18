@@ -61,6 +61,12 @@ export interface JobLink {
   category?: 'Review' | 'Archive' | 'Discord' | 'Folder' | 'Other';
 }
 
+export interface EditLabel {
+  id: string;
+  color: string;
+  text: string;
+}
+
 export interface Job {
   id: string;
   title: string;
@@ -69,6 +75,7 @@ export interface Job {
   job_status?: 'Planning' | 'Hold' | 'Booked' | 'Wrapped' | 'Cancelled';
   type?: 'production' | 'rental';
   shoot_date?: string;
+  due_date?: string;
   end_date?: string;
   call_time?: string;
   location_name?: string;
@@ -94,6 +101,8 @@ export interface Job {
   edit_status?: 'Filmed' | 'WIP' | 'V1' | 'Revisions' | 'Delivered' | 'Wrapped';
   editor_id?: string;
   editor?: Contact; // Hydrated
+  edit_notes?: string;
+  edit_labels?: EditLabel[];
   updated_at?: string;
 }
 
