@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,9 +16,51 @@ const navLinks = [
 
 export default function Navbar() {
   const pathname = usePathname();
+
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
+
+  useEffect(() => {
+    if (pathname !== '/') return;
+
+    const sections = ['home', 'work', 'about', 'contact'];
+    const observers = sections.map(id => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      
+      const observer = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+          setActiveSection(id);
+        }
+      }, {
+        rootMargin: '-50% 0px -50% 0px' // triggers when section is in the middle of viewport
+      });
+      observer.observe(el);
+      return { observer, el };
+    });
+
+    return () => {
+      observers.forEach(obs => {
+        if (obs) obs.observer.disconnect();
+      });
+    };
+  }, [pathname]);
+
+  if (pathname?.startsWith('/command-center')) {
+    return null;
+  }
+
+  const isActive = (href: string) => {
+    if (href === '/archive') {
+      return pathname === '/archive';
+    }
+    if (pathname === '/') {
+      return href === `/#${activeSection}`;
+    }
+    return false;
+  };
 
   const handleNav = (e: React.MouseEvent, href: string) => {
     // 1. If we are on the homepage and clicking a hash link (e.g. /#work)
@@ -31,6 +73,7 @@ export default function Navbar() {
         element.scrollIntoView({ behavior: 'smooth' });
         // Update URL without reload
         window.history.pushState(null, '', href);
+        setActiveSection(targetId);
       }
       return;
     }
@@ -77,9 +120,18 @@ export default function Navbar() {
                 key={link.href}
                 href={link.href}
                 onClick={(e) => handleNav(e, link.href)}
-                className="relative text-[14px] font-bold tracking-[0.2em] hover:text-[var(--accent)] transition-colors uppercase"
+                className={`relative text-[12px] font-bold tracking-[0.2em] transition-colors uppercase py-1 ${
+                  isActive(link.href) ? 'text-white' : 'text-white/40 hover:text-white'
+                }`}
               >
                 {link.name}
+                {isActive(link.href) && (
+                  <motion.div 
+                    layoutId="activeNavIndicator"
+                    className="absolute -bottom-[18px] left-0 right-0 h-[2px] bg-accent shadow-[0_0_8px_rgba(0,119,255,0.8)]"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
               </Link>
             ))}
           </div>
@@ -115,7 +167,9 @@ export default function Navbar() {
                   <Link
                     href={link.href}
                     onClick={(e) => { setIsOpen(false); handleNav(e, link.href); }}
-                    className="text-2xl font-black uppercase tracking-widest hover:text-[var(--accent)] transition-colors"
+                    className={`text-2xl font-black uppercase tracking-widest transition-colors ${
+                      isActive(link.href) ? 'text-accent' : 'text-white/60 hover:text-white'
+                    }`}
                   >
                     {link.name}
                   </Link>

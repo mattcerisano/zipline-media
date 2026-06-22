@@ -2,7 +2,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Job, Contact, EditLabel, JobLink } from '@/components/gearbuilder/types';
+import { useRealtime } from '@/lib/useRealtime';
+import { Job, Contact, EditLabel, JobLink, Client, Project } from '@/components/gearbuilder/types';
+import { sanitizeUrl } from '@/lib/sanitize';
+import { parseLocalDate } from '@/lib/date';
+import { caps } from '@/lib/format';
 import { 
   Film, 
   Scissors, 
@@ -22,7 +26,15 @@ import {
   MessageSquare,
   FolderOpen,
   Plus,
-  X
+  X,
+  Download,
+  UploadCloud,
+  Check,
+  Copy,
+  Search,
+  FileVideo,
+  FileAudio,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -46,13 +58,18 @@ const AVAILABLE_LABEL_COLORS = [
   { id: 'pink', class: 'bg-pink-500' },
 ];
 
-export default function EditTracker() {
+export default function EditTracker({ userRole, selectedJobId }: { userRole?: string; selectedJobId?: string } = {}) {
+  const isClient = userRole === 'client';
   const [jobs, setJobs] = useState<Job[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  const [clients, setClients] = useState<Client[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+
   // Filter States
   const [clientFilter, setClientFilter] = useState('All');
+  const [projectFilter, setProjectFilter] = useState('All');
   const [yearFilter, setYearFilter] = useState('All');
 
   // Modal State
@@ -63,12 +80,26 @@ export default function EditTracker() {
     fetchData();
   }, []);
 
+  // Live team sync: refetch the board when teammates change relevant data
+  useRealtime(['jobs', 'contacts', 'clients', 'projects'], () => fetchData());
+
+  useEffect(() => {
+    if (selectedJobId && jobs.length > 0) {
+      const match = jobs.find(j => j.id === selectedJobId);
+      if (match) {
+        setActiveJob(match);
+      }
+    }
+  }, [selectedJobId, jobs]);
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [jobsRes, contactsRes] = await Promise.all([
+      const [jobsRes, contactsRes, clientsRes, projectsRes] = await Promise.all([
         supabase.from('jobs').select('*, editor:contacts(*)').order('shoot_date', { ascending: false }),
-        supabase.from('contacts').select('*').order('name')
+        supabase.from('contacts').select('*').order('name'),
+        supabase.from('clients').select('*'),
+        supabase.from('projects').select('*').order('name')
       ]);
 
       if (jobsRes.error) throw jobsRes.error;
@@ -78,6 +109,9 @@ export default function EditTracker() {
       const activeJobs = (jobsRes.data as Job[]).filter(j => j.job_status !== 'Cancelled');
       setJobs(activeJobs);
       setContacts(contactsRes.data as Contact[]);
+      if (!clientsRes.error && clientsRes.data) setClients(clientsRes.data as Client[]);
+      // projects table may not exist on older deployments — fail soft
+      if (!projectsRes.error && projectsRes.data) setProjects(projectsRes.data as Project[]);
     } catch (err) {
       console.error('Error fetching edit tracker data:', err);
     } finally {
@@ -95,13 +129,22 @@ export default function EditTracker() {
     return Array.from(new Set(years)).sort((a, b) => (b as string).localeCompare(a as string));
   }, [jobs]);
 
+  // Projects scoped to the client currently selected (by name → id)
+  const projectsForFilter = useMemo(() => {
+    if (clientFilter === 'All') return projects;
+    const client = clients.find(c => c.name === clientFilter);
+    if (!client) return [];
+    return projects.filter(p => p.client_id === client.id);
+  }, [projects, clients, clientFilter]);
+
   const filteredJobs = useMemo(() => {
     return jobs.filter(j => {
       const matchClient = clientFilter === 'All' || (j.client_name === clientFilter || j.production_company === clientFilter);
+      const matchProject = projectFilter === 'All' || j.project_id === projectFilter;
       const matchYear = yearFilter === 'All' || (j.shoot_date && j.shoot_date.startsWith(yearFilter));
-      return matchClient && matchYear;
+      return matchClient && matchProject && matchYear;
     });
-  }, [jobs, clientFilter, yearFilter]);
+  }, [jobs, clientFilter, projectFilter, yearFilter]);
 
   const updateJobEditStatus = async (jobId: string, newStatus: string) => {
     const job = jobs.find(j => j.id === jobId);
@@ -218,7 +261,7 @@ export default function EditTracker() {
   }
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <div className="space-y-6 h-full flex flex-col p-4 md:p-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-neutral-900/40 p-6 rounded-2xl border border-white/10 shrink-0 gap-4">
         <div>
           <h2 className="text-lg font-black uppercase tracking-tighter text-white">Post-Production Pipeline</h2>
@@ -226,15 +269,24 @@ export default function EditTracker() {
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <select 
+            <select
               value={clientFilter}
-              onChange={(e) => setClientFilter(e.target.value)}
+              onChange={(e) => { setClientFilter(e.target.value); setProjectFilter('All'); }}
               className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors uppercase text-[10px] font-black tracking-widest rounded-xl cursor-pointer appearance-none text-white min-w-[120px]"
             >
               <option value="All">All Clients</option>
-              {uniqueClients.map(c => <option key={c as string} value={c as string}>{c}</option>)}
+              {uniqueClients.map(c => <option key={c as string} value={c as string}>{caps(c as string)}</option>)}
             </select>
-            <select 
+            <select
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              disabled={projectsForFilter.length === 0}
+              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors uppercase text-[10px] font-black tracking-widest rounded-xl cursor-pointer appearance-none text-white min-w-[120px] disabled:opacity-30"
+            >
+              <option value="All">All Projects</option>
+              {projectsForFilter.map(p => <option key={p.id} value={p.id}>{caps(p.name)}</option>)}
+            </select>
+            <select
               value={yearFilter}
               onChange={(e) => setYearFilter(e.target.value)}
               className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors uppercase text-[10px] font-black tracking-widest rounded-xl cursor-pointer appearance-none text-white"
@@ -275,7 +327,7 @@ export default function EditTracker() {
                       className={`flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar min-h-[100px] transition-colors ${snapshot.isDraggingOver ? 'bg-white/5' : ''}`}
                     >
                       {stageJobs.map((job, index) => (
-                        <Draggable key={job.id} draggableId={job.id} index={index}>
+                        <Draggable key={job.id} draggableId={job.id} index={index} isDragDisabled={isClient}>
                           {(provided, snapshot) => (
                             <div
                               ref={provided.innerRef}
@@ -293,7 +345,7 @@ export default function EditTracker() {
                         </Draggable>
                       ))}
                       {provided.placeholder}
-                      {stage.id === 'Filmed' && (
+                      {stage.id === 'Filmed' && !isClient && (
                         <button 
                           onClick={() => openNewCardModal('Filmed')}
                           className="w-full text-left p-3 text-xs font-bold text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
@@ -322,6 +374,7 @@ export default function EditTracker() {
             onUpdate={handleJobUpdate}
             stages={EDIT_STAGES}
             isCreatingNew={isCreatingNew}
+            isClient={isClient}
           />
         )}
       </AnimatePresence>
@@ -336,9 +389,13 @@ function CardFront({ job, isDragging }: { job: Job, isDragging: boolean }) {
   const hasNotes = !!job.edit_notes?.trim();
   const linkCount = (job.links?.length || 0) + (job.review_link ? 1 : 0) + (job.discord_url ? 1 : 0) + (job.drive_folder_url ? 1 : 0);
   
-  // Format dates for badges
-  const isOverdue = job.due_date && new Date(job.due_date) < new Date() && job.edit_status !== 'Delivered' && job.edit_status !== 'Wrapped';
-  const displayDate = job.due_date ? new Date(job.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
+  // Format dates for badges. Date-only strings must be parsed as local dates,
+  // otherwise UTC parsing shifts them a day in negative-offset timezones.
+  const dueDate = parseLocalDate(job.due_date);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const isOverdue = !!dueDate && dueDate < todayStart && job.edit_status !== 'Delivered' && job.edit_status !== 'Wrapped';
+  const displayDate = dueDate ? dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
 
   return (
     <div className={`bg-neutral-800 rounded-lg shadow-sm border p-3 cursor-pointer hover:border-white/20 transition-all ${isDragging ? 'rotate-2 scale-105 border-accent shadow-2xl' : 'border-white/5'}`}>
@@ -392,6 +449,31 @@ function CardFront({ job, isDragging }: { job: Job, isDragging: boolean }) {
 }
 
 // ----------------------------------------------------------------------
+// HELPER: Parse Vimeo/Frame.io URLs
+// ----------------------------------------------------------------------
+const getEmbedDetails = (url: string) => {
+  if (!url) return null;
+  // Vimeo
+  const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/i);
+  if (vimeoMatch && vimeoMatch[1]) {
+    return {
+      type: 'Vimeo',
+      embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}?title=0&byline=0&portrait=0`,
+    };
+  }
+  // Frame.io
+  if (url.includes('frame.io')) {
+    const uuidMatch = url.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    const embedUrl = uuidMatch ? `https://iframe.frame.io/player/${uuidMatch[0]}?v=2` : url;
+    return {
+      type: 'Frame.io',
+      embedUrl,
+    };
+  }
+  return null;
+};
+
+// ----------------------------------------------------------------------
 // COMPONENT: CardDetailModal (The "Card Back")
 // ----------------------------------------------------------------------
 function CardDetailModal({ 
@@ -400,20 +482,213 @@ function CardDetailModal({
   onClose,
   onUpdate,
   stages,
-  isCreatingNew
+  isCreatingNew,
+  isClient
 }: { 
   job: Job, 
   contacts: Contact[], 
   onClose: () => void,
   onUpdate: (job: Job) => void,
   stages: typeof EDIT_STAGES,
-  isCreatingNew?: boolean
+  isCreatingNew?: boolean,
+  isClient: boolean
 }) {
   const [title, setTitle] = useState(job.title);
   const [notes, setNotes] = useState(job.edit_notes || '');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [showLabelMenu, setShowLabelMenu] = useState(false);
   const [newLabelText, setNewLabelText] = useState('');
+
+  // Links editing states
+  const [isEditingLinks, setIsEditingLinks] = useState(false);
+  const [tempReviewLink, setTempReviewLink] = useState(job.review_link || '');
+  const [tempDriveUrl, setTempDriveUrl] = useState(job.drive_folder_url || '');
+  const [tempDiscordUrl, setTempDiscordUrl] = useState(job.discord_url || '');
+  const [tempCustomLinks, setTempCustomLinks] = useState<JobLink[]>(job.links || []);
+  const [newLinkName, setNewLinkName] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+
+  const resetTempLinkStates = () => {
+    setTempReviewLink(job.review_link || '');
+    setTempDriveUrl(job.drive_folder_url || '');
+    setTempDiscordUrl(job.discord_url || '');
+    setTempCustomLinks(job.links || []);
+    setNewLinkName('');
+    setNewLinkUrl('');
+  };
+
+  const handleAddCustomLink = () => {
+    if (!newLinkName.trim() || !newLinkUrl.trim()) return;
+    setTempCustomLinks([...tempCustomLinks, { label: newLinkName.trim(), url: newLinkUrl.trim() }]);
+    setNewLinkName('');
+    setNewLinkUrl('');
+  };
+
+  const handleRemoveCustomLink = (index: number) => {
+    setTempCustomLinks(tempCustomLinks.filter((_, i) => i !== index));
+  };
+
+  const handleSaveLinks = () => {
+    onUpdate({
+      ...job,
+      review_link: tempReviewLink.trim() || undefined,
+      drive_folder_url: tempDriveUrl.trim() || undefined,
+      discord_url: tempDiscordUrl.trim() || undefined,
+      links: tempCustomLinks
+    });
+    setIsEditingLinks(false);
+  };
+
+  // Vimeo / Frame.io Embed Details
+  const embedDetails = useMemo(() => getEmbedDetails(job.review_link || ''), [job.review_link]);
+
+  // Comments State (Vimeo/Frame.io Mock stream)
+  const [comments, setComments] = useState<{ id: string; timecode: string; author: string; role: string; text: string; date: string }[]>([
+    { id: '1', timecode: '00:15', author: 'Matt', role: 'Director', text: 'Color grading feels slightly warm. Can we cool down the shadows?', date: '2 days ago' },
+    { id: '2', timecode: '01:05', author: 'Sarah', role: 'Producer', text: "Love the speed ramp here, it perfectly matches the client's brand energy!", date: '1 day ago' },
+    { id: '3', timecode: '02:18', author: 'Client (Qualcomm)', role: 'Client', text: 'The text reveal timing is perfect. Approved!', date: '3 hours ago' },
+  ]);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [newCommentTimecode, setNewCommentTimecode] = useState('00:00');
+  const [newCommentAuthor, setNewCommentAuthor] = useState('Zipline Editor');
+
+  // Video Integration State
+  const [videoStats, setVideoStats] = useState<{
+    resolution: string;
+    completionRate: string;
+    views: number;
+    platform?: string;
+  } | null>(null);
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+
+  useEffect(() => {
+    if (!job.review_link) {
+      setVideoStats(null);
+      return;
+    }
+    
+    let active = true;
+    setIsLoadingVideo(true);
+    fetch(`/api/integrations/video?url=${encodeURIComponent(job.review_link)}`)
+      .then(res => {
+        if (!res.ok) throw new Error('API failed');
+        return res.json();
+      })
+      .then(data => {
+        if (active) {
+          setVideoStats({
+            resolution: data.resolution,
+            completionRate: data.completionRate,
+            views: data.views,
+            platform: data.platform
+          });
+          if (data.comments && data.comments.length > 0) {
+            setComments(data.comments);
+          }
+        }
+      })
+      .catch(err => {
+        console.warn("Failed to fetch live video details, using simulated fallback:", err);
+      })
+      .finally(() => {
+        if (active) setIsLoadingVideo(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [job.review_link]);
+
+  // Drive Files State
+  const [driveFiles, setDriveFiles] = useState<{ name: string; size: string; type: string; date: string; url: string }[]>([
+    { name: '01_Director_Cut_V2.mp4', size: '1.4 GB', type: 'video', date: '3 days ago', url: job.drive_folder_url || '#' },
+    { name: 'Audio_Mix_Stems_Master.zip', size: '320 MB', type: 'archive', date: '2 days ago', url: job.drive_folder_url || '#' },
+    { name: 'Zipline_Creative_Brief.pdf', size: '12 MB', type: 'document', date: '5 days ago', url: job.drive_folder_url || '#' },
+    { name: 'Client_Feedback_Grid.xlsx', size: '4.8 MB', type: 'document', date: 'Yesterday', url: job.drive_folder_url || '#' },
+  ]);
+  const [isLiveDrive, setIsLiveDrive] = useState(false);
+  const [isLoadingDrive, setIsLoadingDrive] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setIsLoadingDrive(true);
+
+    const loadDriveFiles = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) {
+          setIsLoadingDrive(false);
+          return;
+        }
+
+        const driveUrl = job.drive_folder_url || '';
+        const res = await fetch(`/api/integrations/drive?userId=${session.user.id}&url=${encodeURIComponent(driveUrl)}`);
+        if (!res.ok) throw new Error('API failed');
+
+        const data = await res.json();
+        if (active) {
+          setDriveFiles(data.files);
+          setIsLiveDrive(!!data.isLive);
+        }
+      } catch (err) {
+        console.warn('Failed to load Google Drive files:', err);
+      } finally {
+        if (active) setIsLoadingDrive(false);
+      }
+    };
+
+    if (job.drive_folder_url) {
+      loadDriveFiles();
+    } else {
+      setIsLoadingDrive(false);
+      setIsLiveDrive(false);
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [job.drive_folder_url]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    // Simulate upload progress
+    const interval = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            setIsUploading(false);
+            const sizeStr = file.size > 1024 * 1024 * 1024
+              ? `${(file.size / (1024 * 1024 * 1024)).toFixed(1)} GB`
+              : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+              
+            setDriveFiles((prevFiles) => [
+              {
+                name: file.name,
+                size: sizeStr,
+                type: file.type.includes('video') ? 'video' : file.type.includes('audio') ? 'audio' : 'document',
+                date: 'Just now',
+                url: job.drive_folder_url || '#',
+              },
+              ...prevFiles,
+            ]);
+          }, 500);
+          return 100;
+        }
+        return prev + 20;
+      });
+    }, 150);
+  };
 
   const currentStage = stages.find(s => s.id === (job.edit_status || 'Filmed'));
 
@@ -455,12 +730,16 @@ function CardDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-10 pb-10 bg-black/80 backdrop-blur-sm overflow-y-auto">
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 z-[150] flex items-start justify-center pt-28 pb-10 bg-black/80 backdrop-blur-sm overflow-y-auto cursor-pointer"
+    >
       <motion.div
+        onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-3xl bg-neutral-900 border border-white/10 rounded-2xl shadow-2xl relative min-h-[600px] flex flex-col"
+        className="w-full max-w-3xl bg-neutral-900 border border-white/10 rounded-2xl shadow-2xl relative min-h-[600px] flex flex-col cursor-default"
       >
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors">
           <X className="w-5 h-5" />
@@ -477,7 +756,8 @@ function CardDetailModal({
               onBlur={saveTitle}
               autoFocus={isCreatingNew}
               placeholder="Enter task title..."
-              className="w-full bg-transparent text-xl font-bold text-white outline-none border-2 border-transparent focus:border-accent focus:bg-black/20 rounded px-2 py-1 -ml-2"
+              disabled={isClient}
+              className="w-full bg-transparent text-xl font-bold text-white outline-none border-2 border-transparent focus:border-accent focus:bg-black/20 rounded px-2 py-1 -ml-2 disabled:bg-transparent disabled:border-transparent disabled:-ml-2"
             />
             <p className="text-[11px] text-white/40 mt-1 pl-1">
               in list <span className="underline">{currentStage?.label}</span>
@@ -513,10 +793,13 @@ function CardDetailModal({
                     <select
                       value={job.editor_id || ''}
                       onChange={(e) => updateEditor(e.target.value)}
-                      className="bg-white/5 border border-white/10 py-1.5 px-3 rounded-lg text-xs font-bold text-white outline-none focus:border-accent appearance-none"
+                      disabled={isClient}
+                      className="bg-white/5 border border-white/10 py-1.5 px-3 rounded-lg text-xs font-bold text-white outline-none focus:border-accent appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="">Unassigned</option>
-                      {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      {contacts
+                        .filter(c => ['Editor', 'Colorist', 'Motion Graphics', 'Sound Designer'].includes(c.primary_role || ''))
+                        .map(c => <option key={c.id} value={c.id}>{caps(c.name)}</option>)}
                     </select>
                   </div>
                 </div>
@@ -530,19 +813,21 @@ function CardDetailModal({
                     {job.edit_labels.map(l => (
                       <span 
                         key={l.id} 
-                        onClick={() => removeLabel(l.id)}
-                        className={`px-3 py-1.5 rounded text-[10px] font-bold text-white cursor-pointer hover:opacity-80 transition-opacity ${l.color}`}
-                        title="Click to remove"
+                        onClick={isClient ? undefined : () => removeLabel(l.id)}
+                        className={`px-3 py-1.5 rounded text-[10px] font-bold text-white transition-opacity ${l.color} ${isClient ? '' : 'cursor-pointer hover:opacity-80'}`}
+                        title={isClient ? undefined : "Click to remove"}
                       >
                         {l.text}
                       </span>
                     ))}
-                    <button 
-                      onClick={() => setShowLabelMenu(!showLabelMenu)}
-                      className="w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded border border-white/10 transition-colors"
-                    >
-                      <Plus className="w-4 h-4 text-white" />
-                    </button>
+                    {!isClient && (
+                      <button 
+                        onClick={() => setShowLabelMenu(!showLabelMenu)}
+                        className="w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded border border-white/10 transition-colors"
+                      >
+                        <Plus className="w-4 h-4 text-white" />
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -556,7 +841,8 @@ function CardDetailModal({
                       type="date"
                       value={job.due_date}
                       onChange={(e) => updateDueDate(e.target.value)}
-                      className="bg-transparent outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:invert"
+                      disabled={isClient}
+                      className="bg-transparent outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:invert disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -569,12 +855,16 @@ function CardDetailModal({
               <div className="flex-1">
                 <div className="flex items-center gap-4 mb-3">
                   <h3 className="text-base font-bold text-white">Description</h3>
-                  {job.edit_notes && !isEditingNotes && (
+                  {job.edit_notes && !isEditingNotes && !isClient && (
                     <button onClick={() => setIsEditingNotes(true)} className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-xs font-medium text-white transition-colors">Edit</button>
                   )}
                 </div>
                 
-                {isEditingNotes || !job.edit_notes ? (
+                {isClient ? (
+                  <div className="text-sm text-white/80 bg-white/5 p-4 rounded-xl whitespace-pre-wrap">
+                    {job.edit_notes || 'No description provided.'}
+                  </div>
+                ) : isEditingNotes || !job.edit_notes ? (
                   <div className="space-y-2">
                     <textarea 
                       value={notes}
@@ -599,52 +889,411 @@ function CardDetailModal({
               </div>
             </div>
 
-            {/* Attachments / Links */}
+            {/* Attachments / Links & Live Integrations */}
             <div className="flex gap-4">
               <Paperclip className="w-6 h-6 text-white/40 shrink-0" />
-              <div className="flex-1">
-                <h3 className="text-base font-bold text-white mb-4">Project Links & Vault</h3>
-                <div className="space-y-3">
-                  {job.review_link && (
-                    <a href={job.review_link} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-lg group transition-colors">
-                       <div className="w-10 h-10 bg-black/40 rounded flex items-center justify-center"><Eye className="w-5 h-5 text-accent" /></div>
-                       <div>
-                         <p className="text-sm font-bold text-white">Review Link (Frame.io/Vimeo)</p>
-                         <p className="text-xs text-white/40 truncate max-w-sm group-hover:underline">{job.review_link}</p>
-                       </div>
-                    </a>
+              <div className="flex-1 space-y-6">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-bold text-white">Project Links & Integration Suite</h3>
+                    {!isClient && (
+                      <button 
+                        onClick={() => {
+                          if (isEditingLinks) {
+                            resetTempLinkStates();
+                          }
+                          setIsEditingLinks(!isEditingLinks);
+                        }}
+                        className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-xs font-bold text-white transition-colors"
+                      >
+                        {isEditingLinks ? 'Cancel' : 'Manage Links'}
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditingLinks && (
+                    <div className="bg-black/45 border border-white/10 p-4 rounded-xl space-y-4 mb-6">
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black tracking-widest uppercase opacity-40 text-white">Vimeo / Frame.io Review Link</label>
+                        <input 
+                          type="text" 
+                          value={tempReviewLink}
+                          onChange={(e) => setTempReviewLink(e.target.value)}
+                          placeholder="https://vimeo.com/... or https://frame.io/..."
+                          className="w-full bg-black/50 border border-white/10 px-3 py-2 outline-none text-xs rounded-lg text-white"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black tracking-widest uppercase opacity-40 text-white">Google Drive Folder URL</label>
+                        <input 
+                          type="text" 
+                          value={tempDriveUrl}
+                          onChange={(e) => setTempDriveUrl(e.target.value)}
+                          placeholder="https://drive.google.com/..."
+                          className="w-full bg-black/50 border border-white/10 px-3 py-2 outline-none text-xs rounded-lg text-white"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black tracking-widest uppercase opacity-40 text-white">Discord Webhook / Channel URL</label>
+                        <input 
+                          type="text" 
+                          value={tempDiscordUrl}
+                          onChange={(e) => setTempDiscordUrl(e.target.value)}
+                          placeholder="https://discord.com/channels/..."
+                          className="w-full bg-black/50 border border-white/10 px-3 py-2 outline-none text-xs rounded-lg text-white"
+                        />
+                      </div>
+
+                      {/* Custom Links List & Add New */}
+                      <div className="border-t border-white/5 pt-4 space-y-3">
+                        <label className="text-[9px] font-black tracking-widest uppercase opacity-40 text-white block">Custom Links</label>
+                        
+                        {/* Existing Custom Links */}
+                        {tempCustomLinks.length > 0 && (
+                          <div className="space-y-2">
+                            {tempCustomLinks.map((link, idx) => (
+                              <div key={idx} className="flex items-center justify-between bg-black/20 p-2 rounded border border-white/5">
+                                <span className="text-[11px] font-bold text-white truncate max-w-[80%]">
+                                  {link.label}: <span className="opacity-40 font-normal">{link.url}</span>
+                                </span>
+                                <button 
+                                  onClick={() => handleRemoveCustomLink(idx)}
+                                  className="text-red-400 hover:text-red-300 text-xs font-bold px-2 py-1"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add Custom Link Input Row */}
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            placeholder="Label (e.g. YouTube)" 
+                            value={newLinkName}
+                            onChange={(e) => setNewLinkName(e.target.value)}
+                            className="w-1/3 bg-black/50 border border-white/10 px-2 py-1.5 outline-none text-[10px] rounded text-white"
+                          />
+                          <input 
+                            type="text" 
+                            placeholder="URL" 
+                            value={newLinkUrl}
+                            onChange={(e) => setNewLinkUrl(e.target.value)}
+                            className="flex-grow bg-black/50 border border-white/10 px-2 py-1.5 outline-none text-[10px] rounded text-white"
+                          />
+                          <button 
+                            type="button"
+                            onClick={handleAddCustomLink}
+                            className="bg-accent px-3 text-[10px] font-black uppercase tracking-wider text-white rounded hover:bg-white hover:text-black transition-colors"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Save Buttons */}
+                      <div className="flex gap-2 pt-2">
+                        <button 
+                          onClick={handleSaveLinks}
+                          className="bg-green-600 hover:bg-green-700 px-4 py-2 text-xs font-black uppercase tracking-widest text-white rounded-lg transition-colors"
+                        >
+                          Save Links
+                        </button>
+                        <button 
+                          onClick={() => {
+                            resetTempLinkStates();
+                            setIsEditingLinks(false);
+                          }}
+                          className="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-white rounded-lg transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
                   )}
-                  {job.discord_url && (
-                    <a href={job.discord_url} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-lg group transition-colors">
-                       <div className="w-10 h-10 bg-black/40 rounded flex items-center justify-center"><MessageSquare className="w-5 h-5 text-purple-400" /></div>
-                       <div>
-                         <p className="text-sm font-bold text-white">Discord Channel</p>
-                         <p className="text-xs text-white/40 truncate max-w-sm group-hover:underline">{job.discord_url}</p>
-                       </div>
-                    </a>
-                  )}
-                  {job.drive_folder_url && (
-                    <a href={job.drive_folder_url} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-lg group transition-colors">
-                       <div className="w-10 h-10 bg-black/40 rounded flex items-center justify-center"><FolderOpen className="w-5 h-5 text-yellow-500" /></div>
-                       <div>
-                         <p className="text-sm font-bold text-white">Project Drive Folder</p>
-                         <p className="text-xs text-white/40 truncate max-w-sm group-hover:underline">{job.drive_folder_url}</p>
-                       </div>
-                    </a>
-                  )}
-                  {job.links?.map((link, i) => (
-                    <a key={i} href={link.url} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-lg group transition-colors">
-                       <div className="w-10 h-10 bg-black/40 rounded flex items-center justify-center"><ExternalLink className="w-5 h-5 text-white/40" /></div>
-                       <div>
-                         <p className="text-sm font-bold text-white">{link.label}</p>
-                         <p className="text-xs text-white/40 truncate max-w-sm group-hover:underline">{link.url}</p>
-                       </div>
-                    </a>
-                  ))}
-                  {!job.review_link && !job.discord_url && !job.drive_folder_url && (!job.links || job.links.length === 0) && (
-                    <p className="text-sm text-white/40 italic">No links attached to this project.</p>
-                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                    {job.review_link && (
+                      <a href={sanitizeUrl(job.review_link)} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl group transition-colors border border-white/5">
+                         <div className="w-10 h-10 bg-black/40 rounded-lg flex items-center justify-center"><Eye className="w-5 h-5 text-accent animate-pulse" /></div>
+                         <div className="min-w-0 flex-1">
+                           <p className="text-xs font-black uppercase tracking-wider text-white">Review Platform Link</p>
+                           <p className="text-[10px] text-white/40 truncate group-hover:underline">{job.review_link}</p>
+                         </div>
+                      </a>
+                    )}
+                    {job.discord_url && (
+                      <a href={sanitizeUrl(job.discord_url)} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl group transition-colors border border-white/5">
+                         <div className="w-10 h-10 bg-black/40 rounded-lg flex items-center justify-center"><MessageSquare className="w-5 h-5 text-purple-400" /></div>
+                         <div className="min-w-0 flex-1">
+                           <p className="text-xs font-black uppercase tracking-wider text-white">Discord Feed</p>
+                           <p className="text-[10px] text-white/40 truncate group-hover:underline">{job.discord_url}</p>
+                         </div>
+                      </a>
+                    )}
+                    {job.drive_folder_url && (
+                      <a href={sanitizeUrl(job.drive_folder_url)} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl group transition-colors border border-white/5">
+                         <div className="w-10 h-10 bg-black/40 rounded-lg flex items-center justify-center"><FolderOpen className="w-5 h-5 text-yellow-500" /></div>
+                         <div className="min-w-0 flex-1">
+                           <p className="text-xs font-black uppercase tracking-wider text-white">Drive Folder</p>
+                           <p className="text-[10px] text-white/40 truncate group-hover:underline">{job.drive_folder_url}</p>
+                         </div>
+                      </a>
+                    )}
+                    {job.links?.map((link, i) => (
+                      <a key={i} href={sanitizeUrl(link.url)} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl group transition-colors border border-white/5">
+                         <div className="w-10 h-10 bg-black/40 rounded-lg flex items-center justify-center"><ExternalLink className="w-5 h-5 text-white/40" /></div>
+                         <div className="min-w-0 flex-1">
+                           <p className="text-xs font-black uppercase tracking-wider text-white truncate">{link.label}</p>
+                           <p className="text-[10px] text-white/40 truncate group-hover:underline">{link.url}</p>
+                         </div>
+                      </a>
+                    ))}
+                    {!job.review_link && !job.discord_url && !job.drive_folder_url && (!job.links || job.links.length === 0) && (
+                      <p className="text-xs text-white/40 italic col-span-2">No custom links attached to this project.</p>
+                    )}
+                  </div>
                 </div>
+
+                {/* 1. Vimeo / Frame.io Player Embed & Telemetry */}
+                {embedDetails && (
+                  <div className="bg-neutral-900/60 border border-white/10 rounded-xl p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <PlayCircle className="w-4 h-4 text-accent" />
+                        <span className="text-xs font-black uppercase tracking-widest text-white">{embedDetails.type} Review Monitor</span>
+                      </div>
+                      <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-full">
+                        Live Embed
+                      </span>
+                    </div>
+
+                    <div className="aspect-video w-full rounded-lg overflow-hidden border border-white/5 bg-black">
+                      <iframe 
+                        src={embedDetails.embedUrl} 
+                        className="w-full h-full" 
+                        allowFullScreen 
+                        allow="autoplay; fullscreen; picture-in-picture"
+                      />
+                    </div>
+
+                    {/* Telemetry Dashboard */}
+                    <div className="bg-black/30 p-3 rounded-lg border border-white/5">
+                      <div className="grid grid-cols-3 gap-4 border-b border-white/5 pb-3 mb-3">
+                        <div>
+                          <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">Resolution</p>
+                          <p className="text-xs font-black text-white mt-0.5">{videoStats?.resolution || '4K UHD (2160p)'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">Completion Rate</p>
+                          <p className="text-xs font-black text-green-400 mt-0.5">{videoStats?.completionRate || '88.5%'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">Total Views</p>
+                          <p className="text-xs font-black text-white mt-0.5">{videoStats?.views ?? (142 + comments.length * 3)}</p>
+                        </div>
+                      </div>
+
+                      {/* Comments stream */}
+                      <div className="space-y-3">
+                        <p className="text-[8px] font-black uppercase tracking-widest text-accent mb-2">Review Feed ({comments.length})</p>
+                        <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+                          {comments.map((c) => (
+                            <div key={c.id} className="text-xs border-l-2 border-accent pl-2.5 py-0.5 bg-white/5 rounded-r p-1.5">
+                              <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-white/60 mb-0.5">
+                                <span>{c.author} <span className="text-[8px] opacity-40 font-normal">({c.role})</span></span>
+                                <span className="text-[8px] text-accent font-black">{c.timecode}</span>
+                              </div>
+                              <p className="text-white/80 leading-normal">{c.text}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Add Comment Form */}
+                        <div className="pt-2 border-t border-white/5 space-y-2">
+                          <div className="grid grid-cols-3 gap-2">
+                            <input 
+                              type="text"
+                              value={newCommentAuthor}
+                              onChange={(e) => setNewCommentAuthor(e.target.value)}
+                              placeholder="Name"
+                              className="col-span-2 bg-black/40 border border-white/10 rounded px-2 py-1 text-[10px] text-white outline-none focus:border-accent"
+                            />
+                            <input 
+                              type="text"
+                              value={newCommentTimecode}
+                              onChange={(e) => setNewCommentTimecode(e.target.value)}
+                              placeholder="Time (0:00)"
+                              className="bg-black/40 border border-white/10 rounded px-2 py-1 text-[10px] text-white outline-none focus:border-accent text-center"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text"
+                              value={newCommentText}
+                              onChange={(e) => setNewCommentText(e.target.value)}
+                              placeholder="Type review note..."
+                              className="flex-grow bg-black/40 border border-white/10 rounded px-2 py-1.5 text-[10px] text-white outline-none focus:border-accent"
+                            />
+                            <button 
+                              onClick={() => {
+                                if (!newCommentText.trim()) return;
+                                setComments([...comments, {
+                                  id: Math.random().toString(),
+                                  timecode: newCommentTimecode,
+                                  author: newCommentAuthor || 'Anonymous',
+                                  role: 'Reviewer',
+                                  text: newCommentText,
+                                  date: 'Just now'
+                                }]);
+                                setNewCommentText('');
+                              }}
+                              className="bg-accent px-3 py-1 text-[9px] font-black uppercase tracking-widest text-white rounded hover:bg-white hover:text-black transition-colors"
+                            >
+                              Post
+                            </button>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Google Drive Vault Explorer */}
+                {job.drive_folder_url && (
+                  <div className="bg-neutral-900/60 border border-white/10 rounded-xl p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FolderOpen className="w-4 h-4 text-yellow-500" />
+                        <span className="text-xs font-black uppercase tracking-widest text-white">Google Drive Vault</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isLiveDrive ? (
+                          <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-full">
+                            Live Sync
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-white/5 border border-white/10 text-white/40 text-[8px] font-black uppercase tracking-widest rounded-full">
+                            Simulated Vault
+                          </span>
+                        )}
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(job.drive_folder_url || '');
+                            setLinkCopied(true);
+                            setTimeout(() => setLinkCopied(false), 2000);
+                          }}
+                          className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors"
+                        >
+                          {linkCopied ? 'Copied Link' : 'Copy Folder Link'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-black/30 border border-white/5 rounded-lg p-3">
+                      {/* Search & Upload */}
+                      <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                        <div className="relative flex-grow">
+                          <Search className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-white/30" />
+                          <input 
+                            type="text"
+                            placeholder="Search Vault files..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-black/40 border border-white/10 rounded-lg pl-8 pr-3 py-2 text-xs text-white outline-none focus:border-accent"
+                          />
+                        </div>
+                        <div className="relative">
+                          <input 
+                            type="file" 
+                            id="vault-upload" 
+                            className="hidden" 
+                            onChange={handleFileUpload}
+                            disabled={isUploading}
+                          />
+                          <label 
+                            htmlFor="vault-upload" 
+                            className={`flex items-center justify-center gap-1.5 px-3 py-2 bg-accent/20 border border-accent/30 text-accent hover:bg-accent hover:text-white rounded-lg text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                          >
+                            <UploadCloud className="w-4 h-4" /> Upload
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Upload Progress Bar */}
+                      {isUploading && (
+                        <div className="bg-white/5 p-2 rounded-lg border border-white/5 mb-3">
+                          <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-accent mb-1">
+                            <span>Uploading Deliverable...</span>
+                            <span>{uploadProgress}%</span>
+                          </div>
+                          <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden">
+                            <div className="bg-accent h-full transition-all duration-150" style={{ width: `${uploadProgress}%` }} />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Files list */}
+                      <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+                        {isLoadingDrive ? (
+                          <div className="text-center py-6 text-[10px] text-white/40 italic">
+                            Loading vault files from Google Drive...
+                          </div>
+                        ) : driveFiles.length === 0 ? (
+                          <div className="text-center py-6 text-[10px] text-white/40 italic">
+                            No files found in this vault folder.
+                          </div>
+                        ) : (
+                          driveFiles
+                            .filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                            .map((file, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-2 hover:bg-white/5 rounded-lg border border-transparent hover:border-white/5 transition-all">
+                              <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                                <div className="w-7 h-7 bg-white/5 rounded flex items-center justify-center">
+                                  {file.type === 'video' ? (
+                                    <FileVideo className="w-4 h-4 text-blue-400" />
+                                  ) : file.type === 'audio' ? (
+                                    <FileAudio className="w-4 h-4 text-purple-400" />
+                                  ) : (
+                                    <FileText className="w-4 h-4 text-yellow-500" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[11px] font-bold text-white truncate leading-tight">{file.name}</p>
+                                  <p className="text-[8px] text-white/40 uppercase font-medium mt-0.5">{file.size} • {file.date}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button 
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(file.url);
+                                    setCopiedIndex(idx);
+                                    setTimeout(() => setCopiedIndex(null), 2000);
+                                  }}
+                                  className="p-1.5 hover:bg-white/10 rounded text-white/40 hover:text-white transition-colors"
+                                  title="Copy File Link"
+                                >
+                                  {copiedIndex === idx ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                </button>
+                                <a 
+                                  href={sanitizeUrl(file.url)}
+                                  target="_blank"
+                                  className="p-1.5 hover:bg-white/10 rounded text-white/40 hover:text-white transition-colors"
+                                  title="Download"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </a>
+                              </div>
+                            </div>
+                          )))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
 

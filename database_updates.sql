@@ -18,3 +18,6 @@ CREATE TABLE IF NOT EXISTS job_templates (
 -- 3. Enable security for the templates table
 ALTER TABLE job_templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all for now" ON job_templates FOR ALL USING (true) WITH CHECK (true);
+
+-- 4. Add notes column to schedule items
+ALTER TABLE job_schedules ADD COLUMN IF NOT EXISTS notes TEXT;

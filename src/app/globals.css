@@ -119,3 +119,123 @@ p, span, label, input, textarea, select {
 .animate-scroll-slower {
   animation: scroll 120s linear infinite;
 }
+
+/* --- Stacking Context Fix for CommandCenter Modals --- */
+/* When any modal is active inside the main container, raise main z-index above the sidebar */
+main:has(.fixed.z-\[100\]),
+main:has(.fixed.z-\[110\]),
+main:has(.fixed.z-\[120\]),
+main:has(.fixed.z-\[150\]) {
+  z-index: 60;
+}
+
+/* =====================================================================
+   Mobile / cross-platform polish (#7)
+   ===================================================================== */
+
+/* Never allow accidental horizontal scrolling on small screens */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Smooth momentum scrolling on iOS for scroll containers */
+.custom-scrollbar,
+.no-scrollbar {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Faster, more reliable taps (removes the 300ms delay) */
+button, a, [role="button"], input[type="checkbox"], select {
+  touch-action: manipulation;
+}
+
+/* iOS zooms the page when focusing an input whose font-size < 16px.
+   Force a 16px minimum on form controls on phones to stop the zoom jump,
+   without disabling user pinch-zoom. */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Respect device safe areas (notch / home indicator) when installed as a PWA */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* When running as an installed PWA, pad the bottom of scrollable command-center
+   content so the iOS home indicator never covers controls. */
+@media (display-mode: standalone) {
+  .pwa-safe-bottom {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* =====================================================================
+   Studio OS theming (Command Center only)
+   ---------------------------------------------------------------------
+   The app is built dark-first: it uses Tailwind's `white` as the
+   foreground and `black` as the background, plus a few neutral/zinc
+   surface shades. Tailwind v4 compiles those utilities to
+   `var(--color-*)`, so re-pointing those variables on the `.studio-os`
+   wrapper retheme the whole subtree — including translucent "glass"
+   overlays like `bg-white/5`, which become subtle dark overlays in
+   light mode automatically.
+
+   `data-theme` is set by ThemeProvider. No attribute (or "dark") keeps
+   the original pure-black look untouched.
+   ===================================================================== */
+
+.studio-os {
+  /* Scrollbar thumb tint, themed below. Defaults to the dark look. */
+  --app-scrollbar-thumb: rgba(255, 255, 255, 0.15);
+}
+
+/* --- Dim: charcoal panels on a near-black page (a softer "in between").
+   Keep the page only just off pure black so translucent "glass" wells
+   (e.g. bg-black/40 inputs) stay subtle instead of washing out to gray;
+   lift the solid panel surfaces to charcoal so they read as raised. --- */
+.studio-os[data-theme="dim"] {
+  --color-black: #0d0e10;   /* page: barely off pure black */
+  --color-white: #ededef;   /* foreground softens slightly */
+
+  --color-neutral-950: #1b1c20;
+  --color-neutral-900: #232429;
+  --color-neutral-800: #2d2e34;
+  --color-zinc-950: #1b1c20;
+  --color-zinc-900: #232429;
+  --color-zinc-800: #2d2e34;
+
+  --app-scrollbar-thumb: rgba(255, 255, 255, 0.18);
+}
+
+/* --- Light --- */
+.studio-os[data-theme="light"] {
+  --color-black: #f4f5f7;   /* "background" → soft off-white */
+  --color-white: #1a1b1e;   /* "foreground" → near-black ink */
+
+  /* Surfaces that were near-black become white/very-light cards. */
+  --color-neutral-950: #ffffff;
+  --color-neutral-900: #ffffff;
+  --color-neutral-800: #eceef1;
+  --color-zinc-950: #ffffff;
+  --color-zinc-900: #f1f2f5;
+  --color-zinc-800: #e6e8ec;
+
+  /* Mid-gray muted text stays readable on light surfaces. */
+  --color-neutral-400: #6b7280;
+
+  --app-scrollbar-thumb: rgba(0, 0, 0, 0.22);
+}
+
+/* Themed scrollbars inside Studio OS (global rules still apply elsewhere). */
+.studio-os ::-webkit-scrollbar-thumb,
+.studio-os.custom-scrollbar::-webkit-scrollbar-thumb,
+.studio-os .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--app-scrollbar-thumb);
+}
+

@@ -22,16 +22,24 @@ import {
   Stethoscope,
   MapPin,
   ExternalLink,
-  Calendar
+  Calendar,
+  FolderOpen,
+  Share2,
+  Lock,
+  UserPlus,
+  Loader2
 } from 'lucide-react';
 
 import { jsPDF } from 'jspdf';
 import Autocomplete from 'react-google-autocomplete';
 
 import { ALL_CATEGORIES, type InventoryItem } from '@/data/inventory';
-import { STORAGE_KEY_CLIENTS, STORAGE_KEY_JOBS, Client, Job } from './types';
+import { STORAGE_KEY_CLIENTS, STORAGE_KEY_JOBS, Client, Job, GearTemplate, Contact } from './types';
 import ProductionCalendar from './ProductionCalendar';
 import { supabase } from '@/lib/supabase';
+import { getBranding } from '@/lib/branding';
+import { useRealtime } from '@/lib/useRealtime';
+import { caps } from '@/lib/format';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -101,7 +109,13 @@ const GearItem = ({
   </div>
 );
 
-export default function Rentals() {
+interface RentalsProps {
+  preloadedJob?: Job | null;
+  onClearPreload?: () => void;
+  selectedJobId?: string | null;
+}
+
+export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: selectedJobIdProp }: RentalsProps = {}) {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [manifest, setManifest] = useState<Record<string, number>>({});
@@ -119,6 +133,14 @@ export default function Rentals() {
   const [customValue, setCustomValue] = useState(0);
   const [customOwner, setCustomOwner] = useState('');
 
+  // Rolodex contacts (so a rental house / contractor owner can be saved as a contact)
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [showAddOwnerContact, setShowAddOwnerContact] = useState(false);
+  const [ownerContactEmail, setOwnerContactEmail] = useState('');
+  const [ownerContactPhone, setOwnerContactPhone] = useState('');
+  const [savingOwnerContact, setSavingOwnerContact] = useState(false);
+  const [ownerContactMsg, setOwnerContactMsg] = useState<string | null>(null);
+
   // Job Details State
   const [jobTitle, setJobTitle] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -130,7 +152,15 @@ export default function Rentals() {
   const [isMobileManifestOpen, setIsMobileManifestOpen] = useState(false);
   const [isJobPickerOpen, setIsJobPickerOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'gear' | 'library'>('gear');
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'gear' | 'library' | 'templates'>('gear');
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Templates State
+  const [gearTemplates, setGearTemplates] = useState<GearTemplate[]>([]);
+  const [isSaveTemplateModalOpen, setIsSaveTemplateModalOpen] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+  const [newTemplateDesc, setNewTemplateDesc] = useState('');
 
   // External API States
   const [weatherLoading, setWeatherLoading] = useState(false);
@@ -193,9 +223,21 @@ export default function Rentals() {
         console.error('Error fetching jobs:', err);
       }
     };
+
+    const fetchGearTemplates = async () => {
+      try {
+        const { data, error } = await supabase.from('gear_templates').select('*');
+        if (error) throw error;
+        if (data) setGearTemplates(data as GearTemplate[]);
+      } catch (err) {
+        console.error('Error fetching gear templates:', err);
+      }
+    };
     
     fetchInventory();
     fetchJobs();
+    fetchGearTemplates();
+    fetchContacts();
 
     // Load saved owners
     const stored = localStorage.getItem('zipline_saved_owners');
@@ -207,6 +249,61 @@ export default function Rentals() {
       }
     }
   }, []);
+
+  const fetchContacts = async () => {
+    try {
+      const { data, error } = await supabase.from('contacts').select('*').order('name');
+      if (!error && data) setContacts(data as Contact[]);
+    } catch (err) {
+      console.error('Error fetching contacts:', err);
+    }
+  };
+
+  // Live team sync: keep the gear catalog, jobs, templates and contacts fresh
+  // when a teammate changes them. The embedded calendar live-updates on its own.
+  useRealtime(['jobs', 'inventory', 'gear_templates', 'contacts'], async () => {
+    const [jobsRes, invRes, tplRes] = await Promise.all([
+      supabase.from('jobs').select('*'),
+      supabase.from('inventory').select('*'),
+      supabase.from('gear_templates').select('*'),
+    ]);
+    if (!jobsRes.error && jobsRes.data) setJobs(jobsRes.data as Job[]);
+    if (!invRes.error && invRes.data) setDbInventory(invRes.data as InventoryItem[]);
+    if (!tplRes.error && tplRes.data) setGearTemplates(tplRes.data as GearTemplate[]);
+    fetchContacts();
+  });
+
+  // Save the current owner/source as a Rolodex contact (rental house / contractor)
+  const handleSaveOwnerAsContact = async () => {
+    const name = customOwner.trim();
+    if (!name) return;
+    setSavingOwnerContact(true);
+    setOwnerContactMsg(null);
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .insert([{
+          name,
+          company_name: name,
+          primary_role: 'Rental House / Vendor',
+          email: ownerContactEmail.trim() || '',
+          phone: ownerContactPhone.trim() || null,
+          is_favorite: false,
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      setContacts(prev => [...prev, data as Contact]);
+      setOwnerContactMsg(`Added "${name}" to Rolodex.`);
+      setShowAddOwnerContact(false);
+      setOwnerContactEmail('');
+      setOwnerContactPhone('');
+    } catch (err: any) {
+      setOwnerContactMsg(`Failed: ${err.message}`);
+    } finally {
+      setSavingOwnerContact(false);
+    }
+  };
 
   const allInventory = useMemo(() => {
     return [...dbInventory, ...customGear].sort((a, b) => a.name.localeCompare(b.name));
@@ -264,6 +361,13 @@ export default function Rentals() {
     });
   };
 
+  const resetOwnerContactUI = () => {
+    setShowAddOwnerContact(false);
+    setOwnerContactEmail('');
+    setOwnerContactPhone('');
+    setOwnerContactMsg(null);
+  };
+
   const openAddModal = () => {
     setEditingItemName(null);
     setCustomName('');
@@ -271,12 +375,13 @@ export default function Rentals() {
     setCustomQty(1);
     setCustomValue(0);
     setCustomOwner('');
+    resetOwnerContactUI();
     setIsCustomModalOpen(true);
   };
 
   const handleEdit = (item: InventoryItem) => {
     let baseName = item.name;
-    let owner = item.owner || '';
+    const owner = item.owner || '';
     if (owner && baseName.includes(`[${owner}]`)) {
         baseName = baseName.replace(` [${owner}]`, '').trim();
     }
@@ -286,6 +391,7 @@ export default function Rentals() {
     setCustomQty(item.qty);
     setCustomValue(item.replacement);
     setCustomOwner(owner);
+    resetOwnerContactUI();
     setIsCustomModalOpen(true);
   };
 
@@ -364,6 +470,7 @@ export default function Rentals() {
     setHospitalSuccess(false);
     setParkingSuccess(false);
     setParkingLoading(false);
+    setSelectedJobId(null);
   };
 
   const fetchWeather = async () => {
@@ -465,9 +572,9 @@ export default function Rentals() {
     }
 
     const dbJob = {
-      title: jobTitle.toUpperCase(),
-      client_name: contactEmail.toUpperCase(),
-      production_company: companyName.toUpperCase(),
+      title: jobTitle.trim(),
+      client_name: contactEmail.trim(),
+      production_company: companyName.trim(),
       job_status: 'Planning' as const,
       type: 'production',
       shoot_date: shootDate,
@@ -486,24 +593,42 @@ export default function Rentals() {
     try {
       // 1. Handle Client Saving (for autofill future situation)
       if (contactEmail) {
-        const clientName = contactEmail.trim().toUpperCase();
-        const existingClient = clients.find(c => c.name.toUpperCase() === clientName);
-        
+        // Store the client name as typed, but dedupe case-insensitively so we
+        // don't create "Acme" and "ACME" as separate clients.
+        const rawClientName = contactEmail.trim();
+        const clientKey = rawClientName.toUpperCase();
+        const existingClient = clients.find(c => c.name.trim().toUpperCase() === clientKey);
+
         if (!existingClient) {
-          const { data: newClient, error: clientError } = await supabase
+          // Double-check database
+          const { data: dbClients } = await supabase
             .from('clients')
-            .insert({ name: clientName })
-            .select();
-          
-          if (!clientError && newClient) {
-            setClients(prev => [...prev, newClient[0] as Client]);
+            .select('id, name')
+            .ilike('name', rawClientName);
+
+          if (!dbClients || dbClients.length === 0) {
+            const { data: newClient, error: clientError } = await supabase
+              .from('clients')
+              .insert({ name: rawClientName })
+              .select();
+            
+            if (!clientError && newClient) {
+              setClients(prev => [...prev, newClient[0] as Client]);
+            }
+          } else {
+            // Client actually exists, add it to our local state
+            setClients(prev => {
+              const ids = new Set(prev.map(c => c.id));
+              const toAdd = (dbClients as Client[]).filter(c => !ids.has(c.id));
+              return [...prev, ...toAdd];
+            });
           }
         }
       }
 
       // 2. Handle Job Saving
-      // Check if job with same title and date exists for updating
-      const existingJob = jobs.find(j => j.title === dbJob.title && j.shoot_date === dbJob.shoot_date);
+      // Check if job with same ID or same title/date exists for updating
+      const existingJob = jobs.find(j => j.id === selectedJobId) || jobs.find(j => j.title === dbJob.title && j.shoot_date === dbJob.shoot_date);
 
       let res;
       if (existingJob) {
@@ -520,9 +645,11 @@ export default function Rentals() {
 
       if (existingJob) {
         setJobs(prev => prev.map(j => j.id === existingJob.id ? res.data![0] as Job : j));
+        setSelectedJobId(res.data![0].id);
         alert('Job updated on Slate successfully!');
       } else {
         setJobs(prev => [...prev, res.data![0] as Job]);
+        setSelectedJobId(res.data![0].id);
         alert('Job logged to Slate successfully!');
       }
     } catch (err: any) {
@@ -532,24 +659,84 @@ export default function Rentals() {
   };
 
   const loadJob = (job: Job) => {
+    setSelectedJobId(job.id);
     setJobTitle(job.title);
     if (job.shoot_date) setShootDate(job.shoot_date);
     if (job.client_name) setContactEmail(job.client_name);
     if (job.location_address) {
         setCompanyAddr(job.location_address);
-        setWeatherSuccess(false);
-        setHospitalSuccess(false);
-        setParkingSuccess(false);
-        setWeatherSummary(null);
-        setNearestHospital(null);
-        setNearestParking(null);
     }
+    
+    // Load logistics if present on the job
+    if (job.weather_summary) {
+        setWeatherSummary(job.weather_summary);
+        setWeatherSuccess(true);
+    } else {
+        setWeatherSummary(null);
+        setWeatherSuccess(false);
+    }
+
+    if (job.nearest_hospital_name) {
+        setNearestHospital({
+            name: job.nearest_hospital_name,
+            address: job.nearest_hospital_address || ''
+        });
+        setHospitalSuccess(true);
+    } else {
+        setNearestHospital(null);
+        setHospitalSuccess(false);
+    }
+
+    if (job.nearest_parking_name) {
+        setNearestParking({
+            name: job.nearest_parking_name,
+            address: job.nearest_parking_address || ''
+        });
+        setParkingSuccess(true);
+    } else {
+        setNearestParking(null);
+        setParkingSuccess(false);
+    }
+
     if (job.notes_general) setNotes(job.notes_general);
     if (job.gear_manifest) {
-      setManifest(job.gear_manifest as Record<string, number>);
+      const manifestObj = job.gear_manifest as Record<string, number>;
+      setManifest(manifestObj);
+      
+      // Auto-recreate missing custom items in customGear so they render correctly in the manifest list!
+      const missingKeys = Object.keys(manifestObj).filter(name => !allInventory.some(i => i.name === name));
+      if (missingKeys.length > 0) {
+        setCustomGear(prev => {
+          const newCustoms = missingKeys.map(name => ({
+            name,
+            category: 'Specialty',
+            qty: 100,
+            replacement: 0,
+            owner: 'Custom'
+          }));
+          const filtered = prev.filter(p => !missingKeys.includes(p.name));
+          return [...filtered, ...newCustoms];
+        });
+      }
     }
     setIsCalendarOpen(false);
   };
+
+  useEffect(() => {
+    if (preloadedJob) {
+      loadJob(preloadedJob);
+      onClearPreload?.();
+    }
+  }, [preloadedJob]);
+
+  useEffect(() => {
+    if (selectedJobIdProp && jobs.length > 0) {
+      const match = jobs.find(j => j.id === selectedJobIdProp);
+      if (match) {
+        loadJob(match);
+      }
+    }
+  }, [selectedJobIdProp, jobs]);
 
   const deleteJob = async (jobId: string) => {
     if (!confirm('Are you sure you want to permanently delete this job from Slate?')) return;
@@ -562,6 +749,78 @@ export default function Rentals() {
       console.error('Error deleting job:', err);
       alert('Failed to delete job: ' + (err.message || 'Unknown error'));
     }
+  };
+
+  const saveGearTemplate = async () => {
+    if (!newTemplateName.trim()) {
+      alert('Please enter a template name.');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('gear_templates')
+        .insert({
+          name: newTemplateName.trim(),
+          description: newTemplateDesc.trim() || null,
+          items: manifest
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setGearTemplates(prev => [...prev, data as GearTemplate].sort((a,b) => a.name.localeCompare(b.name)));
+      setIsSaveTemplateModalOpen(false);
+      setNewTemplateName('');
+      setNewTemplateDesc('');
+      alert('Gear package template saved successfully!');
+    } catch (err: any) {
+      console.error('Error saving template:', err);
+      alert('Failed to save template: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  const deleteGearTemplate = async (templateId: string) => {
+    if (!confirm('Are you sure you want to permanently delete this gear package template?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('gear_templates')
+        .delete()
+        .eq('id', templateId);
+
+      if (error) throw error;
+
+      setGearTemplates(prev => prev.filter(t => t.id !== templateId));
+    } catch (err: any) {
+      console.error('Error deleting template:', err);
+      alert('Failed to delete template: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  const loadGearTemplate = (template: GearTemplate, mode: 'overwrite' | 'merge') => {
+    if (mode === 'overwrite') {
+      setManifest(template.items);
+    } else {
+      setManifest(prev => {
+        const next = { ...prev };
+        Object.entries(template.items).forEach(([name, qty]) => {
+          next[name] = Math.max(next[name] || 0, qty);
+        });
+        return next;
+      });
+    }
+    setActiveSidebarTab('gear');
+    alert(`Loaded template "${template.name}" successfully!`);
+  };
+
+  const shareGearList = () => {
+    if (!selectedJobId) return;
+    const url = typeof window !== 'undefined' ? `${window.location.origin}/share/gear/${selectedJobId}` : '';
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const exportPDF = async () => {
@@ -590,8 +849,9 @@ export default function Rentals() {
     const lineH = 14;
     doc.setLineHeightFactor(1.2);
 
-    // --- LOAD ASSETS ---
-    const logoData = await loadAsset('/Zipline Logo FULL Blue.png');
+    // --- LOAD ASSETS & BRANDING ---
+    const branding = await getBranding();
+    const logoData = branding.logo_url ? await loadAsset(branding.logo_url) : '';
     const fontData = await loadAsset('/lulo-clean/LuloClean-Bold.otf');
 
     // Add Font
@@ -606,8 +866,8 @@ export default function Rentals() {
         }
     }
 
-    // --- COLORS ---
-    const ZIPLINE_BLUE = '#0077FF';
+    // --- COLORS (brand color is org-configurable) ---
+    const ZIPLINE_BLUE = branding.brand_color || '#0077FF';
     const TEXT_DARK = '#111111';
     const TEXT_GRAY = '#666666';
 
@@ -629,12 +889,12 @@ export default function Rentals() {
     // --- HEADER ---
     // Logo (Left)
     if (logoData) {
-        doc.addImage(logoData, 'PNG', margin, 20, 120, 30); 
+        doc.addImage(logoData, 'PNG', margin, 20, 120, 30);
     } else {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(20);
         doc.setTextColor(ZIPLINE_BLUE);
-        doc.text('ZIPLINE MEDIA', margin, 40);
+        doc.text(branding.name.toUpperCase(), margin, 40);
     }
 
     // Title (Right)
@@ -698,11 +958,11 @@ export default function Rentals() {
     doc.setTextColor(TEXT_DARK);
 
     // Row 1 Values
-    doc.text(companyName || 'Zipline Media', col1X, row1Y + 10);
+    doc.text(caps(companyName, branding.name.toUpperCase()), col1X, row1Y + 10);
     doc.text(contactEmail || '—', col2X, row1Y + 10);
-    
+
     if (companyAddr) {
-        const locLines = doc.splitTextToSize(companyAddr, 160);
+        const locLines = doc.splitTextToSize(caps(companyAddr), 160);
         doc.text(locLines[0] + (locLines.length > 1 ? '...' : ''), col3X, row1Y + 10);
     } else {
         doc.text('—', col3X, row1Y + 10);
@@ -717,18 +977,18 @@ export default function Rentals() {
         doc.text('HOSPITAL', col2X, row2Y);
         doc.text('PARKING', col3X, row2Y);
 
-        doc.text(weatherSummary || 'N/A', col1X, row2Y + 10);
+        doc.text(caps(weatherSummary, 'N/A'), col1X, row2Y + 10);
 
         if (nearestHospital) {
             const hospName = nearestHospital.name.length > 30 ? nearestHospital.name.substring(0, 28) + '...' : nearestHospital.name;
-            doc.text(hospName, col2X, row2Y + 10);
+            doc.text(caps(hospName), col2X, row2Y + 10);
         } else {
             doc.text('—', col2X, row2Y + 10);
         }
 
         if (nearestParking) {
             const parkName = nearestParking.name.length > 30 ? nearestParking.name.substring(0, 28) + '...' : nearestParking.name;
-            doc.text(parkName, col3X, row2Y + 10);
+            doc.text(caps(parkName), col3X, row2Y + 10);
         } else {
             doc.text('—', col3X, row2Y + 10);
         }
@@ -812,15 +1072,15 @@ export default function Rentals() {
 
             doc.setFont("helvetica", "bold");
             doc.setFontSize(12);
-            doc.setTextColor(ZIPLINE_BLUE); 
-            doc.text(cat, margin, y);
-            doc.setTextColor(TEXT_DARK); 
+            doc.setTextColor(ZIPLINE_BLUE);
+            doc.text(caps(cat), margin, y);
+            doc.setTextColor(TEXT_DARK);
             y += 18;
             
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             ownerGroup[cat].sort((a, b) => a.name.localeCompare(b.name)).forEach(row => {
-                const bullet = "• " + sanitizeText(row.name) + "  (x" + row.count + ")";
+                const bullet = "• " + caps(sanitizeText(row.name)) + "  (x" + row.count + ")";
                 const wrapped = doc.splitTextToSize(bullet, 514);
                 wrapped.forEach((ln: string) => {
                 checkPageBreak(lineH);
@@ -883,7 +1143,7 @@ export default function Rentals() {
   };
 
   const ManifestContent = (
-    <section className="bg-neutral-900/80 border border-white/10 p-6 md:p-8 rounded-2xl lg:sticky lg:top-32 h-full lg:h-auto flex flex-col">
+    <section className="bg-neutral-900/80 border border-white/10 p-6 md:p-8 rounded-2xl lg:sticky lg:top-24 h-full lg:h-[calc(100vh-140px)] flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <ClipboardList className="w-5 h-5 text-accent" />
@@ -908,40 +1168,85 @@ export default function Rentals() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
-        <div className="space-y-0.5">
-          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Job Title</label>
-          <input 
-            type="text" 
-            value={jobTitle}
-            onChange={(e) => {
-                const val = e.target.value;
-                setJobTitle(val);
-                
-                // Autofill attempt
-                const matchedJob = jobs.find(j => j.title.toLowerCase() === val.toLowerCase());
-                if (matchedJob) {
-                    if (matchedJob.shoot_date) setShootDate(matchedJob.shoot_date);
-                    if (matchedJob.client_name) setContactEmail(matchedJob.client_name);
-                    if (matchedJob.location_address) {
-                        setCompanyAddr(matchedJob.location_address);
-                        // Reset logistics to trigger re-fetch if needed (or could pre-fill if we saved them in Job)
-                        setWeatherSuccess(false);
-                        setHospitalSuccess(false);
-                        setParkingSuccess(false);
-                        setWeatherSummary(null);
-                        setNearestHospital(null);
-                        setNearestParking(null);
-                    }
-                    if (matchedJob.notes_general) setNotes(matchedJob.notes_general);
-                }
-            }}
-            placeholder="E.G. MOULIN ROUGE"
-            list="job-list"
-            className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg"
-          />
+        <div className="space-y-0.5 relative">
+          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1 flex items-center gap-1.5">
+            Job Title
+            {selectedJobIdProp && <Lock className="w-2.5 h-2.5 text-accent opacity-60" />}
+          </label>
+          <div className="relative">
+            <input 
+              type="text" 
+              value={jobTitle}
+              disabled={!!selectedJobIdProp}
+              onChange={(e) => {
+                  const val = e.target.value;
+                  setJobTitle(val);
+                  
+                  // Autofill attempt
+                  const matchedJob = jobs.find(j => j.title.toLowerCase() === val.toLowerCase());
+                  if (matchedJob) {
+                      setSelectedJobId(matchedJob.id);
+                      if (matchedJob.shoot_date) setShootDate(matchedJob.shoot_date);
+                      if (matchedJob.client_name) setContactEmail(matchedJob.client_name);
+                      if (matchedJob.location_address) {
+                          setCompanyAddr(matchedJob.location_address);
+                          
+                          // Load logistics if present
+                          if (matchedJob.weather_summary) {
+                              setWeatherSummary(matchedJob.weather_summary);
+                              setWeatherSuccess(true);
+                          } else {
+                              setWeatherSummary(null);
+                              setWeatherSuccess(false);
+                          }
+                          
+                          if (matchedJob.nearest_hospital_name) {
+                              setNearestHospital({
+                                  name: matchedJob.nearest_hospital_name,
+                                  address: matchedJob.nearest_hospital_address || ''
+                              });
+                              setHospitalSuccess(true);
+                          } else {
+                              setNearestHospital(null);
+                              setHospitalSuccess(false);
+                          }
+                          
+                          if (matchedJob.nearest_parking_name) {
+                              setNearestParking({
+                                  name: matchedJob.nearest_parking_name,
+                                  address: matchedJob.nearest_parking_address || ''
+                              });
+                              setParkingSuccess(true);
+                          } else {
+                              setNearestParking(null);
+                              setParkingSuccess(false);
+                          }
+                      }
+                      if (matchedJob.notes_general) setNotes(matchedJob.notes_general);
+                      if (matchedJob.gear_manifest) {
+                          setManifest(matchedJob.gear_manifest as Record<string, number>);
+                      }
+                  } else if (!val.trim()) {
+                      setSelectedJobId(null);
+                  }
+              }}
+              placeholder="E.G. MOULIN ROUGE"
+              list="job-list"
+              className={`w-full bg-black/50 border py-3 px-4 outline-none transition-colors uppercase text-sm font-bold rounded-lg ${
+                selectedJobIdProp 
+                  ? 'border-accent/20 text-white/40 cursor-not-allowed bg-accent/5' 
+                  : 'border-white/10 focus:border-accent'
+              }`}
+            />
+            {selectedJobIdProp && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                <Lock className="w-3.5 h-3.5 text-accent" />
+              </div>
+            )}
+          </div>
           <datalist id="job-list">
             {jobs.map(j => (
-                <option key={j.id} value={j.title}>{j.client_name ? `(${j.client_name})` : ''}</option>
+                <option key={j.id} value={j.title}>{j.client_name ? `(${caps(j.client_name)})` : ''}</option>
             ))}
           </datalist>
         </div>
@@ -1118,7 +1423,7 @@ export default function Rentals() {
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto min-h-[300px] mb-8 pr-2 custom-scrollbar">
+      <div className="flex-1 min-h-0 overflow-y-auto mb-6 pr-2 custom-scrollbar">
         <AnimatePresence mode="popLayout">
           {Object.keys(manifestByOwner).length === 0 ? (
             <motion.div 
@@ -1205,38 +1510,69 @@ export default function Rentals() {
             />
           </label>
         </div>
+</div>
 
-        <div className="grid grid-cols-3 gap-2">
+        {Object.keys(manifest).length > 0 && (
           <button 
-            onClick={resetApp}
-            className="flex items-center justify-center gap-1 border border-white/10 py-4 font-black tracking-widest uppercase text-[9px] hover:bg-white hover:text-black transition-all rounded-xl"
+            onClick={() => {
+              setNewTemplateName('');
+              setNewTemplateDesc('');
+              setIsSaveTemplateModalOpen(true);
+            }}
+            className="w-full flex items-center justify-center gap-2 border border-white/10 hover:border-accent hover:text-accent py-3 font-black tracking-widest uppercase text-[9px] transition-all rounded-xl"
           >
-            <RotateCcw className="w-3 h-3" /> Reset
+            <FolderOpen className="w-3.5 h-3.5" /> Save as Gear Package
+          </button>
+        )}
+                <div className="sticky bottom-0 z-20 bg-neutral-900/90 backdrop-blur-md p-4 border-t border-white/10">
+            <div className="grid grid-cols-4 gap-1.5">
+          <button 
+            type="button"
+            onClick={resetApp}
+            className="flex items-center justify-center gap-1 border border-white/10 py-3 font-black tracking-widest uppercase text-[9px] hover:bg-white hover:text-black transition-all rounded-xl"
+            title="Reset gear list"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Reset
           </button>
           <button 
+            type="button"
             onClick={saveJob}
             disabled={Object.keys(manifest).length === 0}
-            className="flex items-center justify-center gap-1 border border-accent/20 bg-accent/5 py-4 font-black tracking-widest uppercase text-[9px] text-accent hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-accent/5"
+            className="flex items-center justify-center gap-1 border border-accent/20 bg-accent/5 py-3 font-black tracking-widest uppercase text-[9px] text-accent hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-accent/5"
+            title="Log gear to Slate"
           >
-            <ClipboardList className="w-3 h-3" /> Slate
+            <ClipboardList className="w-3.5 h-3.5" /> Slate
           </button>
           <button 
+            type="button"
             onClick={exportPDF}
             disabled={Object.keys(manifest).length === 0}
-            className="flex items-center justify-center gap-1 bg-accent py-4 font-black tracking-widest uppercase text-[9px] hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl shadow-lg shadow-accent/20"
+            className="flex items-center justify-center gap-1 bg-accent py-3 font-black tracking-widest uppercase text-[9px] hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl shadow-lg shadow-accent/20"
           >
-            <FileDown className="w-3 h-3" /> PDF
+            <FileDown className="w-3.5 h-3.5" /> PDF
+          </button>
+          <button 
+            type="button"
+            onClick={shareGearList}
+            disabled={!selectedJobId || Object.keys(manifest).length === 0}
+            className={`flex items-center justify-center gap-1 py-3 font-black tracking-widest uppercase text-[9px] border transition-all rounded-xl ${
+              copiedLink 
+                ? 'bg-green-600 border-green-500 text-white' 
+                : 'border-white/10 text-white/60 hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-white/40'
+            }`}
+            title="Copy shareable link"
+          >
+            <Share2 className="w-3.5 h-3.5" /> {copiedLink ? 'Copied' : 'Share'}
           </button>
         </div>
       </div>
-    </section>
-  );
+    </section>);
 
-  return (
-    <div className="pt-8 pb-32 lg:pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+    return (
+    <div className="pt-8 pb-32 lg:pb-8 px-4 md:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-start">
           <div className="lg:col-span-7 space-y-8">
-            <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-fit max-h-[75vh] md:h-[calc(100vh-140px)] sticky top-24">
+            <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-fit max-h-[75vh] lg:max-h-none lg:h-[calc(100vh-140px)] sticky top-24">
               
               <div className="bg-neutral-900/90 backdrop-blur-md p-4 md:p-0 z-20 sticky top-0 border-b md:border-b-0 border-white/10 space-y-4">
                 {/* Tab Toggle */}
@@ -1249,9 +1585,15 @@ export default function Rentals() {
                   </button>
                   <button 
                     onClick={() => setActiveSidebarTab('library')}
-                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all ${activeSidebarTab === 'library' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
+                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all ${activeSidebarTab === 'library' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
                   >
                     Slate Library
+                  </button>
+                  <button 
+                    onClick={() => setActiveSidebarTab('templates')}
+                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all ${activeSidebarTab === 'templates' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
+                  >
+                    Packages
                   </button>
                 </div>
 
@@ -1296,15 +1638,20 @@ export default function Rentals() {
                       )}
                     </div>
                   </>
-                ) : (
+                ) : activeSidebarTab === 'library' ? (
                   <div className="flex items-center justify-between">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent">Saved Production Slates</h3>
                     <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{jobs.length} Total</p>
                   </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent">Gear Package Templates</h3>
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{gearTemplates.length} Total</p>
+                  </div>
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 md:px-0 custom-scrollbar">
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 md:px-0 custom-scrollbar">
                 {activeSidebarTab === 'gear' ? (
                   <>
                     {filteredGroupedItems ? (
@@ -1343,7 +1690,7 @@ export default function Rentals() {
                       </div>
                     )}
                   </>
-                ) : (
+                ) : activeSidebarTab === 'library' ? (
                   <div className="space-y-3 pb-8">
                     {jobs.length === 0 ? (
                       <div className="py-32 text-center opacity-20">
@@ -1384,9 +1731,69 @@ export default function Rentals() {
                       ))
                     )}
                   </div>
+                ) : (
+                  // Templates list
+                  <div className="space-y-3 pb-8">
+                    {gearTemplates.length === 0 ? (
+                      <div className="py-32 text-center opacity-20">
+                        <Package className="w-16 h-16 mx-auto mb-4" />
+                        <p className="uppercase text-xs tracking-[0.3em] font-black">No packages saved yet</p>
+                      </div>
+                    ) : (
+                      gearTemplates.map(template => (
+                        <div 
+                          key={template.id}
+                          className="group flex flex-col p-4 border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all rounded-xl"
+                        >
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-black uppercase tracking-tight text-white">{template.name}</h4>
+                              {template.description && (
+                                <p className="text-[10px] opacity-65 normal-case mt-0.5 line-clamp-2">{template.description}</p>
+                              )}
+                            </div>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteGearTemplate(template.id);
+                              }}
+                              className="p-2 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all shrink-0"
+                              title="Delete Package"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-1 mb-3 max-h-16 overflow-y-auto pr-1 py-0.5 border-t border-b border-white/5">
+                            {Object.entries(template.items).map(([name, qty]) => (
+                              <span key={name} className="text-[8px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-white/70 uppercase font-bold tracking-wider">
+                                {qty}x {name}
+                              </span>
+                            ))}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 mt-auto">
+                            <button
+                              onClick={() => loadGearTemplate(template, 'merge')}
+                              className="py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-widest rounded-lg text-white/80 transition-all"
+                            >
+                              Merge List
+                            </button>
+                            <button
+                              onClick={() => loadGearTemplate(template, 'overwrite')}
+                              className="py-2 bg-accent hover:bg-white hover:text-black text-[9px] font-black uppercase tracking-widest rounded-lg text-white transition-all shadow-md shadow-accent/10"
+                            >
+                              Load Package
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             </section>
+      
           </div>
 
           <div className="hidden lg:block lg:col-span-5 space-y-8">
@@ -1508,20 +1915,82 @@ export default function Rentals() {
                     <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Owner / Source <span className="opacity-50">(Optional)</span></label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={customOwner}
-                        onChange={(e) => setCustomOwner(e.target.value)}
+                        onChange={(e) => { setCustomOwner(e.target.value); setOwnerContactMsg(null); setShowAddOwnerContact(false); }}
                         placeholder="E.G. RENTAL HOUSE A"
                         list="saved-owners"
                         className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-4 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg"
                       />
                       <datalist id="saved-owners">
-                        {savedOwners.map(owner => (
+                        {/* Existing Rolodex contacts + previously used owners */}
+                        {Array.from(new Set([...contacts.map(c => c.name), ...savedOwners])).map(owner => (
                           <option key={owner} value={owner} />
                         ))}
                       </datalist>
                     </div>
+
+                    {/* Offer to save a new owner (rental house / contractor) as a contact */}
+                    {(() => {
+                      const name = customOwner.trim();
+                      if (!name) return null;
+                      const exists = contacts.some(c => c.name.toLowerCase() === name.toLowerCase());
+                      if (exists) {
+                        return <p className="text-[9px] font-bold uppercase tracking-widest text-green-400/80 ml-1 mt-1 flex items-center gap-1"><Check className="w-3 h-3" /> In Rolodex</p>;
+                      }
+                      if (ownerContactMsg) {
+                        return <p className="text-[9px] font-bold uppercase tracking-widest text-accent ml-1 mt-1">{ownerContactMsg}</p>;
+                      }
+                      if (!showAddOwnerContact) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setShowAddOwnerContact(true)}
+                            className="mt-1.5 ml-1 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-accent hover:text-white transition-colors"
+                          >
+                            <UserPlus className="w-3 h-3" /> Add &ldquo;{name}&rdquo; to Rolodex
+                          </button>
+                        );
+                      }
+                      return (
+                        <div className="mt-2 p-3 bg-black/40 border border-white/10 rounded-lg space-y-2">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-white/50">New Contact · {name}</p>
+                          <input
+                            type="email"
+                            value={ownerContactEmail}
+                            onChange={(e) => setOwnerContactEmail(e.target.value)}
+                            placeholder="EMAIL (OPTIONAL)"
+                            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors text-[11px] font-bold tracking-widest rounded-lg"
+                          />
+                          <input
+                            type="tel"
+                            value={ownerContactPhone}
+                            onChange={(e) => setOwnerContactPhone(e.target.value)}
+                            placeholder="PHONE (OPTIONAL)"
+                            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors text-[11px] font-bold tracking-widest rounded-lg"
+                          />
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={handleSaveOwnerAsContact}
+                              disabled={savingOwnerContact}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-white text-[9px] font-black uppercase tracking-widest hover:opacity-90 disabled:opacity-50"
+                            >
+                              {savingOwnerContact ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
+                              Save Contact
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowAddOwnerContact(false)}
+                              className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="space-y-1">
@@ -1578,6 +2047,77 @@ export default function Rentals() {
                     className="w-full bg-accent text-white py-4 mt-4 font-black tracking-widest uppercase text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
                   >
                     {editingItemName ? 'Save Changes' : 'Add to Manifest'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {isSaveTemplateModalOpen && (
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsSaveTemplateModalOpen(false)}
+                className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative bg-neutral-900 border border-white/10 p-8 rounded-2xl w-full max-w-md shadow-2xl"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-black uppercase tracking-tighter">Save Gear Package</h2>
+                  <button onClick={() => setIsSaveTemplateModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/40 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Package Name</label>
+                    <input 
+                      type="text" 
+                      value={newTemplateName}
+                      onChange={(e) => setNewTemplateName(e.target.value)}
+                      placeholder="E.G. A-CAM RIG PACKAGE"
+                      autoFocus
+                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg text-white"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Description <span className="opacity-50">(Optional)</span></label>
+                    <textarea 
+                      value={newTemplateDesc}
+                      onChange={(e) => setNewTemplateDesc(e.target.value)}
+                      placeholder="E.g. RED Komodo body with prime lenses and wireless monitoring"
+                      rows={3}
+                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-bold rounded-lg text-white resize-none"
+                    />
+                  </div>
+
+                  <div className="bg-black/30 p-4 border border-white/5 rounded-xl max-h-40 overflow-y-auto">
+                    <p className="text-[8px] font-bold tracking-widest uppercase opacity-45 mb-2">Package Contents ({Object.keys(manifest).length} items)</p>
+                    <div className="space-y-1">
+                      {Object.entries(manifest).map(([name, qty]) => (
+                        <p key={name} className="text-[10px] font-bold uppercase text-white/80">
+                          {qty}x {name}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={saveGearTemplate}
+                    disabled={!newTemplateName.trim()}
+                    className="w-full bg-accent text-white py-4 mt-4 font-black tracking-widest uppercase text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
+                  >
+                    Save Template Package
                   </button>
                 </div>
               </motion.div>

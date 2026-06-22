@@ -493,25 +493,9 @@ function LazyVideo({ src, poster, title }: { src: string, poster?: string, title
 }
 
 function Social() {
+  const [selectedClip, setSelectedClip] = useState<any | null>(null);
+
   const clips = [
-    {
-      title: "Death Becomes Her | Slapping",
-      thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg", // Temporary fallback
-      videoUrl: "#",
-      localVideo: "/DBH_Slapping.mp4"
-    },
-    {
-      title: "MAC | Getting Dressed",
-      thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg", 
-      videoUrl: "#",
-      localVideo: "/Mac_GettingDressed.mp4"
-    },
-    {
-      title: "MAC | Lipstick Pop Off",
-      thumbnail: "https://i.ytimg.com/vi/mV5xdHHtQD0/mqdefault.jpg", 
-      videoUrl: "#",
-      localVideo: "/Mac_Lipstick.mp4"
-    },
     {
       title: "SIX | Broadway",
       thumbnail: "https://i.ytimg.com/vi/u_2Z_vExxeo/mqdefault.jpg",
@@ -547,86 +531,77 @@ function Social() {
       thumbnail: "https://i.ytimg.com/vi/G0oyW5uuVoI/mqdefault.jpg",
       videoUrl: "https://www.instagram.com/reel/DHY8Ek9SH8L/",
       localVideo: "/NewHeights_SocialThumbnail.mp4"
-    },
-    {
-      title: "Just in Time | Opening Night",
-      thumbnail: "https://i.ytimg.com/vi/9QCHsiR8QrQ/mqdefault.jpg",
-      videoUrl: "https://www.instagram.com/reel/DQHhmcBDh26/",
-      localVideo: "/Just in Time_SocialThumbnail.mp4"
-    },
-    {
-      title: "Lempicka | Broadway Montage",
-      thumbnail: "https://i.ytimg.com/vi/fovrHNNiF-4/mqdefault.jpg",
-      videoUrl: "https://www.instagram.com/reel/C5xFue1Na5r/",
-      localVideo: "/Lempicka_SocialThumbnail.mp4"
-    },
-    {
-      title: "Boop! The Musical | Recording Studio",
-      thumbnail: "https://i.ytimg.com/vi/rhyiqvVNsUo/mqdefault.jpg",
-      videoUrl: "https://www.instagram.com/reel/DDsKJAFPPRV/",
-      localVideo: "/Boop_SocialThumbnail.mp4"
-    },
-    {
-      title: "Marjorie Prime | Opening Night",
-      thumbnail: "https://i.ytimg.com/vi/ZD4VpzBu2jo/mqdefault.jpg",
-      videoUrl: "https://www.instagram.com/reel/DUbfNv0knpW/",
-      localVideo: "/Marjorie Prime_SocialThumbnail.mp4"
-    },
-    {
-      title: "The Lost Boys | Have to Have You",
-      thumbnail: "https://i.ytimg.com/vi/bGr0zWPjpOI/mqdefault.jpg",
-      videoUrl: "https://www.instagram.com/reel/DSApMrfgEVN/",
-      localVideo: "/LostBoy_SocialThumbnail.mp4"
-    },
-    {
-      title: "Bob The Drag Queen | Harold Zidler",
-      thumbnail: "https://i.ytimg.com/vi/2tf1pGxy3Ks/mqdefault.jpg",
-      videoUrl: "https://www.instagram.com/reel/DR2a5GfDj4-/",
-      localVideo: "/Bob_SocialThumbnail.mp4"
-    },
-    {
-      title: "Tony Awards | First Impressions",
-      thumbnail: "https://i.ytimg.com/vi/XpyvXLCZMOo/mqdefault.jpg",
-      videoUrl: "https://www.instagram.com/reel/DKqmL-vMmQo/",
-      localVideo: "/TonyAwards_SocialThumbnail.mp4"
     }
   ];
 
-
-
   return (
-    <section className="pt-8 pb-4 bg-black overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 mb-6 text-center">
+    <section className="pt-12 pb-8 bg-black">
+      <div className="max-w-7xl mx-auto px-6 mb-12 text-center">
         <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase mb-4">Social First</h2>
         <p className="text-sm md:text-base opacity-60 max-w-xl mx-auto">
           If it can&apos;t fit into a 9:16, ya shoulda been wider. We consider the social post from the start of every project to stop the scroll.
         </p>
       </div>
       
-      {/* Marquee of 9:16 Videos */}
-      <div className="relative group/marquee">
-        
-        {/* Infinite Marquee (All screens) */}
-        <div className="flex overflow-hidden relative">
-          <div className="flex w-max animate-scroll whitespace-nowrap pointer-events-none">
-            {/* Render 4 sets to ensure seamless loop with -25% animation */}
-            {[...Array(4)].map((_, setIndex) => (
-              <div key={`set-${setIndex}`} className="flex gap-3 md:gap-6 px-2 md:px-3">
-                {clips.map((clip, i) => (
-                  <motion.div 
-                    key={`${setIndex}-${i}`} 
-                    whileHover={{ y: -8, scale: 1.02 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="shrink-0 w-[160px] md:w-[300px] aspect-[9/16] bg-black relative rounded-lg overflow-hidden border border-white/10 group cursor-default transition-shadow hover:shadow-2xl hover:shadow-accent/20"
-                  >
-                     <LazyVideo src={clip.localVideo} poster={clip.thumbnail} title={clip.title} />
-                  </motion.div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* 6-Card Responsive Grid */}
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
+        {clips.map((clip, i) => (
+          <motion.div 
+            key={i} 
+            whileHover={{ y: -8, scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setSelectedClip(clip)}
+            className="w-full aspect-[9/16] bg-neutral-950 relative rounded-lg overflow-hidden border border-white/5 group cursor-pointer transition-shadow hover:shadow-[0_0_20px_rgba(0,119,255,0.2)] hover:border-accent/40"
+          >
+             <LazyVideo src={clip.localVideo} poster={clip.thumbnail} title={clip.title} />
+             
+             {/* Text overlay on hover */}
+             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 z-20">
+               <span className="text-[9px] font-black uppercase tracking-wider text-accent mb-1">View Clip</span>
+               <h3 className="text-white text-[10px] md:text-xs font-black uppercase tracking-tight leading-tight line-clamp-2">
+                 {clip.title}
+               </h3>
+             </div>
+          </motion.div>
+        ))}
       </div>
+
+      {/* Fullscreen Vertical Lightbox Modal */}
+      <AnimatePresence>
+        {selectedClip && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
+            onClick={() => setSelectedClip(null)}
+          >
+            <button 
+              className="absolute top-6 right-6 p-2 text-white/50 hover:text-white transition-colors duration-300 z-[110]"
+              onClick={() => setSelectedClip(null)}
+            >
+              <X className="w-8 h-8 md:w-10 md:h-10 hover:rotate-90 transition-transform duration-300" />
+            </button>
+            
+            <motion.div
+              initial={{ scale: 0.95, y: 15, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 15, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="w-full max-w-sm aspect-[9/16] bg-neutral-950 border border-white/10 rounded-xl overflow-hidden shadow-2xl relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <video 
+                src={selectedClip.localVideo} 
+                autoPlay 
+                controls 
+                playsInline 
+                className="w-full h-full object-cover"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
@@ -665,154 +640,108 @@ function Contact() {
   }
 
   return (
-    <div id="contact" className="scroll-mt-24">
-      {/* Mobile-only Contact Section */}
-      <section className="md:hidden py-16 px-6 bg-black border-t border-white/5 text-center">
-        <div className="max-w-xl mx-auto space-y-8">
-          <motion.div
+    <div id="contact" className="scroll-mt-24 border-t border-white/5 bg-black">
+      <section className="py-16 px-4 sm:px-6 max-w-4xl mx-auto flex flex-col items-center justify-center text-center">
+        <div className="w-full space-y-8">
+          <div className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <h2 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter uppercase leading-[1.1]">
+                LET&apos;S CONNECT.
+              </h2>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+              className="flex flex-col items-center"
+            >
+              <p className="text-sm md:text-lg opacity-60 max-w-2xl mb-8">
+                Have a project and don&apos;t know where to begin? Drop us a line and say hello!
+              </p>
+              
+              <div className="flex flex-row justify-center gap-6 md:gap-12 mb-2">
+                <p className="text-[10px] md:text-xs tracking-[0.3em] font-bold uppercase">CONTACT@ZIPLINE.MEDIA</p>
+                <p className="text-[10px] md:text-xs tracking-[0.3em] font-bold uppercase opacity-40">NEW YORK, NY</p>
+              </div>
+            </motion.div>
+          </div>
+
+          <motion.div 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="space-y-4"
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="w-full"
           >
-            <h2 className="text-4xl font-black tracking-tighter uppercase leading-tight">
-              LET&apos;S<br />CONNECT.
-            </h2>
-            <p className="text-sm opacity-60 font-medium leading-relaxed">
-              Have a project in mind? Drop us a line and we&apos;ll get back to you ASAP.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-          >
-            <motion.a 
-              href="mailto:CONTACT@ZIPLINE.MEDIA"
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center gap-3 bg-white text-black px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-white/5 active:bg-accent active:text-white transition-colors"
+            <form 
+              onSubmit={handleSubmit}
+              className="space-y-8 bg-neutral-900/30 p-6 md:p-8 border border-white/5 text-left max-w-3xl mx-auto rounded-xl"
             >
-              Email Us
-              <div className="w-5 h-5 bg-black/5 rounded-full flex items-center justify-center">
-                <ChevronRight className="w-3 h-3" />
+              {/* Formspree Subject Customization */}
+              <input type="hidden" name="_subject" value="New Inquiry from Zipline Website" />
+              
+              <div className="space-y-2">
+                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Name</label>
+                <input 
+                  type="text" 
+                  name="name"
+                  required
+                  className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors uppercase text-sm text-white" 
+                />
               </div>
-            </motion.a>
-          </motion.div>
+              
+              <div className="space-y-2">
+                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Email</label>
+                <input 
+                  type="email" 
+                  name="email"
+                  required
+                  className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors uppercase text-sm text-white" 
+                />
+              </div>
 
-          <div className="pt-4">
-            <p className="text-[10px] font-bold tracking-[0.4em] uppercase opacity-30">
-              CONTACT@ZIPLINE.MEDIA
-            </p>
-          </div>
+              <div className="space-y-2">
+                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Message</label>
+                <textarea 
+                  name="message"
+                  rows={4} 
+                  required
+                  className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors resize-none uppercase text-sm text-white" 
+                />
+              </div>
+
+              <motion.button 
+                type="submit" 
+                whileTap={{ scale: 0.95 }}
+                disabled={status === 'submitting' || status === 'success'}
+                className={`w-full font-black py-4 md:py-5 tracking-[0.3em] uppercase transition-all text-xs duration-300 flex items-center justify-center gap-2 active:scale-95 rounded-lg
+                  ${status === 'success' 
+                    ? 'bg-green-500 text-black' 
+                    : 'bg-white text-black hover:bg-[var(--accent)] hover:text-white'
+                  }
+                `}
+              >
+                {status === 'submitting' && "Sending..."}
+                {status === 'success' && (
+                  <>
+                    <span>Sent</span>
+                    <Check className="w-4 h-4" />
+                  </>
+                )}
+                {status === 'error' && "Error - Try Again"}
+                {status === 'idle' && "Send Inquiry"}
+              </motion.button>
+            </form>
+          </motion.div>
         </div>
       </section>
-
-      {/* Desktop-only Contact Form */}
-      <section className="hidden md:flex py-8 md:py-16 px-6 max-w-4xl mx-auto flex-col items-center justify-center text-center">
-      <div className="w-full space-y-8">
-        <div className="space-y-4">
-          <motion.div
-             initial={{ opacity: 0, y: 20 }}
-             whileInView={{ opacity: 1, y: 0 }}
-             viewport={{ once: true }}
-             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <h2 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter uppercase leading-[1.3] md:leading-none">
-              LET&apos;S<br className="md:hidden" />
-              <span className="hidden md:inline">&nbsp;</span>
-              CONNECT.
-            </h2>
-          </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-            className="flex flex-col items-center"
-          >
-            <p className="text-lg md:text-xl opacity-60 max-w-2xl mb-8 text-center">
-              Have a project and don&apos;t know where to begin? Drop us a line and say hello!
-            </p>
-            
-            <div className="flex flex-col md:flex-row gap-4 md:gap-12">
-              <p className="text-xs tracking-[0.3em] font-bold uppercase">CONTACT@ZIPLINE.MEDIA</p>
-              <p className="text-xs tracking-[0.3em] font-bold uppercase opacity-40">NEW YORK, NY</p>
-            </div>
-          </motion.div>
-        </div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="w-full"
-        >
-          <form 
-            onSubmit={handleSubmit}
-            className="space-y-10 bg-neutral-900/30 p-6 md:p-8 border border-white/5 text-left max-w-3xl mx-auto"
-          >
-            {/* Formspree Subject Customization */}
-            <input type="hidden" name="_subject" value="New Inquiry from Zipline Website" />
-            
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.4em] uppercase opacity-40 font-bold">Name</label>
-              <input 
-                type="text" 
-                name="name"
-                required
-                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors uppercase text-base md:text-sm" 
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.4em] uppercase opacity-40 font-bold">Email</label>
-              <input 
-                type="email" 
-                name="email"
-                required
-                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors uppercase text-base md:text-sm" 
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs tracking-[0.4em] uppercase opacity-40 font-bold">Message</label>
-              <textarea 
-                name="message"
-                rows={4} 
-                required
-                className="w-full bg-transparent border-b border-white/30 py-3 outline-none focus:border-white transition-colors resize-none uppercase text-base md:text-sm" 
-              />
-            </div>
-
-            <motion.button 
-              type="submit" 
-              whileTap={{ scale: 0.95 }}
-              disabled={status === 'submitting' || status === 'success'}
-              className={`w-full font-black py-5 tracking-[0.3em] uppercase transition-all text-xs duration-300 flex items-center justify-center gap-2 active:scale-95
-                ${status === 'success' 
-                  ? 'bg-green-500 text-black' 
-                  : 'bg-white text-black hover:bg-[var(--accent)] hover:text-white'
-                }
-              `}
-            >
-              {status === 'submitting' && "Sending..."}
-              {status === 'success' && (
-                <>
-                  <span>Sent</span>
-                  <Check className="w-4 h-4" />
-                </>
-              )}
-              {status === 'error' && "Error - Try Again"}
-              {status === 'idle' && "Send Inquiry"}
-            </motion.button>
-          </form>
-        </motion.div>
-      </div>
-    </section>
     </div>
   );
 }

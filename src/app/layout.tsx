@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
+
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["700", "900"],
-  variable: "--font-montserrat",
-});
+
 
 export const metadata: Metadata = {
   title: {
@@ -40,10 +37,21 @@ export const metadata: Metadata = {
     images: ["/Zipline Logo FULL Blue.png"],
   },
   metadataBase: new URL("https://www.zipline.media"),
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Studio OS",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 
 export const viewport = {
   themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
 };
 
 export default function RootLayout({
@@ -53,10 +61,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${montserrat.variable} antialiased bg-background text-foreground`}>
+      <body className="antialiased bg-background text-foreground">
         <Navbar />
         <main>{children}</main>
         <Footer />
+        <ServiceWorkerRegister />
         <Analytics />
       </body>
     </html>

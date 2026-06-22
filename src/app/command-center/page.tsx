@@ -1,36 +1,228 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import * as LucideIcons from 'lucide-react';
 import { 
-  LayoutDashboard, 
-  Package, 
-  Users, 
-  Settings, 
   Lock,
   ChevronLeft,
   Menu,
   X,
   LogOut,
   ExternalLink,
-  Briefcase,
   User as UserIcon,
   Mail,
-  Scissors,
-  Calendar
+  Check,
+  Copy,
+  RefreshCw,
+  Plus,
+  GripVertical,
+  Settings,
+  HelpCircle,
+  RotateCcw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { supabase } from '@/lib/supabase';
-import Rentals from '@/components/gearbuilder/Rentals';
-import TeamBuilder from '@/components/teambuilder/TeamBuilder';
-import Rolodex from '@/components/teambuilder/Rolodex';
-import Slate from '@/components/teambuilder/Slate';
-import EditTracker from '@/components/teambuilder/EditTracker';
-import ProductionCalendar from '@/components/gearbuilder/ProductionCalendar';
+import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
+import ProfileSettings from '@/components/workspace/ProfileSettings';
+import { QuickStartGuideModal } from '@/components/workspace/QuickStartGuide';
 
-type Tab = 'dashboard' | 'calendar' | 'slate' | 'gear' | 'edits' | 'rolodex';
+interface CustomTab {
+  id: string;
+  label: string;
+  iconName: string;
+  type: 'workspace' | 'embed' | 'notes' | 'system';
+  embedUrl?: string;
+  isDefault?: boolean;
+  allowedRoles?: ('admin' | 'staff' | 'client')[];
+}
+
+const SELECTABLE_ICONS = [
+  { name: 'LayoutDashboard', label: 'Dashboard' },
+  { name: 'Calendar', label: 'Calendar' },
+  { name: 'Briefcase', label: 'Slate' },
+  { name: 'Scissors', label: 'Edits' },
+  { name: 'Package', label: 'Gear' },
+  { name: 'Palette', label: 'Creative' },
+  { name: 'Users', label: 'Rolodex' },
+  { name: 'Link', label: 'Link' },
+  { name: 'FileText', label: 'Notepad' },
+  { name: 'Video', label: 'Video' },
+  { name: 'FolderOpen', label: 'Folder' },
+  { name: 'MessageSquare', label: 'Chat' },
+  { name: 'Mail', label: 'Inbox' },
+  { name: 'Settings', label: 'Settings' }
+];
+
+const DEFAULT_TABS: CustomTab[] = [
+  { id: 'dashboard', label: 'Dashboard', iconName: 'LayoutDashboard', type: 'system', isDefault: true, allowedRoles: ['admin'] },
+  { id: 'calendar', label: 'Calendar', iconName: 'Calendar', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
+  { id: 'slate', label: 'Slate', iconName: 'Briefcase', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
+  { id: 'edits', label: 'Edit Tracker', iconName: 'Scissors', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
+  { id: 'gear', label: 'Gear Builder', iconName: 'Package', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
+  { id: 'creative', label: 'Creative Board', iconName: 'Palette', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
+  { id: 'inbox', label: 'Inbox', iconName: 'Mail', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
+  { id: 'rolodex', label: 'Rolodex', iconName: 'Settings', type: 'system', isDefault: true, allowedRoles: ['admin'] },
+  { id: 'vault', label: 'Vault', iconName: 'Lock', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] }
+];
 
 export default function CommandCenterPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [layoutResetNonce, setLayoutResetNonce] = useState<number>(0);
+  const [tabs, setTabs] = useState<CustomTab[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isQuickStartOpen, setIsQuickStartOpen] = useState(false);
+
+  // Modals state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedTabToEdit, setSelectedTabToEdit] = useState<CustomTab | null>(null);
+
+  // Form states for creation
+  const [newTabLabel, setNewTabLabel] = useState('');
+  const [newTabIcon, setNewTabIcon] = useState('LayoutDashboard');
+  const [newTabType, setNewTabType] = useState<'workspace' | 'embed' | 'notes'>('workspace');
+  const [newTabUrl, setNewTabUrl] = useState('');
+  const [newTabRoles, setNewTabRoles] = useState<('admin' | 'staff' | 'client')[]>(['admin', 'staff']);
+
+  // Form states for editing
+  const [editTabLabel, setEditTabLabel] = useState('');
+  const [editTabIcon, setEditTabIcon] = useState('LayoutDashboard');
+  const [editTabType, setEditTabType] = useState<'workspace' | 'embed' | 'notes'>('workspace');
+  const [editTabUrl, setEditTabUrl] = useState('');
+  const [editTabRoles, setEditTabRoles] = useState<('admin' | 'staff' | 'client')[]>(['admin', 'staff']);
+
+  const getIconComponent = (name: string) => {
+    const Icon = (LucideIcons as any)[name];
+    return Icon || LucideIcons.Layout;
+  };
+
+  const activeTabObj = tabs.find(t => t.id === activeTab);
+
+  // Reset a specific tab's workspace layout to factory defaults
+  const resetWorkspaceForTab = (tabId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const storageKey = `studio_workspace_layout_${tabId}`;
+    localStorage.removeItem(storageKey);
+    // Force a clean single remount of the active workspace so it reloads the
+    // default layout. Bumping a nonce in the render key is deterministic —
+    // unlike toggling activeTab through '', which AnimatePresence (mode="wait")
+    // can coalesce and leave the stale panel mounted.
+    if (activeTab === tabId) {
+      setLayoutResetNonce(n => n + 1);
+    }
+  };
+
+  useEffect(() => {
+    setIsMounted(true);
+    const savedTabs = localStorage.getItem('custom_tabs_list');
+    if (savedTabs) {
+      try {
+        setTabs(JSON.parse(savedTabs) as CustomTab[]);
+      } catch (e) {
+        setTabs(DEFAULT_TABS);
+      }
+    } else {
+      setTabs(DEFAULT_TABS);
+    }
+
+    const seenQuickStart = localStorage.getItem('studio_seen_quickstart');
+    if (!seenQuickStart) {
+      localStorage.setItem('studio_seen_quickstart', 'true');
+      setIsQuickStartOpen(true);
+    }
+
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setIsSidebarOpen(false);
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const onDragEnd = (result: any) => {
+    if (!result.destination) return;
+    const items = Array.from(tabs);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    setTabs(items);
+    localStorage.setItem('custom_tabs_list', JSON.stringify(items));
+  };
+
+  const handleCreateTab = () => {
+    if (!newTabLabel.trim()) return;
+
+    let embedUrl = newTabUrl.trim();
+    if (newTabType === 'embed' && embedUrl && !/^https?:\/\//i.test(embedUrl)) {
+      embedUrl = 'https://' + embedUrl;
+    }
+
+    const newTab: CustomTab = {
+      id: 'custom_' + Date.now(),
+      label: newTabLabel.trim(),
+      iconName: newTabIcon,
+      type: newTabType,
+      embedUrl: newTabType === 'embed' ? embedUrl : undefined,
+      allowedRoles: newTabRoles
+    };
+
+    const updated = [...tabs, newTab];
+    setTabs(updated);
+    localStorage.setItem('custom_tabs_list', JSON.stringify(updated));
+    setActiveTab(newTab.id);
+
+    setNewTabLabel('');
+    setNewTabIcon('LayoutDashboard');
+    setNewTabType('workspace');
+    setNewTabUrl('');
+    setNewTabRoles(['admin', 'staff']);
+    setIsCreateModalOpen(false);
+  };
+
+  const handleSaveEditTab = () => {
+    if (!selectedTabToEdit) return;
+
+    let embedUrl = editTabUrl.trim();
+    if (editTabType === 'embed' && embedUrl && !/^https?:\/\//i.test(embedUrl)) {
+      embedUrl = 'https://' + embedUrl;
+    }
+
+    const updated = tabs.map(t => {
+      if (t.id === selectedTabToEdit.id) {
+        return {
+          ...t,
+          label: editTabLabel.trim() || t.label,
+          iconName: editTabIcon,
+          type: editTabType,
+          embedUrl: editTabType === 'embed' ? embedUrl : undefined,
+          allowedRoles: editTabRoles
+        };
+      }
+      return t;
+    });
+
+    setTabs(updated);
+    localStorage.setItem('custom_tabs_list', JSON.stringify(updated));
+    setIsEditModalOpen(false);
+    setSelectedTabToEdit(null);
+  };
+
+  const handleDeleteTab = () => {
+    if (!selectedTabToEdit) return;
+    const updated = tabs.filter(t => t.id !== selectedTabToEdit.id);
+    setTabs(updated);
+    localStorage.setItem('custom_tabs_list', JSON.stringify(updated));
+    if (activeTab === selectedTabToEdit.id) {
+      setActiveTab('dashboard');
+    }
+    setIsEditModalOpen(false);
+    setSelectedTabToEdit(null);
+  };
+
   const [session, setSession] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -42,21 +234,206 @@ export default function CommandCenterPage() {
 
   // UI State
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isCalendarSyncOpen, setIsCalendarSyncOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [preloadedJob, setPreloadedJob] = useState<any | null>(null);
+  const [preselectedJobId, setPreselectedJobId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'staff' | 'client' | null>(null);
+
+  // Google Calendar Integration States
+  const [isGoogleConnected, setIsGoogleConnected] = useState<boolean | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatusMsg, setSyncStatusMsg] = useState('');
+
+  useEffect(() => {
+    const checkGoogleConnection = async () => {
+      if (!session?.user) return;
+      try {
+        const { data, error } = await supabase
+          .from('google_tokens')
+          .select('id')
+          .maybeSingle();
+        setIsGoogleConnected(!!data && !error);
+      } catch (err) {
+        setIsGoogleConnected(false);
+      }
+    };
+
+    if (isCalendarSyncOpen && session) {
+      checkGoogleConnection();
+    }
+  }, [isCalendarSyncOpen, session]);
+
+  const handleConnectGoogle = () => {
+    if (!session?.user?.id) return;
+    window.location.href = `/api/auth/google?userId=${session.user.id}`;
+  };
+
+  const handleTriggerSync = async () => {
+    if (!session?.user?.id) return;
+    setIsSyncing(true);
+    setSyncStatusMsg('Connecting to Google Calendar...');
+    try {
+      const res = await fetch('/api/integrations/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'pull',
+          userId: session.user.id
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSyncStatusMsg(data.message);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setSyncStatusMsg(data.error || 'Failed to sync calendar.');
+      }
+    } catch (err: any) {
+      setSyncStatusMsg(`Sync error: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const fetchUserRole = async (userId: string, email: string) => {
+    setIsLoading(true);
+    console.log("[Studio OS Auth DEBUG] fetchUserRole starting for:", { userId, email });
+    
+    // Hardcoded bypass for the primary administrator account
+    const cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail === 'matt@zipline.media') {
+      console.log("[Studio OS Auth DEBUG] Administrator bypass triggered for matt@zipline.media.");
+      setUserRole('admin');
+      setActiveTab('dashboard');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // 1. Try to fetch by ID
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      console.log("[Studio OS Auth DEBUG] fetch by ID response:", { data, error });
+      
+      let role = data?.role;
+
+      // 2. If not found by ID, try fetching by email (self-healing fallback)
+      if (!role && email) {
+        const cleanEmail = email.trim().toLowerCase();
+        console.log("[Studio OS Auth DEBUG] Role not found by ID. Trying email match for:", cleanEmail);
+        const { data: emailData, error: emailErr } = await supabase
+          .from('user_roles')
+          .select('*')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+
+        console.log("[Studio OS Auth DEBUG] fetch by email response:", { emailData, emailErr });
+
+        if (emailData) {
+          role = emailData.role;
+          console.log("[Studio OS Auth DEBUG] Found match by email! Updating ID to match active session...", { role });
+          
+          // Attempt to update the row's ID to link it to the new auth user ID
+          const { error: updateErr } = await supabase
+            .from('user_roles')
+            .update({ id: userId })
+            .ilike('email', cleanEmail);
+            
+          if (updateErr) {
+            console.warn("[Studio OS Auth DEBUG] Self-healing update failed (RLS restriction expected), role is still active in UI:", updateErr);
+          } else {
+            console.log("[Studio OS Auth DEBUG] Self-healing ID update succeeded!");
+          }
+        }
+      }
+
+      // 3. If still not found, create a new client role
+      if (!role) {
+        console.log("[Studio OS Auth DEBUG] Role record does not exist. Creating client role...");
+        const { data: newRole, error: insertError } = await supabase
+          .from('user_roles')
+          .insert({ id: userId, email: email, role: 'client' })
+          .select('role')
+          .single();
+          
+        if (insertError) {
+          console.error("[Studio OS Auth DEBUG] Insert client role failed:", insertError);
+          throw insertError;
+        }
+        console.log("[Studio OS Auth DEBUG] Client role created successfully:", newRole);
+        role = newRole?.role || 'client';
+      }
+
+      console.log("[Studio OS Auth DEBUG] Final role assigned:", role);
+      setUserRole(role as any);
+      if (role === 'admin') {
+        setActiveTab('dashboard');
+      } else {
+        setActiveTab('calendar');
+      }
+    } catch (err: any) {
+      console.error('[Studio OS Auth DEBUG] Error fetching user role:', err);
+      setUserRole('client'); // Default fallback
+      setActiveTab('calendar');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setIsLoading(false);
+      if (session?.user) {
+        fetchUserRole(session.user.id, session.user.email || '');
+      } else {
+        setUserRole(null);
+        setIsLoading(false);
+      }
     });
 
     // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session?.user) {
+        fetchUserRole(session.user.id, session.user.email || '');
+      } else {
+        setUserRole(null);
+        setIsLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Load the signed-in user's avatar for the sidebar (fails soft if no profile)
+  const loadMyAvatar = useCallback(async () => {
+    if (!session?.user?.id) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      setMyAvatarUrl(data?.avatar_url || null);
+    } catch {
+      // table may not exist yet — ignore
+    }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    loadMyAvatar();
+  }, [loadMyAvatar]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,31 +457,40 @@ export default function CommandCenterPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+        <div className="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin relative z-10 shadow-[0_0_20px_rgba(0,119,255,0.2)]" />
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-neutral-900 border border-white/10 rounded-2xl p-10 shadow-2xl relative overflow-hidden">
-          {/* Decorative gradients */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent to-transparent" />
+      <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Ambient Glows */}
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/10 rounded-full blur-[130px] pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-[130px] pointer-events-none" />
+        
+        {/* Grid Overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+        
+        <div className="w-full max-w-md bg-zinc-950/75 backdrop-blur-2xl border border-white/10 rounded-2xl p-10 shadow-2xl relative overflow-hidden shadow-accent/5">
+          {/* Decorative gradient beam */}
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-accent to-transparent animate-pulse" />
           
           <div className="flex flex-col items-center mb-10">
-            <div className="w-20 h-20 bg-accent/10 rounded-2xl flex items-center justify-center mb-6 border border-accent/20">
-              <Lock className="w-10 h-10 text-accent" />
+            <div className="w-20 h-20 bg-accent/10 rounded-2xl flex items-center justify-center mb-6 border border-accent/20 relative group overflow-hidden">
+              <div className="absolute inset-0 bg-accent/10 blur-xl opacity-50" />
+              <Lock className="w-8 h-8 text-accent relative z-10" />
             </div>
-            <h1 className="text-3xl font-black uppercase tracking-tighter text-white">Studio OS</h1>
+            <h1 className="text-3xl font-black uppercase tracking-tighter text-white bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Studio OS</h1>
             <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30 mt-2">Zipline Media Internal Portal</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
               <label className="text-[9px] font-black tracking-[0.3em] uppercase opacity-40 ml-1 text-white flex items-center gap-2">
-                <Mail className="w-3 h-3" /> Email Address
+                <Mail className="w-3 h-3 text-accent/60" /> Email Address
               </label>
               <input 
                 type="email" 
@@ -112,13 +498,13 @@ export default function CommandCenterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="PRODUCTIONS@ZIPLINE.MEDIA"
                 required
-                className="w-full bg-black/50 border border-white/10 p-4 outline-none focus:border-accent transition-all text-sm font-bold rounded-xl text-white placeholder:opacity-20 uppercase"
+                className="w-full bg-black/40 border border-white/10 p-4 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-bold rounded-xl text-white placeholder:opacity-20 uppercase"
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-[9px] font-black tracking-[0.3em] uppercase opacity-40 ml-1 text-white flex items-center gap-2">
-                <Lock className="w-3 h-3" /> Password
+                <Lock className="w-3 h-3 text-accent/60" /> Password
               </label>
               <input 
                 type="password" 
@@ -126,7 +512,7 @@ export default function CommandCenterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full bg-black/50 border border-white/10 p-4 outline-none focus:border-accent transition-all text-sm font-bold rounded-xl text-white placeholder:opacity-20"
+                className="w-full bg-black/40 border border-white/10 p-4 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-bold rounded-xl text-white placeholder:opacity-20"
               />
             </div>
 
@@ -143,7 +529,7 @@ export default function CommandCenterPage() {
             <button 
               type="submit"
               disabled={isLoginLoading}
-              className="w-full bg-accent text-white py-5 font-black tracking-widest uppercase text-xs hover:bg-white hover:text-black transition-all rounded-xl shadow-lg shadow-accent/20 disabled:opacity-50 flex items-center justify-center gap-3"
+              className="w-full bg-gradient-to-r from-accent to-blue-600 text-white py-5 font-black tracking-widest uppercase text-xs hover:from-white hover:to-white hover:text-black transition-all duration-300 rounded-xl shadow-lg shadow-accent/20 disabled:opacity-50 flex items-center justify-center gap-3 active:scale-[0.98] cursor-pointer"
             >
               {isLoginLoading ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -159,223 +545,913 @@ export default function CommandCenterPage() {
     );
   }
 
-  const NavItem = ({ id, label, icon: Icon }: { id: Tab, label: string, icon: any }) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-        activeTab === id 
-          ? 'bg-accent text-white shadow-lg shadow-accent/20' 
-          : 'text-white/40 hover:text-white hover:bg-white/5'
-      }`}
-    >
-      <Icon className="w-5 h-5" />
-      <span className={`font-bold uppercase tracking-widest text-[10px] transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
-        {label}
-      </span>
-    </button>
-  );
-
   return (
-    <div className="min-h-screen bg-black text-white flex overflow-hidden">
+    <div className="min-h-screen bg-black text-white flex overflow-hidden relative">
+      {/* Ambient Glows */}
+      <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-accent/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-500/5 rounded-full blur-[150px] pointer-events-none" />
+      
+      {/* Subtle grid pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
+
+      {/* Sidebar overlay backdrop on mobile */}
+      <AnimatePresence>
+        {isMobile && isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/60 z-48 backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       <motion.aside 
-        animate={{ width: isSidebarOpen ? 260 : 80 }}
-        className="bg-neutral-900/50 border-r border-white/10 flex flex-col relative z-50 shrink-0"
+        initial={false}
+        animate={isMobile ? {
+          x: isSidebarOpen ? 0 : -260,
+          width: 260,
+        } : {
+          x: 0,
+          width: isSidebarOpen ? 260 : 80
+        }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        className={`bg-zinc-950/80 backdrop-blur-2xl border-r border-white/10 flex flex-col z-50 shrink-0 shadow-2xl ${
+          isMobile ? 'fixed left-0 top-0 bottom-0' : 'relative'
+        }`}
       >
-        <div className="p-6 flex items-center justify-between">
-          <div className={`flex items-center gap-3 ${!isSidebarOpen && 'hidden'}`}>
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center font-black text-xs">Z</div>
-            <span className="font-black uppercase tracking-tighter text-lg">Studio</span>
+        <div className={`flex ${(!isSidebarOpen && !isMobile) ? 'flex-col items-center gap-4 px-0 py-6' : 'items-center justify-between p-6'}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-accent to-blue-600 rounded-lg flex items-center justify-center font-black text-xs shadow-[0_0_15px_rgba(0,119,255,0.3)] shrink-0">Z</div>
+            <span className={`font-black uppercase tracking-tighter text-lg bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent ${(!isSidebarOpen && !isMobile) && 'hidden'}`}>Studio</span>
           </div>
-          <button 
+          <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+            className="p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer text-white/60 hover:text-white"
           >
-            {isSidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {isMobile ? (
+              <X className="w-4 h-4" />
+            ) : isSidebarOpen ? (
+              <ChevronLeft className="w-4 h-4" />
+            ) : (
+              <Menu className="w-4 h-4" />
+            )}
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          <NavItem id="dashboard" label="Dashboard" icon={LayoutDashboard} />
-          <NavItem id="calendar" label="Calendar" icon={Calendar} />
-          <NavItem id="slate" label="Slate" icon={Briefcase} />
-          <NavItem id="edits" label="Edit Tracker" icon={Scissors} />
-          <NavItem id="gear" label="Gear Builder" icon={Package} />
-          <NavItem id="rolodex" label="Rolodex" icon={Settings} />
+        <nav className="flex-1 px-4 py-6 overflow-y-auto custom-scrollbar">
+          {isMounted ? (
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="sidebar-nav">
+                {(provided) => (
+                  <div
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="space-y-1.5"
+                  >
+                    {tabs
+                      .filter(tab => {
+                        if (!tab.allowedRoles) return true;
+                        return tab.allowedRoles.includes(userRole as any);
+                      })
+                      .map((tab, index) => {
+                        const Icon = getIconComponent(tab.iconName);
+                        return (
+                          <Draggable key={tab.id} draggableId={tab.id} index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className="group relative"
+                                style={{ ...provided.draggableProps.style }}
+                              >
+                                <button
+                                  onClick={() => {
+                                    setActiveTab(tab.id);
+                                    if (isMobile) {
+                                      setIsSidebarOpen(false);
+                                    }
+                                  }}
+                                  className={`w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-300 relative border ${(!isSidebarOpen && !isMobile) ? 'justify-center px-0' : 'px-4'} ${
+                                    activeTab === tab.id
+                                      ? 'bg-gradient-to-r from-accent/15 to-accent/5 text-white border-accent/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] shadow-accent/5'
+                                      : 'text-white/40 hover:text-white hover:bg-white/5 border-transparent'
+                                  } ${snapshot.isDragging ? 'bg-zinc-900 border-white/10 z-50' : ''}`}
+                                >
+                                  {activeTab === tab.id && (
+                                    <motion.div 
+                                      layoutId="activeIndicator"
+                                      className="absolute left-0 top-1/4 bottom-1/4 w-[2px] bg-accent rounded-full shadow-[0_0_8px_var(--accent)]"
+                                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                                    />
+                                  )}
+                                  
+                                  <Icon className={`w-5 h-5 shrink-0 transition-colors duration-300 ${activeTab === tab.id ? 'text-accent' : ''}`} />
+                                  
+                                  <span className={`font-bold uppercase tracking-widest text-[10px] text-left transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
+                                    {tab.label}
+                                  </span>
+
+                                  {/* Edit/Settings button for default/custom tabs on hover (admin only) */}
+                                  {isSidebarOpen && userRole === 'admin' && (
+                                    <>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedTabToEdit(tab);
+                                          setEditTabLabel(tab.label);
+                                          setEditTabIcon(tab.iconName);
+                                          setEditTabType(tab.type as any);
+                                          setEditTabUrl(tab.embedUrl || '');
+                                          setEditTabRoles(tab.allowedRoles || ['admin']);
+                                          setIsEditModalOpen(true);
+                                        }}
+                                        className="absolute right-14 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-accent transition-opacity z-30 cursor-pointer"
+                                        title="Edit Workspace Settings"
+                                      >
+                                        <Settings className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        onClick={(e) => resetWorkspaceForTab(tab.id, e)}
+                                        className="absolute right-9 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-orange-400 transition-opacity z-30 cursor-pointer"
+                                        title="Reset panels to default view"
+                                      >
+                                        <RotateCcw className="w-3.5 h-3.5" />
+                                      </button>
+                                    </>
+                                  )}
+
+                                  {/* Grip handle visible on hover. Must stay mounted even when
+                                      collapsed — @hello-pangea/dnd requires the drag handle to
+                                      always exist in the DOM, so hide it with classes, not unmount. */}
+                                  <div
+                                    {...provided.dragHandleProps}
+                                    className={`absolute right-3 p-1 text-white hover:text-accent transition-opacity cursor-grab active:cursor-grabbing ${(!isSidebarOpen && !isMobile) ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-40 hover:opacity-100'}`}
+                                    title="Drag to reorder"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <GripVertical className="w-3.5 h-3.5" />
+                                  </div>
+                                </button>
+                              </div>
+                            )}
+                          </Draggable>
+                        );
+                      })}
+                    {provided.placeholder}
+
+                    {/* Add Custom Tab Button */}
+                    {userRole === 'admin' && (
+                      <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className={`w-full flex items-center gap-3 py-3 rounded-xl border border-dashed border-white/10 hover:border-accent/40 text-white/40 hover:text-white bg-transparent hover:bg-white/5 transition-all duration-300 mt-4 cursor-pointer group/add-tab ${(!isSidebarOpen && !isMobile) ? 'justify-center px-0' : 'px-4'}`}
+                      >
+                        <Plus className="w-5 h-5 shrink-0 text-white/40 group-hover/add-tab:text-accent transition-colors duration-300" />
+                        <span className={`font-bold uppercase tracking-widest text-[10px] text-left transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
+                          Create Workspace
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
+          ) : (
+            <div className="space-y-1.5">
+              {tabs
+                .filter(tab => {
+                  if (!tab.allowedRoles) return true;
+                  return tab.allowedRoles.includes(userRole as any);
+                })
+                .map(tab => {
+                  const Icon = getIconComponent(tab.iconName);
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        if (isMobile) {
+                          setIsSidebarOpen(false);
+                        }
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative border ${
+                        activeTab === tab.id 
+                          ? 'bg-gradient-to-r from-accent/15 to-accent/5 text-white border-accent/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] shadow-accent/5' 
+                          : 'text-white/40 hover:text-white hover:bg-white/5 border-transparent'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-accent' : ''}`} />
+                      <span className="font-bold uppercase tracking-widest text-[10px]">
+                        {tab.label}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          )}
         </nav>
 
         <div className="p-4 border-t border-white/5">
-          <div className={`mb-4 px-4 flex items-center gap-3 ${!isSidebarOpen && 'hidden'}`}>
-             <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center">
-                <UserIcon className="w-3 h-3 text-white/40" />
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            title="Edit profile & settings"
+            className={`w-full mb-3 px-4 py-2 flex items-center gap-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer ${(!isSidebarOpen && !isMobile) ? 'justify-center px-0' : ''}`}
+          >
+             <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden shrink-0">
+                {myAvatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={myAvatarUrl} alt="Me" className="w-full h-full object-cover" />
+                ) : (
+                  <UserIcon className="w-3.5 h-3.5 text-white/40" />
+                )}
              </div>
-             <p className="text-[8px] font-black uppercase tracking-widest text-white/40 truncate">
-               {session.user.email}
-             </p>
-          </div>
+             <div className={`min-w-0 text-left ${(!isSidebarOpen && !isMobile) && 'hidden'}`}>
+                <p className="text-[8px] font-black uppercase tracking-widest text-white/40 truncate">
+                  {session.user.email}
+                </p>
+                <p className="text-[7px] font-black uppercase tracking-widest text-accent mt-0.5">
+                  {userRole || 'Loading...'} · Edit
+                </p>
+             </div>
+          </button>
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-white/20 hover:text-red-500 transition-colors rounded-xl group"
+            className="w-full flex items-center gap-3 px-4 py-3 text-white/20 hover:text-red-500 transition-colors rounded-xl group cursor-pointer"
           >
             <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            <span className={`font-bold uppercase tracking-widest text-[10px] ${!isSidebarOpen && 'hidden'}`}>Sign Out</span>
+            <span className={`font-bold uppercase tracking-widest text-[10px] ${(!isSidebarOpen && !isMobile) && 'hidden'}`}>Sign Out</span>
           </button>
         </div>
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative custom-scrollbar flex flex-col">
-        <header className="sticky top-0 z-40 bg-black/50 backdrop-blur-md border-b border-white/5 p-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.5em] text-accent mb-1">
-              {activeTab === 'dashboard' ? 'Studio Overview' : activeTab === 'calendar' ? 'Monthly Schedule' : activeTab === 'slate' ? 'Production Schedule' : activeTab === 'edits' ? 'Post-Production Pipeline' : activeTab === 'gear' ? 'Inventory & Manifests' : 'Contacts & Clients'}
-            </h2>
-            <h1 className="text-2xl font-black uppercase tracking-tighter text-white">
-              {activeTab === 'dashboard' ? 'Command Center' : activeTab === 'calendar' ? 'Calendar' : activeTab === 'slate' ? 'Slate' : activeTab === 'edits' ? 'Edit Tracker' : activeTab === 'gear' ? 'Gear Builder' : 'Rolodex'}
-            </h1>
+      <main className="flex-1 overflow-y-auto relative custom-scrollbar flex flex-col z-10">
+        <header className="sticky top-0 z-45 bg-black/40 backdrop-blur-xl border-b border-white/5 p-4 md:p-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {isMobile && (
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 hover:bg-white/5 border border-white/10 rounded-lg transition-colors cursor-pointer text-white shrink-0"
+              >
+                <Menu className="w-4 h-4" />
+              </button>
+            )}
+            <div>
+              <h2 className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.4em] md:tracking-[0.5em] text-accent mb-0.5 md:mb-1 truncate max-w-[200px] sm:max-w-none">
+                {activeTabObj ? (
+                  activeTabObj.type === 'system' ? (
+                    activeTabObj.id === 'dashboard' ? 'Studio Overview' :
+                    activeTabObj.id === 'calendar' ? 'Monthly Schedule' :
+                    activeTabObj.id === 'slate' ? 'Production Schedule' :
+                    activeTabObj.id === 'edits' ? 'Post-Production Pipeline' :
+                    activeTabObj.id === 'gear' ? 'Inventory & Manifests' :
+                    activeTabObj.id === 'creative' ? 'Creative Pre-Production' :
+                    'Contacts & Clients'
+                  ) : activeTabObj.type === 'embed' ? 'External Tool Integration' :
+                      activeTabObj.type === 'notes' ? 'Production Notepad' : 'Custom Workspace Layout'
+                ) : 'Workspace Overview'}
+              </h2>
+              <h1 className="text-lg md:text-2xl font-black uppercase tracking-tighter text-white truncate max-w-[200px] sm:max-w-none">
+                {activeTabObj ? activeTabObj.label : 'Command Center'}
+              </h1>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
-             <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-green-500">Live Database Sync</span>
+          <div className="flex items-center gap-2 md:gap-3 flex-wrap justify-end">
+             {/* Reset Layout Trigger — only for workspaces that use the panel layout */}
+             {activeTabObj && activeTabObj.type !== 'embed' && activeTabObj.type !== 'notes' && (
+               <button
+                  onClick={() => resetWorkspaceForTab(activeTab)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-400/40 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white/70 hover:text-orange-300 transition-all cursor-pointer"
+                  title="Reset this workspace's panels to the default layout"
+               >
+                  <RotateCcw className="w-3 h-3" />
+                  Reset Layout
+               </button>
+             )}
+
+             {/* Google Calendar Sync Trigger */}
+             <button
+                onClick={() => setIsCalendarSyncOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-all cursor-pointer"
+             >
+                <RefreshCw className="w-3 h-3 text-accent animate-spin-slow" />
+                Calendar Sync
+             </button>
+
+             {/* Quick Start Guide Trigger */}
+             <button
+                onClick={() => setIsQuickStartOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-accent/20 to-blue-600/20 hover:from-accent/30 hover:to-blue-600/30 border border-accent/30 hover:border-accent/50 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest text-accent hover:text-white transition-all cursor-pointer shadow-md shadow-accent/5"
+             >
+                <HelpCircle className="w-3.5 h-3.5 text-accent" />
+                Quick Start
+             </button>
+
+             {/* Live Database Sync Pill */}
+             <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/5 border border-green-500/20 rounded-full shadow-[0_0_15px_rgba(34,197,94,0.05)] relative shrink-0">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping absolute left-3" />
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-green-400">
+                  {isMobile ? 'Live' : 'Live Database Sync'}
+                </span>
              </div>
           </div>
         </header>
 
-        <div className={`flex-1 ${activeTab === 'calendar' ? 'p-0' : 'p-6 md:p-8 lg:p-12'}`}>
+        <div className="flex-1 min-h-0 flex flex-col relative">
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeTab}
+              key={`${activeTab}::${layoutResetNonce}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className={activeTab === 'calendar' ? 'h-full flex flex-col' : ''}
+              className="h-full flex-grow flex flex-col min-h-0"
             >
-              {activeTab === 'dashboard' && (
-                <DashboardOverview 
-                  onSwitchTab={setActiveTab} 
+              {activeTabObj?.type === 'embed' ? (
+                <FullscreenEmbedWidget url={activeTabObj.embedUrl || ''} />
+              ) : activeTabObj?.type === 'notes' ? (
+                <FullscreenNotesWidget tabId={activeTabObj.id} />
+              ) : (
+                <WorkspaceLayout 
+                  activeTab={activeTab}
+                  userRole={userRole}
+                  preloadedJob={preloadedJob}
+                  onClearPreload={() => setPreloadedJob(null)}
+                  preselectedJobId={preselectedJobId}
+                  onClearPreselectedJobId={() => setPreselectedJobId(null)}
+                  onSwitchTab={(target) => {
+                    if (typeof target === 'string') {
+                      setActiveTab(target);
+                    } else if (target && typeof target === 'object') {
+                      if (target.selectCalendarJob) {
+                        setPreselectedJobId(target.selectCalendarJob);
+                        setActiveTab('slate');
+                      }
+                      if (target.gearJob) {
+                        setPreloadedJob(target.gearJob);
+                        setActiveTab('gear');
+                      }
+                    }
+                  }}
                 />
               )}
-              {activeTab === 'calendar' && (
-                <div className="h-full flex-1 bg-neutral-900/40">
-                  <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/20">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center">
-                        <Calendar className="w-5 h-5 text-accent" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-black uppercase tracking-tighter text-white">Production Calendar</h2>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.3em] opacity-40 text-white">Live Studio Schedule</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => window.open('https://calendar.google.com', '_blank')}
-                      className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all text-white"
-                    >
-                      Open Google Calendar <ExternalLink className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <div className="p-6 md:p-8">
-                    <ProductionCalendar 
-                      onSelectJob={(job) => {
-                        // Action when job clicked in calendar tab
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-              {activeTab === 'slate' && <Slate />}
-              {activeTab === 'edits' && <EditTracker />}
-              {activeTab === 'gear' && <Rentals />}
-              {activeTab === 'rolodex' && <Rolodex />}
             </motion.div>
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Profile & Branding Settings Modal */}
+      {isSettingsOpen && (
+        <ProfileSettings
+          session={session}
+          userRole={userRole}
+          onClose={() => setIsSettingsOpen(false)}
+          onSaved={loadMyAvatar}
+        />
+      )}
+
+      {/* Calendar Sync Feed Modal */}
+      <AnimatePresence>
+        {isCalendarSyncOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-lg bg-neutral-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setIsCalendarSyncOpen(false)}
+                className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20">
+                  <RefreshCw className="w-5 h-5 text-accent animate-spin" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-tighter text-white">Google Calendar Sync</h3>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/30">Live Webcal Subscription Feed</p>
+                </div>
+              </div>
+
+              <div className="space-y-6 text-sm">
+                <p className="text-white/70 leading-relaxed text-xs">
+                  Subscribe to your live Studio OS Production Calendar feed inside Google Calendar, Apple Calendar, or Outlook to keep your shoots and meetings synced.
+                </p>
+
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">ICS Subscription Link</label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      readOnly 
+                      value={typeof window !== 'undefined' ? `${window.location.origin}/api/calendar` : '/api/calendar'}
+                      className="flex-grow bg-black/50 border border-white/10 px-4 py-3 outline-none text-xs font-bold rounded-xl text-white select-all"
+                    />
+                    <button 
+                      onClick={() => {
+                        const link = typeof window !== 'undefined' ? `${window.location.origin}/api/calendar` : '/api/calendar';
+                        navigator.clipboard.writeText(link);
+                        setCopiedLink(true);
+                        setTimeout(() => setCopiedLink(false), 2000);
+                      }}
+                      className="bg-accent px-4 text-xs font-black uppercase tracking-widest text-white rounded-xl hover:bg-white hover:text-black transition-all flex items-center gap-1.5"
+                    >
+                      {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      {copiedLink ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3 bg-black/40 border border-white/5 p-4 rounded-xl">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-accent">Instructions for Google Calendar</h4>
+                  <ol className="list-decimal list-inside text-xs text-white/60 space-y-2 leading-relaxed">
+                    <li>Copy the subscription link above.</li>
+                    <li>Open your Google Calendar on desktop.</li>
+                    <li>On the left panel, click the <span className="text-white font-bold">+</span> next to &quot;Other calendars&quot;.</li>
+                    <li>Select <span className="text-white font-bold">From URL</span>.</li>
+                    <li>Paste the subscription link and click <span className="text-white font-bold">Add calendar</span>.</li>
+                  </ol>
+                </div>
+
+                {/* Google OAuth & Two-Way Sync Integration */}
+                <div className="space-y-3 bg-black/40 border border-white/5 p-4 rounded-xl text-left">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-accent">Two-Way Google Sync</h4>
+                    <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-full border ${
+                      isGoogleConnected === null ? 'bg-white/5 border-white/10 text-white/40' :
+                      isGoogleConnected ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'
+                    }`}>
+                      {isGoogleConnected === null ? 'Checking...' : isGoogleConnected ? 'Connected' : 'Disconnected'}
+                    </span>
+                  </div>
+                  
+                  <p className="text-white/60 leading-normal text-[11px]">
+                    Authenticate with Google to enable two-way live calendar sync. Changes made in Slate will sync to Google, and events on Google prefixed with 🎥 will sync back to Slate.
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    {!isGoogleConnected ? (
+                      <button
+                        onClick={handleConnectGoogle}
+                        className="flex-1 py-2.5 bg-accent text-white text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black rounded-xl transition-all cursor-pointer"
+                      >
+                        Connect Google Account
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleTriggerSync}
+                          disabled={isSyncing}
+                          className="flex-1 py-2.5 bg-green-600 text-white text-xs font-black uppercase tracking-widest hover:bg-green-500 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          {isSyncing ? 'Syncing...' : 'Run Two-Way Sync'}
+                        </button>
+                        <button
+                          onClick={handleConnectGoogle}
+                          className="py-2.5 px-3 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 rounded-xl transition-all cursor-pointer"
+                          title="Reconnect Account"
+                        >
+                          Reconnect
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  {syncStatusMsg && (
+                    <p className="text-[10px] font-bold text-accent/80 italic mt-2 text-center animate-pulse">
+                      {syncStatusMsg}
+                    </p>
+                  )}
+                </div>
+
+                <button 
+                  onClick={() => setIsCalendarSyncOpen(false)}
+                  className="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black tracking-widest uppercase text-xs rounded-xl transition-all"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Create Tab Modal */}
+      <AnimatePresence>
+        {isCreateModalOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-zinc-950 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setIsCreateModalOpen(false)}
+                className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20">
+                  <Plus className="w-5 h-5 text-accent animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-tighter text-white">Create Custom Tab</h3>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/30">Add a modular workspace tool</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                <div>
+                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Tab Label</label>
+                  <input 
+                    type="text" 
+                    placeholder="E.G. CLIENT BOARD"
+                    value={newTabLabel}
+                    onChange={(e) => setNewTabLabel(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 p-3 outline-none focus:border-accent text-xs font-bold rounded-xl text-white uppercase placeholder:opacity-20"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Tab Type</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewTabType('workspace')}
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                        newTabType === 'workspace' 
+                          ? 'border-accent/40 bg-accent/10 text-white' 
+                          : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="font-black text-[10px] uppercase tracking-wider">Grid</div>
+                      <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">Premiere Splits</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewTabType('embed')}
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                        newTabType === 'embed' 
+                          ? 'border-accent/40 bg-accent/10 text-white' 
+                          : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="font-black text-[10px] uppercase tracking-wider">Embed</div>
+                      <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">iFrame Web Tool</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewTabType('notes')}
+                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                        newTabType === 'notes' 
+                          ? 'border-accent/40 bg-accent/10 text-white' 
+                          : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="font-black text-[10px] uppercase tracking-wider">Notepad</div>
+                      <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">Markdown Page</div>
+                    </button>
+                  </div>
+                </div>
+
+                {newTabType === 'embed' && (
+                  <div>
+                    <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Embed URL</label>
+                    <input 
+                      type="text" 
+                      placeholder="https://trello.com/..."
+                      value={newTabUrl}
+                      onChange={(e) => setNewTabUrl(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 p-3 outline-none focus:border-accent text-xs font-bold rounded-xl text-white placeholder:opacity-20"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Select Icon</label>
+                  <div className="grid grid-cols-6 gap-1.5 bg-black/40 border border-white/5 p-2 rounded-xl">
+                    {SELECTABLE_ICONS.map(ico => {
+                      const Icon = getIconComponent(ico.name);
+                      return (
+                        <button
+                          key={ico.name}
+                          type="button"
+                          onClick={() => setNewTabIcon(ico.name)}
+                          className={`p-2 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                            newTabIcon === ico.name 
+                              ? 'bg-accent text-white scale-110 shadow-lg shadow-accent/20' 
+                              : 'text-white/40 hover:text-white hover:bg-white/5'
+                          }`}
+                          title={ico.label}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Role Visibility</label>
+                  <div className="flex gap-4 bg-black/40 border border-white/5 p-3 rounded-xl">
+                    {['admin', 'staff', 'client'].map((role) => {
+                      const isChecked = newTabRoles.includes(role as any);
+                      return (
+                        <label key={role} className="flex items-center gap-2 text-white/60 hover:text-white cursor-pointer select-none">
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setNewTabRoles(newTabRoles.filter(r => r !== role));
+                              } else {
+                                setNewTabRoles([...newTabRoles, role as any]);
+                              }
+                            }}
+                            className="rounded border-white/10 text-accent focus:ring-accent bg-black"
+                          />
+                          <span className="text-[10px] font-black uppercase tracking-wider">{role}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button 
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(false)}
+                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleCreateTab}
+                    disabled={!newTabLabel.trim() || (newTabType === 'embed' && !newTabUrl.trim())}
+                    className="flex-grow py-3 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Create Workspace
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Tab Modal */}
+      <AnimatePresence>
+        {isEditModalOpen && selectedTabToEdit && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-zinc-950 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20">
+                  <Settings className="w-5 h-5 text-accent" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black uppercase tracking-tighter text-white">Workspace Settings</h3>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/30">Modify this navigation workspace</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                <div>
+                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Tab Label</label>
+                  <input 
+                    type="text" 
+                    placeholder="E.G. CLIENT BOARD"
+                    value={editTabLabel}
+                    onChange={(e) => setEditTabLabel(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 p-3 outline-none focus:border-accent text-xs font-bold rounded-xl text-white uppercase placeholder:opacity-20"
+                  />
+                </div>
+
+                {!selectedTabToEdit.isDefault && (
+                  <div>
+                    <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Tab Type</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditTabType('workspace')}
+                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                          editTabType === 'workspace' 
+                            ? 'border-accent/40 bg-accent/10 text-white' 
+                            : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="font-black text-[10px] uppercase tracking-wider">Grid</div>
+                        <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">Premiere Splits</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditTabType('embed')}
+                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                          editTabType === 'embed' 
+                            ? 'border-accent/40 bg-accent/10 text-white' 
+                            : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="font-black text-[10px] uppercase tracking-wider">Embed</div>
+                        <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">iFrame Web Tool</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditTabType('notes')}
+                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
+                          editTabType === 'notes' 
+                            ? 'border-accent/40 bg-accent/10 text-white' 
+                            : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="font-black text-[10px] uppercase tracking-wider">Notepad</div>
+                        <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">Markdown Page</div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {!selectedTabToEdit.isDefault && editTabType === 'embed' && (
+                  <div>
+                    <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Embed URL</label>
+                    <input 
+                      type="text" 
+                      placeholder="https://trello.com/..."
+                      value={editTabUrl}
+                      onChange={(e) => setEditTabUrl(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 p-3 outline-none focus:border-accent text-xs font-bold rounded-xl text-white placeholder:opacity-20"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Select Icon</label>
+                  <div className="grid grid-cols-6 gap-1.5 bg-black/40 border border-white/5 p-2 rounded-xl">
+                    {SELECTABLE_ICONS.map(ico => {
+                      const Icon = getIconComponent(ico.name);
+                      return (
+                        <button
+                          key={ico.name}
+                          type="button"
+                          onClick={() => setEditTabIcon(ico.name)}
+                          className={`p-2 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                            editTabIcon === ico.name 
+                              ? 'bg-accent text-white scale-110 shadow-lg shadow-accent/20' 
+                              : 'text-white/40 hover:text-white hover:bg-white/5'
+                          }`}
+                          title={ico.label}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Role Visibility</label>
+                  <div className="flex gap-4 bg-black/40 border border-white/5 p-3 rounded-xl">
+                    {['admin', 'staff', 'client'].map((role) => {
+                      const isChecked = editTabRoles.includes(role as any);
+                      return (
+                        <label key={role} className="flex items-center gap-2 text-white/60 hover:text-white cursor-pointer select-none">
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setEditTabRoles(editTabRoles.filter(r => r !== role));
+                              } else {
+                                setEditTabRoles([...editTabRoles, role as any]);
+                              }
+                            }}
+                            className="rounded border-white/10 text-accent focus:ring-accent bg-black"
+                          />
+                          <span className="text-[10px] font-black uppercase tracking-wider">{role}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  {!selectedTabToEdit.isDefault && (
+                    <button 
+                      type="button"
+                      onClick={handleDeleteTab}
+                      className="py-3 px-4 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer font-bold"
+                    >
+                      Delete Tab
+                    </button>
+                  )}
+                  <button 
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-all cursor-pointer font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleSaveEditTab}
+                    disabled={!editTabLabel.trim() || (editTabType === 'embed' && !editTabUrl.trim())}
+                    className="flex-grow py-3 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-bold"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick Start Guide Modal */}
+      <QuickStartGuideModal 
+        isOpen={isQuickStartOpen} 
+        onClose={() => setIsQuickStartOpen(false)} 
+        onOpenCalendarSync={() => {
+          setIsQuickStartOpen(false);
+          setIsCalendarSyncOpen(true);
+        }} 
+      />
     </div>
   );
 }
 
-function DashboardOverview({ 
-  onSwitchTab
-}: { 
-  onSwitchTab: (tab: Tab) => void
-}) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <StatCard 
-        title="Active Jobs" 
-        value="12" 
-        trend="+2 this week"
-        icon={LayoutDashboard}
-      />
-      <StatCard 
-        title="Gear in Field" 
-        value="45 items" 
-        trend="85% utilization"
-        icon={Package}
-      />
-      <StatCard 
-        title="Total Contacts" 
-        value="128" 
-        trend="3 new today"
-        icon={Users}
-      />
+// ----------------------------------------------------------------------
+// FULLSCREEN NOTE WIDGET
+// ----------------------------------------------------------------------
+function FullscreenNotesWidget({ tabId }: { tabId: string }) {
+  const [notes, setNotes] = useState('');
+  const storageKey = `studio_scratch_notes_${tabId}`;
 
-      <div className="md:col-span-2 lg:col-span-3 mt-8">
-        <h3 className="text-lg font-black uppercase tracking-tighter mb-6 text-white">Quick Actions</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <ActionButton 
-            label="Production Slate" 
-            onClick={() => onSwitchTab('slate')}
-            icon={Briefcase}
-          />
-          <ActionButton 
-            label="Build Gear List" 
-            onClick={() => onSwitchTab('gear')}
-            icon={Package}
-          />
-          <ActionButton 
-            label="Assemble Crew" 
-            onClick={() => onSwitchTab('slate')}
-            icon={Users}
-          />
-          <ActionButton 
-            label="View Calendar" 
-            onClick={() => onSwitchTab('calendar')}
-            icon={LayoutDashboard}
-          />
-        </div>
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNotes(localStorage.getItem(storageKey) || '');
+    }
+  }, [storageKey]);
+
+  const saveNotes = (val: string) => {
+    setNotes(val);
+    localStorage.setItem(storageKey, val);
+  };
+
+  return (
+    <div className="w-full h-full flex flex-col p-8 bg-zinc-950/20 text-white min-h-[300px]">
+      <textarea
+        value={notes}
+        onChange={(e) => saveNotes(e.target.value)}
+        placeholder="Write scratch workspace logs, storyboard drafts, or client call reminders here..."
+        className="w-full h-full bg-transparent border-0 resize-none outline-none text-sm font-bold leading-relaxed text-white/70 focus:text-white transition-colors"
+      />
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+// FULLSCREEN EMBED WIDGET
+// ----------------------------------------------------------------------
+function FullscreenEmbedWidget({ url }: { url: string }) {
+  if (!url) {
+    return (
+      <div className="p-12 text-center text-xs text-white/40 uppercase tracking-widest">
+        No Embed URL configured. Edit the tab settings to set a URL.
       </div>
-    </div>
-  );
-}
-
-function StatCard({ title, value, trend, icon: Icon }: { title: string, value: string, trend: string, icon: any }) {
+    );
+  }
   return (
-    <div className="bg-neutral-900/40 border border-white/10 p-6 rounded-2xl hover:border-accent/30 transition-all group">
-      <div className="flex items-center justify-between mb-4">
-        <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center group-hover:bg-accent/10 transition-colors">
-          <Icon className="w-5 h-5 text-white/40 group-hover:text-accent transition-colors" />
-        </div>
-        <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">{trend}</span>
-      </div>
-      <h3 className="text-xs font-bold text-white/40 uppercase tracking-[0.2em] mb-1">{title}</h3>
-      <p className="text-3xl font-black tracking-tighter text-white">{value}</p>
+    <div className="w-full h-full flex-grow relative bg-neutral-950/20 min-h-[500px]">
+      <iframe 
+        src={url}
+        className="w-full h-full border-0 absolute inset-0 bg-neutral-950/20 animate-fade-in"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
     </div>
-  );
-}
-
-function ActionButton({ label, onClick, icon: Icon }: { label: string, onClick: () => void, icon: any }) {
-  return (
-    <button 
-      onClick={onClick}
-      className="flex flex-col items-center justify-center p-8 bg-neutral-900/40 border border-white/10 rounded-2xl hover:bg-accent hover:border-accent transition-all group"
-    >
-      <Icon className="w-8 h-8 mb-4 text-accent group-hover:text-white transition-colors" />
-      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-center text-white">{label}</span>
-    </button>
   );
 }

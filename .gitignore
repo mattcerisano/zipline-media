@@ -48,3 +48,11 @@ public/broadway-reel.mp4
 # Keep individual category/hero videos allowed
 Website photos/
 .env*.local
+
+# Claude local config
+.claude/
+
+# Backup files
+*.bak
+
+

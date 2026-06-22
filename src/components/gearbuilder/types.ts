@@ -21,6 +21,29 @@ export interface Contact {
   updated_at?: string;
 }
 
+export interface Profile {
+  id: string;
+  org_id?: string;
+  full_name?: string;
+  position?: string;
+  phone?: string;
+  address?: string;
+  email?: string;
+  avatar_url?: string;
+  updated_at?: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  client_id?: string;
+  description?: string;
+  status?: 'Active' | 'On Hold' | 'Completed' | 'Archived';
+  color?: string; // optional hex for calendar/badge tinting
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -58,7 +81,7 @@ export interface JobRole {
 export interface JobLink {
   label: string;
   url: string;
-  category?: 'Review' | 'Archive' | 'Discord' | 'Folder' | 'Other';
+  category?: 'Review' | 'Archive' | 'Discord' | 'Folder' | 'Other' | 'Creative';
 }
 
 export interface EditLabel {
@@ -67,10 +90,39 @@ export interface EditLabel {
   text: string;
 }
 
+export interface JobSchedule {
+  id: string;
+  job_id: string;
+  start_time: string;
+  end_time?: string;
+  task: string;
+  location?: string;
+  notes?: string;
+  sort_order: number;
+}
+
+export interface JobShot {
+  id: string;
+  job_id: string;
+  shot_number?: string;
+  description: string;
+  framing?: string;
+  equipment?: string;
+  image_url?: string;
+  is_special?: boolean;
+  aspect_ratio?: string;
+  lighting_setup?: string;
+  scene_group?: string;
+  sort_order: number;
+}
+
 export interface Job {
   id: string;
   title: string;
   client_name?: string;
+  client_id?: string;
+  project_id?: string;
+  project?: Project; // Hydrated
   production_company?: string;
   job_status?: 'Planning' | 'Hold' | 'Booked' | 'Wrapped' | 'Cancelled';
   type?: 'production' | 'rental';
@@ -91,6 +143,10 @@ export interface Job {
   quote_url?: string;
   estimate_url?: string;
   notes_general?: string;
+  // Email linkage (#6)
+  contact_email?: string;
+  email_thread_id?: string;
+  email_thread_subject?: string;
   job_roles: JobRole[];
   // Integrations
   discord_url?: string;
@@ -98,11 +154,14 @@ export interface Job {
   review_password?: string;
   drive_folder_url?: string;
   links?: JobLink[]; // Array of custom links
+  // Post & Creative
   edit_status?: 'Filmed' | 'WIP' | 'V1' | 'Revisions' | 'Delivered' | 'Wrapped';
   editor_id?: string;
   editor?: Contact; // Hydrated
   edit_notes?: string;
   edit_labels?: EditLabel[];
+  creative_brief?: string;
+  color_palette?: string[]; // Array of hex codes
   updated_at?: string;
 }
 
@@ -111,6 +170,14 @@ export interface JobTemplate {
   name: string;
   description?: string;
   roles: Partial<JobRole>[];
+  created_at?: string;
+}
+
+export interface GearTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  items: Record<string, number>;
   created_at?: string;
 }
 

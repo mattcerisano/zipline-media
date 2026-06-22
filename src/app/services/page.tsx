@@ -100,8 +100,8 @@ export default function ServicesPage() {
                 key={i} 
                 className="bg-black" 
                 style={{ 
-                    width: Math.random() > 0.5 ? '2px' : '4px', 
-                    height: Math.random() * 100 + '%',
+                    width: (i % 3 === 0) ? '4px' : '2px', 
+                    height: (50 + (i * 7) % 51) + '%',
                     opacity: 1
                 }} 
              />

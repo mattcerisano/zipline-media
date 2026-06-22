@@ -5,8 +5,13 @@ import { usePathname } from 'next/navigation';
 import { Instagram, Linkedin, Video } from 'lucide-react'; // Using Video as Vimeo placeholder if needed, or text
 
 export default function Footer() {
-  return (
+  const pathname = usePathname();
 
+  if (pathname?.startsWith('/command-center')) {
+    return null;
+  }
+
+  return (
     <footer className="bg-black border-t border-white/10 pt-8 md:pt-12 pb-6 md:pb-8 px-4 md:px-8 lg:px-12">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-8 md:gap-10">
 

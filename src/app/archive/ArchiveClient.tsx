@@ -448,7 +448,7 @@ export default function ArchiveClient() {
               </div>
             ) : (
               <div className="py-20 text-center opacity-40 uppercase tracking-widest text-sm">
-                No videos found matching "{searchQuery}"
+                No videos found matching &quot;{searchQuery}&quot;
               </div>
             )}
           </motion.section>
@@ -513,7 +513,7 @@ export default function ArchiveClient() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 md:p-8"
+            className="fixed inset-0 z-[150] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 md:p-8"
           >
             <button 
               onClick={() => setSelectedVideo(null)}

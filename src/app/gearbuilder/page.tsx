@@ -8,16 +8,13 @@ const PASSWORD = 'zipline2026';
 
 export default function GearBuilderPage() {
   const [passwordInput, setPasswordInput] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [error, setError] = useState('');
-
-  // Optional: Save session in localStorage to avoid re-entering on refresh
-  useEffect(() => {
-    const saved = localStorage.getItem('zipline_gb_auth');
-    if (saved === 'true') {
-      setIsAuthenticated(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('zipline_gb_auth') === 'true';
     }
-  }, []);
+    return false;
+  });
+  const [error, setError] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
