@@ -32,6 +32,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { Contact, Client } from '@/components/gearbuilder/types';
@@ -220,6 +221,16 @@ function parseClientCSV(text: string) {
 }
 
 export default function Rolodex() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const renderPortal = (content: React.ReactNode) => {
+    if (!mounted || typeof document === 'undefined') return null;
+    return createPortal(content, document.body);
+  };
+
   const [activeView, setActiveView] = useState<RolodexView>('crew');
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -1058,7 +1069,8 @@ export default function Rolodex() {
       </div>
 
       {/* ═══════════════════════ CONTACT DETAIL CARD ═══════════════════════ */}
-      <AnimatePresence>
+      {renderPortal(
+        <AnimatePresence>
         {isContactDetailOpen && selectedContact && (
           <div 
             onClick={(e) => { if (e.target === e.currentTarget) setIsContactDetailOpen(false); }}
@@ -1312,9 +1324,11 @@ export default function Rolodex() {
           </div>
         )}
       </AnimatePresence>
+      )}
 
       {/* ═══════════════════════ CLIENT DETAIL CARD ═══════════════════════ */}
-      <AnimatePresence>
+      {renderPortal(
+        <AnimatePresence>
         {isClientDetailOpen && selectedClient && (
           <div 
             onClick={(e) => { if (e.target === e.currentTarget) setIsClientDetailOpen(false); }}
@@ -1506,9 +1520,11 @@ export default function Rolodex() {
           </div>
         )}
       </AnimatePresence>
+      )}
 
       {/* History Modal */}
-      <AnimatePresence>
+      {renderPortal(
+        <AnimatePresence>
         {isHistoryOpen && (
           <div 
             onClick={(e) => {
@@ -1590,9 +1606,11 @@ export default function Rolodex() {
           </div>
         )}
       </AnimatePresence>
+      )}
 
       {/* Import Options & Instructions Modal */}
-      <AnimatePresence>
+      {renderPortal(
+        <AnimatePresence>
         {isImportOptionsOpen && (
           <div className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center items-start md:items-center pt-8 md:pt-4">
             <motion.div
@@ -1688,9 +1706,11 @@ export default function Rolodex() {
           </div>
         )}
       </AnimatePresence>
+      )}
 
       {/* Import Contacts Modal */}
-      <AnimatePresence>
+      {renderPortal(
+        <AnimatePresence>
         {isImportModalOpen && (
           <div 
             onClick={(e) => {
@@ -1875,9 +1895,11 @@ export default function Rolodex() {
           </div>
         )}
       </AnimatePresence>
+      )}
 
       {/* QuickBooks Client Import Preview */}
-      <AnimatePresence>
+      {renderPortal(
+        <AnimatePresence>
         {isClientImportOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
             <motion.div
@@ -1955,282 +1977,289 @@ export default function Rolodex() {
           </div>
         )}
       </AnimatePresence>
+      )}
 
       {/* Edit Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div 
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setIsModalOpen(false);
-              }
-            }}
-            className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-2xl bg-neutral-900 border border-white/10 rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh] cursor-default"
+      {renderPortal(
+        <AnimatePresence>
+          {isModalOpen && (
+            <div 
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setIsModalOpen(false);
+                }
+              }}
+              className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
             >
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-xl font-bold tracking-tight text-white">
-                  {editingContact?.id ? 'Edit Contact' : 'New Contact'}
-                </h2>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-white/50 ml-1">Full Name</label>
-                  <input 
-                    required
-                    type="text"
-                    value={editingContact?.name || ''}
-                    onChange={(e) => setEditingContact({ ...editingContact!, name: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-white/50 ml-1">Email Address <span className="opacity-60 normal-case tracking-normal font-medium">(optional)</span></label>
-                  <input
-                    type="email"
-                    value={editingContact?.email || ''}
-                    onChange={(e) => setEditingContact({ ...editingContact!, email: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-white/50 ml-1">Phone</label>
-                  <input 
-                    type="text"
-                    value={editingContact?.phone || ''}
-                    onChange={(e) => setEditingContact({ ...editingContact!, phone: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-white/50 ml-1">Primary Role</label>
-                  <input 
-                    type="text"
-                    value={editingContact?.primary_role || ''}
-                    onChange={(e) => setEditingContact({ ...editingContact!, primary_role: e.target.value })}
-                    list="standard-roles"
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
-                  />
-                  <datalist id="standard-roles">
-                    {STANDARD_ROLES.map(role => <option key={role} value={role} />)}
-                  </datalist>
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-semibold text-white/50 ml-1">Notes</label>
-                  <textarea 
-                    value={editingContact?.notes_general || ''}
-                    onChange={(e) => setEditingContact({ ...editingContact!, notes_general: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm h-32 text-white"
-                  />
-                </div>
-
-                <div className="md:col-span-2 flex justify-end gap-4 mt-4">
-                  <button 
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-6 py-2.5 rounded-xl font-semibold text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit"
-                    className="bg-accent text-white px-8 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
-                  >
-                    Save Contact
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-2xl bg-neutral-900 border border-white/10 rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh] cursor-default"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-xl font-bold tracking-tight text-white">
+                    {editingContact?.id ? 'Edit Contact' : 'New Contact'}
+                  </h2>
+                  <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
+                    <X className="w-6 h-6" />
                   </button>
                 </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+
+                <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1">Full Name</label>
+                    <input 
+                      required
+                      type="text"
+                      value={editingContact?.name || ''}
+                      onChange={(e) => setEditingContact({ ...editingContact!, name: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1">Email Address <span className="opacity-60 normal-case tracking-normal font-medium">(optional)</span></label>
+                    <input
+                      type="email"
+                      value={editingContact?.email || ''}
+                      onChange={(e) => setEditingContact({ ...editingContact!, email: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1">Phone</label>
+                    <input 
+                      type="text"
+                      value={editingContact?.phone || ''}
+                      onChange={(e) => setEditingContact({ ...editingContact!, phone: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1">Primary Role</label>
+                    <input 
+                      type="text"
+                      value={editingContact?.primary_role || ''}
+                      onChange={(e) => setEditingContact({ ...editingContact!, primary_role: e.target.value })}
+                      list="standard-roles"
+                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
+                    />
+                    <datalist id="standard-roles">
+                      {STANDARD_ROLES.map(role => <option key={role} value={role} />)}
+                    </datalist>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1">Notes</label>
+                    <textarea 
+                      value={editingContact?.notes_general || ''}
+                      onChange={(e) => setEditingContact({ ...editingContact!, notes_general: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm h-32 text-white"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 flex justify-end gap-4 mt-4">
+                    <button 
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-6 py-2.5 rounded-xl font-semibold text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      className="bg-accent text-white px-8 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
+                    >
+                      Save Contact
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      )}
 
       {/* Edit Client Modal */}
-      <AnimatePresence>
-        {isClientModalOpen && (
-          <div 
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setIsClientModalOpen(false);
-              }
-            }}
-            className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-2xl bg-neutral-900 border border-white/10 rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh] cursor-default"
+      {renderPortal(
+        <AnimatePresence>
+          {isClientModalOpen && (
+            <div 
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setIsClientModalOpen(false);
+                }
+              }}
+              className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
             >
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-xl font-bold tracking-tight text-white">
-                  {editingClient?.id ? 'Edit Client' : 'New Client'}
-                </h2>
-                <button onClick={() => setIsClientModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <form onSubmit={handleClientSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-semibold text-white/50 ml-1">Company / Client Name</label>
-                  <input 
-                    required
-                    type="text"
-                    value={editingClient?.name || ''}
-                    onChange={(e) => setEditingClient({ ...editingClient!, name: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-white/50 ml-1">Primary Email</label>
-                  <input 
-                    type="email"
-                    value={editingClient?.email || ''}
-                    onChange={(e) => setEditingClient({ ...editingClient!, email: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-white/50 ml-1">Phone</label>
-                  <input 
-                    type="text"
-                    value={editingClient?.phone || ''}
-                    onChange={(e) => setEditingClient({ ...editingClient!, phone: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-semibold text-white/50 ml-1">Billing Address</label>
-                  <input 
-                    type="text"
-                    value={editingClient?.address || ''}
-                    onChange={(e) => setEditingClient({ ...editingClient!, address: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-semibold text-white/50 ml-1">Notes</label>
-                  <textarea 
-                    value={editingClient?.notes || ''}
-                    onChange={(e) => setEditingClient({ ...editingClient!, notes: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm h-32 text-white"
-                  />
-                </div>
-
-                <div className="md:col-span-2 flex justify-end gap-4 mt-4">
-                  <button 
-                    type="button"
-                    onClick={() => setIsClientModalOpen(false)}
-                    className="px-6 py-2.5 rounded-xl font-semibold text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit"
-                    className="bg-accent text-white px-8 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
-                  >
-                    Save Client
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-2xl bg-neutral-900 border border-white/10 rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh] cursor-default"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-xl font-bold tracking-tight text-white">
+                    {editingClient?.id ? 'Edit Client' : 'New Client'}
+                  </h2>
+                  <button onClick={() => setIsClientModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
+                    <X className="w-6 h-6" />
                   </button>
                 </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+
+                <form onSubmit={handleClientSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1">Company / Client Name</label>
+                    <input 
+                      required
+                      type="text"
+                      value={editingClient?.name || ''}
+                      onChange={(e) => setEditingClient({ ...editingClient!, name: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1">Primary Email</label>
+                    <input 
+                      type="email"
+                      value={editingClient?.email || ''}
+                      onChange={(e) => setEditingClient({ ...editingClient!, email: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1">Phone</label>
+                    <input 
+                      type="text"
+                      value={editingClient?.phone || ''}
+                      onChange={(e) => setEditingClient({ ...editingClient!, phone: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1">Billing Address</label>
+                    <input 
+                      type="text"
+                      value={editingClient?.address || ''}
+                      onChange={(e) => setEditingClient({ ...editingClient!, address: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1">Notes</label>
+                    <textarea 
+                      value={editingClient?.notes || ''}
+                      onChange={(e) => setEditingClient({ ...editingClient!, notes: e.target.value })}
+                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm h-32 text-white"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 flex justify-end gap-4 mt-4">
+                    <button 
+                      type="button"
+                      onClick={() => setIsClientModalOpen(false)}
+                      className="px-6 py-2.5 rounded-xl font-semibold text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      className="bg-accent text-white px-8 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
+                    >
+                      Save Client
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      )}
 
       {/* Client History Modal */}
-      <AnimatePresence>
-        {isClientHistoryOpen && (
-          <div 
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setIsClientHistoryOpen(false);
-              }
-            }}
-            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-pointer"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-3xl bg-neutral-900 border border-white/10 rounded-3xl p-8 shadow-2xl cursor-default"
+      {renderPortal(
+        <AnimatePresence>
+          {isClientHistoryOpen && (
+            <div 
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setIsClientHistoryOpen(false);
+                }
+              }}
+              className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-pointer"
             >
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-xl font-bold tracking-tight text-white">Client Portfolio</h2>
-                  <p className="text-xs font-semibold text-accent mt-1">{activeClientName}</p>
-                </div>
-                <button onClick={() => setIsClientHistoryOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                {selectedClientHistory.length > 0 ? (
-                  selectedClientHistory.map((entry, i) => (
-                    <div key={i} className="bg-white/5 border border-white/5 rounded-2xl p-6 group transition-all text-white">
-                      <div className="flex justify-between items-start mb-4 border-b border-white/10 pb-4">
-                        <div>
-                          <p className="text-base font-semibold tracking-tight">{entry.job_title}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[10px] font-medium text-white/40">Shoot Date</p>
-                          <p className="text-xs font-semibold">{entry.shoot_date || 'TBD'}</p>
-                        </div>
-                      </div>
-                      <div>
-                         <p className="text-[10px] font-medium opacity-50 mb-3">Assigned Crew</p>
-                         {entry.crew.length > 0 ? (
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                             {entry.crew.map((c, j) => (
-                               <div key={j} className="flex items-center gap-2 p-2 bg-black/20 rounded border border-white/5">
-                                 <Users className="w-3 h-3 text-accent" />
-                                 <p className="text-xs font-semibold text-white/90">{c.name}</p>
-                                 <p className="text-[10px] opacity-40 ml-auto">{c.position}</p>
-                               </div>
-                             ))}
-                           </div>
-                         ) : (
-                           <p className="text-[10px] italic opacity-30">No crew recorded for this job.</p>
-                         )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-12 opacity-40 border border-dashed border-white/10 rounded-2xl text-white">
-                    <p className="text-xs font-semibold text-white/40">No jobs recorded for this client.</p>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="w-full max-w-3xl bg-neutral-900 border border-white/10 rounded-3xl p-8 shadow-2xl cursor-default"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-white">Client Portfolio</h2>
+                    <p className="text-xs font-semibold text-accent mt-1">{activeClientName}</p>
                   </div>
-                )}
-              </div>
+                  <button onClick={() => setIsClientHistoryOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
 
-              <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
-                 <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-white/40">Yearly Summary</p>
-                    <p className="text-xs font-semibold text-white">
-                       Total Jobs: <span className="text-accent">{selectedClientHistory.length}</span>
-                    </p>
-                 </div>
-                 <button 
-                   onClick={() => setIsClientHistoryOpen(false)}
-                   className="bg-accent text-white px-6 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all"
-                 >
-                   Close
-                 </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                  {selectedClientHistory.length > 0 ? (
+                    selectedClientHistory.map((entry, i) => (
+                      <div key={i} className="bg-white/5 border border-white/5 rounded-2xl p-6 group transition-all text-white">
+                        <div className="flex justify-between items-start mb-4 border-b border-white/10 pb-4">
+                          <div>
+                            <p className="text-base font-semibold tracking-tight">{entry.job_title}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] font-medium text-white/40">Shoot Date</p>
+                            <p className="text-xs font-semibold">{entry.shoot_date || 'TBD'}</p>
+                          </div>
+                        </div>
+                        <div>
+                           <p className="text-[10px] font-medium opacity-50 mb-3">Assigned Crew</p>
+                           {entry.crew.length > 0 ? (
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                               {entry.crew.map((c, j) => (
+                                 <div key={j} className="flex items-center gap-2 p-2 bg-black/20 rounded border border-white/5">
+                                   <Users className="w-3 h-3 text-accent" />
+                                   <p className="text-xs font-semibold text-white/90">{c.name}</p>
+                                   <p className="text-[10px] opacity-40 ml-auto">{c.position}</p>
+                                 </div>
+                               ))}
+                             </div>
+                           ) : (
+                             <p className="text-[10px] italic opacity-30">No crew recorded for this job.</p>
+                           )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12 opacity-40 border border-dashed border-white/10 rounded-2xl text-white">
+                      <p className="text-xs font-semibold text-white/40">No jobs recorded for this client.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-semibold text-white/40">Yearly Summary</p>
+                      <p className="text-xs font-semibold text-white">
+                         Total Jobs: <span className="text-accent">{selectedClientHistory.length}</span>
+                      </p>
+                   </div>
+                   <button 
+                     onClick={() => setIsClientHistoryOpen(false)}
+                     className="bg-accent text-white px-6 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all"
+                   >
+                     Close
+                   </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }

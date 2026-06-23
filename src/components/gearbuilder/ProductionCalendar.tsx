@@ -34,7 +34,7 @@ interface ProductionCalendarProps {
   enableQuickEvents?: boolean;
 }
 
-export default function ProductionCalendar({ onSelectDate, onSelectJob, onDeleteJob, onSelectRange, selectionMode = 'single', editable = false, enableQuickEvents = false }: ProductionCalendarProps) {
+export default function ProductionCalendar({ onSelectDate, onSelectJob, onDeleteJob, onSelectRange, selectionMode = 'single', editable = false, enableQuickEvents = true }: ProductionCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [jobs, setJobs] = useState<Job[]>([]);
   const [rangeStart, setRangeStart] = useState<string | null>(null);
@@ -142,6 +142,19 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     });
   };
 
+  const openNewJobEditor = (date: string) => {
+    const tempJob: Partial<Job> = {
+      id: `new-${Date.now()}`,
+      title: 'New Production',
+      job_status: 'Planning',
+      shoot_date: date,
+      end_date: date,
+      call_time: '08:00 AM',
+      type: 'production'
+    };
+    openEditor(tempJob as Job);
+  };
+
   // Save edits to Supabase, then push the change to Google Calendar
   const handleSaveEdit = async () => {
     if (!editingJob) return;
@@ -162,9 +175,35 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       notes_general: editForm.notes_general?.trim() || undefined,
     };
 
+    let savedJobId = editingJob.id;
     try {
-      const { error } = await supabase.from('jobs').update(updates).eq('id', editingJob.id);
-      if (error) throw error;
+      if (editingJob.id.startsWith('new-')) {
+        // Inserting a new production job
+        const { data, error } = await supabase
+          .from('jobs')
+          .insert([{
+            title: updates.title,
+            client_name: updates.client_name,
+            job_status: updates.job_status || 'Planning',
+            shoot_date: updates.shoot_date,
+            end_date: updates.end_date,
+            call_time: updates.call_time || '08:00 AM',
+            location_name: updates.location_name,
+            location_address: updates.location_address,
+            notes_general: updates.notes_general,
+            type: 'production'
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          savedJobId = data.id;
+        }
+      } else {
+        const { error } = await supabase.from('jobs').update(updates).eq('id', editingJob.id);
+        if (error) throw error;
+      }
 
       // Push the updated job to Google Calendar (no-op if not connected).
       try {
@@ -174,7 +213,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
           const res = await fetch('/api/integrations/calendar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'push', userId, jobId: editingJob.id }),
+            body: JSON.stringify({ action: 'push', userId, jobId: savedJobId }),
           });
           const data = await res.json();
           if (data.success) {
@@ -344,7 +383,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                               onSelectRange(start, end);
                               setRangeStart(null);
                           }
-                      } else if (enableQuickEvents && !isMobile) {
+                      } else if (enableQuickEvents && !isMobile && !onSelectDate) {
                           setQuickAddDate(prev => (prev === d.date ? null : d.date));
                       } else {
                           onSelectDate?.(d.date);
@@ -364,12 +403,12 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                     {d.day}
                   </span>
 
-                  {/* Quick-add "+" affordance (desktop, calendar tab only) */}
+                  {/* Quick-add "+" affordance (desktop) */}
                   {enableQuickEvents && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setQuickAddDate(prev => (prev === d.date ? null : d.date)); }}
-                      className="hidden md:flex absolute top-1.5 right-1.5 w-5 h-5 items-center justify-center rounded-md bg-white/5 hover:bg-accent/20 text-white/40 hover:text-accent opacity-0 group-hover:opacity-100 transition-all z-20"
-                      title="Quick add"
+                      className="hidden md:flex absolute top-1.5 right-1.5 w-5 h-5 items-center justify-center rounded-md bg-white/5 hover:bg-accent/20 border border-white/5 text-white/40 hover:text-accent transition-all z-20"
+                      title="Quick add event"
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -489,6 +528,21 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                           <span className="text-[10px] font-semibold text-white/80">{p.label}</span>
                         </button>
                       ))}
+                      {editable && (
+                        <>
+                          <div className="h-px bg-white/10 my-1" />
+                          <button
+                            onClick={() => {
+                              setQuickAddDate(null);
+                              openNewJobEditor(d.date);
+                            }}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-accent/15 text-accent text-left transition-colors"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-bold">New Production</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </>
@@ -534,6 +588,15 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                       <span className="text-[9px] font-semibold text-white/80">{p.label}</span>
                     </button>
                   ))}
+                  {editable && (
+                    <button
+                      onClick={() => openNewJobEditor(selectedDate)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-accent/10 hover:bg-accent hover:text-black border border-accent/20 transition-all text-accent"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span className="text-[9px] font-bold">New Production</span>
+                    </button>
+                  )}
                 </div>
                 {events.filter(ev => ev.event_date === selectedDate).map(ev => {
                   const p = presetOf(ev.preset);
