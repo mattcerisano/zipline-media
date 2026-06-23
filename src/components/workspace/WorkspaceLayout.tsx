@@ -27,7 +27,8 @@ import {
   Pause,
   HelpCircle,
   Lock,
-  Mail
+  Mail,
+  Share2
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
@@ -38,6 +39,7 @@ import EditTracker from '@/components/teambuilder/EditTracker';
 import Rentals from '@/components/gearbuilder/Rentals';
 import ProductionCalendar from '@/components/gearbuilder/ProductionCalendar';
 import Creative from '@/components/teambuilder/Creative';
+import SocialMedia from '@/components/social/SocialMedia';
 import Rolodex from '@/components/teambuilder/Rolodex';
 import DashboardOverview from '@/components/workspace/DashboardOverview';
 import { QuickStartWidget } from './QuickStartGuide';
@@ -63,6 +65,7 @@ const WIDGET_ICONS: Record<string, any> = {
   edits: Scissors,
   gear: Package,
   creative: Palette,
+  social: Share2,
   rolodex: Users,
   notes: FileText,
   script: Tv,
@@ -79,6 +82,7 @@ const WIDGET_LABELS: Record<string, string> = {
   edits: 'Edit Tracker',
   gear: 'Gear Builder',
   creative: 'Creative Board',
+  social: 'Social Media',
   rolodex: 'Rolodex',
   notes: 'Scratch Notes',
   script: 'Script & Teleprompter',
@@ -95,6 +99,7 @@ const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
   edits: { type: 'panel', id: 'edits-root', activeTab: 'edits', tabs: ['edits'] },
   gear: { type: 'panel', id: 'gear-root', activeTab: 'gear', tabs: ['gear'] },
   creative: { type: 'panel', id: 'creative-root', activeTab: 'creative', tabs: ['creative'] },
+  social: { type: 'panel', id: 'social-root', activeTab: 'social', tabs: ['social'] },
   rolodex: { type: 'panel', id: 'rolodex-root', activeTab: 'rolodex', tabs: ['rolodex'] },
   inbox: { type: 'panel', id: 'inbox-root', activeTab: 'inbox', tabs: ['inbox'] },
   vault: { type: 'panel', id: 'vault-root', activeTab: 'vault', tabs: ['vault'] }
@@ -856,6 +861,8 @@ function WidgetMount({
       );
     case 'creative':
       return <Creative selectedJobId={boundJobId || undefined} />;
+    case 'social':
+      return <SocialMedia />;
     case 'rolodex':
       return <Rolodex />;
     case 'notes':
