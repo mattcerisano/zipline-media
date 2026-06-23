@@ -304,12 +304,39 @@ export default function Slate({
     }
   };
 
+  // Fire a team notification through the multi-channel dispatch route.
+  // Fails silently — a webhook hiccup must never block saving a job.
+  const sendNotification = async (eventKey: string, job: Partial<Job>, oldStatus?: string) => {
+    try {
+      await fetch('/api/integrations/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_key: eventKey,
+          variables: {
+            title: job.title || '',
+            client: job.client_name || job.production_company || 'Internal',
+            production_company: job.production_company || '',
+            shoot_date: job.shoot_date || '',
+            location: job.location_name || '',
+            old_status: oldStatus || '',
+            new_status: job.job_status || '',
+          },
+        }),
+      });
+    } catch (notifyErr) {
+      console.error('Failed to send team notification:', notifyErr);
+    }
+  };
+
   const handleSaveJob = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingJob.title) return;
 
     try {
       let savedJobData;
+      // Snapshot the prior status so we can detect transitions (e.g. Hold -> Booked).
+      const prevStatus = editingJob.id ? jobs.find(j => j.id === editingJob.id)?.job_status : undefined;
 
       // Resolve (or create) the client so the job carries a stable client_id link.
       // This powers the Client → Project hierarchy filtering across the app.
@@ -343,6 +370,12 @@ export default function Slate({
         if (error) throw error;
         savedJobData = data;
         setJobs(prev => prev.map(j => j.id === editingJob.id ? data as Job : j).sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')));
+
+        // Announce status transitions (Hold -> Booked, etc.) to the team.
+        const newStatus = (data as Job).job_status;
+        if (newStatus && newStatus !== prevStatus) {
+          sendNotification(`status_${newStatus.toLowerCase()}`, data as Job, prevStatus);
+        }
       } else {
         const { data, error } = await supabase
           .from('jobs')
@@ -352,28 +385,9 @@ export default function Slate({
         if (error) throw error;
         savedJobData = data;
         setJobs(prev => [...prev, data as Job].sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')));
-        
-        // Trigger Discord Webhook
-        try {
-          await fetch('/api/integrations/discord', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              message: `🎬 **New Production Added!**`,
-              embed: {
-                title: editingJob.title,
-                color: 3447003, // Blue
-                fields: [
-                  { name: 'Client / Prod Co', value: editingJob.client_name || editingJob.production_company || 'Internal', inline: true },
-                  { name: 'Shoot Date', value: editingJob.shoot_date || 'TBD', inline: true },
-                  { name: 'Location', value: editingJob.location_name || 'TBD', inline: true }
-                ]
-              }
-            })
-          });
-        } catch (discordErr) {
-          console.error('Failed to send Discord alert:', discordErr);
-        }
+
+        // Announce the new production across all enabled channels.
+        sendNotification('job_created', data as Job);
       }
       
       setIsJobModalOpen(false);
@@ -945,9 +959,9 @@ export default function Slate({
               </div>
 
               <form onSubmit={handleSaveJob} className="grid grid-cols-1 md:grid-cols-6 gap-x-3 gap-y-1.5">
-                {/* Project Title */}
+                {/* Production Title (the individual shoot) */}
                 <div className="md:col-span-4 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Project Title</label>
+                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Title</label>
                   <input 
                     required
                     type="text"
@@ -973,23 +987,43 @@ export default function Slate({
 
                 {/* Client Name */}
                 <div className="md:col-span-3 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Client Name</label>
-                  <input 
+                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Client Name <span className="opacity-60 normal-case tracking-normal font-medium">(who you bill)</span></label>
+                  <input
                     type="text"
                     placeholder="CLIENT NAME"
                     value={editingJob.client_name || ''}
-                    onChange={(e) => setEditingJob(prev => ({ ...prev, client_name: e.target.value }))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const match = clients.find(c => c.name.trim().toLowerCase() === val.trim().toLowerCase());
+                      setEditingJob(prev => ({
+                        ...prev,
+                        client_name: val,
+                        client_id: match ? match.id : prev.client_id,
+                        // Auto-pull the bill-to contact email from the Rolodex (only if not already set)
+                        contact_email: (match && match.email && !prev.contact_email) ? match.email : prev.contact_email,
+                      }));
+                    }}
                     list="slate-clients"
                     className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-bold uppercase text-xs text-white"
                   />
                   <datalist id="slate-clients">
                     {clients.map(c => <option key={c.id} value={c.name} />)}
                   </datalist>
+                  {(() => {
+                    const match = clients.find(c => c.name.trim().toLowerCase() === (editingJob.client_name || '').trim().toLowerCase());
+                    const details = match ? [match.email, match.phone, match.address].filter(Boolean).join('  ·  ') : '';
+                    if (!details) return null;
+                    return (
+                      <p className="text-[8px] font-medium text-accent/70 ml-1 mt-0.5 flex items-center gap-1 normal-case tracking-normal">
+                        <Building2 className="w-2.5 h-2.5 shrink-0" /> Pulled from Rolodex: {details}
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 {/* Production Company */}
                 <div className="md:col-span-3 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Company</label>
+                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Company <span className="opacity-60 normal-case tracking-normal font-medium">(if a prod co hired you for their client)</span></label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white" />
                     <input 

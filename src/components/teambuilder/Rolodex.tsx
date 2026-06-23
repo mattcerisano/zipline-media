@@ -165,6 +165,60 @@ function parseCSV(text: string) {
   return contacts;
 }
 
+// Parse a QuickBooks customer-list CSV export into client rows. Handles the
+// common QuickBooks header variants (Customer / Display Name, Company, Email,
+// Phone, and either a single Bill-to Address or split Street/City/State/ZIP).
+function parseClientCSV(text: string) {
+  const rows: { name: string; email: string; phone: string; address: string }[] = [];
+  const lines = text.split(/\r?\n/);
+  if (lines.length < 2) return [];
+
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
+  const nameIdx = headers.findIndex(h => h === 'customer' || h.includes('display name') || h === 'full name' || h === 'name');
+  const companyIdx = headers.findIndex(h => h === 'company' || h.includes('company name'));
+  const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('e-mail'));
+  const phoneIdx = headers.findIndex(h => h.includes('phone') || h === 'mobile' || h === 'tel');
+  const billIdx = headers.findIndex(h => (h.includes('bill') && h.includes('address')) || h === 'billing address');
+  const addrIdx = headers.findIndex(h => h === 'address' || h === 'full address');
+  const streetIdx = headers.findIndex(h => h.includes('street') || h.includes('address line 1') || h.includes('addr 1'));
+  const cityIdx = headers.findIndex(h => h.includes('city'));
+  const stateIdx = headers.findIndex(h => h === 'state' || h.includes('province'));
+  const zipIdx = headers.findIndex(h => h.includes('zip') || h.includes('postal'));
+
+  const splitLine = (line: string) => {
+    const values: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let c = 0; c < line.length; c++) {
+      const ch = line[c];
+      if (ch === '"' || ch === "'") inQuotes = !inQuotes;
+      else if (ch === ',' && !inQuotes) { values.push(cur.trim().replace(/^["']|["']$/g, '')); cur = ''; }
+      else cur += ch;
+    }
+    values.push(cur.trim().replace(/^["']|["']$/g, ''));
+    return values;
+  };
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const v = splitLine(line);
+    let name = nameIdx >= 0 ? (v[nameIdx] || '') : '';
+    if (!name && companyIdx >= 0) name = v[companyIdx] || '';
+    const email = emailIdx >= 0 ? (v[emailIdx] || '') : '';
+    const phone = phoneIdx >= 0 ? (v[phoneIdx] || '') : '';
+    let address = '';
+    if (billIdx >= 0 && v[billIdx]) address = v[billIdx];
+    else if (addrIdx >= 0 && v[addrIdx]) address = v[addrIdx];
+    else {
+      const parts = [streetIdx, cityIdx, stateIdx, zipIdx].map(idx => (idx >= 0 ? (v[idx] || '') : '')).filter(Boolean);
+      address = parts.join(', ');
+    }
+    if (name) rows.push({ name, email, phone, address });
+  }
+  return rows;
+}
+
 export default function Rolodex() {
   const [activeView, setActiveView] = useState<RolodexView>('crew');
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -185,6 +239,12 @@ export default function Rolodex() {
   const [parsedContacts, setParsedContacts] = useState<{ name: string; email: string; phone: string; primary_role: string; tags: string }[]>([]);
   const [selectedImportIdxs, setSelectedImportIdxs] = useState<number[]>([]);
   const [isImportLoading, setIsImportLoading] = useState(false);
+
+  // QuickBooks client CSV import states
+  const [isClientImportOpen, setIsClientImportOpen] = useState(false);
+  const [parsedClients, setParsedClients] = useState<{ name: string; email: string; phone: string; address: string }[]>([]);
+  const [selectedClientIdxs, setSelectedClientIdxs] = useState<number[]>([]);
+  const [isClientImportLoading, setIsClientImportLoading] = useState(false);
 
   // History
   const [selectedContactHistory, setSelectedContactHistory] = useState<{type: 'On-Set' | 'Post', job_title: string, shoot_date: string, position: string, rate?: number, notes?: string}[]>([]);
@@ -574,24 +634,86 @@ export default function Rolodex() {
     }
   };
 
+  // QuickBooks customer CSV → clients
+  const handleClientImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        alert('Please upload a .csv export from QuickBooks.');
+        return;
+      }
+      const rows = parseClientCSV(text);
+      if (rows.length === 0) {
+        alert('No clients found. Make sure the CSV has a Customer/Company column.');
+        return;
+      }
+      setParsedClients(rows);
+      setSelectedClientIdxs(rows.map((_, idx) => idx));
+      setIsClientImportOpen(true);
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const handleConfirmClientImport = async () => {
+    setIsClientImportLoading(true);
+    try {
+      const existing = new Set(clients.map(c => c.name.trim().toLowerCase()));
+      const toInsert = parsedClients
+        .filter((_, idx) => selectedClientIdxs.includes(idx))
+        .map(c => ({
+          name: c.name.trim(),
+          email: c.email.trim() || null,
+          phone: c.phone.trim() || null,
+          address: c.address.trim() || null,
+        }))
+        .filter(c => c.name && !existing.has(c.name.toLowerCase()));
+
+      if (toInsert.length === 0) {
+        alert('Nothing to import — those clients already exist (matched by name).');
+        setIsClientImportLoading(false);
+        return;
+      }
+
+      const { error } = await supabase.from('clients').insert(toInsert);
+      if (error) throw error;
+
+      alert(`Imported ${toInsert.length} client${toInsert.length === 1 ? '' : 's'} from QuickBooks.`);
+      setIsClientImportOpen(false);
+      const { data } = await supabase.from('clients').select('*').order('name');
+      if (data) setClients(data as Client[]);
+    } catch (err) {
+      console.error('Error importing clients:', err);
+      alert('Failed to import clients.');
+    } finally {
+      setIsClientImportLoading(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingContact?.name || !editingContact?.email) {
-      alert('Name and Email are required');
+    if (!editingContact?.name?.trim()) {
+      alert('Name is required');
       return;
     }
 
     try {
+      // Email is optional (lots of crew don't have one on hand), but the column
+      // is NOT NULL — send an empty string rather than null for blank emails.
+      const payload = { ...editingContact, email: editingContact.email?.trim() || '' };
       const { error } = await supabase
         .from('contacts')
-        .upsert(editingContact);
+        .upsert(payload);
       if (error) throw error;
-      
+
       setIsModalOpen(false);
       fetchData();
     } catch (err) {
       console.error('Error saving contact:', err);
-      alert('Failed to save contact');
+      alert(`Failed to save contact: ${(err as any)?.message || 'unknown error'}`);
     }
   };
 
@@ -744,7 +866,7 @@ export default function Rolodex() {
             >
               <Upload className="w-4 h-4 text-accent" /> Import
             </button>
-            <input 
+            <input
               type="file"
               id="import-contacts-input"
               accept=".vcf,.csv"
@@ -753,7 +875,25 @@ export default function Rolodex() {
             />
           </>
         )}
-        <button 
+        {activeView === 'clients' && (
+          <>
+            <label
+              htmlFor="import-clients-input"
+              title="Import customers from a QuickBooks CSV export"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white/80 hover:text-white px-6 py-4 rounded-xl border border-white/10 font-black uppercase tracking-widest text-xs transition-all flex items-center gap-3 whitespace-nowrap cursor-pointer hover:border-accent/40"
+            >
+              <Upload className="w-4 h-4 text-accent" /> Import from QuickBooks
+            </label>
+            <input
+              type="file"
+              id="import-clients-input"
+              accept=".csv"
+              onChange={handleClientImportFile}
+              className="hidden"
+            />
+          </>
+        )}
+        <button
           onClick={() => {
             if (activeView === 'crew') {
               setEditingContact({ name: '', email: '', primary_role: '', is_favorite: false });
@@ -1736,6 +1876,86 @@ export default function Rolodex() {
         )}
       </AnimatePresence>
 
+      {/* QuickBooks Client Import Preview */}
+      <AnimatePresence>
+        {isClientImportOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-3xl bg-neutral-900 border border-white/10 rounded-3xl p-8 shadow-2xl flex flex-col max-h-[85vh]"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Import Clients from QuickBooks</h2>
+                <button onClick={() => setIsClientImportOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white/60 hover:text-white cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-[11px] text-white/40 mb-5 font-medium">
+                Review the customers parsed from your CSV. Existing clients (matched by name) are skipped. Edit any field before importing.
+              </p>
+
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => setSelectedClientIdxs(selectedClientIdxs.length === parsedClients.length ? [] : parsedClients.map((_, i) => i))}
+                  className="text-[10px] font-black uppercase tracking-widest text-accent hover:text-white cursor-pointer"
+                >
+                  {selectedClientIdxs.length === parsedClients.length ? 'Deselect all' : 'Select all'}
+                </button>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">{selectedClientIdxs.length} of {parsedClients.length} selected</span>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar border border-white/10 rounded-xl">
+                <table className="w-full text-left">
+                  <thead className="bg-white/[0.03] sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 w-10"></th>
+                      {['Client / Company', 'Email', 'Phone', 'Bill-to Address'].map(h => (
+                        <th key={h} className="px-3 py-2 text-[8px] font-black uppercase tracking-widest text-white/40">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsedClients.map((c, idx) => {
+                      const checked = selectedClientIdxs.includes(idx);
+                      const set = (patch: Partial<typeof c>) => setParsedClients(prev => prev.map((x, i) => i === idx ? { ...x, ...patch } : x));
+                      return (
+                        <tr key={idx} className={`border-t border-white/5 ${checked ? '' : 'opacity-40'}`}>
+                          <td className="px-3 py-1.5 text-center">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => setSelectedClientIdxs(checked ? selectedClientIdxs.filter(i => i !== idx) : [...selectedClientIdxs, idx])}
+                              className="w-4 h-4 accent-accent cursor-pointer"
+                            />
+                          </td>
+                          <td className="px-2 py-1"><input className="w-full bg-transparent outline-none text-[11px] text-white/90 px-1 py-1 focus:bg-accent/5 rounded" value={c.name} onChange={(e) => set({ name: e.target.value })} /></td>
+                          <td className="px-2 py-1"><input className="w-full bg-transparent outline-none text-[11px] text-white/70 px-1 py-1 focus:bg-accent/5 rounded" value={c.email} onChange={(e) => set({ email: e.target.value })} /></td>
+                          <td className="px-2 py-1"><input className="w-full bg-transparent outline-none text-[11px] text-white/70 px-1 py-1 focus:bg-accent/5 rounded" value={c.phone} onChange={(e) => set({ phone: e.target.value })} /></td>
+                          <td className="px-2 py-1"><input className="w-full bg-transparent outline-none text-[11px] text-white/70 px-1 py-1 focus:bg-accent/5 rounded" value={c.address} onChange={(e) => set({ address: e.target.value })} /></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end gap-4 mt-6">
+                <button onClick={() => setIsClientImportOpen(false)} className="px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] border border-white/10 hover:bg-white/5 transition-all text-white cursor-pointer">Cancel</button>
+                <button
+                  onClick={handleConfirmClientImport}
+                  disabled={isClientImportLoading || selectedClientIdxs.length === 0}
+                  className="bg-accent text-white px-10 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {isClientImportLoading ? 'Importing…' : `Import ${selectedClientIdxs.length}`}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Edit Modal */}
       <AnimatePresence>
         {isModalOpen && (
@@ -1774,9 +1994,8 @@ export default function Rolodex() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Email Address</label>
-                  <input 
-                    required
+                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Email Address <span className="opacity-60 normal-case tracking-normal font-medium">(optional)</span></label>
+                  <input
                     type="email"
                     value={editingContact?.email || ''}
                     onChange={(e) => setEditingContact({ ...editingContact!, email: e.target.value })}
