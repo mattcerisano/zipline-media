@@ -3,10 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 
 // Service-role client so the route can read org channel/event config and
 // dispatch regardless of which user triggered the event.
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 type Platform = 'discord' | 'slack' | 'teams';
 
