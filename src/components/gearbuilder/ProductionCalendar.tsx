@@ -396,9 +396,17 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                       >
                         <div className="flex-1 min-w-0 pr-2">
                           <p className="text-[10px] font-semibold leading-tight truncate">{job.title}</p>
-                          <div className="flex items-center gap-1 mt-0.5 opacity-40">
-                             <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor(job)}`} />
-                             <p className="text-[8px] font-medium tracking-tight truncate">{job.client_name || 'No Client'}</p>
+                          <div className="flex items-center justify-between gap-1 mt-0.5">
+                            <div className="flex items-center gap-1 min-w-0 opacity-40">
+                               <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor(job)}`} />
+                               <p className="text-[8px] font-medium tracking-tight truncate">{job.client_name || 'No Client'}</p>
+                            </div>
+                            {job.call_time && (
+                              <span className="text-[7.5px] font-bold text-accent shrink-0 flex items-center gap-0.5" style={{ color: 'var(--accent)' }}>
+                                <Clock className="w-2 h-2" />
+                                {job.call_time}
+                              </span>
+                            )}
                           </div>
                         </div>
                         {onDeleteJob && (
@@ -553,9 +561,17 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                     className="p-3 bg-white/5 rounded-xl border border-white/5 hover:border-accent/30 transition-all flex items-start justify-between gap-3 cursor-pointer"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`w-2 h-2 rounded-full ${getStatusColor(job)}`} />
-                        <h4 className="text-xs font-semibold truncate text-white">{job.title}</h4>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-2 h-2 rounded-full ${getStatusColor(job)}`} />
+                          <h4 className="text-xs font-semibold truncate text-white">{job.title}</h4>
+                        </div>
+                        {job.call_time && (
+                          <span className="text-[10px] font-semibold text-accent flex items-center gap-1 shrink-0" style={{ color: 'var(--accent)' }}>
+                            <Clock className="w-3.5 h-3.5" />
+                            {job.call_time}
+                          </span>
+                        )}
                       </div>
                       <p className="text-[9px] font-semibold text-white/40 truncate pl-4">
                         {job.client_name || 'No Client'} {job.location_name ? `• ${job.location_name}` : ''}
