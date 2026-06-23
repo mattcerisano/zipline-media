@@ -101,6 +101,16 @@ export interface JobSchedule {
   sort_order: number;
 }
 
+export interface JobTodo {
+  id: string;
+  job_id: string;
+  task: string;
+  completed: boolean;
+  due_date?: string;
+  sort_order: number;
+  created_at?: string;
+}
+
 export interface JobShot {
   id: string;
   job_id: string;

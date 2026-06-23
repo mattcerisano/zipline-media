@@ -30,7 +30,7 @@ import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
 import { caps } from '@/lib/format';
 import { formatLocalDate } from '@/lib/date';
-import { Contact, Job, JobRole, DEPARTMENTS, JobTemplate, JobSchedule } from '@/components/gearbuilder/types';
+import { Contact, Job, JobRole, DEPARTMENTS, JobTemplate, JobSchedule, JobTodo } from '@/components/gearbuilder/types';
 
 // Helper function to sort schedule items chronologically
 const sortSchedules = (schedules: JobSchedule[]) => {
@@ -55,13 +55,15 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
   const [jobSchedules, setJobSchedules] = useState<JobSchedule[]>([]);
+  const [jobTodos, setJobTodos] = useState<JobTodo[]>([]);
   const [templates, setTemplates] = useState<JobTemplate[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [newTodoText, setNewTodoText] = useState('');
   
-  const [activeTab, setActiveTab] = useState<'crew' | 'schedule'>('crew');
+  const [activeTab, setActiveTab] = useState<'crew' | 'schedule' | 'preprod'>('crew');
 
   // Fetch initial data
   useEffect(() => {
@@ -98,22 +100,27 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
     fetchData();
   }, []);
 
-  // Fetch roles and schedules when job changes
+  // Fetch roles, schedules, and todos when job changes
   useEffect(() => {
     if (!selectedJobId) return;
 
     const fetchJobData = async () => {
       try {
-        const [rolesRes, schedulesRes] = await Promise.all([
+        const [rolesRes, schedulesRes, todosRes] = await Promise.all([
           supabase.from('job_roles').select('*, contact:contacts(*)').eq('job_id', selectedJobId),
-          supabase.from('job_schedules').select('*').eq('job_id', selectedJobId).order('sort_order', { ascending: true })
+          supabase.from('job_schedules').select('*').eq('job_id', selectedJobId).order('sort_order', { ascending: true }),
+          supabase.from('job_todos').select('*').eq('job_id', selectedJobId).order('sort_order', { ascending: true })
         ]);
 
         if (rolesRes.error) throw rolesRes.error;
         if (schedulesRes.error) throw schedulesRes.error;
+        if (todosRes.error) {
+          console.warn('job_todos table might not be initialized or synced yet:', todosRes.error);
+        }
 
         setJobRoles(rolesRes.data as JobRole[]);
         setJobSchedules(sortSchedules(schedulesRes.data as JobSchedule[]));
+        setJobTodos((todosRes.data || []) as JobTodo[]);
       } catch (err) {
         console.error('Error fetching job details:', err);
       }
@@ -160,6 +167,17 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       sort_order: maxSortOrder + 1
     };
     handleSaveSchedule(newSchedule as JobSchedule);
+  };
+
+  const addTodoItem = () => {
+    const maxSortOrder = jobTodos.reduce((max, t) => Math.max(max, t.sort_order), -1);
+    const newTodo: Partial<JobTodo> = {
+      job_id: selectedJobId,
+      task: 'New Prep Task',
+      completed: false,
+      sort_order: maxSortOrder + 1
+    };
+    handleSaveTodo(newTodo as JobTodo);
   };
 
   const handleSaveSchedule = async (schedule: JobSchedule) => {
@@ -284,6 +302,102 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
     } catch (err) {
       console.error('Error deleting role:', err);
       alert('Failed to delete role');
+    }
+  };
+
+  const handleSaveTodo = async (todo: JobTodo) => {
+    setIsSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from('job_todos')
+        .upsert(todo)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setJobTodos(prev => {
+        const exists = prev.find(t => t.id === data.id);
+        if (exists) {
+          return prev.map(t => t.id === data.id ? data : t);
+        }
+        return [...prev, data].sort((a, b) => a.sort_order - b.sort_order);
+      });
+    } catch (err: any) {
+      console.error('Error saving todo:', err);
+      alert('Failed to save prep task.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteTodo = async (todoId: string) => {
+    try {
+      const { error } = await supabase.from('job_todos').delete().eq('id', todoId);
+      if (error) throw error;
+      setJobTodos(prev => prev.filter(t => t.id !== todoId));
+    } catch (err) {
+      console.error('Error deleting todo:', err);
+      alert('Failed to delete prep task.');
+    }
+  };
+
+  const handleToggleTodo = async (todo: JobTodo) => {
+    const updated = { ...todo, completed: !todo.completed };
+    // Optimistic update
+    setJobTodos(prev => prev.map(t => t.id === todo.id ? updated : t));
+    
+    try {
+      const { error } = await supabase
+        .from('job_todos')
+        .update({ completed: updated.completed })
+        .eq('id', todo.id);
+      
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error toggling todo:', err);
+      // Revert on error
+      setJobTodos(prev => prev.map(t => t.id === todo.id ? todo : t));
+      alert('Failed to update prep task status.');
+    }
+  };
+
+  const handleLoadPresets = async () => {
+    if (!selectedJobId) return;
+    setIsSaving(true);
+    
+    const presets = [
+      'Draft Call Sheet & Logistics',
+      'Verify Equipment Manifest & Charging',
+      'Secure Location Permits & COI',
+      'Confirm Crew Booking Agreements',
+      'Order Catering & Crafty',
+      'Check Weather & Transit Details'
+    ];
+
+    const todosToInsert = presets.map((task, idx) => ({
+      job_id: selectedJobId,
+      task,
+      completed: false,
+      sort_order: idx
+    }));
+
+    try {
+      const { data, error } = await supabase
+        .from('job_todos')
+        .insert(todosToInsert)
+        .select();
+
+      if (error) throw error;
+
+      if (data) {
+        setJobTodos(prev => [...prev, ...data].sort((a, b) => a.sort_order - b.sort_order));
+      }
+    } catch (err) {
+      console.error('Error loading presets:', err);
+      alert('Failed to load standard prep tasks.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -419,11 +533,19 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
               <LayoutTemplate className="w-4 h-4" /> Templates
             </button>
           )}
+          {activeTab === 'preprod' && jobTodos.length === 0 && (
+            <button 
+              onClick={handleLoadPresets}
+              className="flex-1 md:flex-none bg-white/5 text-white px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all border border-white/10 flex items-center justify-center gap-2"
+            >
+              <LayoutTemplate className="w-4 h-4" /> Load Presets
+            </button>
+          )}
           <button 
-            onClick={activeTab === 'crew' ? addRole : addScheduleItem}
+            onClick={activeTab === 'crew' ? addRole : activeTab === 'schedule' ? addScheduleItem : addTodoItem}
             className="flex-1 md:flex-none bg-accent text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-3"
           >
-            <Plus className="w-4 h-4" /> {activeTab === 'crew' ? 'Add Role' : 'Add Item'}
+            <Plus className="w-4 h-4" /> {activeTab === 'crew' ? 'Add Role' : activeTab === 'schedule' ? 'Add Item' : 'Add Task'}
           </button>
           {onClose && (
             <button 
@@ -439,8 +561,8 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content Area */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center gap-4 mb-4 border-b border-white/10 pb-2">
+        <div className={`${activeTab === 'preprod' ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-4`}>
+          <div className="flex flex-wrap items-center gap-4 mb-4 border-b border-white/10 pb-2">
             <button 
               onClick={() => setActiveTab('crew')}
               className={`flex items-center gap-2 pb-2 text-lg font-black uppercase tracking-tighter transition-colors border-b-2 ${activeTab === 'crew' ? 'text-accent border-accent' : 'text-white/40 border-transparent hover:text-white'}`}
@@ -452,6 +574,12 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
               className={`flex items-center gap-2 pb-2 text-lg font-black uppercase tracking-tighter transition-colors border-b-2 ${activeTab === 'schedule' ? 'text-accent border-accent' : 'text-white/40 border-transparent hover:text-white'}`}
             >
               <Clock className="w-5 h-5" /> Schedule Builder
+            </button>
+            <button 
+              onClick={() => setActiveTab('preprod')}
+              className={`flex items-center gap-2 pb-2 text-lg font-black uppercase tracking-tighter transition-colors border-b-2 ${activeTab === 'preprod' ? 'text-accent border-accent' : 'text-white/40 border-transparent hover:text-white'}`}
+            >
+              <ClipboardList className="w-5 h-5" /> Prep Checklist
             </button>
           </div>
           
@@ -499,16 +627,110 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                 )}
               </AnimatePresence>
             )}
+
+            {activeTab === 'preprod' && (
+              <div className="space-y-6">
+                {/* Progress Bar */}
+                {jobTodos.length > 0 && (
+                  <div className="bg-neutral-900/40 border border-white/5 p-4 rounded-2xl space-y-2">
+                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-white/50">
+                      <span>Preproduction Progress</span>
+                      <span className="text-accent">
+                        {jobTodos.filter(t => t.completed).length} / {jobTodos.length} Tasks ({Math.round((jobTodos.filter(t => t.completed).length / jobTodos.length) * 100)}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-accent h-full transition-all duration-300"
+                        style={{ 
+                          width: `${(jobTodos.filter(t => t.completed).length / jobTodos.length) * 100}%`,
+                          backgroundColor: 'var(--accent)'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Add Todo Field */}
+                <div className="flex gap-3 items-center bg-neutral-900/40 p-3 rounded-2xl border border-white/5 hover:border-white/10 transition-all focus-within:border-accent/40 focus-within:bg-black/30">
+                  <input 
+                    type="text"
+                    value={newTodoText}
+                    onChange={(e) => setNewTodoText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newTodoText.trim()) {
+                        const maxSortOrder = jobTodos.reduce((max, t) => Math.max(max, t.sort_order), -1);
+                        handleSaveTodo({
+                          job_id: selectedJobId,
+                          task: newTodoText.trim(),
+                          completed: false,
+                          sort_order: maxSortOrder + 1
+                        } as JobTodo);
+                        setNewTodoText('');
+                      }
+                    }}
+                    placeholder="ADD A PREPRODUCTION PREP TASK (PRESS ENTER TO SAVE)..."
+                    className="flex-1 bg-transparent border-none outline-none text-xs font-bold uppercase tracking-wider text-white placeholder:text-white/20 pl-2"
+                  />
+                  <button 
+                    onClick={() => {
+                      if (newTodoText.trim()) {
+                        const maxSortOrder = jobTodos.reduce((max, t) => Math.max(max, t.sort_order), -1);
+                        handleSaveTodo({
+                          job_id: selectedJobId,
+                          task: newTodoText.trim(),
+                          completed: false,
+                          sort_order: maxSortOrder + 1
+                        } as JobTodo);
+                        setNewTodoText('');
+                      }
+                    }}
+                    disabled={!newTodoText.trim()}
+                    className="p-2 bg-accent/15 text-accent hover:bg-accent hover:text-black disabled:opacity-20 disabled:hover:bg-accent/15 disabled:hover:text-accent rounded-xl transition-all"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Tasks List */}
+                <div className="space-y-3">
+                  <AnimatePresence>
+                    {jobTodos.map((todo) => (
+                      <TodoItem 
+                        key={todo.id}
+                        todo={todo}
+                        onToggle={() => handleToggleTodo(todo)}
+                        onUpdate={(text) => handleSaveTodo({ ...todo, task: text })}
+                        onDelete={() => handleDeleteTodo(todo.id)}
+                      />
+                    ))}
+                    {jobTodos.length === 0 && (
+                      <div className="text-center py-20 bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40 text-white">
+                        <p className="font-bold uppercase tracking-widest text-xs">No prep tasks defined for this job.</p>
+                        <p className="text-[10px] mt-2 italic">Get started by loading standard prep tasks or adding custom ones.</p>
+                        <button 
+                          onClick={handleLoadPresets}
+                          className="mt-4 bg-accent/10 hover:bg-accent hover:text-black text-accent text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl border border-accent/20 hover:border-transparent transition-all"
+                        >
+                          Load Standard Prep Tasks
+                        </button>
+                      </div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Sidebar: Quick Add / Contact Search */}
-        <div className="space-y-6">
-          <div className="bg-neutral-900/60 border border-white/10 p-6 rounded-2xl">
-            <h3 className="text-sm font-black uppercase tracking-tighter mb-4 flex items-center gap-2 text-white">
-              <Search className="w-4 h-4 text-accent" />
-              Quick Search
-            </h3>
+        {activeTab !== 'preprod' && (
+          <div className="space-y-6">
+            <div className="bg-neutral-900/60 border border-white/10 p-6 rounded-2xl">
+              <h3 className="text-sm font-black uppercase tracking-tighter mb-4 flex items-center gap-2 text-white">
+                <Search className="w-4 h-4 text-accent" />
+                Quick Search
+              </h3>
             <input 
               type="text"
               placeholder="SEARCH CONTACTS..."
@@ -543,6 +765,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
             </div>
           </div>
         </div>
+      )}
       </div>
 
       {/* Template Modal */}
@@ -730,6 +953,81 @@ function RoleItem({ role, onUpdate, onDelete, contacts }: {
             </label>
          </div>
       </div>
+    </motion.div>
+  );
+}
+
+function TodoItem({ 
+  todo, 
+  onToggle, 
+  onUpdate, 
+  onDelete 
+}: { 
+  todo: JobTodo, 
+  onToggle: () => void, 
+  onUpdate: (text: string) => void, 
+  onDelete: () => void 
+}) {
+  const [localTask, setLocalTask] = useState(todo.task);
+
+  useEffect(() => {
+    setLocalTask(todo.task);
+  }, [todo.task]);
+
+  return (
+    <motion.div 
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className={`bg-neutral-900/40 border rounded-2xl overflow-hidden transition-all group flex items-center gap-4 p-4 text-white
+        ${todo.completed ? 'border-white/5 opacity-60' : 'border-white/5 hover:border-white/10'}
+      `}
+    >
+      <button 
+        onClick={onToggle}
+        className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0
+          ${todo.completed 
+            ? 'bg-accent border-accent text-black' 
+            : 'border-white/20 hover:border-accent/50 hover:bg-accent/10 text-transparent'
+          }
+        `}
+        style={{ 
+          backgroundColor: todo.completed ? 'var(--accent)' : 'transparent',
+          borderColor: todo.completed ? 'var(--accent)' : ''
+        }}
+      >
+        <Check className="w-3.5 h-3.5 stroke-[3px]" />
+      </button>
+
+      <input 
+        type="text"
+        value={localTask}
+        onChange={(e) => setLocalTask(e.target.value)}
+        onBlur={() => {
+          if (localTask.trim() && localTask.trim() !== todo.task) {
+            onUpdate(localTask.trim());
+          } else {
+            setLocalTask(todo.task);
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.currentTarget.blur();
+          }
+        }}
+        className={`flex-1 bg-transparent border border-transparent px-1.5 py-0.5 rounded text-sm font-bold uppercase tracking-wide outline-none focus:bg-black/30 focus:border-accent/30 transition-all
+          ${todo.completed ? 'line-through text-white/40' : 'text-white'}
+        `}
+      />
+
+      <button 
+        onClick={onDelete}
+        className="p-1.5 hover:bg-red-500/10 hover:text-red-500 rounded-lg text-white/20 transition-all opacity-0 group-hover:opacity-100 shrink-0"
+        title="Delete task"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
     </motion.div>
   );
 }
