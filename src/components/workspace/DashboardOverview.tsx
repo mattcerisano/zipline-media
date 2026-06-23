@@ -299,38 +299,38 @@ export default function DashboardOverview({
             <h4 className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/70 mb-3 border-b border-white/5 pb-2">Integration Hub Telemetry</h4>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs py-1">
-                <span className="text-white/40 font-bold uppercase tracking-wider text-[9px]">Google Calendar Feed</span>
+                <span className="text-white/45 font-medium text-[11px]">Google Calendar Feed</span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-green-400 font-bold uppercase text-[9px] tracking-wider">Active (Webcal)</span>
+                  <span className="text-green-400 font-medium text-[11px]">Active (Webcal)</span>
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs py-1 border-t border-white/5">
-                <span className="text-white/40 font-bold uppercase tracking-wider text-[9px]">Google Drive Vault</span>
+                <span className="text-white/45 font-medium text-[11px]">Google Drive Vault</span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-green-400 font-bold uppercase text-[9px] tracking-wider">Active (Embeds)</span>
+                  <span className="text-green-400 font-medium text-[11px]">Active (Embeds)</span>
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs py-1 border-t border-white/5">
-                <span className="text-white/40 font-bold uppercase tracking-wider text-[9px]">Vimeo / Frame.io</span>
+                <span className="text-white/45 font-medium text-[11px]">Vimeo / Frame.io</span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-green-400 font-bold uppercase text-[9px] tracking-wider">Active (Embeds)</span>
+                  <span className="text-green-400 font-medium text-[11px]">Active (Embeds)</span>
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs py-1 border-t border-white/5">
-                <span className="text-white/40 font-bold uppercase tracking-wider text-[9px]">Discord Webhooks</span>
+                <span className="text-white/45 font-medium text-[11px]">Discord Webhooks</span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" />
-                  <span className="text-purple-400 font-bold uppercase text-[9px] tracking-wider">Active (Gateway)</span>
+                  <span className="text-purple-400 font-medium text-[11px]">Active (Gateway)</span>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-            <span className="text-[8px] font-black uppercase tracking-widest text-white/30">Zipline Studio OS v1.2</span>
+            <span className="text-[10px] font-medium tracking-wide text-white/30">Zipline Studio OS v1.2</span>
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
           </div>
         </div>

@@ -802,13 +802,13 @@ export default function Rolodex() {
       <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 w-fit mb-6">
         <button 
           onClick={() => setActiveView('crew')}
-          className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'crew' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
+          className={`px-6 py-2.5 rounded-lg text-xs font-semibold tracking-tight transition-all ${activeView === 'crew' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
         >
           Crew & Contractors
         </button>
         <button 
           onClick={() => setActiveView('clients')}
-          className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeView === 'clients' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
+          className={`px-6 py-2.5 rounded-lg text-xs font-semibold tracking-tight transition-all ${activeView === 'clients' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
         >
           Clients
         </button>
@@ -821,7 +821,7 @@ export default function Rolodex() {
               {/* Favorites Toggle */}
               <button
                 onClick={() => setShowFavoritesOnly(prev => !prev)}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest ${
+                className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-center gap-2 font-semibold text-xs tracking-tight ${
                   showFavoritesOnly 
                     ? 'bg-yellow-500/25 border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/30' 
                     : 'bg-neutral-900/40 border-white/10 text-white/40 hover:text-white hover:border-white/20'
@@ -836,9 +836,9 @@ export default function Rolodex() {
               <select
                 value={selectedRoleFilter}
                 onChange={(e) => setSelectedRoleFilter(e.target.value)}
-                className="bg-neutral-900/40 border border-white/10 p-4 rounded-2xl outline-none focus:border-accent transition-all text-[10px] md:text-xs font-black uppercase tracking-widest text-white cursor-pointer"
+                className="bg-neutral-900/40 border border-white/10 p-4 rounded-2xl outline-none focus:border-accent transition-all text-xs font-semibold text-white cursor-pointer"
               >
-                <option value="" className="bg-neutral-950 text-white">— ALL ROLES —</option>
+                <option value="" className="bg-neutral-950 text-white">— All Roles —</option>
                 {STANDARD_ROLES.map(role => (
                   <option key={role} value={role} className="bg-neutral-950 text-white">{role}</option>
                 ))}
@@ -851,10 +851,10 @@ export default function Rolodex() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
             <input 
               type="text"
-              placeholder={`SEARCH ${activeView === 'crew' ? 'CONTRACTORS' : 'CLIENTS'}...`}
+              placeholder={`Search ${activeView === 'crew' ? 'contractors' : 'clients'}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-neutral-900/40 border border-white/10 p-4 pl-12 rounded-2xl outline-none focus:border-accent transition-all uppercase text-xs font-bold tracking-widest text-white"
+              className="w-full bg-neutral-900/40 border border-white/10 p-4 pl-12 rounded-2xl outline-none focus:border-accent transition-all text-xs font-semibold text-white"
             />
           </div>
         </div>
@@ -862,7 +862,7 @@ export default function Rolodex() {
           <>
             <button
               onClick={() => setIsImportOptionsOpen(true)}
-              className="bg-zinc-900 hover:bg-zinc-800 text-white/80 hover:text-white px-6 py-4 rounded-xl border border-white/10 rounded-xl font-black uppercase tracking-widest text-xs transition-all flex items-center gap-3 whitespace-nowrap cursor-pointer hover:border-accent/40"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white/80 hover:text-white px-6 py-4 rounded-xl border border-white/10 rounded-xl font-semibold text-xs transition-all flex items-center gap-3 whitespace-nowrap cursor-pointer hover:border-accent/40"
             >
               <Upload className="w-4 h-4 text-accent" /> Import
             </button>
@@ -880,7 +880,7 @@ export default function Rolodex() {
             <label
               htmlFor="import-clients-input"
               title="Import customers from a QuickBooks CSV export"
-              className="bg-zinc-900 hover:bg-zinc-800 text-white/80 hover:text-white px-6 py-4 rounded-xl border border-white/10 font-black uppercase tracking-widest text-xs transition-all flex items-center gap-3 whitespace-nowrap cursor-pointer hover:border-accent/40"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white/80 hover:text-white px-6 py-4 rounded-xl border border-white/10 font-semibold text-xs transition-all flex items-center gap-3 whitespace-nowrap cursor-pointer hover:border-accent/40"
             >
               <Upload className="w-4 h-4 text-accent" /> Import from QuickBooks
             </label>
@@ -903,7 +903,7 @@ export default function Rolodex() {
               setIsClientModalOpen(true);
             }
           }}
-          className="bg-accent text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center gap-3 whitespace-nowrap"
+          className="bg-accent text-white px-8 py-4 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center gap-3 whitespace-nowrap"
         >
           <Plus className="w-4 h-4" /> Add {activeView === 'crew' ? 'Contact' : 'Client'}
         </button>
@@ -914,7 +914,7 @@ export default function Rolodex() {
           <thead>
             <tr className="border-b border-white/10 bg-white/5">
               <th 
-                className="px-6 py-4 text-[10px] font-black uppercase tracking-widest opacity-40 cursor-pointer hover:opacity-100 transition-opacity"
+                className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 cursor-pointer hover:opacity-100 transition-opacity"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center gap-2">
@@ -923,7 +923,7 @@ export default function Rolodex() {
               </th>
               {activeView === 'crew' && (
                 <th 
-                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest opacity-40 cursor-pointer hover:opacity-100 transition-opacity"
+                  className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 cursor-pointer hover:opacity-100 transition-opacity"
                   onClick={() => handleSort('primary_role')}
                 >
                   <div className="flex items-center gap-2">
@@ -931,9 +931,9 @@ export default function Rolodex() {
                   </div>
                 </th>
               )}
-              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest opacity-40 hidden md:table-cell text-white">Contact Info</th>
-              {activeView === 'crew' && <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest opacity-40 hidden lg:table-cell text-white">Tags</th>}
-              <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest opacity-40 text-white">Actions</th>
+              <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 hidden md:table-cell text-white">Contact Info</th>
+              {activeView === 'crew' && <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 hidden lg:table-cell text-white">Tags</th>}
+              <th className="px-6 py-4 text-right text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 text-white">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -948,11 +948,11 @@ export default function Rolodex() {
                       >
                         <Star className={`w-3.5 h-3.5 ${contact.is_favorite ? 'fill-current' : ''}`} />
                       </button>
-                      <span className="text-sm font-black uppercase tracking-tight">{contact.name}</span>
+                      <span className="text-sm font-semibold tracking-tight">{contact.name}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-accent">{contact.primary_role || '—'}</span>
+                    <span className="text-[10px] font-semibold text-accent">{contact.primary_role || '—'}</span>
                   </td>
                   <td className="px-6 py-4 hidden md:table-cell">
                     <div className="space-y-1">
@@ -971,7 +971,7 @@ export default function Rolodex() {
                   <td className="px-6 py-4 hidden lg:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {contact.tags?.split(',').map(tag => (
-                        <span key={tag} className="px-1.5 py-0.5 bg-white/5 rounded text-[8px] font-black uppercase tracking-widest opacity-30">
+                        <span key={tag} className="px-1.5 py-0.5 bg-white/5 rounded text-[10px] font-medium opacity-30 text-white">
                           {tag.trim()}
                         </span>
                       )) || '—'}
@@ -1008,7 +1008,7 @@ export default function Rolodex() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <Building2 className="w-4 h-4 text-accent/50" />
-                      <span className="text-sm font-black uppercase tracking-tight">{client.name}</span>
+                      <span className="text-sm font-semibold tracking-tight">{client.name}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 hidden md:table-cell">
@@ -1085,12 +1085,12 @@ export default function Rolodex() {
                   {getInitials(selectedContact.name)}
                 </div>
                 
-                <h2 className="text-xl font-black uppercase tracking-tight text-white mb-1">{selectedContact.name}</h2>
+                <h2 className="text-xl font-semibold tracking-tight text-white mb-1">{selectedContact.name}</h2>
                 {selectedContact.primary_role && (
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent">{selectedContact.primary_role}</p>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-accent">{selectedContact.primary_role}</p>
                 )}
                 {selectedContact.company_name && (
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mt-1 flex items-center justify-center gap-1.5">
+                  <p className="text-[10px] font-medium text-white/40 mt-1 flex items-center justify-center gap-1.5">
                     <Building className="w-3 h-3" /> {selectedContact.company_name}
                   </p>
                 )}
@@ -1115,7 +1115,7 @@ export default function Rolodex() {
                   }`}
                 >
                   <Phone className="w-5 h-5" />
-                  <span className="text-[8px] font-black uppercase tracking-widest">Call</span>
+                  <span className="text-[9px] font-semibold tracking-tight">Call</span>
                 </a>
                 <a 
                   href={selectedContact.phone ? `sms:${selectedContact.phone}` : undefined}
@@ -1127,14 +1127,14 @@ export default function Rolodex() {
                   }`}
                 >
                   <MessageSquare className="w-5 h-5" />
-                  <span className="text-[8px] font-black uppercase tracking-widest">Message</span>
+                  <span className="text-[9px] font-semibold tracking-tight">Message</span>
                 </a>
                 <a 
                   href={`mailto:${selectedContact.email}`}
                   className="flex flex-col items-center gap-1.5 py-3 rounded-2xl border bg-accent/10 border-accent/20 text-accent hover:bg-accent/20 transition-all cursor-pointer"
                 >
                   <Mail className="w-5 h-5" />
-                  <span className="text-[8px] font-black uppercase tracking-widest">Email</span>
+                  <span className="text-[9px] font-semibold tracking-tight">Email</span>
                 </a>
               </div>
 
@@ -1152,7 +1152,7 @@ export default function Rolodex() {
                       <Phone className="w-4 h-4 text-green-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Phone</p>
+                      <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Phone</p>
                       <p className="text-sm font-bold text-white truncate">{selectedContact.phone || 'Not set'}</p>
                     </div>
                     {selectedContact.phone && (
@@ -1171,7 +1171,7 @@ export default function Rolodex() {
                       <Mail className="w-4 h-4 text-accent" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Email</p>
+                      <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Email</p>
                       <p className="text-sm font-bold text-white truncate">{selectedContact.email}</p>
                     </div>
                     <div className="text-white/20 group-hover:text-white/60 transition-colors">
@@ -1186,7 +1186,7 @@ export default function Rolodex() {
                         <MapPin className="w-4 h-4 text-purple-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Location</p>
+                        <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Location</p>
                         <p className="text-sm font-bold text-white">
                           {[selectedContact.location_city, selectedContact.location_state, selectedContact.location_country].filter(Boolean).join(', ')}
                         </p>
@@ -1203,8 +1203,8 @@ export default function Rolodex() {
                         <Briefcase className="w-4 h-4 text-accent" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Primary Role</p>
-                        <p className="text-sm font-bold text-white uppercase">{selectedContact.primary_role}</p>
+                        <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Primary Role</p>
+                        <p className="text-sm font-semibold text-white">{selectedContact.primary_role}</p>
                       </div>
                     </div>
                   )}
@@ -1215,10 +1215,10 @@ export default function Rolodex() {
                         <Tag className="w-4 h-4 text-orange-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">Tags</p>
+                        <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30 mb-2">Tags</p>
                         <div className="flex flex-wrap gap-1.5">
                           {selectedContact.tags.split(',').map(tag => (
-                            <span key={tag} className="px-2.5 py-1 bg-white/5 rounded-lg text-[9px] font-black uppercase tracking-widest text-white/60 border border-white/5">
+                            <span key={tag} className="px-2.5 py-1 bg-white/5 rounded-lg text-[10px] font-semibold text-white/60 border border-white/5">
                               {tag.trim()}
                             </span>
                           ))}
@@ -1233,7 +1233,7 @@ export default function Rolodex() {
                   <div className="bg-white/[0.03] rounded-2xl border border-white/5 p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <FileText className="w-3.5 h-3.5 text-white/30" />
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Notes</p>
+                      <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Notes</p>
                     </div>
                     <p className="text-xs text-white/70 leading-relaxed whitespace-pre-wrap">{selectedContact.notes_general}</p>
                   </div>
@@ -1244,9 +1244,9 @@ export default function Rolodex() {
                   <div className="flex items-center justify-between p-4 border-b border-white/5">
                     <div className="flex items-center gap-2">
                       <History className="w-3.5 h-3.5 text-accent" />
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-white/40">Work History</p>
+                      <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/40">Work History</p>
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-accent">
+                    <span className="text-[10px] font-semibold tracking-tight text-accent">
                       {contactDetailHistory.length} Jobs
                     </span>
                   </div>
@@ -1259,14 +1259,14 @@ export default function Rolodex() {
                       <div className="divide-y divide-white/5">
                         {contactDetailHistory.map((entry, i) => (
                           <div key={i} className="flex items-center gap-3 p-3 hover:bg-white/[0.02] transition-colors">
-                            <span className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest shrink-0 ${
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold tracking-wide shrink-0 ${
                               entry.type === 'On-Set' ? 'bg-blue-500/15 text-blue-400' : 'bg-purple-500/15 text-purple-400'
                             }`}>
                               {entry.type}
                             </span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[11px] font-black uppercase tracking-tight text-white truncate">{entry.job_title}</p>
-                              <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">{entry.position}</p>
+                              <p className="text-[11px] font-semibold tracking-tight text-white truncate">{entry.job_title}</p>
+                              <p className="text-[9px] font-semibold text-white/30">{entry.position}</p>
                             </div>
                             <div className="text-right shrink-0">
                               <p className="text-[9px] font-bold text-white/30">{entry.shoot_date || 'TBD'}</p>
@@ -1279,7 +1279,7 @@ export default function Rolodex() {
                       </div>
                     ) : (
                       <div className="py-8 text-center">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">No jobs recorded</p>
+                        <p className="text-[10px] font-semibold text-white/20">No jobs recorded</p>
                       </div>
                     )}
                   </div>
@@ -1293,7 +1293,7 @@ export default function Rolodex() {
                       setEditingContact(selectedContact);
                       setIsModalOpen(true);
                     }}
-                    className="flex items-center justify-center gap-2 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-all"
+                    className="flex items-center justify-center gap-2 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-white/60 hover:text-white transition-all"
                   >
                     <Pencil className="w-3.5 h-3.5" /> Edit
                   </button>
@@ -1302,7 +1302,7 @@ export default function Rolodex() {
                       setIsContactDetailOpen(false);
                       deleteContact(selectedContact.id);
                     }}
-                    className="flex items-center justify-center gap-2 py-3.5 bg-red-500/5 hover:bg-red-500/15 border border-red-500/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-all"
+                    className="flex items-center justify-center gap-2 py-3.5 bg-red-500/5 hover:bg-red-500/15 border border-red-500/10 rounded-xl text-xs font-semibold text-red-400/60 hover:text-red-400 transition-all"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Delete
                   </button>
@@ -1340,8 +1340,8 @@ export default function Rolodex() {
                   <Building2 className="w-9 h-9 text-white/60" />
                 </div>
                 
-                <h2 className="text-xl font-black uppercase tracking-tight text-white mb-1">{selectedClient.name}</h2>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400">Client</p>
+                <h2 className="text-xl font-bold tracking-tight text-white mb-1">{selectedClient.name}</h2>
+                <p className="text-[10px] font-semibold text-blue-400/80">Client</p>
               </div>
 
               {/* Quick Action Buttons */}
@@ -1356,7 +1356,7 @@ export default function Rolodex() {
                   }`}
                 >
                   <Phone className="w-5 h-5" />
-                  <span className="text-[8px] font-black uppercase tracking-widest">Call</span>
+                  <span className="text-[10px] font-semibold tracking-wide">Call</span>
                 </a>
                 <a 
                   href={selectedClient.email ? `mailto:${selectedClient.email}` : undefined}
@@ -1368,7 +1368,7 @@ export default function Rolodex() {
                   }`}
                 >
                   <Mail className="w-5 h-5" />
-                  <span className="text-[8px] font-black uppercase tracking-widest">Email</span>
+                  <span className="text-[10px] font-semibold tracking-wide">Email</span>
                 </a>
               </div>
 
@@ -1386,8 +1386,8 @@ export default function Rolodex() {
                         <Phone className="w-4 h-4 text-green-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Phone</p>
-                        <p className="text-sm font-bold text-white">{selectedClient.phone}</p>
+                        <p className="text-[10px] font-medium text-white/40">Phone</p>
+                        <p className="text-sm font-semibold text-white">{selectedClient.phone}</p>
                       </div>
                       <div className="text-white/20 group-hover:text-white/60 transition-colors">
                         {copiedField === 'client-phone' ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
@@ -1403,8 +1403,8 @@ export default function Rolodex() {
                         <Mail className="w-4 h-4 text-accent" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Email</p>
-                        <p className="text-sm font-bold text-white truncate">{selectedClient.email}</p>
+                        <p className="text-[10px] font-medium text-white/40">Email</p>
+                        <p className="text-sm font-semibold text-white truncate">{selectedClient.email}</p>
                       </div>
                       <div className="text-white/20 group-hover:text-white/60 transition-colors">
                         {copiedField === 'client-email' ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
@@ -1417,8 +1417,8 @@ export default function Rolodex() {
                         <MapPin className="w-4 h-4 text-purple-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Billing Address</p>
-                        <p className="text-sm font-bold text-white">{selectedClient.address}</p>
+                        <p className="text-[10px] font-medium text-white/40">Billing Address</p>
+                        <p className="text-sm font-semibold text-white">{selectedClient.address}</p>
                       </div>
                     </div>
                   )}
@@ -1429,7 +1429,7 @@ export default function Rolodex() {
                   <div className="bg-white/[0.03] rounded-2xl border border-white/5 p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <FileText className="w-3.5 h-3.5 text-white/30" />
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Notes</p>
+                      <p className="text-[10px] font-medium text-white/40">Notes</p>
                     </div>
                     <p className="text-xs text-white/70 leading-relaxed whitespace-pre-wrap">{selectedClient.notes}</p>
                   </div>
@@ -1440,9 +1440,9 @@ export default function Rolodex() {
                   <div className="flex items-center justify-between p-4 border-b border-white/5">
                     <div className="flex items-center gap-2">
                       <Briefcase className="w-3.5 h-3.5 text-accent" />
-                      <p className="text-[9px] font-bold uppercase tracking-widest text-white/40">Production History</p>
+                      <p className="text-[10px] font-medium text-white/40">Production History</p>
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-accent">
+                    <span className="text-[10px] font-semibold text-accent">
                       {clientDetailHistory.length} Jobs
                     </span>
                   </div>
@@ -1456,13 +1456,13 @@ export default function Rolodex() {
                         {clientDetailHistory.map((entry, i) => (
                           <div key={i} className="p-3 hover:bg-white/[0.02] transition-colors">
                             <div className="flex items-center justify-between mb-1">
-                              <p className="text-[11px] font-black uppercase tracking-tight text-white">{entry.job_title}</p>
-                              <p className="text-[9px] font-bold text-white/30">{entry.shoot_date || 'TBD'}</p>
+                              <p className="text-[11px] font-semibold text-white">{entry.job_title}</p>
+                              <p className="text-[9px] font-medium text-white/30">{entry.shoot_date || 'TBD'}</p>
                             </div>
                             {entry.crew.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1.5">
                                 {entry.crew.map((c, j) => (
-                                  <span key={j} className="text-[8px] bg-white/5 border border-white/5 px-1.5 py-0.5 rounded text-white/50 uppercase font-bold tracking-wider">
+                                  <span key={j} className="text-[9px] bg-white/5 border border-white/5 px-1.5 py-0.5 rounded text-white/50 font-medium">
                                     {c.name} • {c.position}
                                   </span>
                                 ))}
@@ -1473,7 +1473,7 @@ export default function Rolodex() {
                       </div>
                     ) : (
                       <div className="py-8 text-center">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">No jobs recorded</p>
+                        <p className="text-[10px] font-semibold text-white/20">No jobs recorded</p>
                       </div>
                     )}
                   </div>
@@ -1487,7 +1487,7 @@ export default function Rolodex() {
                       setEditingClient(selectedClient);
                       setIsClientModalOpen(true);
                     }}
-                    className="flex items-center justify-center gap-2 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-all"
+                    className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-white/60 hover:text-white transition-all"
                   >
                     <Pencil className="w-3.5 h-3.5" /> Edit
                   </button>
@@ -1496,7 +1496,7 @@ export default function Rolodex() {
                       setIsClientDetailOpen(false);
                       deleteClient(selectedClient.id);
                     }}
-                    className="flex items-center justify-center gap-2 py-3.5 bg-red-500/5 hover:bg-red-500/15 border border-red-500/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-all"
+                    className="flex items-center justify-center gap-2 py-3 bg-red-500/5 hover:bg-red-500/15 border border-red-500/10 rounded-xl text-xs font-semibold text-red-400/60 hover:text-red-400 transition-all"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Delete
                   </button>
@@ -1526,8 +1526,8 @@ export default function Rolodex() {
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Work History</h2>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent mt-1">Contractor Utilization & Rates</p>
+                  <h2 className="text-xl font-bold tracking-tight text-white">Work History</h2>
+                  <p className="text-[10px] font-medium text-accent mt-1">Contractor Utilization & Rates</p>
                 </div>
                 <button onClick={() => setIsHistoryOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
                   <X className="w-6 h-6" />
@@ -1541,19 +1541,19 @@ export default function Rolodex() {
                       <div className="flex justify-between items-start mb-4">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${entry.type === 'On-Set' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-semibold ${entry.type === 'On-Set' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
                               {entry.type}
                             </span>
-                            <p className="text-sm font-black uppercase tracking-tight group-hover:text-accent transition-colors">{entry.job_title}</p>
+                            <p className="text-sm font-semibold group-hover:text-accent transition-colors">{entry.job_title}</p>
                           </div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{entry.position}</p>
+                          <p className="text-[10px] font-medium opacity-40">{entry.position}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">{entry.shoot_date || 'TBD'}</p>
+                          <p className="text-[10px] font-medium text-white/40">{entry.shoot_date || 'TBD'}</p>
                           {entry.rate && (
                              <div className="flex items-center gap-1 text-green-500 mt-1 justify-end">
                                 <DollarSign className="w-3 h-3" />
-                                <span className="text-[11px] font-black">{entry.rate}</span>
+                                <span className="text-[11px] font-semibold">{entry.rate}</span>
                              </div>
                           )}
                         </div>
@@ -1567,21 +1567,21 @@ export default function Rolodex() {
                   ))
                 ) : (
                   <div className="text-center py-12 opacity-40 border border-dashed border-white/10 rounded-2xl text-white">
-                    <p className="text-xs font-bold uppercase tracking-widest">No previous jobs recorded.</p>
+                    <p className="text-xs font-semibold text-white/40">No previous jobs recorded.</p>
                   </div>
                 )}
               </div>
 
               <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
                  <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 text-white">Yearly Summary</p>
-                    <p className="text-xs font-black uppercase tracking-widest text-white">
+                    <p className="text-[10px] font-semibold opacity-40 text-white">Yearly Summary</p>
+                    <p className="text-xs font-semibold text-white">
                        Total Jobs: <span className="text-accent">{selectedContactHistory.length}</span>
                     </p>
                  </div>
                  <button 
                    onClick={() => setIsHistoryOpen(false)}
-                   className="bg-accent text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white hover:text-black transition-all"
+                   className="bg-accent text-white px-6 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all"
                  >
                    Close
                  </button>
@@ -1974,7 +1974,7 @@ export default function Rolodex() {
               className="w-full max-w-2xl bg-neutral-900 border border-white/10 rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh] cursor-default"
             >
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">
+                <h2 className="text-xl font-bold tracking-tight text-white">
                   {editingContact?.id ? 'Edit Contact' : 'New Contact'}
                 </h2>
                 <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
@@ -1984,52 +1984,52 @@ export default function Rolodex() {
 
               <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Full Name</label>
+                  <label className="text-xs font-semibold text-white/50 ml-1">Full Name</label>
                   <input 
                     required
                     type="text"
                     value={editingContact?.name || ''}
                     onChange={(e) => setEditingContact({ ...editingContact!, name: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold uppercase text-sm text-white"
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Email Address <span className="opacity-60 normal-case tracking-normal font-medium">(optional)</span></label>
+                  <label className="text-xs font-semibold text-white/50 ml-1">Email Address <span className="opacity-60 normal-case tracking-normal font-medium">(optional)</span></label>
                   <input
                     type="email"
                     value={editingContact?.email || ''}
                     onChange={(e) => setEditingContact({ ...editingContact!, email: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-white"
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Phone</label>
+                  <label className="text-xs font-semibold text-white/50 ml-1">Phone</label>
                   <input 
                     type="text"
                     value={editingContact?.phone || ''}
                     onChange={(e) => setEditingContact({ ...editingContact!, phone: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-white"
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Primary Role</label>
+                  <label className="text-xs font-semibold text-white/50 ml-1">Primary Role</label>
                   <input 
                     type="text"
                     value={editingContact?.primary_role || ''}
                     onChange={(e) => setEditingContact({ ...editingContact!, primary_role: e.target.value })}
                     list="standard-roles"
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold uppercase text-sm text-white"
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
                   />
                   <datalist id="standard-roles">
                     {STANDARD_ROLES.map(role => <option key={role} value={role} />)}
                   </datalist>
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Notes</label>
+                  <label className="text-xs font-semibold text-white/50 ml-1">Notes</label>
                   <textarea 
                     value={editingContact?.notes_general || ''}
                     onChange={(e) => setEditingContact({ ...editingContact!, notes_general: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold text-sm h-32 text-white"
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm h-32 text-white"
                   />
                 </div>
 
@@ -2037,13 +2037,13 @@ export default function Rolodex() {
                   <button 
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
+                    className="px-6 py-2.5 rounded-xl font-semibold text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    className="bg-accent text-white px-12 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
+                    className="bg-accent text-white px-8 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
                   >
                     Save Contact
                   </button>
@@ -2072,7 +2072,7 @@ export default function Rolodex() {
               className="w-full max-w-2xl bg-neutral-900 border border-white/10 rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh] cursor-default"
             >
               <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">
+                <h2 className="text-xl font-bold tracking-tight text-white">
                   {editingClient?.id ? 'Edit Client' : 'New Client'}
                 </h2>
                 <button onClick={() => setIsClientModalOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
@@ -2082,48 +2082,48 @@ export default function Rolodex() {
 
               <form onSubmit={handleClientSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Company / Client Name</label>
+                  <label className="text-xs font-semibold text-white/50 ml-1">Company / Client Name</label>
                   <input 
                     required
                     type="text"
                     value={editingClient?.name || ''}
                     onChange={(e) => setEditingClient({ ...editingClient!, name: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold uppercase text-sm text-white"
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Primary Email</label>
+                  <label className="text-xs font-semibold text-white/50 ml-1">Primary Email</label>
                   <input 
                     type="email"
                     value={editingClient?.email || ''}
                     onChange={(e) => setEditingClient({ ...editingClient!, email: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-white"
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Phone</label>
+                  <label className="text-xs font-semibold text-white/50 ml-1">Phone</label>
                   <input 
                     type="text"
                     value={editingClient?.phone || ''}
                     onChange={(e) => setEditingClient({ ...editingClient!, phone: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-white"
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Billing Address</label>
+                  <label className="text-xs font-semibold text-white/50 ml-1">Billing Address</label>
                   <input 
                     type="text"
                     value={editingClient?.address || ''}
                     onChange={(e) => setEditingClient({ ...editingClient!, address: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-white"
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Notes</label>
+                  <label className="text-xs font-semibold text-white/50 ml-1">Notes</label>
                   <textarea 
                     value={editingClient?.notes || ''}
                     onChange={(e) => setEditingClient({ ...editingClient!, notes: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold text-sm h-32 text-white"
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm h-32 text-white"
                   />
                 </div>
 
@@ -2131,13 +2131,13 @@ export default function Rolodex() {
                   <button 
                     type="button"
                     onClick={() => setIsClientModalOpen(false)}
-                    className="px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
+                    className="px-6 py-2.5 rounded-xl font-semibold text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    className="bg-accent text-white px-12 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
+                    className="bg-accent text-white px-8 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
                   >
                     Save Client
                   </button>
@@ -2167,8 +2167,8 @@ export default function Rolodex() {
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Client Portfolio</h2>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent mt-1">{activeClientName}</p>
+                  <h2 className="text-xl font-bold tracking-tight text-white">Client Portfolio</h2>
+                  <p className="text-xs font-semibold text-accent mt-1">{activeClientName}</p>
                 </div>
                 <button onClick={() => setIsClientHistoryOpen(false)} className="p-2 hover:bg-white/5 rounded-full text-white">
                   <X className="w-6 h-6" />
@@ -2181,22 +2181,22 @@ export default function Rolodex() {
                     <div key={i} className="bg-white/5 border border-white/5 rounded-2xl p-6 group transition-all text-white">
                       <div className="flex justify-between items-start mb-4 border-b border-white/10 pb-4">
                         <div>
-                          <p className="text-lg font-black uppercase tracking-tight">{entry.job_title}</p>
+                          <p className="text-base font-semibold tracking-tight">{entry.job_title}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Shoot Date</p>
-                          <p className="text-xs font-black uppercase tracking-widest">{entry.shoot_date || 'TBD'}</p>
+                          <p className="text-[10px] font-medium text-white/40">Shoot Date</p>
+                          <p className="text-xs font-semibold">{entry.shoot_date || 'TBD'}</p>
                         </div>
                       </div>
                       <div>
-                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-40 mb-3">Assigned Crew</p>
+                         <p className="text-[10px] font-medium opacity-50 mb-3">Assigned Crew</p>
                          {entry.crew.length > 0 ? (
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                              {entry.crew.map((c, j) => (
                                <div key={j} className="flex items-center gap-2 p-2 bg-black/20 rounded border border-white/5">
                                  <Users className="w-3 h-3 text-accent" />
-                                 <p className="text-xs font-bold">{c.name}</p>
-                                 <p className="text-[9px] uppercase tracking-widest opacity-40 ml-auto">{c.position}</p>
+                                 <p className="text-xs font-semibold text-white/90">{c.name}</p>
+                                 <p className="text-[10px] opacity-40 ml-auto">{c.position}</p>
                                </div>
                              ))}
                            </div>
@@ -2208,21 +2208,21 @@ export default function Rolodex() {
                   ))
                 ) : (
                   <div className="text-center py-12 opacity-40 border border-dashed border-white/10 rounded-2xl text-white">
-                    <p className="text-xs font-bold uppercase tracking-widest">No jobs recorded for this client.</p>
+                    <p className="text-xs font-semibold text-white/40">No jobs recorded for this client.</p>
                   </div>
                 )}
               </div>
 
               <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
                  <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 text-white">Yearly Summary</p>
-                    <p className="text-xs font-black uppercase tracking-widest text-white">
+                    <p className="text-[10px] font-semibold text-white/40">Yearly Summary</p>
+                    <p className="text-xs font-semibold text-white">
                        Total Jobs: <span className="text-accent">{selectedClientHistory.length}</span>
                     </p>
                  </div>
                  <button 
                    onClick={() => setIsClientHistoryOpen(false)}
-                   className="bg-accent text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white hover:text-black transition-all"
+                   className="bg-accent text-white px-6 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all"
                  >
                    Close
                  </button>

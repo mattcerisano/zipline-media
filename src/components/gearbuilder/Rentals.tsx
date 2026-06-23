@@ -81,8 +81,8 @@ const GearItem = ({
     <div 
       className="flex-1 min-w-0 pr-2 md:pr-4"
     >
-      <h3 className="text-sm font-bold uppercase tracking-tight mb-1 leading-tight">{item.name}</h3>
-      <p className="text-[10px] opacity-40 font-bold uppercase tracking-[0.2em] leading-relaxed">
+      <h3 className="text-sm font-semibold tracking-tight mb-1 leading-tight">{item.name}</h3>
+      <p className="text-[10px] opacity-40 font-semibold leading-relaxed">
         {item.category} • QTY: {item.qty} • ${item.replacement.toLocaleString()}
       </p>
     </div>
@@ -1147,13 +1147,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <ClipboardList className="w-5 h-5 text-accent" />
-          <h2 className="text-xl font-black uppercase tracking-tighter">Current Manifest</h2>
+          <h2 className="text-lg font-bold tracking-tight text-white">Current Manifest</h2>
         </div>
         <div className="flex items-center gap-4">
           {Object.keys(manifest).length > 0 && (
             <button 
               onClick={clearManifest}
-              className="text-[10px] font-bold tracking-widest uppercase opacity-40 hover:opacity-100 hover:text-red-500 transition-all flex items-center gap-2"
+              className="text-xs font-semibold opacity-40 hover:opacity-100 hover:text-red-500 transition-all flex items-center gap-2"
             >
               <Trash2 className="w-3 h-3" /> <span className="hidden md:inline">Clear</span>
             </button>
@@ -1169,7 +1169,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
         <div className="space-y-0.5 relative">
-          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1 flex items-center gap-1.5">
+          <label className="text-xs font-semibold opacity-40 ml-1 flex items-center gap-1.5">
             Job Title
             {selectedJobIdProp && <Lock className="w-2.5 h-2.5 text-accent opacity-60" />}
           </label>
@@ -1230,9 +1230,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                       setSelectedJobId(null);
                   }
               }}
-              placeholder="E.G. MOULIN ROUGE"
+              placeholder="e.g. Moulin Rouge"
               list="job-list"
-              className={`w-full bg-black/50 border py-3 px-4 outline-none transition-colors uppercase text-sm font-bold rounded-lg ${
+              className={`w-full bg-black/50 border py-2.5 px-4 outline-none transition-colors text-sm font-semibold rounded-lg ${
                 selectedJobIdProp 
                   ? 'border-accent/20 text-white/40 cursor-not-allowed bg-accent/5' 
                   : 'border-white/10 focus:border-accent'
@@ -1251,13 +1251,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           </datalist>
         </div>
         <div className="space-y-0.5">
-          <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Shoot Date</label>
+          <label className="text-xs font-semibold opacity-40 ml-1">Shoot Date</label>
           <div className="flex gap-2">
             <input 
                 type="date" 
                 value={shootDate}
                 onChange={(e) => setShootDate(e.target.value)}
-                className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg"
+                className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
             />
             <button 
                 onClick={() => setIsCalendarOpen(true)}
@@ -1269,14 +1269,14 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           </div>
         </div>
         <div className="space-y-0.5">
-          <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Generated For</label>
+          <label className="text-xs font-semibold opacity-40 ml-1">Generated For</label>
           <input 
             type="text" 
             value={contactEmail}
             onChange={(e) => setContactEmail(e.target.value)}
-            placeholder="CLIENT NAME"
+            placeholder="Client Name"
             list="client-options"
-            className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg"
+            className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
           />
           <datalist id="client-options">
             {clients.map(client => (
@@ -1285,16 +1285,16 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           </datalist>
         </div>
         <div className="space-y-0.5">
-          <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Generated By</label>
+          <label className="text-xs font-semibold opacity-40 ml-1">Generated By</label>
           <input 
             type="text" 
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
-            className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg"
+            className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
           />
         </div>
         <div className="space-y-0.5 md:col-span-2">
-          <label className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Location</label>
+          <label className="text-xs font-semibold opacity-40 ml-1">Location</label>
           <Autocomplete
             apiKey={GOOGLE_MAPS_API_KEY}
             onPlaceSelected={(place) => {
@@ -1323,24 +1323,24 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 setNearestHospital(null);
                 setNearestParking(null);
             }}
-            className="w-full bg-black/5 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-lg"
-            placeholder="SEARCH FOR A LOCATION..."
+            className="w-full bg-black/5 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
+            placeholder="Search for a location..."
           />
           <div className="flex gap-2 pt-1 relative">
              {hoveredLogistics && (
                 <div className="absolute bottom-full left-0 mb-2 w-full bg-neutral-900 border border-white/10 p-3 rounded-xl shadow-xl z-50 pointer-events-none">
                     {hoveredLogistics === 'weather' && (
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-accent mb-1">Weather Forecast</p>
-                            <p className="text-xs font-bold">{weatherSummary || 'No weather data loaded.'}</p>
+                            <p className="text-xs font-semibold text-accent mb-1">Weather Forecast</p>
+                            <p className="text-xs font-semibold">{weatherSummary || 'No weather data loaded.'}</p>
                         </div>
                     )}
                     {hoveredLogistics === 'hospital' && (
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1">Nearest Hospital</p>
+                            <p className="text-xs font-semibold text-red-500 mb-1">Nearest Hospital</p>
                             {nearestHospital ? (
                                 <>
-                                    <p className="text-xs font-bold">{nearestHospital.name}</p>
+                                    <p className="text-xs font-semibold">{nearestHospital.name}</p>
                                     <p className="text-[10px] opacity-60">{nearestHospital.address}</p>
                                 </>
                             ) : <p className="text-xs opacity-50">No hospital found.</p>}
@@ -1348,10 +1348,10 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                     )}
                     {hoveredLogistics === 'parking' && (
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">Nearest Parking</p>
+                            <p className="text-xs font-semibold text-blue-500 mb-1">Nearest Parking</p>
                             {nearestParking ? (
                                 <>
-                                    <p className="text-xs font-bold">{nearestParking.name}</p>
+                                    <p className="text-xs font-semibold">{nearestParking.name}</p>
                                     <p className="text-[10px] opacity-60">{nearestParking.address}</p>
                                 </>
                             ) : <p className="text-xs opacity-50">No parking found.</p>}
@@ -1371,7 +1371,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 onMouseEnter={() => setHoveredLogistics('weather')}
                 onMouseLeave={() => setHoveredLogistics(null)}
                 disabled={weatherLoading}
-                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all ${weatherSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
+                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-xs font-semibold hover:bg-white/10 transition-all ${weatherSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
              >
                 {weatherLoading ? '...' : weatherSuccess ? <Check className="w-3 h-3" /> : <Sun className="w-3 h-3" />}
                 {weatherSuccess ? 'View' : 'Weather'}
@@ -1387,7 +1387,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 onMouseEnter={() => setHoveredLogistics('hospital')}
                 onMouseLeave={() => setHoveredLogistics(null)}
                 disabled={hospitalLoading}
-                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all ${hospitalSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
+                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-xs font-semibold hover:bg-white/10 transition-all ${hospitalSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
              >
                 {hospitalLoading ? '...' : hospitalSuccess ? <Check className="w-3 h-3" /> : <Stethoscope className="w-3 h-3" />}
                 {hospitalSuccess ? 'View' : 'Hospital'}
@@ -1403,7 +1403,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 onMouseEnter={() => setHoveredLogistics('parking')}
                 onMouseLeave={() => setHoveredLogistics(null)}
                 disabled={parkingLoading}
-                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all ${parkingSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
+                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-xs font-semibold hover:bg-white/10 transition-all ${parkingSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
              >
                 {parkingLoading ? '...' : parkingSuccess ? <Check className="w-3 h-3" /> : <Car className="w-3 h-3" />}
                 {parkingSuccess ? 'View' : 'Parking'}
@@ -1413,13 +1413,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       </div>
 
       <div className="space-y-0.5 mb-6">
-        <label className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Production Notes</label>
+        <label className="text-xs font-semibold opacity-40 ml-1">Production Notes</label>
         <textarea 
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={1}
           placeholder="Call time, parking, etc..."
-          className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors text-sm font-bold rounded-lg resize-none"
+          className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg resize-none"
         />
       </div>
 
@@ -1431,7 +1431,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               animate={{ opacity: 1 }}
               className="py-12 text-center border-2 border-dashed border-white/5 rounded-2xl opacity-20"
             >
-              <p className="uppercase text-[10px] tracking-[0.3em] font-bold">Manifest is empty</p>
+              <p className="text-xs font-semibold text-white/40">Manifest is empty</p>
             </motion.div>
           ) : (
             // Group by Owner
@@ -1442,14 +1442,14 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             }).map(owner => (
                 <motion.div key={owner} className="mb-8">
                     {(owner !== 'Zipline Media' || Object.keys(manifestByOwner).length > 1) && (
-                        <h2 className={`text-xs font-black uppercase tracking-[0.2em] mb-4 pb-2 border-b border-white/10 ${owner === 'Zipline Media' ? 'text-white' : 'text-red-500'}`}>
+                        <h2 className={`text-xs font-bold mb-4 pb-2 border-b border-white/10 ${owner === 'Zipline Media' ? 'text-white' : 'text-red-500'}`}>
                             {owner}
                         </h2>
                     )}
                     
                     {Object.entries(manifestByOwner[owner]).map(([cat, items]) => (
                         <div key={cat} className="mb-4 pl-2 border-l border-white/5">
-                            <h3 className="text-[10px] font-bold tracking-[0.4em] uppercase text-accent mb-2 ml-1">{cat}</h3>
+                            <h3 className="text-xs font-semibold text-accent mb-2 ml-1">{cat}</h3>
                             <div className="space-y-2">
                             {items.map((item) => {
                                 const invItem = allInventory.find(i => i.name === item.name);
@@ -1458,8 +1458,8 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                                 return (
                                 <div key={item.name} className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5 group">
                                     <div className="flex-1 min-w-0 pr-4">
-                                    <p className="text-xs font-bold uppercase truncate">{item.name}</p>
-                                    <p className="text-[10px] opacity-40 font-bold tracking-widest uppercase">
+                                    <p className="text-xs font-semibold truncate">{item.name}</p>
+                                    <p className="text-[10px] opacity-40 font-medium">
                                         X{item.count} • ${( (invItem?.replacement || 0) * item.count ).toLocaleString()}
                                     </p>
                                     </div>
@@ -1494,14 +1494,14 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       <div className="border-t border-white/10 pt-8 mt-auto space-y-6">
         <div className="flex justify-between items-end">
           <div className="space-y-1">
-            <p className="text-[10px] font-bold tracking-[0.4em] uppercase opacity-40">Total Replacement Value</p>
+            <p className="text-xs font-semibold opacity-40">Total Replacement Value</p>
             {/* <p className="text-3xl font-black text-accent">${grandTotal.toLocaleString()}</p> */}
           </div>
           <label className="flex items-center gap-2 cursor-pointer group select-none">
             <div className={`w-4 h-4 border border-white/20 rounded flex items-center justify-center transition-all ${includeReplacementValue ? 'bg-accent border-accent' : 'bg-transparent group-hover:border-white/40'}`}>
               {includeReplacementValue && <Check className="w-3 h-3 text-black" />}
             </div>
-            <span className="text-[9px] font-bold uppercase tracking-widest opacity-60 group-hover:opacity-100 transition-opacity">Include in PDF</span>
+            <span className="text-xs font-semibold opacity-60 group-hover:opacity-100 transition-opacity">Include in PDF</span>
             <input 
               type="checkbox" 
               className="hidden" 
@@ -1510,7 +1510,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             />
           </label>
         </div>
-</div>
+      </div>
 
         {Object.keys(manifest).length > 0 && (
           <button 
@@ -1519,7 +1519,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               setNewTemplateDesc('');
               setIsSaveTemplateModalOpen(true);
             }}
-            className="w-full flex items-center justify-center gap-2 border border-white/10 hover:border-accent hover:text-accent py-3 font-black tracking-widest uppercase text-[9px] transition-all rounded-xl"
+            className="w-full flex items-center justify-center gap-2 border border-white/10 hover:border-accent hover:text-accent py-2.5 text-xs font-semibold transition-all rounded-xl"
           >
             <FolderOpen className="w-3.5 h-3.5" /> Save as Gear Package
           </button>
@@ -1529,7 +1529,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           <button 
             type="button"
             onClick={resetApp}
-            className="flex items-center justify-center gap-1 border border-white/10 py-3 font-black tracking-widest uppercase text-[9px] hover:bg-white hover:text-black transition-all rounded-xl"
+            className="flex items-center justify-center gap-1 border border-white/10 py-2.5 text-xs font-semibold hover:bg-white hover:text-black transition-all rounded-xl"
             title="Reset gear list"
           >
             <RotateCcw className="w-3.5 h-3.5" /> Reset
@@ -1538,7 +1538,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             type="button"
             onClick={saveJob}
             disabled={Object.keys(manifest).length === 0}
-            className="flex items-center justify-center gap-1 border border-accent/20 bg-accent/5 py-3 font-black tracking-widest uppercase text-[9px] text-accent hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-accent/5"
+            className="flex items-center justify-center gap-1 border border-accent/20 bg-accent/5 py-2.5 text-xs font-semibold text-accent hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-accent/5"
             title="Log gear to Slate"
           >
             <ClipboardList className="w-3.5 h-3.5" /> Slate
@@ -1547,7 +1547,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             type="button"
             onClick={exportPDF}
             disabled={Object.keys(manifest).length === 0}
-            className="flex items-center justify-center gap-1 bg-accent py-3 font-black tracking-widest uppercase text-[9px] hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl shadow-lg shadow-accent/20"
+            className="flex items-center justify-center gap-1 bg-accent py-2.5 text-xs font-semibold hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl shadow-lg shadow-accent/20"
           >
             <FileDown className="w-3.5 h-3.5" /> PDF
           </button>
@@ -1555,7 +1555,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             type="button"
             onClick={shareGearList}
             disabled={!selectedJobId || Object.keys(manifest).length === 0}
-            className={`flex items-center justify-center gap-1 py-3 font-black tracking-widest uppercase text-[9px] border transition-all rounded-xl ${
+            className={`flex items-center justify-center gap-1 py-2.5 text-xs font-semibold border transition-all rounded-xl ${
               copiedLink 
                 ? 'bg-green-600 border-green-500 text-white' 
                 : 'border-white/10 text-white/60 hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-white/40'
@@ -1579,19 +1579,19 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 <div className="flex gap-2 p-1 bg-black/40 border border-white/5 rounded-xl">
                   <button 
                     onClick={() => setActiveSidebarTab('gear')}
-                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all ${activeSidebarTab === 'gear' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'gear' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
                   >
                     Gear Selection
                   </button>
                   <button 
                     onClick={() => setActiveSidebarTab('library')}
-                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all ${activeSidebarTab === 'library' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'library' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
                   >
                     Slate Library
                   </button>
                   <button 
                     onClick={() => setActiveSidebarTab('templates')}
-                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all ${activeSidebarTab === 'templates' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'templates' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
                   >
                     Packages
                   </button>
@@ -1603,16 +1603,16 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                       <select 
                         value={filterCategory}
                         onChange={(e) => setFilterCategory(e.target.value)}
-                        className="flex-1 bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-xl appearance-none cursor-pointer"
+                        className="flex-1 bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-xl appearance-none cursor-pointer"
                       >
                         <option value="All">ALL CATEGORIES</option>
                         {ALL_CATEGORIES.map(cat => (
-                          <option key={cat} value={cat}>{cat.toUpperCase()}</option>
+                          <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </select>
                       <button
                         onClick={openAddModal}
-                        className="bg-white text-black px-4 font-black uppercase text-[10px] tracking-widest hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-white/5 whitespace-nowrap flex items-center gap-2"
+                        className="bg-white text-black px-4 text-xs font-semibold hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-white/5 whitespace-nowrap flex items-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
                         <span className="hidden md:inline">Custom</span>
@@ -1623,10 +1623,10 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
                       <input 
                         type="text" 
-                        placeholder="SEARCH GEAR..." 
+                        placeholder="Search gear..." 
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-10 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-xl"
+                        className="w-full bg-black/50 border border-white/10 py-2.5 pl-10 pr-10 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-xl"
                       />
                       {search && (
                         <button 
@@ -1640,13 +1640,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                   </>
                 ) : activeSidebarTab === 'library' ? (
                   <div className="flex items-center justify-between">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent">Saved Production Slates</h3>
-                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{jobs.length} Total</p>
+                    <h3 className="text-xs font-semibold text-accent">Saved Production Slates</h3>
+                    <p className="text-xs font-semibold opacity-40">{jobs.length} Total</p>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent">Gear Package Templates</h3>
-                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{gearTemplates.length} Total</p>
+                    <h3 className="text-xs font-semibold text-accent">Gear Package Templates</h3>
+                    <p className="text-xs font-semibold opacity-40">{gearTemplates.length} Total</p>
                   </div>
                 )}
               </div>
@@ -1657,7 +1657,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                     {filteredGroupedItems ? (
                       Object.keys(filteredGroupedItems).sort().map(cat => (
                         <div key={cat} className="mb-8 last:mb-0">
-                          <h3 className="sticky top-0 bg-neutral-900/95 backdrop-blur z-10 py-3 text-sm font-bold tracking-[0.4em] uppercase text-accent mb-2 border-b border-white/10">{cat}</h3>
+                          <h3 className="sticky top-0 bg-neutral-900/95 backdrop-blur z-10 py-3 text-xs font-bold text-accent mb-2 border-b border-white/10">{cat}</h3>
                           <div className="space-y-2">
                             {filteredGroupedItems[cat].map(item => (
                                 <GearItem 
@@ -1675,7 +1675,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                         {filteredItems.length === 0 ? (
                           <div className="py-20 text-center opacity-40">
                             <Package className="w-12 h-12 mx-auto mb-4" />
-                            <p className="uppercase text-xs tracking-widest font-bold">No gear found</p>
+                            <p className="text-xs font-semibold text-white/40">No gear found</p>
                           </div>
                         ) : (
                           filteredItems.map((item) => (
@@ -1695,7 +1695,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                     {jobs.length === 0 ? (
                       <div className="py-32 text-center opacity-20">
                         <ClipboardList className="w-16 h-16 mx-auto mb-4" />
-                        <p className="uppercase text-xs tracking-[0.3em] font-black">Slate is empty</p>
+                        <p className="text-xs font-semibold text-white/40">Slate is empty</p>
                       </div>
                     ) : (
                       [...jobs].sort((a,b) => new Date(b.shoot_date || 0).getTime() - new Date(a.shoot_date || 0).getTime()).map(job => (
@@ -1708,13 +1708,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                           }}
                         >
                           <div className="flex-1 min-w-0 pr-4">
-                            <h4 className="text-sm font-black uppercase tracking-tight mb-1 group-hover:text-accent transition-colors truncate">{job.title}</h4>
+                            <h4 className="text-sm font-semibold tracking-tight mb-1 group-hover:text-accent transition-colors truncate">{job.title}</h4>
                             <div className="flex items-center gap-3 opacity-40">
-                              <p className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
+                              <p className="text-[10px] font-semibold flex items-center gap-1">
                                 <Calendar className="w-3 h-3" /> {job.shoot_date}
                               </p>
-                              <p className="text-[9px] font-bold uppercase tracking-widest flex items-center gap-1">
-                                <User className="w-3 h-3" /> {job.client_name || 'NO CLIENT'}
+                              <p className="text-[10px] font-semibold flex items-center gap-1">
+                                <User className="w-3 h-3" /> {job.client_name || 'No Client'}
                               </p>
                             </div>
                           </div>
@@ -1737,7 +1737,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                     {gearTemplates.length === 0 ? (
                       <div className="py-32 text-center opacity-20">
                         <Package className="w-16 h-16 mx-auto mb-4" />
-                        <p className="uppercase text-xs tracking-[0.3em] font-black">No packages saved yet</p>
+                        <p className="text-xs font-semibold text-white/40">No packages saved yet</p>
                       </div>
                     ) : (
                       gearTemplates.map(template => (
@@ -1747,7 +1747,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                         >
                           <div className="flex items-start justify-between gap-4 mb-2">
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-black uppercase tracking-tight text-white">{template.name}</h4>
+                              <h4 className="text-sm font-semibold tracking-tight text-white">{template.name}</h4>
                               {template.description && (
                                 <p className="text-[10px] opacity-65 normal-case mt-0.5 line-clamp-2">{template.description}</p>
                               )}
@@ -1766,7 +1766,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                           
                           <div className="flex flex-wrap gap-1 mb-3 max-h-16 overflow-y-auto pr-1 py-0.5 border-t border-b border-white/5">
                             {Object.entries(template.items).map(([name, qty]) => (
-                              <span key={name} className="text-[8px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-white/70 uppercase font-bold tracking-wider">
+                              <span key={name} className="text-[9px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-white/70 font-semibold">
                                 {qty}x {name}
                               </span>
                             ))}
@@ -1775,13 +1775,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                           <div className="grid grid-cols-2 gap-2 mt-auto">
                             <button
                               onClick={() => loadGearTemplate(template, 'merge')}
-                              className="py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-widest rounded-lg text-white/80 transition-all"
+                              className="py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold rounded-lg text-white/80 transition-all"
                             >
                               Merge List
                             </button>
                             <button
                               onClick={() => loadGearTemplate(template, 'overwrite')}
-                              className="py-2 bg-accent hover:bg-white hover:text-black text-[9px] font-black uppercase tracking-widest rounded-lg text-white transition-all shadow-md shadow-accent/10"
+                              className="py-2 bg-accent hover:bg-white hover:text-black text-xs font-semibold rounded-lg text-white transition-all shadow-md shadow-accent/10"
                             >
                               Load Package
                             </button>
@@ -1813,9 +1813,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               <div className="flex items-center justify-between p-6 border-b border-white/10 bg-neutral-900/50 backdrop-blur-lg sticky top-0 z-20">
                 <div className="flex items-center gap-3">
                   <Package className="w-5 h-5 text-accent" />
-                  <h2 className="text-xl font-black uppercase tracking-tighter">Manifest</h2>
-                  <span className="bg-accent/20 text-accent text-[10px] font-black px-2 py-0.5 rounded-full">
-                    {Object.values(manifest).reduce((a, b) => a + b, 0)} ITEMS
+                  <h2 className="text-lg font-bold text-white">Manifest</h2>
+                  <span className="bg-accent/20 text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                    {Object.values(manifest).reduce((a, b) => a + b, 0)} items
                   </span>
                 </div>
                 <button 
@@ -1839,7 +1839,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             animate={{ y: 0 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsMobileManifestOpen(true)}
-            className="w-full bg-accent text-white py-5 px-8 rounded-2xl shadow-2xl shadow-accent/40 flex items-center justify-between font-black uppercase tracking-widest text-xs"
+            className="w-full bg-accent text-white py-4 px-6 rounded-2xl shadow-2xl shadow-accent/40 flex items-center justify-between font-semibold text-xs"
           >
             <div className="flex items-center gap-3">
               <ClipboardList className="w-5 h-5" />
@@ -1868,7 +1868,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 className="relative bg-neutral-900 border border-white/10 w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl p-6"
               >
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-black uppercase tracking-tighter">Select Job or Date</h2>
+                    <h2 className="text-lg font-bold text-white">Select Job or Date</h2>
                     <button onClick={() => setIsCalendarOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                         <X className="w-5 h-5" />
                     </button>
@@ -1904,7 +1904,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 className="relative bg-neutral-900 border border-white/10 p-8 rounded-2xl w-full max-w-md shadow-2xl"
               >
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-black uppercase tracking-tighter">{editingItemName ? 'Edit Custom Gear' : 'Add Custom Gear'}</h2>
+                  <h2 className="text-lg font-bold text-white">{editingItemName ? 'Edit Custom Gear' : 'Add Custom Gear'}</h2>
                   <button onClick={() => setIsCustomModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                     <X className="w-5 h-5" />
                   </button>
@@ -1912,16 +1912,16 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Owner / Source <span className="opacity-50">(Optional)</span></label>
+                    <label className="text-xs font-semibold opacity-40 ml-1">Owner / Source <span className="opacity-50">(Optional)</span></label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
                       <input
                         type="text"
                         value={customOwner}
                         onChange={(e) => { setCustomOwner(e.target.value); setOwnerContactMsg(null); setShowAddOwnerContact(false); }}
-                        placeholder="E.G. RENTAL HOUSE A"
+                        placeholder="e.g. Rental House A"
                         list="saved-owners"
-                        className="w-full bg-black/50 border border-white/10 py-3 pl-10 pr-4 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg"
+                        className="w-full bg-black/50 border border-white/10 py-2.5 pl-10 pr-4 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
                       />
                       <datalist id="saved-owners">
                         {/* Existing Rolodex contacts + previously used owners */}
@@ -1937,17 +1937,17 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                       if (!name) return null;
                       const exists = contacts.some(c => c.name.toLowerCase() === name.toLowerCase());
                       if (exists) {
-                        return <p className="text-[9px] font-bold uppercase tracking-widest text-green-400/80 ml-1 mt-1 flex items-center gap-1"><Check className="w-3 h-3" /> In Rolodex</p>;
+                        return <p className="text-[10px] font-semibold text-green-400/80 ml-1 mt-1 flex items-center gap-1"><Check className="w-3 h-3" /> In Rolodex</p>;
                       }
                       if (ownerContactMsg) {
-                        return <p className="text-[9px] font-bold uppercase tracking-widest text-accent ml-1 mt-1">{ownerContactMsg}</p>;
+                        return <p className="text-[10px] font-semibold text-accent ml-1 mt-1">{ownerContactMsg}</p>;
                       }
                       if (!showAddOwnerContact) {
                         return (
                           <button
                             type="button"
                             onClick={() => setShowAddOwnerContact(true)}
-                            className="mt-1.5 ml-1 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-accent hover:text-white transition-colors"
+                            className="mt-1.5 ml-1 flex items-center gap-1.5 text-[10px] font-semibold text-accent hover:text-white transition-colors"
                           >
                             <UserPlus className="w-3 h-3" /> Add &ldquo;{name}&rdquo; to Rolodex
                           </button>
@@ -1955,27 +1955,27 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                       }
                       return (
                         <div className="mt-2 p-3 bg-black/40 border border-white/10 rounded-lg space-y-2">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-white/50">New Contact · {name}</p>
+                          <p className="text-[10px] font-semibold text-white/50">New Contact · {name}</p>
                           <input
                             type="email"
                             value={ownerContactEmail}
                             onChange={(e) => setOwnerContactEmail(e.target.value)}
-                            placeholder="EMAIL (OPTIONAL)"
-                            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors text-[11px] font-bold tracking-widest rounded-lg"
+                            placeholder="Email (Optional)"
+                            className="w-full bg-black/50 border border-white/10 py-1.5 px-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
                           />
                           <input
                             type="tel"
                             value={ownerContactPhone}
                             onChange={(e) => setOwnerContactPhone(e.target.value)}
-                            placeholder="PHONE (OPTIONAL)"
-                            className="w-full bg-black/50 border border-white/10 py-2 px-3 outline-none focus:border-accent transition-colors text-[11px] font-bold tracking-widest rounded-lg"
+                            placeholder="Phone (Optional)"
+                            className="w-full bg-black/50 border border-white/10 py-1.5 px-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
                           />
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
                               onClick={handleSaveOwnerAsContact}
                               disabled={savingOwnerContact}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-white text-[9px] font-black uppercase tracking-widest hover:opacity-90 disabled:opacity-50"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-semibold hover:opacity-90 disabled:opacity-50"
                             >
                               {savingOwnerContact ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserPlus className="w-3 h-3" />}
                               Save Contact
@@ -1983,7 +1983,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                             <button
                               type="button"
                               onClick={() => setShowAddOwnerContact(false)}
-                              className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white"
+                              className="px-3 py-1.5 text-xs font-semibold text-white/40 hover:text-white"
                             >
                               Cancel
                             </button>
@@ -1994,49 +1994,49 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Item Name</label>
+                    <label className="text-xs font-semibold opacity-40 ml-1">Item Name</label>
                     <input 
                       type="text" 
                       value={customName}
                       onChange={(e) => setCustomName(e.target.value)}
-                      placeholder="E.G. RED KOMODO"
+                      placeholder="e.g. RED Komodo"
                       autoFocus
-                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg"
+                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
                     />
                   </div>
                   
                   <div className="space-y-1">
-                    <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Category</label>
+                    <label className="text-xs font-semibold opacity-40 ml-1">Category</label>
                     <select 
                       value={customCategory}
                       onChange={(e) => setCustomCategory(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg appearance-none"
+                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg appearance-none"
                     >
                       {ALL_CATEGORIES.map(cat => (
-                        <option key={cat} value={cat}>{cat.toUpperCase()}</option>
+                        <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-1">
-                      <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Quantity</label>
+                      <label className="text-xs font-semibold opacity-40 ml-1">Quantity</label>
                       <input 
                         type="number" 
                         min="1"
                         value={customQty}
                         onChange={(e) => setCustomQty(parseInt(e.target.value) || 1)}
-                        className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg"
+                        className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Value ($)</label>
+                      <label className="text-xs font-semibold opacity-40 ml-1">Value ($)</label>
                       <input 
                         type="number" 
                         min="0"
                         value={customValue}
                         onChange={(e) => setCustomValue(parseInt(e.target.value) || 0)}
-                        className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg"
+                        className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
                       />
                     </div>
                   </div>
@@ -2044,7 +2044,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                   <button 
                     onClick={addCustomItem}
                     disabled={!customName.trim()}
-                    className="w-full bg-accent text-white py-4 mt-4 font-black tracking-widest uppercase text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
+                    className="w-full bg-accent text-white py-2.5 mt-4 font-semibold text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
                   >
                     {editingItemName ? 'Save Changes' : 'Add to Manifest'}
                   </button>
@@ -2071,7 +2071,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 className="relative bg-neutral-900 border border-white/10 p-8 rounded-2xl w-full max-w-md shadow-2xl"
               >
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-black uppercase tracking-tighter">Save Gear Package</h2>
+                  <h2 className="text-lg font-bold text-white">Save Gear Package</h2>
                   <button onClick={() => setIsSaveTemplateModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/40 hover:text-white">
                     <X className="w-5 h-5" />
                   </button>
@@ -2079,33 +2079,33 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Package Name</label>
+                    <label className="text-xs font-semibold opacity-40 ml-1">Package Name</label>
                     <input 
                       type="text" 
                       value={newTemplateName}
                       onChange={(e) => setNewTemplateName(e.target.value)}
-                      placeholder="E.G. A-CAM RIG PACKAGE"
+                      placeholder="e.g. A-Cam Rig Package"
                       autoFocus
-                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors uppercase text-xs font-bold tracking-widest rounded-lg text-white"
+                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg text-white"
                     />
                   </div>
                   
                   <div className="space-y-1">
-                    <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Description <span className="opacity-50">(Optional)</span></label>
+                    <label className="text-xs font-semibold opacity-40 ml-1">Description <span className="opacity-50">(Optional)</span></label>
                     <textarea 
                       value={newTemplateDesc}
                       onChange={(e) => setNewTemplateDesc(e.target.value)}
                       placeholder="E.g. RED Komodo body with prime lenses and wireless monitoring"
                       rows={3}
-                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-bold rounded-lg text-white resize-none"
+                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg text-white resize-none"
                     />
                   </div>
 
                   <div className="bg-black/30 p-4 border border-white/5 rounded-xl max-h-40 overflow-y-auto">
-                    <p className="text-[8px] font-bold tracking-widest uppercase opacity-45 mb-2">Package Contents ({Object.keys(manifest).length} items)</p>
+                    <p className="text-xs font-semibold opacity-45 mb-2">Package Contents ({Object.keys(manifest).length} items)</p>
                     <div className="space-y-1">
                       {Object.entries(manifest).map(([name, qty]) => (
-                        <p key={name} className="text-[10px] font-bold uppercase text-white/80">
+                        <p key={name} className="text-[11px] font-semibold text-white/80">
                           {qty}x {name}
                         </p>
                       ))}
@@ -2115,7 +2115,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                   <button 
                     onClick={saveGearTemplate}
                     disabled={!newTemplateName.trim()}
-                    className="w-full bg-accent text-white py-4 mt-4 font-black tracking-widest uppercase text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
+                    className="w-full bg-accent text-white py-2.5 mt-4 font-semibold text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
                   >
                     Save Template Package
                   </button>

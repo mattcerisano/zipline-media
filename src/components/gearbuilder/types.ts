@@ -152,6 +152,18 @@ export interface NotificationEvent {
   updated_at?: string;
 }
 
+export type CalendarEventPreset = 'timeout' | 'booked' | 'planning' | 'hold' | 'available' | 'travel' | 'edit';
+
+export interface CalendarEvent {
+  id: string;
+  title?: string;
+  preset: CalendarEventPreset;
+  event_date: string;
+  end_date?: string | null;
+  notes?: string;
+  job_id?: string | null;
+}
+
 export interface JobScene {
   id: string;
   job_id: string;

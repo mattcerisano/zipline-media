@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { 
   Lock,
@@ -133,6 +133,7 @@ const DEFAULT_TABS: CustomTab[] = [
 
 export default function CommandCenterPage() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const loadedUserRef = useRef<string | null>(null);
   const [layoutResetNonce, setLayoutResetNonce] = useState<number>(0);
   const [tabs, setTabs] = useState<CustomTab[]>([]);
   const [isMounted, setIsMounted] = useState(false);
@@ -180,10 +181,27 @@ export default function CommandCenterPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    
+    // Load persisted active tab
+    const savedActiveTab = localStorage.getItem('studio_active_tab');
+    if (savedActiveTab) {
+      setActiveTab(savedActiveTab);
+    }
+
     const savedTabs = localStorage.getItem('custom_tabs_list');
     if (savedTabs) {
       try {
-        setTabs(JSON.parse(savedTabs) as CustomTab[]);
+        const parsed = JSON.parse(savedTabs) as CustomTab[];
+        // Merge in any newer built-in system tabs the saved list predates
+        // (e.g. "social"), so existing users get them without losing custom
+        // tabs or ordering. New system tabs are appended before the last one.
+        const savedIds = new Set(parsed.map((t) => t.id));
+        const missingSystemTabs = DEFAULT_TABS.filter((t) => t.type === 'system' && !savedIds.has(t.id));
+        const merged = missingSystemTabs.length ? [...parsed, ...missingSystemTabs] : parsed;
+        setTabs(merged);
+        if (missingSystemTabs.length) {
+          localStorage.setItem('custom_tabs_list', JSON.stringify(merged));
+        }
       } catch (e) {
         setTabs(DEFAULT_TABS);
       }
@@ -239,6 +257,7 @@ export default function CommandCenterPage() {
     setTabs(updated);
     localStorage.setItem('custom_tabs_list', JSON.stringify(updated));
     setActiveTab(newTab.id);
+    localStorage.setItem('studio_active_tab', newTab.id);
 
     setNewTabLabel('');
     setNewTabIcon('LayoutDashboard');
@@ -283,6 +302,7 @@ export default function CommandCenterPage() {
     localStorage.setItem('custom_tabs_list', JSON.stringify(updated));
     if (activeTab === selectedTabToEdit.id) {
       setActiveTab('dashboard');
+      localStorage.setItem('studio_active_tab', 'dashboard');
     }
     setIsEditModalOpen(false);
     setSelectedTabToEdit(null);
@@ -369,11 +389,36 @@ export default function CommandCenterPage() {
   const fetchUserRole = async (userId: string, email: string, setDefaultTab = false) => {
     setIsLoading(true);
 
+    const checkPersistedTab = (role: 'admin' | 'staff' | 'client') => {
+      const savedActiveTab = localStorage.getItem('studio_active_tab');
+      if (savedActiveTab) {
+        let currentTabs = DEFAULT_TABS;
+        const savedTabs = localStorage.getItem('custom_tabs_list');
+        if (savedTabs) {
+          try {
+            currentTabs = JSON.parse(savedTabs);
+          } catch (e) {}
+        }
+        const activeTabObj = currentTabs.find(t => t.id === savedActiveTab);
+        const isValid = activeTabObj && (!activeTabObj.allowedRoles || activeTabObj.allowedRoles.includes(role));
+        if (isValid) {
+          setActiveTab(savedActiveTab);
+          return true;
+        }
+      }
+      return false;
+    };
+
     // Hardcoded bypass for the primary administrator account
     const cleanEmail = email.trim().toLowerCase();
     if (cleanEmail === 'matt@zipline.media') {
       setUserRole('admin');
-      if (setDefaultTab) setActiveTab('dashboard');
+      if (setDefaultTab) {
+        if (!checkPersistedTab('admin')) {
+          setActiveTab('dashboard');
+          localStorage.setItem('studio_active_tab', 'dashboard');
+        }
+      }
       setIsLoading(false);
       return;
     }
@@ -422,12 +467,21 @@ export default function CommandCenterPage() {
 
       setUserRole(role as any);
       if (setDefaultTab) {
-        setActiveTab(role === 'admin' ? 'dashboard' : 'calendar');
+        if (!checkPersistedTab(role as any)) {
+          const defaultTab = role === 'admin' ? 'dashboard' : 'calendar';
+          setActiveTab(defaultTab);
+          localStorage.setItem('studio_active_tab', defaultTab);
+        }
       }
     } catch (err: any) {
       console.error('[Studio OS] Error fetching user role:', err);
       setUserRole('client'); // Default fallback
-      if (setDefaultTab) setActiveTab('calendar');
+      if (setDefaultTab) {
+        if (!checkPersistedTab('client')) {
+          setActiveTab('calendar');
+          localStorage.setItem('studio_active_tab', 'calendar');
+        }
+      }
     } finally {
       setIsLoading(false);
     }
@@ -438,13 +492,12 @@ export default function CommandCenterPage() {
     // events (token refreshes, tab re-focus) that would otherwise re-run
     // fetchUserRole — flashing the loading screen and snapping the user back
     // to the default tab in the middle of whatever they were doing.
-    let loadedUserId: string | null = null;
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        loadedUserId = session.user.id;
+        loadedUserRef.current = session.user.id;
         fetchUserRole(session.user.id, session.user.email || '', true);
       } else {
         setUserRole(null);
@@ -459,7 +512,7 @@ export default function CommandCenterPage() {
 
       // Sign-out: clear everything.
       if (!session?.user) {
-        loadedUserId = null;
+        loadedUserRef.current = null;
         setUserRole(null);
         setIsLoading(false);
         return;
@@ -468,12 +521,12 @@ export default function CommandCenterPage() {
       // Same user as already loaded (TOKEN_REFRESHED, USER_UPDATED, or a
       // SIGNED_IN re-fired on tab focus) — nothing to do. Re-fetching here was
       // the cause of "it kicks me out mid-task / sends me back to the home page".
-      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || newUserId === loadedUserId) {
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || newUserId === loadedUserRef.current) {
         return;
       }
 
       // Genuinely new sign-in — load their role and land on the default tab.
-      loadedUserId = newUserId;
+      loadedUserRef.current = newUserId;
       fetchUserRole(session.user.id, session.user.email || '', true);
     });
 
@@ -694,6 +747,7 @@ export default function CommandCenterPage() {
                                 <button
                                   onClick={() => {
                                     setActiveTab(tab.id);
+                                    localStorage.setItem('studio_active_tab', tab.id);
                                     if (isMobile) {
                                       setIsSidebarOpen(false);
                                     }
@@ -801,6 +855,7 @@ export default function CommandCenterPage() {
                       key={tab.id}
                       onClick={() => {
                         setActiveTab(tab.id);
+                        localStorage.setItem('studio_active_tab', tab.id);
                         if (isMobile) {
                           setIsSidebarOpen(false);
                         }
@@ -964,14 +1019,17 @@ export default function CommandCenterPage() {
                   onSwitchTab={(target) => {
                     if (typeof target === 'string') {
                       setActiveTab(target);
+                      localStorage.setItem('studio_active_tab', target);
                     } else if (target && typeof target === 'object') {
                       if (target.selectCalendarJob) {
                         setPreselectedJobId(target.selectCalendarJob);
                         setActiveTab('slate');
+                        localStorage.setItem('studio_active_tab', 'slate');
                       }
                       if (target.gearJob) {
                         setPreloadedJob(target.gearJob);
                         setActiveTab('gear');
+                        localStorage.setItem('studio_active_tab', 'gear');
                       }
                     }
                   }}

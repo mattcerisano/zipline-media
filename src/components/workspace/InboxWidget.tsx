@@ -303,7 +303,7 @@ export default function InboxWidget() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 right-6 bg-accent border border-white/20 px-4 py-3 rounded-xl shadow-2xl z-[120] flex items-center gap-2.5 text-xs font-black uppercase tracking-widest text-white shadow-accent/20"
+            className="fixed bottom-6 right-6 bg-accent border border-white/20 px-4 py-3 rounded-xl shadow-2xl z-[120] flex items-center gap-2.5 text-xs font-semibold tracking-wider text-white shadow-accent/20"
           >
             <Check className="w-4 h-4 text-white" />
             {toastMsg}
@@ -316,10 +316,10 @@ export default function InboxWidget() {
         <div className="bg-gradient-to-r from-yellow-500/10 via-amber-500/5 to-transparent border-b border-yellow-500/20 px-6 py-2.5 flex items-center justify-between gap-4 select-none">
           <div className="flex items-center gap-2.5">
             <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-yellow-500 flex items-center gap-1">
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-yellow-500 flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5" /> Offline Sandbox mode
             </span>
-            <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest hidden sm:inline">— showing simulated studio inbox feeds</span>
+            <span className="text-[8px] font-semibold text-white/40 uppercase tracking-wide hidden sm:inline">— showing simulated studio inbox feeds</span>
           </div>
           <button 
             onClick={() => {
@@ -327,7 +327,7 @@ export default function InboxWidget() {
               const syncBtn = document.querySelector('button[title="Reconnect Account"]') || document.querySelector('button.bg-gradient-to-r.from-accent\\/20');
               if (syncBtn) (syncBtn as any).click();
             }}
-            className="px-2.5 py-1 bg-yellow-500/15 hover:bg-yellow-500/35 border border-yellow-500/30 rounded-lg text-[8px] font-black uppercase tracking-widest text-yellow-400 hover:text-white transition-all cursor-pointer"
+            className="px-2.5 py-1 bg-yellow-500/15 hover:bg-yellow-500/35 border border-yellow-500/30 rounded-lg text-[8px] font-semibold uppercase tracking-wider text-yellow-400 hover:text-white transition-all cursor-pointer"
           >
             Connect Gmail Account
           </button>
@@ -346,10 +346,10 @@ export default function InboxWidget() {
               <Search className="w-3.5 h-3.5 text-white/30" />
               <input 
                 type="text" 
-                placeholder="SEARCH INBOX..." 
+                placeholder="Search inbox..." 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-none outline-none text-[10px] font-black uppercase tracking-wider placeholder:opacity-30 text-white"
+                className="w-full bg-transparent border-none outline-none text-xs font-medium tracking-wide placeholder:opacity-30 text-white"
               />
             </div>
             <button 
@@ -371,7 +371,7 @@ export default function InboxWidget() {
             ) : filteredThreads.length === 0 ? (
               <div className="h-48 flex flex-col items-center justify-center p-6 text-center select-none">
                 <Inbox className="w-8 h-8 text-white/20 mb-3" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/30">No email threads found</p>
+                <p className="text-xs font-semibold text-white/30">No email threads found</p>
               </div>
             ) : (
               filteredThreads.map(t => {
@@ -392,22 +392,22 @@ export default function InboxWidget() {
                     )}
 
                     <div className="flex items-start justify-between gap-3 pl-1">
-                      <span className={`text-[10px] font-black uppercase tracking-wider truncate max-w-[70%] ${
+                      <span className={`text-xs font-semibold tracking-wide truncate max-w-[70%] ${
                         t.unread ? 'text-white' : 'text-white/60 group-hover:text-white/80'
                       }`}>
                         {t.subject}
                       </span>
-                      <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest whitespace-nowrap pt-0.5">
+                      <span className="text-[9px] font-medium text-white/30 tracking-wide whitespace-nowrap pt-0.5">
                         {t.lastMessageDate}
                       </span>
                     </div>
 
-                    <p className="text-[9px] font-bold text-white/40 leading-normal line-clamp-2 pl-1 select-none">
+                    <p className="text-[10px] font-normal text-white/40 leading-normal line-clamp-2 pl-1 select-none">
                       {t.snippet}
                     </p>
 
                     <div className="flex items-center gap-2 mt-1 pl-1">
-                      <span className={`px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border border-${t.labelColor}/20 bg-${t.labelColor}/10 text-${t.labelColor}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[7px] font-semibold uppercase tracking-widest border border-${t.labelColor}/20 bg-${t.labelColor}/10 text-${t.labelColor}`}>
                         {t.label}
                       </span>
                       {isSelected && (
@@ -433,10 +433,10 @@ export default function InboxWidget() {
               {/* Thread Header / Context Action Bar */}
               <div className="p-4 md:px-6 bg-black/30 border-b border-white/5 flex flex-wrap items-center justify-between gap-3 select-none shrink-0">
                 <div className="min-w-0">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-white truncate max-w-md">
+                  <h3 className="text-sm font-semibold tracking-wide text-white truncate max-w-md">
                     {currentThread.subject}
                   </h3>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-accent mt-0.5">
+                  <p className="text-[9px] font-semibold uppercase tracking-wider text-accent mt-0.5">
                     {currentThread.messages?.length} {currentThread.messages?.length === 1 ? 'Message' : 'Messages'} in thread
                   </p>
                 </div>
@@ -445,7 +445,7 @@ export default function InboxWidget() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <button 
                     onClick={handleLinkToSlate}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-semibold tracking-wide text-white/60 hover:text-white transition-colors cursor-pointer"
                     title="Link Email Conversation to active Slate"
                   >
                     <Briefcase className="w-3.5 h-3.5 text-accent" />
@@ -453,7 +453,7 @@ export default function InboxWidget() {
                   </button>
                   <button 
                     onClick={handleConvertToTask}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-semibold tracking-wide text-white/60 hover:text-white transition-colors cursor-pointer"
                     title="Convert email instructions into a Crew/Gear Task"
                   >
                     <Package className="w-3.5 h-3.5 text-accent" />
@@ -481,7 +481,7 @@ export default function InboxWidget() {
                     {/* Sender Details Header */}
                     <div className="flex items-start justify-between gap-3 border-b border-white/5 pb-3 mb-4 select-none">
                       <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase border ${
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-semibold border ${
                           msg.from.includes('matt@zipline.media') 
                             ? 'bg-accent/15 border-accent/30 text-accent' 
                             : 'bg-white/5 border-white/10 text-white/60'
@@ -489,18 +489,18 @@ export default function InboxWidget() {
                           {msg.from.includes('matt@zipline.media') ? 'ME' : <User className="w-3.5 h-3.5" />}
                         </div>
                         <div>
-                          <p className="text-[10px] font-black uppercase tracking-wider text-white">{msg.from}</p>
-                          <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-0.5">To: {msg.to}</p>
+                          <p className="text-xs font-semibold tracking-wide text-white">{msg.from}</p>
+                          <p className="text-[9px] font-medium text-white/30 tracking-wide mt-0.5">To: {msg.to}</p>
                         </div>
                       </div>
-                      <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-1.5">
+                      <span className="text-[9px] font-medium text-white/30 tracking-wide flex items-center gap-1.5">
                         <Clock className="w-3 h-3 text-white/20" /> {msg.date}
                       </span>
                     </div>
 
                     {/* Rich HTML body render */}
                     <div 
-                      className="text-xs font-bold leading-relaxed text-white/70 space-y-3 email-rendered-body"
+                      className="text-sm font-normal leading-relaxed text-white/70 space-y-3 email-rendered-body"
                       dangerouslySetInnerHTML={{ __html: msg.body }}
                     />
                   </div>
@@ -517,7 +517,7 @@ export default function InboxWidget() {
                       <button
                         type="button"
                         onClick={() => setShowTemplates(!showTemplates)}
-                        className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest text-accent hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-semibold tracking-wide text-accent hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <Sparkles className="w-3 h-3 text-accent animate-pulse" />
                         Reply Templates
@@ -530,13 +530,13 @@ export default function InboxWidget() {
                             exit={{ opacity: 0, scale: 0.95, y: -10 }}
                             className="absolute right-0 bottom-full mb-2 w-64 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl p-2 space-y-1 text-left"
                           >
-                            <p className="text-[7px] font-black tracking-widest uppercase text-white/30 px-2 py-1.5 border-b border-white/5 mb-1">Select Template</p>
+                            <p className="text-[8px] font-semibold tracking-wider uppercase text-white/30 px-2 py-1.5 border-b border-white/5 mb-1">Select Template</p>
                             {REPLY_TEMPLATES.map((tmpl, idx) => (
                               <button
                                 key={idx}
                                 type="button"
                                 onClick={() => handleApplyTemplate(tmpl.body)}
-                                className="w-full px-2.5 py-2 text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider block"
+                                className="w-full px-2.5 py-2 text-xs font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left tracking-wide block"
                               >
                                 {tmpl.title}
                               </button>
@@ -549,19 +549,19 @@ export default function InboxWidget() {
                     <textarea
                       value={replyBody}
                       onChange={e => setReplyBody(e.target.value)}
-                      placeholder={`REPLY TO ${currentThread.messages?.[currentThread.messages.length - 1]?.from.match(/^([^<]+)/)?.[1]?.trim().toUpperCase() || 'SENDER'}...`}
+                      placeholder={`Reply to ${currentThread.messages?.[currentThread.messages.length - 1]?.from.match(/^([^<]+)/)?.[1]?.trim() || 'sender'}...`}
                       required
-                      className="w-full bg-transparent border-0 outline-none text-xs font-bold leading-relaxed text-white/80 placeholder:opacity-20 p-4 min-h-[100px] resize-none focus:ring-0 focus:text-white transition-colors"
+                      className="w-full bg-transparent border-0 outline-none text-sm font-normal leading-relaxed text-white/80 placeholder:opacity-20 p-4 min-h-[100px] resize-none focus:ring-0 focus:text-white transition-colors"
                     />
 
                     <div className="bg-black/30 border-t border-white/5 px-4 py-2 flex items-center justify-between select-none">
-                      <span className="text-[8px] font-bold text-white/20 uppercase tracking-widest">
+                      <span className="text-[9px] font-medium text-white/20 tracking-wide">
                         Replying via {isLive ? 'Gmail Live API' : 'Simulated Sandbox SMTP'}
                       </span>
                       <button
                         type="submit"
                         disabled={isSending || !replyBody.trim()}
-                        className="bg-accent px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-white hover:bg-white hover:text-black transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="bg-accent px-4 py-2 rounded-lg text-xs font-semibold tracking-wide text-white hover:bg-white hover:text-black transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {isSending ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -583,8 +583,8 @@ export default function InboxWidget() {
                 <div className="absolute inset-0 bg-accent/5 blur-xl opacity-30 group-hover:opacity-50 transition-opacity" />
                 <Mail className="w-7 h-7 text-white/30 group-hover:scale-115 transition-transform" />
               </div>
-              <h4 className="text-sm font-black uppercase tracking-wider text-white">No Conversation Selected</h4>
-              <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1 max-w-[240px] leading-relaxed">
+              <h4 className="text-sm font-semibold tracking-wide text-white">No Conversation Selected</h4>
+              <p className="text-[9px] font-medium text-white/30 tracking-wide mt-1 max-w-[240px] leading-relaxed">
                 Select an email thread from the sidebar list to view its message timeline and compose replies.
               </p>
             </div>
@@ -611,7 +611,7 @@ export default function InboxWidget() {
               className="w-full max-w-md bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-                <h3 className="text-xs font-black uppercase tracking-widest text-white flex items-center gap-2">
+                <h3 className="text-sm font-semibold tracking-wide text-white flex items-center gap-2">
                   <Briefcase className="w-4 h-4 text-accent" /> Link Email to Job
                 </h3>
                 <button onClick={() => setShowJobPicker(false)} className="text-white/40 hover:text-white">
@@ -625,8 +625,8 @@ export default function InboxWidget() {
                     autoFocus
                     value={jobPickerSearch}
                     onChange={(e) => setJobPickerSearch(e.target.value)}
-                    placeholder="SEARCH JOBS…"
-                    className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-3 rounded-lg outline-none focus:border-accent text-xs font-bold uppercase tracking-widest text-white"
+                    placeholder="Search jobs..."
+                    className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-3 rounded-lg outline-none focus:border-accent text-sm font-normal text-white"
                   />
                 </div>
               </div>
@@ -643,14 +643,14 @@ export default function InboxWidget() {
                       className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors flex items-center justify-between gap-3 group"
                     >
                       <div className="min-w-0">
-                        <p className="text-[11px] font-black uppercase tracking-wider text-white truncate">{j.title}</p>
-                        <p className="text-[8px] font-bold uppercase tracking-widest text-white/40 truncate">{j.client_name || 'No Client'}</p>
+                        <p className="text-xs font-semibold text-white truncate">{j.title}</p>
+                        <p className="text-[9px] font-medium text-white/40 truncate">{j.client_name || 'No Client'}</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-accent transition-colors shrink-0" />
                     </button>
                   ))}
                 {linkableJobs.length === 0 && (
-                  <p className="text-center text-[10px] font-bold uppercase tracking-widest text-white/30 py-8">No active jobs found.</p>
+                  <p className="text-center text-xs font-medium text-white/30 py-8">No active jobs found.</p>
                 )}
               </div>
             </motion.div>

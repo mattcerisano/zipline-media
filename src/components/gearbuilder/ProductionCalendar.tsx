@@ -4,11 +4,23 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Calendar as CalendarIcon,
-  Clock, MapPin, User, AlertCircle, X, Save, Loader2, RefreshCw
+  Clock, MapPin, User, AlertCircle, X, Save, Loader2, RefreshCw, Plus
 } from 'lucide-react';
-import { Job } from './types';
+import { Job, CalendarEvent, CalendarEventPreset } from './types';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
+
+// Quick-add presets for the Calendar tab. Lightweight markers, not productions.
+export const EVENT_PRESETS: { key: CalendarEventPreset; label: string; color: string; dot: string }[] = [
+  { key: 'timeout', label: 'Timeout', color: '#f43f5e', dot: 'bg-rose-500' },
+  { key: 'booked', label: 'Book to Shoot', color: '#10b981', dot: 'bg-emerald-500' },
+  { key: 'planning', label: 'Planning Shoot', color: '#3b82f6', dot: 'bg-blue-500' },
+  { key: 'hold', label: 'Hold', color: '#f59e0b', dot: 'bg-amber-500' },
+  { key: 'available', label: 'Available', color: '#14b8a6', dot: 'bg-teal-500' },
+  { key: 'travel', label: 'Travel Day', color: '#a855f7', dot: 'bg-purple-500' },
+  { key: 'edit', label: 'Edit Day', color: '#d946ef', dot: 'bg-fuchsia-500' },
+];
+const presetOf = (k?: string) => EVENT_PRESETS.find(p => p.key === k) || EVENT_PRESETS[0];
 
 interface ProductionCalendarProps {
   onSelectDate?: (date: string) => void;
@@ -18,14 +30,20 @@ interface ProductionCalendarProps {
   selectionMode?: 'single' | 'range';
   /** When true, clicking an event opens an inline editor that updates Supabase and pushes to Google Calendar. */
   editable?: boolean;
+  /** When true, clicking a day opens a preset quick-add (Timeout / Book to Shoot / etc.) backed by calendar_events. */
+  enableQuickEvents?: boolean;
 }
 
-export default function ProductionCalendar({ onSelectDate, onSelectJob, onDeleteJob, onSelectRange, selectionMode = 'single', editable = false }: ProductionCalendarProps) {
+export default function ProductionCalendar({ onSelectDate, onSelectJob, onDeleteJob, onSelectRange, selectionMode = 'single', editable = false, enableQuickEvents = false }: ProductionCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [jobs, setJobs] = useState<Job[]>([]);
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Quick calendar markers (gated by enableQuickEvents)
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [quickAddDate, setQuickAddDate] = useState<string | null>(null);
 
   // Inline event editor state (only used when `editable`)
   const [editingJob, setEditingJob] = useState<Job | null>(null);
@@ -61,6 +79,50 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
 
   // Live team sync: refetch calendar when teammates change jobs
   useRealtime(['jobs'], fetchJobs);
+
+  // Quick calendar markers
+  const fetchEvents = React.useCallback(async () => {
+    if (!enableQuickEvents) return;
+    try {
+      const { data, error } = await supabase.from('calendar_events').select('*').order('event_date');
+      if (error) throw error;
+      if (data) setEvents(data as CalendarEvent[]);
+    } catch (err) {
+      console.error('Error fetching calendar events:', err);
+    }
+  }, [enableQuickEvents]);
+
+  React.useEffect(() => { fetchEvents(); }, [fetchEvents]);
+  useRealtime(enableQuickEvents ? ['calendar_events'] : [], fetchEvents);
+
+  const addQuickEvent = async (date: string, preset: CalendarEventPreset) => {
+    const label = presetOf(preset).label;
+    const optimistic: CalendarEvent = { id: `temp-${Date.now()}`, title: label, preset, event_date: date };
+    setEvents(prev => [...prev, optimistic]);
+    setQuickAddDate(null);
+    const { data, error } = await supabase
+      .from('calendar_events')
+      .insert([{ title: label, preset, event_date: date }])
+      .select()
+      .single();
+    if (error) {
+      console.error('Error adding calendar event:', error);
+      setEvents(prev => prev.filter(e => e.id !== optimistic.id));
+      return;
+    }
+    setEvents(prev => prev.map(e => (e.id === optimistic.id ? (data as CalendarEvent) : e)));
+  };
+
+  const deleteQuickEvent = async (id: string) => {
+    setEvents(prev => prev.filter(e => e.id !== id));
+    const { error } = await supabase.from('calendar_events').delete().eq('id', id);
+    if (error) console.error('Error deleting calendar event:', error);
+  };
+
+  const renameQuickEvent = async (id: string, title: string) => {
+    setEvents(prev => prev.map(e => (e.id === id ? { ...e, title } : e)));
+    await supabase.from('calendar_events').update({ title }).eq('id', id);
+  };
 
   // Open the inline editor for a clicked event
   const openEditor = (job: Job) => {
@@ -230,7 +292,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     <div className="bg-neutral-900/30 border border-white/10 rounded-2xl p-4 md:p-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
-        <h2 className="text-xl md:text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
+        <h2 className="text-lg md:text-xl font-bold tracking-tight flex items-center gap-3">
           <CalendarIcon className="w-5 h-5 md:w-6 md:h-6 text-accent" />
           {monthYear}
         </h2>
@@ -239,7 +301,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
           <button onClick={prevMonth} className="p-2 hover:bg-white/10 rounded-md transition-colors flex-1 md:flex-none flex justify-center">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <button onClick={goToToday} className="px-4 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 rounded-md transition-colors border-x border-white/5 flex-1 md:flex-none text-center">
+          <button onClick={goToToday} className="px-4 py-1 text-xs font-semibold hover:bg-white/10 rounded-md transition-colors border-x border-white/5 flex-1 md:flex-none text-center">
             Today
           </button>
           <button onClick={nextMonth} className="p-2 hover:bg-white/10 rounded-md transition-colors flex-1 md:flex-none flex justify-center">
@@ -254,7 +316,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
           ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] 
           : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
         ).map((d, idx) => (
-          <div key={idx} className="text-center text-[10px] font-black uppercase tracking-widest opacity-30">
+          <div key={idx} className="text-center text-[10px] font-semibold uppercase tracking-wider opacity-30">
             {d}
           </div>
         ))}
@@ -264,7 +326,8 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-lg overflow-hidden">
         {calendarDays.map((d, i) => {
           const isToday = d.date === new Date().toISOString().split('T')[0];
-          
+          const dayEvents = enableQuickEvents && d.date ? events.filter(ev => ev.event_date === d.date) : [];
+
           return (
             <div 
               key={i} 
@@ -281,24 +344,37 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                               onSelectRange(start, end);
                               setRangeStart(null);
                           }
+                      } else if (enableQuickEvents && !isMobile) {
+                          setQuickAddDate(prev => (prev === d.date ? null : d.date));
                       } else {
                           onSelectDate?.(d.date);
                       }
                   }
               }}
-              className={`min-h-[60px] md:min-h-[140px] bg-black/40 p-1.5 md:p-2 transition-colors relative group 
-                ${!d.day ? 'opacity-20 pointer-events-none' : ''} 
-                ${(onSelectDate || onSelectRange || isMobile) ? 'cursor-pointer hover:bg-white/10' : 'hover:bg-black/60'}
+              className={`min-h-[60px] md:min-h-[140px] bg-black/40 p-1.5 md:p-2 transition-colors relative group
+                ${!d.day ? 'opacity-20 pointer-events-none' : ''}
+                ${(onSelectDate || onSelectRange || isMobile || enableQuickEvents) ? 'cursor-pointer hover:bg-white/10' : 'hover:bg-black/60'}
                 ${rangeStart === d.date ? 'bg-blue-500/20 ring-2 ring-blue-500 inset-0 z-10' : ''}
                 ${selectedDate === d.date && d.day ? 'bg-accent/[0.08] ring-1 ring-accent z-10' : ''}
               `}
             >
               {d.day && (
                 <>
-                  <span className={`text-[10px] md:text-xs font-black mb-1 md:mb-2 block ${isToday ? 'text-accent' : 'opacity-40'}`}>
+                  <span className={`text-[10px] md:text-xs font-semibold mb-1 md:mb-2 block ${isToday ? 'text-accent' : 'opacity-40'}`}>
                     {d.day}
                   </span>
-                  
+
+                  {/* Quick-add "+" affordance (desktop, calendar tab only) */}
+                  {enableQuickEvents && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setQuickAddDate(prev => (prev === d.date ? null : d.date)); }}
+                      className="hidden md:flex absolute top-1.5 right-1.5 w-5 h-5 items-center justify-center rounded-md bg-white/5 hover:bg-accent/20 text-white/40 hover:text-accent opacity-0 group-hover:opacity-100 transition-all z-20"
+                      title="Quick add"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
                   {/* Desktop Layout: Job Badges list */}
                   <div className="hidden md:block space-y-1">
                     {d.jobs?.map(job => (
@@ -319,10 +395,10 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                         style={{ borderLeftColor: `var(--accent)` }}
                       >
                         <div className="flex-1 min-w-0 pr-2">
-                          <p className="text-[9px] font-black uppercase leading-tight truncate">{job.title}</p>
+                          <p className="text-[10px] font-semibold leading-tight truncate">{job.title}</p>
                           <div className="flex items-center gap-1 mt-0.5 opacity-40">
                              <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor(job)}`} />
-                             <p className="text-[7px] font-bold uppercase tracking-tighter truncate">{job.client_name || 'No Client'}</p>
+                             <p className="text-[8px] font-medium tracking-tight truncate">{job.client_name || 'No Client'}</p>
                           </div>
                         </div>
                         {onDeleteJob && (
@@ -338,18 +414,75 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                         )}
                       </motion.div>
                     ))}
+
+                    {/* Quick calendar markers (events) */}
+                    {dayEvents.map(ev => {
+                      const p = presetOf(ev.preset);
+                      return (
+                        <div
+                          key={ev.id}
+                          onClick={(e) => e.stopPropagation()}
+                          className="group/ev p-1.5 rounded bg-white/5 border-l-2 hover:bg-white/10 overflow-hidden transition-all flex items-center justify-between"
+                          style={{ borderLeftColor: p.color }}
+                        >
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                            <span className={`w-1.5 h-1.5 rounded-full ${p.dot} shrink-0`} />
+                            <input
+                              value={ev.title || ''}
+                              onChange={(e) => setEvents(prev => prev.map(x => x.id === ev.id ? { ...x, title: e.target.value } : x))}
+                              onBlur={(e) => renameQuickEvent(ev.id, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="bg-transparent outline-none text-[10px] font-medium leading-tight truncate w-full focus:bg-white/5 rounded"
+                            />
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteQuickEvent(ev.id); }}
+                            className="opacity-0 group-hover/ev:opacity-100 p-0.5 hover:text-red-500 transition-all shrink-0"
+                            title="Remove"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Mobile Layout: Row of tiny colored dots */}
                   <div className="flex md:hidden flex-wrap gap-0.5 mt-1 justify-center">
                     {d.jobs?.map(job => (
-                      <div 
-                        key={job.id} 
+                      <div
+                        key={job.id}
                         className={`w-1 h-1 rounded-full ${getStatusColor(job)} shrink-0`}
                         title={job.title}
                       />
                     ))}
+                    {dayEvents.map(ev => (
+                      <div key={ev.id} className={`w-1 h-1 rounded-full ${presetOf(ev.preset).dot} shrink-0`} title={ev.title || presetOf(ev.preset).label} />
+                    ))}
                   </div>
+
+                  {/* Quick-add preset popover */}
+                  {enableQuickEvents && quickAddDate === d.date && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className={`absolute z-30 top-8 ${i % 7 >= 4 ? 'right-1' : 'left-1'} w-44 bg-neutral-900 border border-white/15 rounded-xl shadow-2xl p-2 space-y-1`}
+                    >
+                      <div className="flex items-center justify-between px-1 pb-1 mb-1 border-b border-white/10">
+                        <span className="text-[10px] font-semibold text-white/40">Quick add</span>
+                        <button onClick={() => setQuickAddDate(null)} className="text-white/40 hover:text-white"><X className="w-3 h-3" /></button>
+                      </div>
+                      {EVENT_PRESETS.map(p => (
+                        <button
+                          key={p.key}
+                          onClick={() => addQuickEvent(d.date, p.key)}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/10 text-left transition-colors"
+                        >
+                          <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
+                          <span className="text-[10px] font-semibold text-white/80">{p.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -367,20 +500,50 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
             className="mt-6 p-4 bg-zinc-950/40 border border-white/5 rounded-2xl space-y-4"
           >
             <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
-              <h3 className="text-xs font-black uppercase tracking-widest text-accent">
+              <h3 className="text-xs font-semibold text-accent">
                 {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
                 })}
               </h3>
-              <span className="text-[9px] font-black uppercase tracking-widest opacity-40 text-white">
+              <span className="text-[9px] font-semibold opacity-40 text-white">
                 {selectedDateJobs.length} {selectedDateJobs.length === 1 ? 'Job' : 'Jobs'}
               </span>
             </div>
 
+            {/* Quick-add presets + markers (mobile) */}
+            {enableQuickEvents && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {EVENT_PRESETS.map(p => (
+                    <button
+                      key={p.key}
+                      onClick={() => addQuickEvent(selectedDate, p.key)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                    >
+                      <span className={`w-2 h-2 rounded-full ${p.dot}`} />
+                      <span className="text-[9px] font-semibold text-white/80">{p.label}</span>
+                    </button>
+                  ))}
+                </div>
+                {events.filter(ev => ev.event_date === selectedDate).map(ev => {
+                  const p = presetOf(ev.preset);
+                  return (
+                    <div key={ev.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/5 border-l-2" style={{ borderLeftColor: p.color }}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
+                        <span className="text-[10px] font-semibold truncate text-white">{ev.title || p.label}</span>
+                      </div>
+                      <button onClick={() => deleteQuickEvent(ev.id)} className="p-1 text-white/30 hover:text-red-500 shrink-0"><X className="w-4 h-4" /></button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {selectedDateJobs.length === 0 ? (
-              <p className="text-[10px] font-bold uppercase opacity-30 text-center py-4">No events scheduled for this day</p>
+              <p className="text-[10px] font-semibold opacity-30 text-center py-4">No events scheduled for this day</p>
             ) : (
               <div className="space-y-3">
                 {selectedDateJobs.map(job => (
@@ -392,9 +555,9 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`w-2 h-2 rounded-full ${getStatusColor(job)}`} />
-                        <h4 className="text-xs font-black uppercase truncate text-white">{job.title}</h4>
+                        <h4 className="text-xs font-semibold truncate text-white">{job.title}</h4>
                       </div>
-                      <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest truncate pl-4">
+                      <p className="text-[9px] font-semibold text-white/40 truncate pl-4">
                         {job.client_name || 'No Client'} {job.location_name ? `• ${job.location_name}` : ''}
                       </p>
                     </div>
@@ -419,16 +582,16 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
 
       {/* Legend */}
       <div className="mt-8 flex flex-wrap gap-4 md:gap-6 border-t border-white/5 pt-6 opacity-40 justify-center md:justify-start">
-        <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-bold uppercase tracking-widest">
+        <div className="flex items-center gap-2 text-[10px] font-semibold">
           <div className="w-2 h-2 rounded-full bg-green-500" /> Booked
         </div>
-        <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-bold uppercase tracking-widest">
+        <div className="flex items-center gap-2 text-[10px] font-semibold">
           <div className="w-2 h-2 rounded-full bg-yellow-500" /> Hold
         </div>
-        <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-bold uppercase tracking-widest">
+        <div className="flex items-center gap-2 text-[10px] font-semibold">
           <div className="w-2 h-2 rounded-full bg-blue-500" /> Planning
         </div>
-        <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-bold uppercase tracking-widest">
+        <div className="flex items-center gap-2 text-[10px] font-semibold">
           <div className="w-2 h-2 rounded-full bg-purple-500" /> Rental
         </div>
       </div>
@@ -455,7 +618,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
               <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-white/10 bg-zinc-950">
                 <div className="flex items-center gap-2 min-w-0">
                   <CalendarIcon className="w-4 h-4 text-accent shrink-0" />
-                  <h3 className="text-sm font-black uppercase tracking-widest text-white truncate">Edit Event</h3>
+                  <h3 className="text-sm font-semibold text-white truncate">Edit Event</h3>
                 </div>
                 <button
                   onClick={() => !isSaving && setEditingJob(null)}
@@ -468,7 +631,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
               {/* Form */}
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5">Title</label>
+                  <label className="block text-[10px] font-semibold text-white/40 mb-1.5">Title</label>
                   <input
                     type="text"
                     value={editForm.title || ''}
@@ -479,7 +642,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5">Client</label>
+                    <label className="block text-[10px] font-semibold text-white/40 mb-1.5">Client</label>
                     <input
                       type="text"
                       value={editForm.client_name || ''}
@@ -488,7 +651,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5">Status</label>
+                    <label className="block text-[10px] font-semibold text-white/40 mb-1.5">Status</label>
                     <select
                       value={editForm.job_status || ''}
                       onChange={(e) => setEditForm(f => ({ ...f, job_status: (e.target.value || undefined) as Job['job_status'] }))}
@@ -506,7 +669,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5">Shoot Date</label>
+                    <label className="block text-[10px] font-semibold text-white/40 mb-1.5">Shoot Date</label>
                     <input
                       type="date"
                       value={editForm.shoot_date || ''}
@@ -515,7 +678,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5">End Date</label>
+                    <label className="block text-[10px] font-semibold text-white/40 mb-1.5">End Date</label>
                     <input
                       type="date"
                       value={editForm.end_date || ''}
@@ -524,7 +687,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5">Call Time</label>
+                    <label className="block text-[10px] font-semibold text-white/40 mb-1.5">Call Time</label>
                     <input
                       type="text"
                       placeholder="8:00 AM"
@@ -536,7 +699,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                 </div>
 
                 <div>
-                  <label className="block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5">Location Name</label>
+                  <label className="block text-[10px] font-semibold text-white/40 mb-1.5">Location Name</label>
                   <input
                     type="text"
                     value={editForm.location_name || ''}
@@ -546,7 +709,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                 </div>
 
                 <div>
-                  <label className="block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5">Location Address</label>
+                  <label className="block text-[10px] font-semibold text-white/40 mb-1.5">Location Address</label>
                   <input
                     type="text"
                     value={editForm.location_address || ''}
@@ -556,7 +719,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                 </div>
 
                 <div>
-                  <label className="block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5">Notes</label>
+                  <label className="block text-[10px] font-semibold text-white/40 mb-1.5">Notes</label>
                   <textarea
                     rows={3}
                     value={editForm.notes_general || ''}
@@ -582,14 +745,14 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                 <button
                   onClick={() => setEditingJob(null)}
                   disabled={isSaving}
-                  className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white transition-colors disabled:opacity-30"
+                  className="px-4 py-2 text-xs font-semibold text-white/50 hover:text-white transition-colors disabled:opacity-30"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveEdit}
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-black text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-black text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
                   style={{ backgroundColor: 'var(--accent)' }}
                 >
                   {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}

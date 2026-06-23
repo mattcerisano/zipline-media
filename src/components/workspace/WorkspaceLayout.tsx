@@ -477,7 +477,7 @@ function WorkspacePanel({
                 <div 
                   key={t}
                   onClick={() => handleSelectTab(t)}
-                  className={`h-9 px-3 rounded-t-lg flex items-center gap-2 text-[9px] font-black uppercase tracking-wider cursor-pointer border-t-2 transition-all shrink-0
+                  className={`h-9 px-3 rounded-t-lg flex items-center gap-2 text-[12px] font-medium tracking-tight cursor-pointer border-t-2 transition-all shrink-0
                     ${isActive 
                       ? 'bg-neutral-900 border-t-accent text-white shadow-md' 
                       : 'bg-transparent border-t-transparent text-white/40 hover:text-white/80'
@@ -837,7 +837,7 @@ function WidgetMount({
     case 'calendar':
       return (
         <div className="p-4 md:p-6 bg-neutral-900/10 h-full overflow-y-auto">
-          <ProductionCalendar editable onSelectJob={(job) => onSwitchTab({ selectCalendarJob: job.id })} />
+          <ProductionCalendar editable enableQuickEvents onSelectJob={(job) => onSwitchTab({ selectCalendarJob: job.id })} />
         </div>
       );
     case 'slate':

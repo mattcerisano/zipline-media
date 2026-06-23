@@ -214,7 +214,7 @@ export default function Vault() {
   };
 
   const inputClass = 'w-full bg-black/50 border border-white/10 py-2.5 px-3 rounded-lg outline-none focus:border-accent text-sm text-white transition-colors';
-  const labelClass = 'block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5';
+  const labelClass = 'block text-[9px] font-semibold uppercase tracking-wider text-white/40 mb-1.5';
 
   // ---------------- Lock / Setup screens ----------------
   if (hasVault === null) {
@@ -233,8 +233,8 @@ export default function Vault() {
           <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-5">
             <Lock className="w-6 h-6 text-accent" />
           </div>
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">{setup ? 'Create Your Vault' : 'Vault Locked'}</h2>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mt-2 leading-relaxed">
+          <h2 className="text-sm font-semibold tracking-wide text-white">{setup ? 'Create Your Vault' : 'Vault Locked'}</h2>
+          <p className="text-[11px] font-medium text-white/40 mt-2 leading-relaxed">
             {setup
               ? 'Choose a passphrase. Secrets are encrypted in your browser — we can never recover this passphrase, so store it safely.'
               : 'Enter your passphrase to decrypt your subscriptions, licenses & keys.'}
@@ -247,7 +247,7 @@ export default function Vault() {
               value={passphrase}
               onChange={(e) => setPassphrase(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !setup) handleUnlock(); }}
-              placeholder="VAULT PASSPHRASE"
+              placeholder="Vault passphrase..."
               className={inputClass}
             />
             {setup && (
@@ -255,15 +255,15 @@ export default function Vault() {
                 type="password"
                 value={passphrase2}
                 onChange={(e) => setPassphrase2(e.target.value)}
-                placeholder="CONFIRM PASSPHRASE"
+                placeholder="Confirm passphrase..."
                 className={inputClass}
               />
             )}
-            {unlockError && <p className="text-[11px] font-bold text-red-400">{unlockError}</p>}
+            {unlockError && <p className="text-[11px] font-semibold text-red-400">{unlockError}</p>}
             <button
               onClick={setup ? handleCreateVault : handleUnlock}
               disabled={busy || !passphrase}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-40"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-accent text-white text-xs font-semibold tracking-wider hover:opacity-90 transition-opacity disabled:opacity-40"
               style={{ backgroundColor: 'var(--accent)' }}
             >
               {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unlock className="w-3.5 h-3.5" />}
@@ -290,8 +290,8 @@ export default function Vault() {
             <ShieldCheck className="w-4 h-4 text-accent" />
           </div>
           <div>
-            <h2 className="text-sm font-black uppercase tracking-widest text-white">Vault</h2>
-            <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">End-to-end encrypted · {items.length} items</p>
+            <h2 className="text-sm font-semibold tracking-wide text-white">Vault</h2>
+            <p className="text-[9px] font-medium text-white/40">End-to-end encrypted · {items.length} items</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -300,13 +300,13 @@ export default function Vault() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="SEARCH…"
-              className="bg-black/50 border border-white/10 py-2 pl-9 pr-3 rounded-lg outline-none focus:border-accent text-[10px] font-black uppercase tracking-widest text-white w-full md:w-44"
+              placeholder="Search..."
+              className="bg-black/50 border border-white/10 py-2 pl-9 pr-3 rounded-lg outline-none focus:border-accent text-xs font-normal text-white w-full md:w-44"
             />
           </div>
           <button
             onClick={() => setEditing({ category: 'subscription', _file: null })}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-accent text-white text-xs font-semibold tracking-wide hover:opacity-90 transition-opacity"
             style={{ backgroundColor: 'var(--accent)' }}
           >
             <Plus className="w-3.5 h-3.5" /> Add
@@ -314,7 +314,7 @@ export default function Vault() {
           <button
             onClick={lock}
             title="Lock vault"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold tracking-wide text-white/60 hover:text-white transition-colors"
           >
             <Lock className="w-3.5 h-3.5" /> Lock
           </button>
@@ -324,7 +324,7 @@ export default function Vault() {
       {/* Grouped items */}
       {filtered.length === 0 ? (
         <div className="py-20 text-center bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40">
-          <p className="font-bold uppercase tracking-widest text-xs text-white">Vault is empty. Add a subscription, license, or password.</p>
+          <p className="font-semibold text-xs text-white">Vault is empty. Add a subscription, license, or password.</p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -336,17 +336,17 @@ export default function Vault() {
               <section key={cat.id} className="space-y-3">
                 <div className="flex items-center gap-3">
                   <Icon className="w-3.5 h-3.5 text-accent" />
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">{cat.label}</h3>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/70">{cat.label}</h3>
                   <div className="h-px bg-white/5 flex-1" />
-                  <span className="text-[9px] font-bold opacity-30 uppercase tracking-widest text-white">{catItems.length}</span>
+                  <span className="text-[9px] font-semibold opacity-30 uppercase tracking-wider text-white">{catItems.length}</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {catItems.map(item => (
                     <div key={item.id} className="bg-neutral-900/50 border border-white/10 rounded-2xl p-5 group hover:border-accent/30 transition-colors">
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="min-w-0">
-                          <p className="text-xs font-black uppercase tracking-wider text-white truncate">{item.name}</p>
-                          {item.username && <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 truncate mt-0.5">{item.username}</p>}
+                          <p className="text-xs font-semibold text-white truncate">{item.name}</p>
+                          {item.username && <p className="text-[9px] font-medium text-white/40 truncate mt-0.5">{item.username}</p>}
                         </div>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => openEditItem(item)} className="p-1 text-white/40 hover:text-accent" title="Edit"><FileText className="w-3.5 h-3.5" /></button>
@@ -368,13 +368,13 @@ export default function Vault() {
 
                       <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2">
                         {item.url && (
-                          <a href={item.url.startsWith('http') ? item.url : `https://${item.url}`} target="_blank" rel="noreferrer" className="text-[9px] font-bold uppercase tracking-widest text-accent hover:underline truncate max-w-full">{item.url}</a>
+                          <a href={item.url.startsWith('http') ? item.url : `https://${item.url}`} target="_blank" rel="noreferrer" className="text-[9px] font-medium text-accent hover:underline truncate max-w-full">{item.url}</a>
                         )}
                         {item.expires_at && (
-                          <span className="text-[9px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-1"><Calendar className="w-3 h-3" /> {item.expires_at}</span>
+                          <span className="text-[9px] font-medium text-white/40 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {item.expires_at}</span>
                         )}
                         {item.file_path && (
-                          <button onClick={() => downloadFile(item)} className="text-[9px] font-bold uppercase tracking-widest text-white/50 hover:text-accent flex items-center gap-1">
+                          <button onClick={() => downloadFile(item)} className="text-[9px] font-medium text-white/50 hover:text-accent flex items-center gap-1">
                             <Download className="w-3 h-3" /> {item.file_name || 'File'}
                           </button>
                         )}
@@ -403,7 +403,7 @@ export default function Vault() {
               className="w-full md:max-w-lg max-h-[92vh] overflow-y-auto bg-zinc-950 border border-white/10 rounded-t-3xl md:rounded-2xl shadow-2xl"
             >
               <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-white/10 bg-zinc-950">
-                <h3 className="text-sm font-black uppercase tracking-widest text-white">{editing.id ? 'Edit Item' : 'New Vault Item'}</h3>
+                <h3 className="text-sm font-semibold tracking-wide text-white">{editing.id ? 'Edit Item' : 'New Vault Item'}</h3>
                 <button onClick={() => setEditing(null)} className="p-1.5 text-white/40 hover:text-white"><X className="w-5 h-5" /></button>
               </div>
               <div className="p-5 space-y-4">
@@ -444,7 +444,7 @@ export default function Vault() {
                   </div>
                   <div>
                     <label className={labelClass}>Attach File (license PDF…)</label>
-                    <label className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 cursor-pointer text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white">
+                    <label className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 cursor-pointer text-xs font-semibold tracking-wide text-white/60 hover:text-white">
                       <Paperclip className="w-3.5 h-3.5" />
                       {editing._file?.name || editing.file_name || 'Choose file'}
                       <input type="file" className="hidden" onChange={(e) => setEditing(s => ({ ...s!, _file: e.target.files?.[0] || null }))} />
@@ -453,8 +453,8 @@ export default function Vault() {
                 </div>
               </div>
               <div className="sticky bottom-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-white/10 bg-zinc-950">
-                <button onClick={() => setEditing(null)} disabled={busy} className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white">Cancel</button>
-                <button onClick={handleSaveItem} disabled={busy || !editing.name?.trim()} className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: 'var(--accent)' }}>
+                <button onClick={() => setEditing(null)} disabled={busy} className="px-4 py-2.5 text-xs font-semibold tracking-wide text-white/50 hover:text-white">Cancel</button>
+                <button onClick={handleSaveItem} disabled={busy || !editing.name?.trim()} className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-white text-xs font-semibold tracking-wide hover:opacity-90 disabled:opacity-50" style={{ backgroundColor: 'var(--accent)' }}>
                   {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
                   Save
                 </button>

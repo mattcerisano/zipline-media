@@ -743,10 +743,10 @@ export default function Slate({
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
             <input 
               type="text"
-              placeholder="SEARCH JOBS OR CLIENTS..."
+              placeholder="Search jobs or clients…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-black/50 border border-white/10 p-3 pl-12 rounded-xl outline-none focus:border-accent transition-all uppercase text-[10px] font-black tracking-widest text-white"
+              className="w-full bg-black/50 border border-white/10 p-3 pl-12 rounded-xl outline-none focus:border-accent transition-all text-[13px] font-medium tracking-tight text-white"
             />
           </div>
           
@@ -755,7 +755,7 @@ export default function Slate({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="flex-1 md:flex-none bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent text-[10px] font-black uppercase tracking-widest cursor-pointer appearance-none min-w-[120px] text-white"
+              className="flex-1 md:flex-none bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent text-[13px] font-medium tracking-tight cursor-pointer appearance-none min-w-[120px] text-white"
             >
               <option value="All">All Statuses</option>
               {STATUSES.map(s => (
@@ -770,7 +770,7 @@ export default function Slate({
                 setClientFilter(e.target.value);
                 setProjectFilter('All'); // reset dependent project filter
               }}
-              className="flex-1 md:flex-none bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent text-[10px] font-black uppercase tracking-widest cursor-pointer appearance-none min-w-[120px] text-white"
+              className="flex-1 md:flex-none bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent text-[13px] font-medium tracking-tight cursor-pointer appearance-none min-w-[120px] text-white"
             >
               <option value="All">All Clients</option>
               {clients.map(c => (
@@ -783,7 +783,7 @@ export default function Slate({
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
               disabled={projectsForFilter.length === 0}
-              className="flex-1 md:flex-none bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent text-[10px] font-black uppercase tracking-widest cursor-pointer appearance-none min-w-[120px] text-white disabled:opacity-30"
+              className="flex-1 md:flex-none bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent text-[13px] font-medium tracking-tight cursor-pointer appearance-none min-w-[120px] text-white disabled:opacity-30"
             >
               <option value="All">All Projects</option>
               {projectsForFilter.map(p => (
@@ -796,7 +796,7 @@ export default function Slate({
               type="button"
               onClick={() => setGroupByProject(v => !v)}
               title="Group jobs by project"
-              className={`flex-1 md:flex-none p-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all min-w-[110px] ${groupByProject ? 'bg-accent text-white border-accent' : 'bg-black/50 border-white/10 text-white/60 hover:text-white'}`}
+              className={`flex-1 md:flex-none p-3 rounded-xl border text-[13px] font-medium tracking-tight transition-all min-w-[110px] ${groupByProject ? 'bg-accent text-white border-accent' : 'bg-black/50 border-white/10 text-white/60 hover:text-white'}`}
             >
               {groupByProject ? 'Grouped' : 'Group'}
             </button>
@@ -806,7 +806,7 @@ export default function Slate({
         {!isClient && (
           <button 
             onClick={openNewJobModal}
-            className="bg-accent text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center gap-3 w-full lg:w-auto justify-center"
+            className="bg-accent text-white px-8 py-4 rounded-xl font-semibold tracking-tight text-sm hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center gap-3 w-full lg:w-auto justify-center"
           >
             <Plus className="w-4 h-4" /> New Production
           </button>
@@ -818,7 +818,7 @@ export default function Slate({
         <div className="space-y-10">
           {groupedJobs.length === 0 && (
             <div className="py-20 text-center bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40">
-              <p className="font-bold uppercase tracking-widest text-xs text-white">No jobs found.</p>
+              <p className="font-medium tracking-tight text-sm text-white/70">No jobs found.</p>
             </div>
           )}
           {groupedJobs.map(cg => (
@@ -826,7 +826,7 @@ export default function Slate({
               <div className="flex items-center gap-4">
                 <h2 className="text-xs font-black uppercase tracking-[0.3em] text-accent whitespace-nowrap">{cg.name}</h2>
                 <div className="h-px bg-accent/20 flex-1" />
-                <span className="text-[10px] font-bold opacity-30 uppercase tracking-widest text-white">
+                <span className="text-[11px] font-medium opacity-40 tracking-tight text-white">
                   {cg.projects.reduce((n, p) => n + p.jobs.length, 0)} Jobs
                 </span>
               </div>
@@ -840,7 +840,7 @@ export default function Slate({
                       />
                       <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-white/70 whitespace-nowrap">{pg.name}</h3>
                       <div className="h-px bg-white/5 flex-1" />
-                      <span className="text-[9px] font-bold opacity-30 uppercase tracking-widest text-white">{pg.jobs.length}</span>
+                      <span className="text-[10px] font-medium opacity-40 tracking-tight text-white">{pg.jobs.length}</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {pg.jobs.map(job => (
@@ -873,7 +873,7 @@ export default function Slate({
           <div className="flex items-center gap-4">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent whitespace-nowrap">Upcoming Productions</h2>
             <div className="h-px bg-white/10 flex-1" />
-            <span className="text-[10px] font-bold opacity-30 uppercase tracking-widest text-white">{upcomingJobs.length} Jobs</span>
+            <span className="text-[11px] font-medium opacity-40 tracking-tight text-white">{upcomingJobs.length} Jobs</span>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -896,7 +896,7 @@ export default function Slate({
             ))}
             {upcomingJobs.length === 0 && (
               <div className="col-span-full py-20 text-center bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40">
-                <p className="font-bold uppercase tracking-widest text-xs text-white">No upcoming jobs found.</p>
+                <p className="font-medium tracking-tight text-sm text-white/70">No upcoming jobs found.</p>
               </div>
             )}
           </div>
@@ -906,7 +906,7 @@ export default function Slate({
           <div className="flex items-center gap-4">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 whitespace-nowrap text-white">Completed & Archive</h2>
             <div className="h-px bg-white/10 flex-1" />
-            <span className="text-[10px] font-bold opacity-30 uppercase tracking-widest text-white">{pastJobs.length} Jobs</span>
+            <span className="text-[11px] font-medium opacity-40 tracking-tight text-white">{pastJobs.length} Jobs</span>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -950,7 +950,7 @@ export default function Slate({
               className="w-full max-w-2xl bg-neutral-900 border border-white/10 rounded-xl p-4 shadow-2xl my-2 cursor-default"
             >
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-black uppercase tracking-tighter text-white">
+                <h2 className="text-lg font-semibold tracking-tight text-white">
                   {editingJob.id ? 'Edit Production' : 'Create New Production'}
                 </h2>
                 <button onClick={() => setIsJobModalOpen(false)} className="p-1 hover:bg-white/5 rounded-full text-white">
@@ -965,10 +965,10 @@ export default function Slate({
                   <input 
                     required
                     type="text"
-                    placeholder="E.G. BROADWAY OPENING NIGHT"
+                    placeholder="e.g. Broadway Opening Night"
                     value={editingJob.title}
                     onChange={(e) => setEditingJob(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-black uppercase text-xs text-white"
+                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
                   />
                 </div>
 
@@ -978,10 +978,10 @@ export default function Slate({
                   <select 
                     value={editingJob.type}
                     onChange={(e) => setEditingJob(prev => ({ ...prev, type: e.target.value as any }))}
-                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-black uppercase text-xs text-white appearance-none cursor-pointer"
+                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
                   >
-                    <option value="production">PRODUCTION</option>
-                    <option value="rental">RENTAL ONLY</option>
+                    <option value="production">Production</option>
+                    <option value="rental">Rental Only</option>
                   </select>
                 </div>
 
@@ -990,7 +990,7 @@ export default function Slate({
                   <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Client Name <span className="opacity-60 normal-case tracking-normal font-medium">(who you bill)</span></label>
                   <input
                     type="text"
-                    placeholder="CLIENT NAME"
+                    placeholder="Client name"
                     value={editingJob.client_name || ''}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -1004,7 +1004,7 @@ export default function Slate({
                       }));
                     }}
                     list="slate-clients"
-                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-bold uppercase text-xs text-white"
+                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
                   />
                   <datalist id="slate-clients">
                     {clients.map(c => <option key={c.id} value={c.name} />)}
@@ -1028,10 +1028,10 @@ export default function Slate({
                     <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white" />
                     <input 
                       type="text"
-                      placeholder="PRODUCTION CO"
+                      placeholder="Production co"
                       value={editingJob.production_company || ''}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, production_company: e.target.value }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-black uppercase text-xs text-white"
+                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
                     />
                   </div>
                 </div>
@@ -1053,7 +1053,7 @@ export default function Slate({
                     <select
                       value={editingJob.project_id || ''}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, project_id: e.target.value || undefined }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-black uppercase text-xs text-white appearance-none cursor-pointer"
+                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
                     >
                       <option value="">No Project</option>
                       {(() => {
@@ -1073,7 +1073,7 @@ export default function Slate({
                     <select 
                       value={editingJob.job_status}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, job_status: e.target.value as any }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-black uppercase text-xs text-white appearance-none cursor-pointer"
+                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
                     >
                       {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -1089,7 +1089,7 @@ export default function Slate({
                       type="date"
                       value={editingJob.shoot_date}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, shoot_date: e.target.value }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-2 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-2 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                   </div>
                 </div>
@@ -1102,7 +1102,7 @@ export default function Slate({
                     <select 
                       value={editingJob.call_time || ''}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, call_time: e.target.value }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white appearance-none cursor-pointer"
+                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
                     >
                       <option value="">TBD</option>
                       {Array.from({ length: 48 }).map((_, i) => {
@@ -1137,10 +1137,10 @@ export default function Slate({
                   <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Location Name</label>
                   <input 
                     type="text"
-                    placeholder="E.G. HUDSON THEATRE"
+                    placeholder="e.g. Hudson Theatre"
                     value={editingJob.location_name || ''}
                     onChange={(e) => setEditingJob(prev => ({ ...prev, location_name: e.target.value }))}
-                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-black uppercase text-xs text-white"
+                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
                   />
                 </div>
 
@@ -1154,8 +1154,8 @@ export default function Slate({
                       apiKey={GOOGLE_MAPS_API_KEY}
                       onPlaceSelected={handlePlaceSelected}
                       defaultValue={editingJob.location_address || ''}
-                      placeholder="STREET, CITY, STATE, ZIP"
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white uppercase tracking-wider"
+                      placeholder="Street, City, State, Zip"
+                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
                       onBlur={handleAddressBlur}
                     />
                   </div>
@@ -1189,21 +1189,21 @@ export default function Slate({
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                       <input 
                         type="text"
-                        placeholder="NEAREST HOSPITAL"
+                        placeholder="Nearest hospital"
                         value={editingJob.nearest_hospital_name || ''}
                         onChange={(e) => setEditingJob(prev => ({ ...prev, nearest_hospital_name: e.target.value }))}
                         className="w-full bg-black/50 border border-white/10 p-1.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
                       />
                       <input 
                         type="text"
-                        placeholder="NEAREST PARKING"
+                        placeholder="Nearest parking"
                         value={editingJob.nearest_parking_name || ''}
                         onChange={(e) => setEditingJob(prev => ({ ...prev, nearest_parking_name: e.target.value }))}
                         className="w-full bg-black/50 border border-white/10 p-1.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
                       />
                       <input 
                         type="text"
-                        placeholder="WEATHER OVERRIDE"
+                        placeholder="Weather override"
                         value={editingJob.weather_summary || ''}
                         onChange={(e) => setEditingJob(prev => ({ ...prev, weather_summary: e.target.value }))}
                         className="w-full bg-black/50 border border-white/10 p-1.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
@@ -1222,7 +1222,7 @@ export default function Slate({
                   </label>
                   <input
                     type="email"
-                    placeholder="CLIENT@EXAMPLE.COM"
+                    placeholder="client@example.com"
                     value={editingJob.contact_email || ''}
                     onChange={(e) => setEditingJob(prev => ({ ...prev, contact_email: e.target.value }))}
                     className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
@@ -1235,26 +1235,26 @@ export default function Slate({
                   <div className="relative">
                     <FileText className="absolute left-3 top-2 w-3.5 h-3.5 opacity-40 text-white" />
                     <textarea 
-                      placeholder="ADDITIONAL PRODUCTION NOTES..."
+                      placeholder="Additional production notes..."
                       value={editingJob.notes_general || ''}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, notes_general: e.target.value }))}
                       className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white h-11 resize-none"
                     />
                   </div>
                 </div>
-                
+
                 {/* Submit / Cancel Buttons */}
                 <div className="md:col-span-6 flex justify-end gap-2 mt-1.5 border-t border-white/5 pt-1.5">
                    <button 
                     type="button"
                     onClick={() => setIsJobModalOpen(false)}
-                    className="px-4 py-1.5 rounded-lg font-black uppercase tracking-widest text-[9px] border border-white/10 hover:bg-white/5 transition-all text-white"
+                    className="px-4 py-1.5 rounded-lg font-medium text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    className="bg-accent text-white px-6 py-1.5 rounded-lg font-black uppercase tracking-widest text-[9px] hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
+                    className="bg-accent text-white px-6 py-1.5 rounded-lg font-medium text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
                   >
                     {editingJob.id ? 'Save Changes' : 'Create Production'}
                   </button>
@@ -1284,8 +1284,8 @@ export default function Slate({
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-xl font-black uppercase tracking-tighter text-white">Add Vault Link</h2>
-                  <p className="text-[9px] font-bold uppercase tracking-widest opacity-40 text-white mt-1">{linkModalJob.title}</p>
+                  <h2 className="text-lg font-semibold tracking-tight text-white">Add Vault Link</h2>
+                  <p className="text-[11px] font-medium opacity-50 text-white mt-1">{linkModalJob.title}</p>
                 </div>
                 <button onClick={() => setLinkModalJob(null)} className="p-2 hover:bg-white/5 rounded-full text-white">
                   <X className="w-6 h-6" />
@@ -1298,10 +1298,10 @@ export default function Slate({
                   <input 
                     required
                     type="text"
-                    placeholder="E.G. FRAME.IO REVIEW"
+                    placeholder="e.g. Frame.io Review"
                     value={newLinkLabel}
                     onChange={(e) => setNewLinkLabel(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-black uppercase text-sm text-white"
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1309,7 +1309,7 @@ export default function Slate({
                   <input 
                     required
                     type="url"
-                    placeholder="HTTPS://..."
+                    placeholder="https://..."
                     value={newLinkUrl}
                     onChange={(e) => setNewLinkUrl(e.target.value)}
                     className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-white"
@@ -1319,13 +1319,13 @@ export default function Slate({
                    <button 
                     type="button"
                     onClick={() => setLinkModalJob(null)}
-                    className="px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] border border-white/10 hover:bg-white/5 transition-all text-white"
+                    className="px-6 py-3 rounded-xl font-semibold text-sm border border-white/10 hover:bg-white/5 transition-all text-white"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    className="bg-accent text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white hover:text-black transition-all"
+                    className="bg-accent text-white px-8 py-3 rounded-xl font-semibold text-sm hover:bg-white hover:text-black transition-all"
                   >
                     Add Link
                   </button>
@@ -1405,12 +1405,12 @@ function JobCard({
         <div className="flex flex-col gap-2 items-start">
           <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
             {getStatusIcon(job.job_status)}
-            <span className="text-[9px] font-black uppercase tracking-widest opacity-70 text-white">{job.job_status || 'Planning'}</span>
+            <span className="text-[10px] font-semibold tracking-wide opacity-80 text-white">{job.job_status || 'Planning'}</span>
           </div>
           {gearCount > 0 && (
             <div className="flex items-center gap-1 px-2 py-0.5 bg-accent/10 rounded-full border border-accent/20">
                <Package className="w-3.5 h-3.5 text-accent" />
-               <span className="text-[8px] font-black uppercase tracking-widest text-accent">{gearCount} Gear</span>
+               <span className="text-[10px] font-medium tracking-wide text-accent">{gearCount} Gear</span>
             </div>
           )}
         </div>
@@ -1468,11 +1468,11 @@ function JobCard({
       </div>
 
       <div className="flex-1 relative z-10 text-white">
-        <h3 className="text-base font-black uppercase tracking-tight mb-1 group-hover:text-accent transition-colors line-clamp-2">{job.title}</h3>
+        <h3 className="text-lg font-semibold tracking-tight mb-1 group-hover:text-accent transition-colors line-clamp-2">{job.title}</h3>
         <div className="flex items-center flex-wrap gap-2 mb-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">{job.client_name || 'Individual Client'}</p>
+          <p className="text-[12px] font-medium tracking-tight opacity-50">{job.client_name || 'Individual Client'}</p>
           {projectName && (
-            <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-accent/15 text-accent border border-accent/20">
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium tracking-tight px-1.5 py-0.5 rounded bg-accent/15 text-accent border border-accent/20">
               <FolderKanban className="w-2.5 h-2.5" /> {projectName}
             </span>
           )}
@@ -1481,14 +1481,14 @@ function JobCard({
         <div className="space-y-3 mb-6">
           <div className="flex items-center gap-3 text-[11px] font-bold text-white/40">
             <Calendar className="w-4 h-4 text-accent/50 shrink-0" />
-            <span className="uppercase tracking-widest">{shootDate} {job.call_time && `• ${job.call_time}`}</span>
+            <span className="tracking-tight">{shootDate} {job.call_time && `• ${job.call_time}`}</span>
           </div>
           {(job.location_name || job.location_address) && (
             <div className="flex items-start gap-3 text-[11px] font-bold text-white/40">
               <MapPin className="w-4 h-4 text-accent/50 shrink-0 mt-0.5" />
-              <span className="uppercase tracking-widest leading-snug">
+              <span className="tracking-tight leading-snug">
                 {job.location_name && <span className="block text-white/80">{job.location_name}</span>}
-                {job.location_address && <span className="block text-[9px] opacity-60 mt-0.5">{job.location_address}</span>}
+                {job.location_address && <span className="block text-[10px] opacity-60 mt-0.5">{job.location_address}</span>}
               </span>
             </div>
           )}
@@ -1496,7 +1496,7 @@ function JobCard({
             <div className="flex items-center justify-between text-[11px] font-bold text-white/40 p-2.5 bg-white/5 border border-white/5 rounded-xl">
               <div className="flex items-center gap-2">
                 <CloudSun className="w-4 h-4 text-amber-500/70 shrink-0" />
-                <span className="uppercase tracking-widest text-[9px] text-white/80">{job.weather_summary}</span>
+                <span className="tracking-tight text-[11px] text-white/80">{job.weather_summary}</span>
               </div>
               {!isClient && (
                 <button
@@ -1516,7 +1516,7 @@ function JobCard({
 
         {job.notes_general && (
            <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-1">Notes</p>
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-1">Notes</p>
               <p className="text-xs text-white/80 line-clamp-3 leading-relaxed">{job.notes_general}</p>
            </div>
         )}
@@ -1524,7 +1524,7 @@ function JobCard({
         {/* Links Section */}
         <div className="space-y-2 mb-6">
            <div className="flex items-center justify-between mb-3">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 flex items-center gap-2">
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/30 flex items-center gap-2">
                 <LinkIcon className="w-3 h-3" /> Project Vault
               </p>
               {!isClient && (
@@ -1540,30 +1540,30 @@ function JobCard({
               {job.review_link && (
                 <a href={sanitizeUrl(job.review_link)} target="_blank" onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
                   <Eye className="w-3 h-3 text-accent" />
-                  <span className="text-[9px] font-black uppercase tracking-widest opacity-60 group-hover/link:opacity-100">Review</span>
+                  <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Review</span>
                 </a>
               )}
               {job.discord_url && (
                 <a href={sanitizeUrl(job.discord_url)} target="_blank" onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
                   <MessageSquare className="w-3 h-3 text-purple-400" />
-                  <span className="text-[9px] font-black uppercase tracking-widest opacity-60 group-hover/link:opacity-100">Discord</span>
+                  <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Discord</span>
                 </a>
               )}
               {job.drive_folder_url && (
                 <a href={sanitizeUrl(job.drive_folder_url)} target="_blank" onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
                   <FolderOpen className="w-3 h-3 text-yellow-500" />
-                  <span className="text-[9px] font-black uppercase tracking-widest opacity-60 group-hover/link:opacity-100">Drive</span>
+                  <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Drive</span>
                 </a>
               )}
               {job.links?.map((link, i) => (
                 <a key={i} href={sanitizeUrl(link.url)} target="_blank" onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
                   <ExternalLink className="w-3 h-3 text-white/30" />
-                  <span className="text-[9px] font-black uppercase tracking-widest opacity-60 group-hover/link:opacity-100 truncate">{link.label}</span>
+                  <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100 truncate">{link.label}</span>
                 </a>
               ))}
               {!job.review_link && !job.discord_url && !job.drive_folder_url && (!job.links || job.links.length === 0) && (
                 <div className="col-span-2 text-center py-3 rounded-lg border border-dashed border-white/5 opacity-20">
-                   <span className="text-[8px] font-bold uppercase tracking-[0.2em]">No Vault Links</span>
+                   <span className="text-[11px] font-medium tracking-tight">No vault links</span>
                 </div>
               )}
            </div>
@@ -1579,7 +1579,7 @@ function JobCard({
          {!isClient && (
            <button 
              onClick={(e) => { e.stopPropagation(); onManage(); }}
-             className="text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white transition-all flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 rounded-lg"
+             className="text-[12px] font-medium tracking-tight text-white/30 hover:text-white transition-all flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 rounded-lg"
            >
              Manage <ChevronRight className="w-4 h-4" />
            </button>

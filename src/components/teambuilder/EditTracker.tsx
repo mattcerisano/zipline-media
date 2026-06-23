@@ -264,15 +264,15 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
     <div className="space-y-6 h-full flex flex-col p-4 md:p-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-neutral-900/40 p-6 rounded-2xl border border-white/10 shrink-0 gap-4">
         <div>
-          <h2 className="text-lg font-black uppercase tracking-tighter text-white">Post-Production Pipeline</h2>
-          <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 text-white mt-1">Trello-style Edit Tracking</p>
+          <h2 className="text-lg font-semibold tracking-tight text-white">Post-Production Pipeline</h2>
+          <p className="text-[12px] font-medium tracking-tight opacity-50 text-white mt-1">Trello-style edit tracking</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <select
               value={clientFilter}
               onChange={(e) => { setClientFilter(e.target.value); setProjectFilter('All'); }}
-              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors uppercase text-[10px] font-black tracking-widest rounded-xl cursor-pointer appearance-none text-white min-w-[120px]"
+              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-medium tracking-tight rounded-xl cursor-pointer appearance-none text-white min-w-[120px]"
             >
               <option value="All">All Clients</option>
               {uniqueClients.map(c => <option key={c as string} value={c as string}>{caps(c as string)}</option>)}
@@ -281,7 +281,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
               disabled={projectsForFilter.length === 0}
-              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors uppercase text-[10px] font-black tracking-widest rounded-xl cursor-pointer appearance-none text-white min-w-[120px] disabled:opacity-30"
+              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-medium tracking-tight rounded-xl cursor-pointer appearance-none text-white min-w-[120px] disabled:opacity-30"
             >
               <option value="All">All Projects</option>
               {projectsForFilter.map(p => <option key={p.id} value={p.id}>{caps(p.name)}</option>)}
@@ -289,15 +289,15 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
             <select
               value={yearFilter}
               onChange={(e) => setYearFilter(e.target.value)}
-              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors uppercase text-[10px] font-black tracking-widest rounded-xl cursor-pointer appearance-none text-white"
+              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-medium tracking-tight rounded-xl cursor-pointer appearance-none text-white"
             >
               <option value="All">All Years</option>
               {uniqueYears.map(y => <option key={y as string} value={y as string}>{y}</option>)}
             </select>
           </div>
           <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/5 hidden md:block">
-             <p className="text-[8px] font-black uppercase tracking-widest opacity-40 text-white">Active Edits</p>
-             <p className="text-sm font-black text-white">{filteredJobs.filter(j => j.edit_status !== 'Wrapped').length}</p>
+             <p className="text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 text-white">Active Edits</p>
+             <p className="text-sm font-semibold text-white">{filteredJobs.filter(j => j.edit_status !== 'Wrapped').length}</p>
           </div>
         </div>
       </div>
@@ -312,9 +312,9 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
                 <div className={`flex items-center justify-between p-3 rounded-t-xl border-t-2 ${stage.border.replace('border-', 'border-t-')}`}>
                   <div className="flex items-center gap-2">
                     <stage.icon className={`w-4 h-4 ${stage.color}`} />
-                    <h3 className="text-xs font-black uppercase tracking-widest text-white">{stage.label}</h3>
+                    <h3 className="text-xs font-semibold tracking-tight text-white">{stage.label}</h3>
                   </div>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white/5 text-white/40">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/5 text-white/40">
                     {stageJobs.length}
                   </span>
                 </div>
@@ -783,7 +783,7 @@ function CardDetailModal({
               {/* Members */}
               {(job.editor || contacts.length > 0) && (
                 <div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Editor</h4>
+                  <h4 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-2">Editor</h4>
                   <div className="flex items-center gap-2">
                     {job.editor && (
                       <div className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center text-xs font-black" title={job.editor.name}>
@@ -808,7 +808,7 @@ function CardDetailModal({
               {/* Labels */}
               {job.edit_labels && job.edit_labels.length > 0 && (
                 <div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Labels</h4>
+                  <h4 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-2">Labels</h4>
                   <div className="flex flex-wrap gap-2">
                     {job.edit_labels.map(l => (
                       <span 
@@ -835,10 +835,10 @@ function CardDetailModal({
               {/* Due Date */}
               {job.due_date && (
                 <div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Due Date</h4>
+                  <h4 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-2">Due Date</h4>
                   <div className="flex items-center gap-2 bg-white/5 border border-white/10 py-1.5 px-3 rounded text-xs font-bold text-white">
                     <input 
-                      type="date"
+                      type="date" 
                       value={job.due_date}
                       onChange={(e) => updateDueDate(e.target.value)}
                       disabled={isClient}
@@ -914,7 +914,7 @@ function CardDetailModal({
                   {isEditingLinks && (
                     <div className="bg-black/45 border border-white/10 p-4 rounded-xl space-y-4 mb-6">
                       <div className="space-y-1.5">
-                        <label className="text-[9px] font-black tracking-widest uppercase opacity-40 text-white">Vimeo / Frame.io Review Link</label>
+                        <label className="text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white">Vimeo / Frame.io Review Link</label>
                         <input 
                           type="text" 
                           value={tempReviewLink}
@@ -924,7 +924,7 @@ function CardDetailModal({
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[9px] font-black tracking-widest uppercase opacity-40 text-white">Google Drive Folder URL</label>
+                        <label className="text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white">Google Drive Folder URL</label>
                         <input 
                           type="text" 
                           value={tempDriveUrl}
@@ -934,7 +934,7 @@ function CardDetailModal({
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[9px] font-black tracking-widest uppercase opacity-40 text-white">Discord Webhook / Channel URL</label>
+                        <label className="text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white">Discord Webhook / Channel URL</label>
                         <input 
                           type="text" 
                           value={tempDiscordUrl}
@@ -946,7 +946,7 @@ function CardDetailModal({
 
                       {/* Custom Links List & Add New */}
                       <div className="border-t border-white/5 pt-4 space-y-3">
-                        <label className="text-[9px] font-black tracking-widest uppercase opacity-40 text-white block">Custom Links</label>
+                        <label className="text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white block">Custom Links</label>
                         
                         {/* Existing Custom Links */}
                         {tempCustomLinks.length > 0 && (
@@ -986,7 +986,7 @@ function CardDetailModal({
                           <button 
                             type="button"
                             onClick={handleAddCustomLink}
-                            className="bg-accent px-3 text-[10px] font-black uppercase tracking-wider text-white rounded hover:bg-white hover:text-black transition-colors"
+                            className="bg-accent px-3 text-[10px] font-medium text-white rounded hover:bg-white hover:text-black transition-colors"
                           >
                             Add
                           </button>
@@ -997,7 +997,7 @@ function CardDetailModal({
                       <div className="flex gap-2 pt-2">
                         <button 
                           onClick={handleSaveLinks}
-                          className="bg-green-600 hover:bg-green-700 px-4 py-2 text-xs font-black uppercase tracking-widest text-white rounded-lg transition-colors"
+                          className="bg-green-600 hover:bg-green-700 px-4 py-2 text-xs font-medium text-white rounded-lg transition-colors"
                         >
                           Save Links
                         </button>
@@ -1006,7 +1006,7 @@ function CardDetailModal({
                             resetTempLinkStates();
                             setIsEditingLinks(false);
                           }}
-                          className="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-white rounded-lg transition-colors"
+                          className="bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 text-xs font-medium text-white rounded-lg transition-colors"
                         >
                           Cancel
                         </button>
@@ -1019,7 +1019,7 @@ function CardDetailModal({
                       <a href={sanitizeUrl(job.review_link)} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl group transition-colors border border-white/5">
                          <div className="w-10 h-10 bg-black/40 rounded-lg flex items-center justify-center"><Eye className="w-5 h-5 text-accent animate-pulse" /></div>
                          <div className="min-w-0 flex-1">
-                           <p className="text-xs font-black uppercase tracking-wider text-white">Review Platform Link</p>
+                           <p className="text-xs font-semibold text-white">Review Platform Link</p>
                            <p className="text-[10px] text-white/40 truncate group-hover:underline">{job.review_link}</p>
                          </div>
                       </a>
@@ -1028,7 +1028,7 @@ function CardDetailModal({
                       <a href={sanitizeUrl(job.discord_url)} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl group transition-colors border border-white/5">
                          <div className="w-10 h-10 bg-black/40 rounded-lg flex items-center justify-center"><MessageSquare className="w-5 h-5 text-purple-400" /></div>
                          <div className="min-w-0 flex-1">
-                           <p className="text-xs font-black uppercase tracking-wider text-white">Discord Feed</p>
+                           <p className="text-xs font-semibold text-white">Discord Feed</p>
                            <p className="text-[10px] text-white/40 truncate group-hover:underline">{job.discord_url}</p>
                          </div>
                       </a>
@@ -1037,7 +1037,7 @@ function CardDetailModal({
                       <a href={sanitizeUrl(job.drive_folder_url)} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl group transition-colors border border-white/5">
                          <div className="w-10 h-10 bg-black/40 rounded-lg flex items-center justify-center"><FolderOpen className="w-5 h-5 text-yellow-500" /></div>
                          <div className="min-w-0 flex-1">
-                           <p className="text-xs font-black uppercase tracking-wider text-white">Drive Folder</p>
+                           <p className="text-xs font-semibold text-white">Drive Folder</p>
                            <p className="text-[10px] text-white/40 truncate group-hover:underline">{job.drive_folder_url}</p>
                          </div>
                       </a>
@@ -1046,7 +1046,7 @@ function CardDetailModal({
                       <a key={i} href={sanitizeUrl(link.url)} target="_blank" className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl group transition-colors border border-white/5">
                          <div className="w-10 h-10 bg-black/40 rounded-lg flex items-center justify-center"><ExternalLink className="w-5 h-5 text-white/40" /></div>
                          <div className="min-w-0 flex-1">
-                           <p className="text-xs font-black uppercase tracking-wider text-white truncate">{link.label}</p>
+                           <p className="text-xs font-semibold text-white truncate">{link.label}</p>
                            <p className="text-[10px] text-white/40 truncate group-hover:underline">{link.url}</p>
                          </div>
                       </a>
@@ -1063,9 +1063,9 @@ function CardDetailModal({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <PlayCircle className="w-4 h-4 text-accent" />
-                        <span className="text-xs font-black uppercase tracking-widest text-white">{embedDetails.type} Review Monitor</span>
+                        <span className="text-xs font-semibold tracking-tight text-white">{embedDetails.type} Review Monitor</span>
                       </div>
-                      <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-full">
+                      <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-500 text-[8px] font-semibold tracking-wide rounded-full">
                         Live Embed
                       </span>
                     </div>
@@ -1083,26 +1083,26 @@ function CardDetailModal({
                     <div className="bg-black/30 p-3 rounded-lg border border-white/5">
                       <div className="grid grid-cols-3 gap-4 border-b border-white/5 pb-3 mb-3">
                         <div>
-                          <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">Resolution</p>
+                          <p className="text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Resolution</p>
                           <p className="text-xs font-black text-white mt-0.5">{videoStats?.resolution || '4K UHD (2160p)'}</p>
                         </div>
                         <div>
-                          <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">Completion Rate</p>
+                          <p className="text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Completion Rate</p>
                           <p className="text-xs font-black text-green-400 mt-0.5">{videoStats?.completionRate || '88.5%'}</p>
                         </div>
                         <div>
-                          <p className="text-[8px] font-bold uppercase tracking-widest text-white/40">Total Views</p>
+                          <p className="text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Total Views</p>
                           <p className="text-xs font-black text-white mt-0.5">{videoStats?.views ?? (142 + comments.length * 3)}</p>
                         </div>
                       </div>
 
                       {/* Comments stream */}
                       <div className="space-y-3">
-                        <p className="text-[8px] font-black uppercase tracking-widest text-accent mb-2">Review Feed ({comments.length})</p>
+                        <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-accent mb-2">Review Feed ({comments.length})</p>
                         <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
                           {comments.map((c) => (
                             <div key={c.id} className="text-xs border-l-2 border-accent pl-2.5 py-0.5 bg-white/5 rounded-r p-1.5">
-                              <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-white/60 mb-0.5">
+                              <div className="flex items-center justify-between text-[10px] font-medium text-white/60 mb-0.5">
                                 <span>{c.author} <span className="text-[8px] opacity-40 font-normal">({c.role})</span></span>
                                 <span className="text-[8px] text-accent font-black">{c.timecode}</span>
                               </div>
@@ -1150,7 +1150,7 @@ function CardDetailModal({
                                 }]);
                                 setNewCommentText('');
                               }}
-                              className="bg-accent px-3 py-1 text-[9px] font-black uppercase tracking-widest text-white rounded hover:bg-white hover:text-black transition-colors"
+                              className="bg-accent px-3 py-1 text-[10px] font-medium text-white rounded hover:bg-white hover:text-black transition-colors"
                             >
                               Post
                             </button>
@@ -1168,15 +1168,15 @@ function CardDetailModal({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FolderOpen className="w-4 h-4 text-yellow-500" />
-                        <span className="text-xs font-black uppercase tracking-widest text-white">Google Drive Vault</span>
+                        <span className="text-xs font-semibold tracking-tight text-white">Google Drive Vault</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {isLiveDrive ? (
-                          <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-500 text-[8px] font-black uppercase tracking-widest rounded-full">
+                          <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-500 text-[8px] font-semibold tracking-wide rounded-full">
                             Live Sync
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 bg-white/5 border border-white/10 text-white/40 text-[8px] font-black uppercase tracking-widest rounded-full">
+                          <span className="px-2 py-0.5 bg-white/5 border border-white/10 text-white/40 text-[8px] font-semibold tracking-wide rounded-full">
                             Simulated Vault
                           </span>
                         )}
@@ -1186,7 +1186,7 @@ function CardDetailModal({
                             setLinkCopied(true);
                             setTimeout(() => setLinkCopied(false), 2000);
                           }}
-                          className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors"
+                          className="text-[10px] font-semibold text-white/40 hover:text-white transition-colors"
                         >
                           {linkCopied ? 'Copied Link' : 'Copy Folder Link'}
                         </button>
@@ -1216,7 +1216,7 @@ function CardDetailModal({
                           />
                           <label 
                             htmlFor="vault-upload" 
-                            className={`flex items-center justify-center gap-1.5 px-3 py-2 bg-accent/20 border border-accent/30 text-accent hover:bg-accent hover:text-white rounded-lg text-xs font-black uppercase tracking-widest transition-all cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-2 bg-accent/20 border border-accent/30 text-accent hover:bg-accent hover:text-white rounded-lg text-xs font-semibold transition-all cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
                           >
                             <UploadCloud className="w-4 h-4" /> Upload
                           </label>
@@ -1226,7 +1226,7 @@ function CardDetailModal({
                       {/* Upload Progress Bar */}
                       {isUploading && (
                         <div className="bg-white/5 p-2 rounded-lg border border-white/5 mb-3">
-                          <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-accent mb-1">
+                          <div className="flex items-center justify-between text-[10px] font-semibold text-accent mb-1">
                             <span>Uploading Deliverable...</span>
                             <span>{uploadProgress}%</span>
                           </div>
@@ -1263,7 +1263,7 @@ function CardDetailModal({
                                 </div>
                                 <div className="min-w-0">
                                   <p className="text-[11px] font-bold text-white truncate leading-tight">{file.name}</p>
-                                  <p className="text-[8px] text-white/40 uppercase font-medium mt-0.5">{file.size} • {file.date}</p>
+                                  <p className="text-[8px] text-white/40 font-medium mt-0.5">{file.size} • {file.date}</p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
