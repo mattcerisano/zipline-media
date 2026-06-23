@@ -38,21 +38,85 @@ interface CustomTab {
 }
 
 const SELECTABLE_ICONS = [
-  { name: 'LayoutDashboard', label: 'Dashboard' },
-  { name: 'Calendar', label: 'Calendar' },
-  { name: 'Briefcase', label: 'Slate' },
-  { name: 'Scissors', label: 'Edits' },
-  { name: 'Package', label: 'Gear' },
-  { name: 'Palette', label: 'Creative' },
-  { name: 'Users', label: 'Rolodex' },
-  { name: 'Link', label: 'Link' },
-  { name: 'FileText', label: 'Notepad' },
-  { name: 'Video', label: 'Video' },
-  { name: 'FolderOpen', label: 'Folder' },
-  { name: 'MessageSquare', label: 'Chat' },
-  { name: 'Mail', label: 'Inbox' },
-  { name: 'Settings', label: 'Settings' }
+  // Overview & data
+  { name: 'LayoutDashboard', label: 'Dashboard', desc: 'At-a-glance overview panel' },
+  { name: 'BarChart3', label: 'Analytics', desc: 'Track performance and trends' },
+  { name: 'PieChart', label: 'Reports', desc: 'Visual summary breakdowns' },
+  { name: 'TrendingUp', label: 'Metrics', desc: 'Key numbers over time' },
+  // Planning
+  { name: 'Calendar', label: 'Calendar', desc: 'Dates, events and deadlines' },
+  { name: 'Clock', label: 'Schedule', desc: 'Shoot times and shifts' },
+  { name: 'ListTodo', label: 'Tasks', desc: 'Running to-do list' },
+  { name: 'CheckSquare', label: 'Checklist', desc: 'Step-by-step completion items' },
+  { name: 'Kanban', label: 'Board', desc: 'Cards across status columns' },
+  { name: 'Briefcase', label: 'Projects', desc: 'Active jobs and engagements' },
+  // People
+  { name: 'Users', label: 'Team', desc: 'Crew and staff roster' },
+  { name: 'Building2', label: 'Clients', desc: 'Client accounts and contacts' },
+  { name: 'MessageSquare', label: 'Chat', desc: 'Team messages and threads' },
+  { name: 'Mail', label: 'Inbox', desc: 'Incoming mail and requests' },
+  { name: 'Phone', label: 'Contacts', desc: 'Phone numbers and directory' },
+  // Money
+  { name: 'DollarSign', label: 'Budget', desc: 'Spend and cost tracking' },
+  { name: 'Receipt', label: 'Invoices', desc: 'Bills sent to clients' },
+  { name: 'CreditCard', label: 'Payments', desc: 'Incoming and outgoing payments' },
+  // Production
+  { name: 'Camera', label: 'Photo', desc: 'Photography shoots and stills' },
+  { name: 'Clapperboard', label: 'Production', desc: 'On-set production planning' },
+  { name: 'Film', label: 'Footage', desc: 'Raw clips and reels' },
+  { name: 'Video', label: 'Video', desc: 'Video deliverables and links' },
+  { name: 'Mic', label: 'Audio', desc: 'Sound, voiceover and music' },
+  { name: 'Palette', label: 'Creative', desc: 'Concepts, mood and design' },
+  { name: 'Scissors', label: 'Edits', desc: 'Cuts in post-production' },
+  { name: 'Package', label: 'Gear', desc: 'Equipment and kit inventory' },
+  // Files & links
+  { name: 'FolderOpen', label: 'Files', desc: 'Documents and shared assets' },
+  { name: 'FileText', label: 'Notes', desc: 'Freeform markdown notepad' },
+  { name: 'Image', label: 'Media', desc: 'Image and graphic library' },
+  { name: 'Link', label: 'Link', desc: 'Embedded external web tool' },
+  { name: 'Globe', label: 'Website', desc: 'Live site or landing page' },
+  { name: 'Upload', label: 'Uploads', desc: 'Drop and share files' },
+  // Status & misc
+  { name: 'Star', label: 'Favorites', desc: 'Pinned, important items' },
+  { name: 'Flag', label: 'Priority', desc: 'Urgent, flagged items' },
+  { name: 'Lock', label: 'Vault', desc: 'Secure, restricted files' },
+  { name: 'Settings', label: 'Settings', desc: 'Configuration and preferences' }
 ];
+
+// Shared icon picker grid with a styled hover tooltip (label + short explainer)
+function IconPickerGrid({ selected, onSelect }: { selected: string; onSelect: (name: string) => void }) {
+  const resolve = (name: string) => (LucideIcons as any)[name] || LucideIcons.Layout;
+  return (
+    <div className="grid grid-cols-6 gap-1.5 bg-black/40 border border-white/5 p-2 rounded-xl">
+      {SELECTABLE_ICONS.map(ico => {
+        const Icon = resolve(ico.name);
+        const isActive = selected === ico.name;
+        return (
+          <div key={ico.name} className="relative group flex">
+            <button
+              type="button"
+              onClick={() => onSelect(ico.name)}
+              className={`w-full p-2 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-accent text-white scale-110 shadow-lg shadow-accent/20'
+                  : 'text-white/40 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+            </button>
+            <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              <div className="bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 shadow-xl text-center">
+                <div className="text-[10px] font-black uppercase tracking-wider text-white leading-tight">{ico.label}</div>
+                <div className="text-[9px] font-medium text-white/50 leading-snug mt-0.5">{ico.desc}</div>
+              </div>
+              <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-zinc-900 border-r border-b border-white/10 rotate-45"></div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 const DEFAULT_TABS: CustomTab[] = [
   { id: 'dashboard', label: 'Dashboard', iconName: 'LayoutDashboard', type: 'system', isDefault: true, allowedRoles: ['admin'] },
@@ -61,8 +125,9 @@ const DEFAULT_TABS: CustomTab[] = [
   { id: 'edits', label: 'Edit Tracker', iconName: 'Scissors', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
   { id: 'gear', label: 'Gear Builder', iconName: 'Package', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'creative', label: 'Creative Board', iconName: 'Palette', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
+  { id: 'social', label: 'Social Media', iconName: 'Share2', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'inbox', label: 'Inbox', iconName: 'Mail', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
-  { id: 'rolodex', label: 'Rolodex', iconName: 'Settings', type: 'system', isDefault: true, allowedRoles: ['admin'] },
+  { id: 'rolodex', label: 'Rolodex', iconName: 'Users', type: 'system', isDefault: true, allowedRoles: ['admin'] },
   { id: 'vault', label: 'Vault', iconName: 'Lock', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] }
 ];
 
@@ -301,101 +366,86 @@ export default function CommandCenterPage() {
     }
   };
 
-  const fetchUserRole = async (userId: string, email: string) => {
+  const fetchUserRole = async (userId: string, email: string, setDefaultTab = false) => {
     setIsLoading(true);
-    console.log("[Studio OS Auth DEBUG] fetchUserRole starting for:", { userId, email });
-    
+
     // Hardcoded bypass for the primary administrator account
     const cleanEmail = email.trim().toLowerCase();
     if (cleanEmail === 'matt@zipline.media') {
-      console.log("[Studio OS Auth DEBUG] Administrator bypass triggered for matt@zipline.media.");
       setUserRole('admin');
-      setActiveTab('dashboard');
+      if (setDefaultTab) setActiveTab('dashboard');
       setIsLoading(false);
       return;
     }
 
     try {
       // 1. Try to fetch by ID
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('user_roles')
         .select('role')
         .eq('id', userId)
         .maybeSingle();
-        
-      console.log("[Studio OS Auth DEBUG] fetch by ID response:", { data, error });
-      
+
       let role = data?.role;
 
       // 2. If not found by ID, try fetching by email (self-healing fallback)
       if (!role && email) {
-        const cleanEmail = email.trim().toLowerCase();
-        console.log("[Studio OS Auth DEBUG] Role not found by ID. Trying email match for:", cleanEmail);
-        const { data: emailData, error: emailErr } = await supabase
+        const { data: emailData } = await supabase
           .from('user_roles')
           .select('*')
           .ilike('email', cleanEmail)
           .maybeSingle();
 
-        console.log("[Studio OS Auth DEBUG] fetch by email response:", { emailData, emailErr });
-
         if (emailData) {
           role = emailData.role;
-          console.log("[Studio OS Auth DEBUG] Found match by email! Updating ID to match active session...", { role });
-          
-          // Attempt to update the row's ID to link it to the new auth user ID
-          const { error: updateErr } = await supabase
+
+          // Attempt to update the row's ID to link it to the new auth user ID.
+          // RLS may block this — that's fine, the role is already active in the UI.
+          await supabase
             .from('user_roles')
             .update({ id: userId })
             .ilike('email', cleanEmail);
-            
-          if (updateErr) {
-            console.warn("[Studio OS Auth DEBUG] Self-healing update failed (RLS restriction expected), role is still active in UI:", updateErr);
-          } else {
-            console.log("[Studio OS Auth DEBUG] Self-healing ID update succeeded!");
-          }
         }
       }
 
       // 3. If still not found, create a new client role
       if (!role) {
-        console.log("[Studio OS Auth DEBUG] Role record does not exist. Creating client role...");
         const { data: newRole, error: insertError } = await supabase
           .from('user_roles')
           .insert({ id: userId, email: email, role: 'client' })
           .select('role')
           .single();
-          
-        if (insertError) {
-          console.error("[Studio OS Auth DEBUG] Insert client role failed:", insertError);
-          throw insertError;
-        }
-        console.log("[Studio OS Auth DEBUG] Client role created successfully:", newRole);
+
+        if (insertError) throw insertError;
         role = newRole?.role || 'client';
       }
 
-      console.log("[Studio OS Auth DEBUG] Final role assigned:", role);
       setUserRole(role as any);
-      if (role === 'admin') {
-        setActiveTab('dashboard');
-      } else {
-        setActiveTab('calendar');
+      if (setDefaultTab) {
+        setActiveTab(role === 'admin' ? 'dashboard' : 'calendar');
       }
     } catch (err: any) {
-      console.error('[Studio OS Auth DEBUG] Error fetching user role:', err);
+      console.error('[Studio OS] Error fetching user role:', err);
       setUserRole('client'); // Default fallback
-      setActiveTab('calendar');
+      if (setDefaultTab) setActiveTab('calendar');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    // Track which user we've already loaded so we can ignore background auth
+    // events (token refreshes, tab re-focus) that would otherwise re-run
+    // fetchUserRole — flashing the loading screen and snapping the user back
+    // to the default tab in the middle of whatever they were doing.
+    let loadedUserId: string | null = null;
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        fetchUserRole(session.user.id, session.user.email || '');
+        loadedUserId = session.user.id;
+        fetchUserRole(session.user.id, session.user.email || '', true);
       } else {
         setUserRole(null);
         setIsLoading(false);
@@ -403,14 +453,28 @@ export default function CommandCenterPage() {
     });
 
     // Listen for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (session?.user) {
-        fetchUserRole(session.user.id, session.user.email || '');
-      } else {
+      const newUserId = session?.user?.id ?? null;
+
+      // Sign-out: clear everything.
+      if (!session?.user) {
+        loadedUserId = null;
         setUserRole(null);
         setIsLoading(false);
+        return;
       }
+
+      // Same user as already loaded (TOKEN_REFRESHED, USER_UPDATED, or a
+      // SIGNED_IN re-fired on tab focus) — nothing to do. Re-fetching here was
+      // the cause of "it kicks me out mid-task / sends me back to the home page".
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || newUserId === loadedUserId) {
+        return;
+      }
+
+      // Genuinely new sign-in — load their role and land on the default tab.
+      loadedUserId = newUserId;
+      fetchUserRole(session.user.id, session.user.email || '', true);
     });
 
     return () => subscription.unsubscribe();
@@ -466,7 +530,7 @@ export default function CommandCenterPage() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="studio-shell min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
         {/* Ambient Glows */}
         <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/10 rounded-full blur-[130px] pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-[130px] pointer-events-none" />
@@ -483,14 +547,14 @@ export default function CommandCenterPage() {
               <div className="absolute inset-0 bg-accent/10 blur-xl opacity-50" />
               <Lock className="w-8 h-8 text-accent relative z-10" />
             </div>
-            <h1 className="text-3xl font-black uppercase tracking-tighter text-white bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Studio OS</h1>
-            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30 mt-2">Zipline Media Internal Portal</p>
+            <h1 className="text-[28px] font-bold tracking-tight text-white bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Studio OS</h1>
+            <p className="text-[11px] font-medium tracking-[0.18em] uppercase text-white/35 mt-2">Zipline Media · Internal Portal</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[9px] font-black tracking-[0.3em] uppercase opacity-40 ml-1 text-white flex items-center gap-2">
-                <Mail className="w-3 h-3 text-accent/60" /> Email Address
+              <label className="text-[11px] font-medium tracking-normal ml-1 text-white/50 flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-accent/60" /> Email address
               </label>
               <input 
                 type="email" 
@@ -498,13 +562,13 @@ export default function CommandCenterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="PRODUCTIONS@ZIPLINE.MEDIA"
                 required
-                className="w-full bg-black/40 border border-white/10 p-4 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-bold rounded-xl text-white placeholder:opacity-20 uppercase"
+                className="w-full bg-black/40 border border-white/10 p-3.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-medium rounded-xl text-white placeholder:opacity-20 placeholder:uppercase placeholder:font-medium"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[9px] font-black tracking-[0.3em] uppercase opacity-40 ml-1 text-white flex items-center gap-2">
-                <Lock className="w-3 h-3 text-accent/60" /> Password
+              <label className="text-[11px] font-medium tracking-normal ml-1 text-white/50 flex items-center gap-2">
+                <Lock className="w-3.5 h-3.5 text-accent/60" /> Password
               </label>
               <input 
                 type="password" 
@@ -512,7 +576,7 @@ export default function CommandCenterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full bg-black/40 border border-white/10 p-4 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-bold rounded-xl text-white placeholder:opacity-20"
+                className="w-full bg-black/40 border border-white/10 p-3.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-medium rounded-xl text-white placeholder:opacity-20"
               />
             </div>
 
@@ -522,22 +586,22 @@ export default function CommandCenterPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl"
               >
-                <p className="text-red-500 text-[10px] font-black uppercase tracking-widest text-center">{error}</p>
+                <p className="text-red-400 text-xs font-medium text-center">{error}</p>
               </motion.div>
             )}
 
             <button 
               type="submit"
               disabled={isLoginLoading}
-              className="w-full bg-gradient-to-r from-accent to-blue-600 text-white py-5 font-black tracking-widest uppercase text-xs hover:from-white hover:to-white hover:text-black transition-all duration-300 rounded-xl shadow-lg shadow-accent/20 disabled:opacity-50 flex items-center justify-center gap-3 active:scale-[0.98] cursor-pointer"
+              className="w-full bg-gradient-to-r from-accent to-blue-600 text-white py-3.5 font-semibold text-sm hover:from-white hover:to-white hover:text-black transition-all duration-300 rounded-xl shadow-lg shadow-accent/20 disabled:opacity-50 flex items-center justify-center gap-3 active:scale-[0.98] cursor-pointer"
             >
               {isLoginLoading ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : 'Unlock Command Center'}
             </button>
-            
-            <p className="text-center text-[8px] font-bold uppercase tracking-widest text-white/20">
-              Authorized access only. all sessions are logged.
+
+            <p className="text-center text-[11px] font-medium tracking-wide text-white/25">
+              Authorized access only · All sessions are logged
             </p>
           </form>
         </div>
@@ -546,7 +610,7 @@ export default function CommandCenterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex overflow-hidden relative">
+    <div className="studio-shell min-h-screen bg-black text-white flex overflow-hidden relative">
       {/* Ambient Glows */}
       <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-accent/5 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-500/5 rounded-full blur-[150px] pointer-events-none" />
@@ -585,7 +649,7 @@ export default function CommandCenterPage() {
         <div className={`flex ${(!isSidebarOpen && !isMobile) ? 'flex-col items-center gap-4 px-0 py-6' : 'items-center justify-between p-6'}`}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-br from-accent to-blue-600 rounded-lg flex items-center justify-center font-black text-xs shadow-[0_0_15px_rgba(0,119,255,0.3)] shrink-0">Z</div>
-            <span className={`font-black uppercase tracking-tighter text-lg bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent ${(!isSidebarOpen && !isMobile) && 'hidden'}`}>Studio</span>
+            <span className={`font-semibold tracking-tight text-lg bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent ${(!isSidebarOpen && !isMobile) && 'hidden'}`}>Studio</span>
           </div>
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -650,51 +714,56 @@ export default function CommandCenterPage() {
                                   
                                   <Icon className={`w-5 h-5 shrink-0 transition-colors duration-300 ${activeTab === tab.id ? 'text-accent' : ''}`} />
                                   
-                                  <span className={`font-bold uppercase tracking-widest text-[10px] text-left transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
+                                  <span className={`font-medium tracking-tight text-[13px] text-left transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
                                     {tab.label}
                                   </span>
-
-                                  {/* Edit/Settings button for default/custom tabs on hover (admin only) */}
-                                  {isSidebarOpen && userRole === 'admin' && (
-                                    <>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSelectedTabToEdit(tab);
-                                          setEditTabLabel(tab.label);
-                                          setEditTabIcon(tab.iconName);
-                                          setEditTabType(tab.type as any);
-                                          setEditTabUrl(tab.embedUrl || '');
-                                          setEditTabRoles(tab.allowedRoles || ['admin']);
-                                          setIsEditModalOpen(true);
-                                        }}
-                                        className="absolute right-14 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-accent transition-opacity z-30 cursor-pointer"
-                                        title="Edit Workspace Settings"
-                                      >
-                                        <Settings className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={(e) => resetWorkspaceForTab(tab.id, e)}
-                                        className="absolute right-9 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-orange-400 transition-opacity z-30 cursor-pointer"
-                                        title="Reset panels to default view"
-                                      >
-                                        <RotateCcw className="w-3.5 h-3.5" />
-                                      </button>
-                                    </>
-                                  )}
-
-                                  {/* Grip handle visible on hover. Must stay mounted even when
-                                      collapsed — @hello-pangea/dnd requires the drag handle to
-                                      always exist in the DOM, so hide it with classes, not unmount. */}
-                                  <div
-                                    {...provided.dragHandleProps}
-                                    className={`absolute right-3 p-1 text-white hover:text-accent transition-opacity cursor-grab active:cursor-grabbing ${(!isSidebarOpen && !isMobile) ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-40 hover:opacity-100'}`}
-                                    title="Drag to reorder"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <GripVertical className="w-3.5 h-3.5" />
-                                  </div>
                                 </button>
+
+                                {/* Action controls live as siblings of the nav button — not
+                                    nested inside it — so the markup stays valid (no button-in-
+                                    button) while the absolute positioning + group-hover reveal
+                                    are unchanged. */}
+
+                                {/* Edit/Settings button for default/custom tabs on hover (admin only) */}
+                                {isSidebarOpen && userRole === 'admin' && (
+                                  <>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedTabToEdit(tab);
+                                        setEditTabLabel(tab.label);
+                                        setEditTabIcon(tab.iconName);
+                                        setEditTabType(tab.type as any);
+                                        setEditTabUrl(tab.embedUrl || '');
+                                        setEditTabRoles(tab.allowedRoles || ['admin']);
+                                        setIsEditModalOpen(true);
+                                      }}
+                                      className="absolute right-14 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-accent transition-opacity z-30 cursor-pointer"
+                                      title="Edit Workspace Settings"
+                                    >
+                                      <Settings className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => resetWorkspaceForTab(tab.id, e)}
+                                      className="absolute right-9 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-orange-400 transition-opacity z-30 cursor-pointer"
+                                      title="Reset panels to default view"
+                                    >
+                                      <RotateCcw className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* Grip handle visible on hover. Must stay mounted even when
+                                    collapsed — @hello-pangea/dnd requires the drag handle to
+                                    always exist in the DOM, so hide it with classes, not unmount. */}
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white hover:text-accent transition-opacity cursor-grab active:cursor-grabbing ${(!isSidebarOpen && !isMobile) ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-40 hover:opacity-100'}`}
+                                  title="Drag to reorder"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <GripVertical className="w-3.5 h-3.5" />
+                                </div>
                               </div>
                             )}
                           </Draggable>
@@ -709,7 +778,7 @@ export default function CommandCenterPage() {
                         className={`w-full flex items-center gap-3 py-3 rounded-xl border border-dashed border-white/10 hover:border-accent/40 text-white/40 hover:text-white bg-transparent hover:bg-white/5 transition-all duration-300 mt-4 cursor-pointer group/add-tab ${(!isSidebarOpen && !isMobile) ? 'justify-center px-0' : 'px-4'}`}
                       >
                         <Plus className="w-5 h-5 shrink-0 text-white/40 group-hover/add-tab:text-accent transition-colors duration-300" />
-                        <span className={`font-bold uppercase tracking-widest text-[10px] text-left transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
+                        <span className={`font-medium tracking-tight text-[13px] text-left transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
                           Create Workspace
                         </span>
                       </button>
@@ -743,7 +812,7 @@ export default function CommandCenterPage() {
                       }`}
                     >
                       <Icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-accent' : ''}`} />
-                      <span className="font-bold uppercase tracking-widest text-[10px]">
+                      <span className="font-medium tracking-tight text-[13px]">
                         {tab.label}
                       </span>
                     </button>
@@ -755,33 +824,11 @@ export default function CommandCenterPage() {
 
         <div className="p-4 border-t border-white/5">
           <button
-            onClick={() => setIsSettingsOpen(true)}
-            title="Edit profile & settings"
-            className={`w-full mb-3 px-4 py-2 flex items-center gap-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer ${(!isSidebarOpen && !isMobile) ? 'justify-center px-0' : ''}`}
-          >
-             <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden shrink-0">
-                {myAvatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={myAvatarUrl} alt="Me" className="w-full h-full object-cover" />
-                ) : (
-                  <UserIcon className="w-3.5 h-3.5 text-white/40" />
-                )}
-             </div>
-             <div className={`min-w-0 text-left ${(!isSidebarOpen && !isMobile) && 'hidden'}`}>
-                <p className="text-[8px] font-black uppercase tracking-widest text-white/40 truncate">
-                  {session.user.email}
-                </p>
-                <p className="text-[7px] font-black uppercase tracking-widest text-accent mt-0.5">
-                  {userRole || 'Loading...'} · Edit
-                </p>
-             </div>
-          </button>
-          <button 
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 text-white/20 hover:text-red-500 transition-colors rounded-xl group cursor-pointer"
           >
             <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            <span className={`font-bold uppercase tracking-widest text-[10px] ${(!isSidebarOpen && !isMobile) && 'hidden'}`}>Sign Out</span>
+            <span className={`font-medium tracking-tight text-[13px] ${(!isSidebarOpen && !isMobile) && 'hidden'}`}>Sign Out</span>
           </button>
         </div>
       </motion.aside>
@@ -799,7 +846,7 @@ export default function CommandCenterPage() {
               </button>
             )}
             <div>
-              <h2 className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.4em] md:tracking-[0.5em] text-accent mb-0.5 md:mb-1 truncate max-w-[200px] sm:max-w-none">
+              <h2 className="text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-accent/80 mb-1 truncate max-w-[200px] sm:max-w-none">
                 {activeTabObj ? (
                   activeTabObj.type === 'system' ? (
                     activeTabObj.id === 'dashboard' ? 'Studio Overview' :
@@ -808,56 +855,87 @@ export default function CommandCenterPage() {
                     activeTabObj.id === 'edits' ? 'Post-Production Pipeline' :
                     activeTabObj.id === 'gear' ? 'Inventory & Manifests' :
                     activeTabObj.id === 'creative' ? 'Creative Pre-Production' :
+                    activeTabObj.id === 'social' ? 'Social Rollout Management' :
+                    activeTabObj.id === 'inbox' ? 'Messages & Requests' :
+                    activeTabObj.id === 'vault' ? 'Secure Asset Storage' :
                     'Contacts & Clients'
                   ) : activeTabObj.type === 'embed' ? 'External Tool Integration' :
                       activeTabObj.type === 'notes' ? 'Production Notepad' : 'Custom Workspace Layout'
                 ) : 'Workspace Overview'}
               </h2>
-              <h1 className="text-lg md:text-2xl font-black uppercase tracking-tighter text-white truncate max-w-[200px] sm:max-w-none">
+              <h1 className="text-lg md:text-[26px] font-semibold tracking-tight text-white truncate max-w-[200px] sm:max-w-none">
                 {activeTabObj ? activeTabObj.label : 'Command Center'}
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-3 flex-wrap justify-end">
-             {/* Reset Layout Trigger — only for workspaces that use the panel layout */}
-             {activeTabObj && activeTabObj.type !== 'embed' && activeTabObj.type !== 'notes' && (
-               <button
-                  onClick={() => resetWorkspaceForTab(activeTab)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-orange-400/40 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white/70 hover:text-orange-300 transition-all cursor-pointer"
-                  title="Reset this workspace's panels to the default layout"
-               >
-                  <RotateCcw className="w-3 h-3" />
-                  Reset Layout
-               </button>
-             )}
-
-             {/* Google Calendar Sync Trigger */}
-             <button
-                onClick={() => setIsCalendarSyncOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-all cursor-pointer"
+          <div className="flex items-center gap-2 flex-nowrap justify-end">
+             {/* Live database status — a quiet macOS-style menu-bar indicator */}
+             <div
+                title="Live database sync is active"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 shrink-0"
              >
-                <RefreshCw className="w-3 h-3 text-accent animate-spin-slow" />
-                Calendar Sync
-             </button>
-
-             {/* Quick Start Guide Trigger */}
-             <button
-                onClick={() => setIsQuickStartOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-accent/20 to-blue-600/20 hover:from-accent/30 hover:to-blue-600/30 border border-accent/30 hover:border-accent/50 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest text-accent hover:text-white transition-all cursor-pointer shadow-md shadow-accent/5"
-             >
-                <HelpCircle className="w-3.5 h-3.5 text-accent" />
-                Quick Start
-             </button>
-
-             {/* Live Database Sync Pill */}
-             <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/5 border border-green-500/20 rounded-full shadow-[0_0_15px_rgba(34,197,94,0.05)] relative shrink-0">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping absolute left-3" />
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-green-400">
-                  {isMobile ? 'Live' : 'Live Database Sync'}
+                <span className="relative flex w-1.5 h-1.5">
+                   <span className="absolute inline-flex w-full h-full rounded-full bg-green-500/60 animate-ping" />
+                   <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-green-500" />
                 </span>
+                <span className="text-[10px] font-medium tracking-wide text-white/45">Live</span>
              </div>
+
+             {/* Toolbar group — utility actions grouped into one segmented control */}
+             <div className="flex items-center gap-0.5 p-0.5 bg-white/[0.03] border border-white/10 rounded-lg shrink-0">
+                {/* Reset Layout — only for workspaces that use the panel layout */}
+                {activeTabObj && activeTabObj.type !== 'embed' && activeTabObj.type !== 'notes' && (
+                  <button
+                     onClick={() => resetWorkspaceForTab(activeTab)}
+                     className="p-2 rounded-md text-white/50 hover:text-orange-300 hover:bg-white/[0.06] transition-colors cursor-pointer"
+                     title="Reset this workspace's panels to the default layout"
+                     aria-label="Reset layout"
+                  >
+                     <RotateCcw className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* Calendar Sync */}
+                <button
+                   onClick={() => setIsCalendarSyncOpen(true)}
+                   className="p-2 rounded-md text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                   title="Google Calendar sync"
+                   aria-label="Calendar sync"
+                >
+                   <RefreshCw className="w-4 h-4 text-accent animate-spin-slow" />
+                </button>
+
+                {/* Quick Start Guide */}
+                <button
+                   onClick={() => setIsQuickStartOpen(true)}
+                   className="p-2 rounded-md text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                   title="Quick start guide"
+                   aria-label="Quick start guide"
+                >
+                   <HelpCircle className="w-4 h-4" />
+                </button>
+             </div>
+
+             {/* Profile / Settings — top-right for quick access */}
+             <button
+                onClick={() => setIsSettingsOpen(true)}
+                title="Edit profile & settings"
+                className="flex items-center gap-2 pl-1 pr-1 md:pr-3 py-1 bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 rounded-full transition-colors cursor-pointer shrink-0"
+             >
+                <div className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center border border-white/10 overflow-hidden shrink-0">
+                   {myAvatarUrl ? (
+                     // eslint-disable-next-line @next/next/no-img-element
+                     <img src={myAvatarUrl} alt="Me" className="w-full h-full object-cover" />
+                   ) : (
+                     <UserIcon className="w-3.5 h-3.5 text-white/40" />
+                   )}
+                </div>
+                <div className="hidden md:block text-left leading-tight pr-1">
+                   <p className="text-[11px] font-medium text-white/70 truncate max-w-[150px]">{session.user.email}</p>
+                   <p className="text-[10px] font-medium text-accent/80 capitalize">{userRole || 'Loading…'} · Edit</p>
+                </div>
+             </button>
           </div>
         </header>
 
@@ -936,8 +1014,8 @@ export default function CommandCenterPage() {
                   <RefreshCw className="w-5 h-5 text-accent animate-spin" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black uppercase tracking-tighter text-white">Google Calendar Sync</h3>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/30">Live Webcal Subscription Feed</p>
+                  <h3 className="text-lg font-semibold tracking-tight text-white">Google Calendar Sync</h3>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">Live Webcal Subscription Feed</p>
                 </div>
               </div>
 
@@ -1066,8 +1144,8 @@ export default function CommandCenterPage() {
                   <Plus className="w-5 h-5 text-accent animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black uppercase tracking-tighter text-white">Create Custom Tab</h3>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/30">Add a modular workspace tool</p>
+                  <h3 className="text-lg font-semibold tracking-tight text-white">Create Custom Tab</h3>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">Add a modular workspace tool</p>
                 </div>
               </div>
 
@@ -1140,26 +1218,7 @@ export default function CommandCenterPage() {
 
                 <div>
                   <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Select Icon</label>
-                  <div className="grid grid-cols-6 gap-1.5 bg-black/40 border border-white/5 p-2 rounded-xl">
-                    {SELECTABLE_ICONS.map(ico => {
-                      const Icon = getIconComponent(ico.name);
-                      return (
-                        <button
-                          key={ico.name}
-                          type="button"
-                          onClick={() => setNewTabIcon(ico.name)}
-                          className={`p-2 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
-                            newTabIcon === ico.name 
-                              ? 'bg-accent text-white scale-110 shadow-lg shadow-accent/20' 
-                              : 'text-white/40 hover:text-white hover:bg-white/5'
-                          }`}
-                          title={ico.label}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <IconPickerGrid selected={newTabIcon} onSelect={setNewTabIcon} />
                 </div>
 
                 <div>
@@ -1233,8 +1292,8 @@ export default function CommandCenterPage() {
                   <Settings className="w-5 h-5 text-accent" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black uppercase tracking-tighter text-white">Workspace Settings</h3>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/30">Modify this navigation workspace</p>
+                  <h3 className="text-lg font-semibold tracking-tight text-white">Workspace Settings</h3>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">Modify this navigation workspace</p>
                 </div>
               </div>
 
@@ -1309,26 +1368,7 @@ export default function CommandCenterPage() {
 
                 <div>
                   <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Select Icon</label>
-                  <div className="grid grid-cols-6 gap-1.5 bg-black/40 border border-white/5 p-2 rounded-xl">
-                    {SELECTABLE_ICONS.map(ico => {
-                      const Icon = getIconComponent(ico.name);
-                      return (
-                        <button
-                          key={ico.name}
-                          type="button"
-                          onClick={() => setEditTabIcon(ico.name)}
-                          className={`p-2 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
-                            editTabIcon === ico.name 
-                              ? 'bg-accent text-white scale-110 shadow-lg shadow-accent/20' 
-                              : 'text-white/40 hover:text-white hover:bg-white/5'
-                          }`}
-                          title={ico.label}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <IconPickerGrid selected={editTabIcon} onSelect={setEditTabIcon} />
                 </div>
 
                 <div>

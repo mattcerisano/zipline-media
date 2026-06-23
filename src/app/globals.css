@@ -93,6 +93,19 @@ h1, h2, h3, h4, h5, h6, nav a, button {
   letter-spacing: 0.05em;
 }
 
+/* --- Command Center: macOS-inspired typography override ---
+   The brand site leans on LuloClean + forced uppercase for every heading and
+   button. Inside Studio OS we want a calmer, macOS-style hierarchy: one clean
+   sans (Montserrat, the body face) with weight/size doing the work. We neutralize
+   the global rule *only* within .studio-shell, then let per-element Tailwind
+   utilities (uppercase / tracking-* / font-*) opt back in where a label still
+   wants the small-caps "eyebrow" treatment. */
+.studio-shell :is(h1, h2, h3, h4, h5, h6, button, nav a) {
+  font-family: var(--font-sans), sans-serif;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 p, span, label, input, textarea, select {
   font-family: var(--font-sans), sans-serif;
 }

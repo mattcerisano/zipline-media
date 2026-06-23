@@ -124,7 +124,7 @@ export default function DashboardOverview({
     setIsSending(true);
     setSendResult(null);
     try {
-      const res = await fetch('/api/integrations/discord', {
+      const res = await fetch('/api/integrations/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,7 +150,7 @@ export default function DashboardOverview({
       <div className="flex items-center justify-end mb-3 relative">
         <button
           onClick={() => setShowCustomize(v => !v)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-medium tracking-tight text-white/60 hover:text-white transition-colors"
         >
           <SlidersHorizontal className="w-3.5 h-3.5" /> Customize
         </button>
@@ -211,7 +211,7 @@ export default function DashboardOverview({
 
       {widgets.quickActions && (
       <div className="md:col-span-2 lg:col-span-3 mt-5">
-        <h3 className="text-sm font-black uppercase tracking-tighter mb-3 text-white bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">Quick Actions</h3>
+        <h3 className="text-base font-semibold tracking-tight mb-3 text-white bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">Quick Actions</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           <ActionButton 
             label="Production Slate" 
@@ -254,13 +254,13 @@ export default function DashboardOverview({
                 <MessageSquare className="w-4.5 h-4.5 text-purple-400" />
               </div>
               <div>
-                <h4 className="text-sm font-black uppercase tracking-widest text-white">Discord Integration Gateway</h4>
-                <p className="text-[8px] font-bold uppercase tracking-widest text-white/30">System webhook notifications</p>
+                <h4 className="text-sm font-semibold tracking-tight text-white">Team Alert Gateway</h4>
+                <p className="text-[9px] font-medium uppercase tracking-[0.15em] text-white/35">Discord · Slack · Teams</p>
               </div>
             </div>
 
             <p className="text-white/60 text-[11px] mb-4 leading-relaxed">
-              Sends real-time production updates, stage shifts, and new bookings to your Discord crew channels automatically.
+              Sends real-time production updates, stage shifts, and new bookings to every enabled team channel. Configure channels in Settings → Integrations.
             </p>
           </div>
 
@@ -285,10 +285,10 @@ export default function DashboardOverview({
             </div>
 
             {sendResult === 'success' && (
-              <p className="text-green-400 text-[10px] font-black uppercase tracking-widest animate-pulse">✓ Message dispatched successfully to Discord!</p>
+              <p className="text-green-400 text-[10px] font-black uppercase tracking-widest animate-pulse">✓ Message dispatched to your team channels!</p>
             )}
             {sendResult === 'error' && (
-              <p className="text-red-400 text-[10px] font-black uppercase tracking-widest">✗ Error: Webhook URL environment variable not configured or invalid response.</p>
+              <p className="text-red-400 text-[10px] font-black uppercase tracking-widest">✗ No enabled channels — add a webhook in Settings → Integrations.</p>
             )}
           </div>
         </div>
@@ -296,7 +296,7 @@ export default function DashboardOverview({
         {/* Status Dashboard */}
         <div className="bg-zinc-950/40 backdrop-blur-md border border-white/10 p-4 rounded-2xl flex flex-col justify-between hover:border-white/15 transition-all duration-300 shadow-xl">
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-white mb-3 border-b border-white/5 pb-2">Integration Hub Telemetry</h4>
+            <h4 className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/70 mb-3 border-b border-white/5 pb-2">Integration Hub Telemetry</h4>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs py-1">
                 <span className="text-white/40 font-bold uppercase tracking-wider text-[9px]">Google Calendar Feed</span>
@@ -375,14 +375,14 @@ function StatCard({
         {isLoading ? (
           <div className="h-5 w-20 bg-white/5 rounded animate-pulse" />
         ) : (
-          <span className="text-[10px] font-bold text-green-400 uppercase tracking-widest bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/15">{trend}</span>
+          <span className="text-[10px] font-medium text-green-400 tracking-wide bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/15">{trend}</span>
         )}
       </div>
-      <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em] mb-0.5">{title}</h3>
+      <h3 className="text-[11px] font-medium text-white/40 uppercase tracking-[0.12em] mb-0.5">{title}</h3>
       {isLoading ? (
         <div className="h-8 w-24 bg-white/10 rounded animate-pulse mt-1" />
       ) : (
-        <p className="text-2xl font-black tracking-tighter text-white bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">{value}</p>
+        <p className="text-[28px] font-semibold tracking-tight text-white bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">{value}</p>
       )}
     </div>
   );
@@ -403,7 +403,7 @@ function ActionButton({ label, onClick, icon: Icon }: ActionButtonProps) {
       {/* Subtle icon background glow on hover */}
       <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/10 transition-colors duration-300" />
       <Icon className="w-6 h-6 mb-2 text-accent group-hover:text-white group-hover:scale-110 transition-all duration-300" />
-      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-center text-white transition-colors duration-300">{label}</span>
+      <span className="text-[11px] font-medium tracking-tight text-center text-white transition-colors duration-300">{label}</span>
     </button>
   );
 }
