@@ -127,7 +127,9 @@ const DEFAULT_TABS: CustomTab[] = [
   { id: 'creative', label: 'Creative Board', iconName: 'Palette', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'social', label: 'Social Media', iconName: 'Share2', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'inbox', label: 'Inbox', iconName: 'Mail', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
+  { id: 'meeting_notes', label: 'Meeting Notes', iconName: 'FileText', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'rolodex', label: 'Rolodex', iconName: 'Users', type: 'system', isDefault: true, allowedRoles: ['admin'] },
+  { id: 'tutorials', label: 'Learning Center', iconName: 'BookOpen', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'vault', label: 'Vault', iconName: 'Lock', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] }
 ];
 
@@ -912,6 +914,7 @@ export default function CommandCenterPage() {
                     activeTabObj.id === 'creative' ? 'Creative Pre-Production' :
                     activeTabObj.id === 'social' ? 'Social Rollout Management' :
                     activeTabObj.id === 'inbox' ? 'Messages & Requests' :
+                    activeTabObj.id === 'tutorials' ? 'Studio Learning Center' :
                     activeTabObj.id === 'vault' ? 'Secure Asset Storage' :
                     'Contacts & Clients'
                   ) : activeTabObj.type === 'embed' ? 'External Tool Integration' :
@@ -1495,6 +1498,11 @@ export default function CommandCenterPage() {
           setIsQuickStartOpen(false);
           setIsCalendarSyncOpen(true);
         }} 
+        onOpenTutorials={() => {
+          setIsQuickStartOpen(false);
+          setActiveTab('tutorials');
+          localStorage.setItem('studio_active_tab', 'tutorials');
+        }}
       />
     </div>
   );

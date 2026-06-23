@@ -191,88 +191,55 @@ function BigSection({
   );
 }
 
-function PerformanceSection({ 
-  allVideos, 
-  onPlay 
-}: { 
-  allVideos: Record<string, Video[]>; 
-  onPlay: (url: string) => void; 
-}) {
-  const subCategories = ['B-Roll', 'Commercial', 'Social', 'Events', 'Music'];
-  const [activeTab, setActiveTab] = useState(subCategories[0]);
+const OFFICIAL_PLAYLISTS = [
+  'Opening Nights',
+  'New Media',
+  'Broadway B-Roll',
+  'Reveals',
+  'TVC',
+  'Cast Recordings'
+];
 
-  return (
-    <BigSection title="Performance" id="performance">
-      <div className="flex flex-nowrap gap-2 md:gap-4 mb-6 overflow-x-auto no-scrollbar pb-2">
-        {subCategories.map(sub => (
-          <button
-            key={sub}
-            onClick={() => setActiveTab(sub)}
-            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest transition-all whitespace-nowrap
-              ${activeTab === sub 
-                ? 'bg-white text-black' 
-                : 'bg-neutral-900 text-white/50 hover:bg-neutral-800 hover:text-white'
-              }
-            `}
-          >
-            {sub}
-          </button>
-        ))}
-      </div>
-      
-      <CategorySection key={activeTab} categoryVideos={allVideos[activeTab] || []} onPlay={onPlay} />
-    </BigSection>
-  );
-}
+const mapVideoToPlaylists = (video: Video): string[] => {
+  const tags: string[] = [];
+  const title = video.title.toLowerCase();
+  
+  // Normalize category to array of lowercase strings
+  const rawCat = Array.isArray(video.category) 
+    ? video.category.map(c => c.toLowerCase()) 
+    : [video.category.toLowerCase()];
 
-function BrandsNonprofitsSection({ 
-  allVideos, 
-  onPlay 
-}: { 
-  allVideos: Record<string, Video[]>; 
-  onPlay: (url: string) => void; 
-}) {
-  const subCategories = ['Brands', 'Nonprofits'];
-  const [activeTab, setActiveTab] = useState(subCategories[0]);
+  // 1. New Media (Direct Match + Keyword checks)
+  if (rawCat.includes('new media') || title.includes('keke') || title.includes('kelce') || title.includes('heights') || title.includes('sean evans')) {
+    tags.push('New Media');
+  }
+  // 2. Opening Nights
+  if (title.includes('opening night') || title.includes('red carpet') || rawCat.includes('events') || title.includes('premiere')) {
+    tags.push('Opening Nights');
+  }
+  // 3. Broadway B-Roll
+  if (rawCat.includes('b-roll') || title.includes('montage') || title.includes('press reel') || title.includes('curtain call') || title.includes('broll')) {
+    tags.push('Broadway B-Roll');
+  }
+  // 4. Reveals
+  if (title.includes('reveal') || title.includes('first look') || title.includes('teaser') || title.includes('announcing') || title.includes('sizzle')) {
+    tags.push('Reveals');
+  }
+  // 5. TVC (Television Commercials)
+  if (rawCat.includes('commercial') || title.includes('tvc') || title.includes('spot') || title.includes('promo') || title.includes('television')) {
+    tags.push('TVC');
+  }
+  // 6. Cast Recordings
+  if (rawCat.includes('music') || title.includes('recording') || title.includes('studio session') || title.includes('music video') || title.includes('album') || title.includes('song')) {
+    tags.push('Cast Recordings');
+  }
 
-  return (
-    <BigSection title="Brands" id="brands">
-      <div className="flex flex-wrap gap-2 md:gap-4 mb-6">
-        {subCategories.map(sub => (
-          <button
-            key={sub}
-            onClick={() => setActiveTab(sub)}
-            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest transition-all
-              ${activeTab === sub 
-                ? 'bg-white text-black' 
-                : 'bg-neutral-900 text-white/50 hover:bg-neutral-800 hover:text-white'
-              }
-            `}
-          >
-            {sub}
-          </button>
-        ))}
-      </div>
-      
-      <CategorySection key={activeTab} categoryVideos={allVideos[activeTab] || []} onPlay={onPlay} />
-    </BigSection>
-  );
-}
-
-function NewMediaSection({ 
-  allVideos, 
-  onPlay 
-}: { 
-  allVideos: Record<string, Video[]>; 
-  onPlay: (url: string) => void; 
-}) {
-  return (
-    <BigSection title="New Media" id="new-media">
-      <CategorySection categoryVideos={allVideos['New Media'] || []} onPlay={onPlay} />
-    </BigSection>
-  );
-}
-
+  // Resilient fallback: distribute to Broadway B-Roll if no tag matches
+  if (tags.length === 0) {
+    tags.push('Broadway B-Roll');
+  }
+  return tags;
+};
 
 // --- Main Client Component ---
 
@@ -281,6 +248,7 @@ export default function ArchiveClient() {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [isExiting, setIsExiting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activePlaylist, setActivePlaylist] = useState('Opening Nights');
 
   // Prevent scrolling when modal is open
   useEffect(() => {
@@ -296,19 +264,23 @@ export default function ArchiveClient() {
   // Memoize video organization to prevent re-renders / shuffling
   const { videosByCategory, recentWork, allVideos } = useMemo(() => {
     const rawVideos = videos as Video[];
-    
     const grouped: Record<string, Video[]> = {};
-    const allCats = ['Recent Work', 'B-Roll', 'Commercial', 'Social', 'Events', 'Music', 'Brands', 'Nonprofits', 'New Media'];
     
-    allCats.forEach(cat => {
-      // Just filter, don't re-sort, to keep the JSON order
-      grouped[cat] = rawVideos.filter(v => 
-        Array.isArray(v.category) ? v.category.includes(cat) : v.category === cat
-      );
+    OFFICIAL_PLAYLISTS.forEach(playlist => {
+      grouped[playlist] = [];
     });
 
-    // Recent Work (Filtered by category)
-    const recent = grouped['Recent Work'] || [];
+    rawVideos.forEach(v => {
+      const playlists = mapVideoToPlaylists(v);
+      playlists.forEach(p => {
+        if (grouped[p]) grouped[p].push(v);
+      });
+    });
+
+    // Recent Work (Filtered by original 'Recent Work' category tag)
+    const recent = rawVideos.filter(v => 
+      Array.isArray(v.category) ? v.category.includes('Recent Work') : v.category === 'Recent Work'
+    );
 
     return { videosByCategory: grouped, recentWork: recent, allVideos: rawVideos };
   }, []);
@@ -495,10 +467,30 @@ export default function ArchiveClient() {
               </div>
             </section>
 
-            <div className="flex flex-col gap-6">
-              <PerformanceSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
-              <BrandsNonprofitsSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
-              <NewMediaSection allVideos={videosByCategory} onPlay={setSelectedVideo} />
+            <div className="mt-16 mb-24">
+              <h2 className="text-xl md:text-2xl font-bold uppercase tracking-widest mb-6 text-white/40">
+                Explore Playlists
+              </h2>
+              
+              {/* Playlists tab bar */}
+              <div className="flex flex-nowrap gap-2 md:gap-4 mb-8 overflow-x-auto no-scrollbar pb-2 border-b border-white/5">
+                {OFFICIAL_PLAYLISTS.map(playlist => (
+                  <button
+                    key={playlist}
+                    onClick={() => setActivePlaylist(playlist)}
+                    className={`px-4 py-2.5 rounded-full text-xs md:text-sm font-black uppercase tracking-widest transition-all whitespace-nowrap border cursor-pointer
+                      ${activePlaylist === playlist 
+                        ? 'bg-white text-black border-white' 
+                        : 'bg-neutral-950 text-white/50 border-white/5 hover:border-white/20 hover:text-white'
+                      }
+                    `}
+                  >
+                    {playlist}
+                  </button>
+                ))}
+              </div>
+              
+              <CategorySection key={activePlaylist} categoryVideos={videosByCategory[activePlaylist] || []} onPlay={setSelectedVideo} />
             </div>
           </>
         )}

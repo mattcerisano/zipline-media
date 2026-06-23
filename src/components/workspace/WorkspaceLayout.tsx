@@ -28,7 +28,8 @@ import {
   HelpCircle,
   Lock,
   Mail,
-  Share2
+  Share2,
+  BookOpen
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
@@ -45,6 +46,8 @@ import DashboardOverview from '@/components/workspace/DashboardOverview';
 import { QuickStartWidget } from './QuickStartGuide';
 import InboxWidget from '@/components/workspace/InboxWidget';
 import Vault from '@/components/workspace/Vault';
+import MeetingNotes from '@/components/workspace/MeetingNotes';
+import TutorialsWidget from './TutorialsWidget';
 
 export type LayoutNode = 
   | { type: 'row'; children: LayoutNode[]; sizes: number[] }
@@ -68,9 +71,11 @@ const WIDGET_ICONS: Record<string, any> = {
   social: Share2,
   rolodex: Users,
   notes: FileText,
+  meeting_notes: FileText,
   script: Tv,
   clock: Timer,
   quickstart: HelpCircle,
+  tutorials: BookOpen,
   inbox: Mail,
   vault: Lock
 };
@@ -85,9 +90,11 @@ const WIDGET_LABELS: Record<string, string> = {
   social: 'Social Media',
   rolodex: 'Rolodex',
   notes: 'Scratch Notes',
+  meeting_notes: 'Meeting Notes',
   script: 'Script & Teleprompter',
   clock: 'Production Timer',
   quickstart: 'Quick Start Guide',
+  tutorials: 'Learning Center',
   inbox: 'Studio Inbox',
   vault: 'Vault'
 };
@@ -100,8 +107,10 @@ const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
   gear: { type: 'panel', id: 'gear-root', activeTab: 'gear', tabs: ['gear'] },
   creative: { type: 'panel', id: 'creative-root', activeTab: 'creative', tabs: ['creative'] },
   social: { type: 'panel', id: 'social-root', activeTab: 'social', tabs: ['social'] },
-  rolodex: { type: 'panel', id: 'rolodex-root', activeTab: 'rolodex', tabs: ['rolodex'] },
   inbox: { type: 'panel', id: 'inbox-root', activeTab: 'inbox', tabs: ['inbox'] },
+  meeting_notes: { type: 'panel', id: 'meeting-notes-root', activeTab: 'meeting_notes', tabs: ['meeting_notes'] },
+  rolodex: { type: 'panel', id: 'rolodex-root', activeTab: 'rolodex', tabs: ['rolodex'] },
+  tutorials: { type: 'panel', id: 'tutorials-root', activeTab: 'tutorials', tabs: ['tutorials'] },
   vault: { type: 'panel', id: 'vault-root', activeTab: 'vault', tabs: ['vault'] }
 };
 
@@ -865,6 +874,8 @@ function WidgetMount({
       return <SocialMedia />;
     case 'rolodex':
       return <Rolodex />;
+    case 'meeting_notes':
+      return <MeetingNotes />;
     case 'notes':
       return <NotesWidget />;
     case 'script':
@@ -872,7 +883,9 @@ function WidgetMount({
     case 'clock':
       return <ClockWidget />;
     case 'quickstart':
-      return <QuickStartWidget />;
+      return <QuickStartWidget onSwitchTab={onSwitchTab} />;
+    case 'tutorials':
+      return <TutorialsWidget onSwitchTab={onSwitchTab} />;
     case 'inbox':
       return <InboxWidget />;
     case 'vault':

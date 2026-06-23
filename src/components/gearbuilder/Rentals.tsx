@@ -982,6 +982,14 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         if (nearestHospital) {
             const hospName = nearestHospital.name.length > 30 ? nearestHospital.name.substring(0, 28) + '...' : nearestHospital.name;
             doc.text(caps(hospName), col2X, row2Y + 10);
+            if (nearestHospital.address) {
+                doc.setFontSize(7);
+                doc.setTextColor(TEXT_GRAY);
+                const hospAddr = nearestHospital.address.length > 35 ? nearestHospital.address.substring(0, 33) + '...' : nearestHospital.address;
+                doc.text(caps(hospAddr), col2X, row2Y + 18);
+                doc.setFontSize(9);
+                doc.setTextColor(TEXT_DARK);
+            }
         } else {
             doc.text('—', col2X, row2Y + 10);
         }

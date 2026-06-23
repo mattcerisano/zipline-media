@@ -103,6 +103,20 @@ export default function Slate({
     links: []
   });
 
+  const [gearTemplates, setGearTemplates] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchGearTemplates = async () => {
+      try {
+        const { data } = await supabase.from('gear_templates').select('id, name, items');
+        if (data) setGearTemplates(data);
+      } catch (err) {
+        console.error('Error fetching gear templates in Slate:', err);
+      }
+    };
+    fetchGearTemplates();
+  }, []);
+
   const openNewJobModal = () => {
     setEditingJob({
       title: '',
@@ -1227,6 +1241,31 @@ export default function Slate({
                     onChange={(e) => setEditingJob(prev => ({ ...prev, contact_email: e.target.value }))}
                     className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
                   />
+                </div>
+
+                {/* Default Gear Package */}
+                <div className="md:col-span-6 space-y-1">
+                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Default Gear Package</label>
+                  <select 
+                    value=""
+                    onChange={(e) => {
+                      const tplId = e.target.value;
+                      if (!tplId) return;
+                      const selectedTpl = gearTemplates.find(t => t.id === tplId);
+                      if (selectedTpl && confirm(`Apply the "${selectedTpl.name}" gear package to this production? This will overwrite the current gear manifest.`)) {
+                        setEditingJob(prev => ({
+                          ...prev,
+                          gear_manifest: selectedTpl.items
+                        }));
+                      }
+                    }}
+                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white appearance-none cursor-pointer"
+                  >
+                    <option value="">-- Select Gear Template (Overwrites Current Manifest) --</option>
+                    {gearTemplates.map(tpl => (
+                      <option key={tpl.id} value={tpl.id}>{tpl.name.toUpperCase()}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* General Notes */}
