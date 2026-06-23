@@ -114,6 +114,54 @@ export interface JobShot {
   lighting_setup?: string;
   scene_group?: string;
   sort_order: number;
+  // Spreadsheet shotlist columns (Production Bible parity)
+  scene_id?: string | null;
+  timing?: string;
+  subject?: string;
+  movement?: string;
+  lens?: string;
+  animation_link?: string;
+  animation_label?: string;
+  timecode?: string;
+  lyrics?: string;
+  notes?: string;
+  take_best?: string;
+  est_takes?: string;
+  priority?: 'must' | 'nice';
+}
+
+// Team notification integrations (Discord / Slack / Teams)
+export type NotificationPlatform = 'discord' | 'slack' | 'teams';
+
+export interface NotificationChannel {
+  id: string;
+  org_id?: string;
+  platform: NotificationPlatform;
+  label?: string;
+  webhook_url?: string;
+  enabled: boolean;
+  updated_at?: string;
+}
+
+export interface NotificationEvent {
+  id: string;
+  org_id?: string;
+  event_key: string;
+  enabled: boolean;
+  message_template?: string;
+  updated_at?: string;
+}
+
+export interface JobScene {
+  id: string;
+  job_id: string;
+  setup_number?: string;
+  name?: string;
+  timecode?: string;
+  description?: string;
+  notes?: string;
+  est_minutes?: string;
+  sort_order: number;
 }
 
 export interface Job {
