@@ -1,5 +1,28 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isSameOrigin } from '@/lib/api-guard';
+
+// Bounds to keep a share link from being used to dump arbitrary data into a
+// job. NOTE: this endpoint is still capability-by-URL (anyone with the job's
+// UUID can edit its manifest). The complete fix is a per-job share_token
+// column checked here, which needs a DB migration — tracked as a follow-up.
+const MAX_ITEMS = 500;
+const MAX_QTY = 9999;
+const MAX_NAME_LEN = 200;
+
+function sanitizeManifest(input: Record<string, unknown>): Record<string, number> | null {
+  const keys = Object.keys(input);
+  if (keys.length > MAX_ITEMS) return null;
+  const clean: Record<string, number> = {};
+  for (const key of keys) {
+    if (typeof key !== 'string' || key.length === 0 || key.length > MAX_NAME_LEN) return null;
+    const raw = input[key];
+    const qty = typeof raw === 'number' ? raw : Number(raw);
+    if (!Number.isInteger(qty) || qty < 0 || qty > MAX_QTY) return null;
+    if (qty > 0) clean[key] = qty;
+  }
+  return clean;
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -19,15 +42,24 @@ const getServiceSupabase = () => {
 
 export async function POST(request: Request) {
   try {
+    if (!isSameOrigin(request)) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
     const { jobId, gear_manifest } = body;
 
-    if (!jobId) {
+    if (!jobId || typeof jobId !== 'string') {
       return NextResponse.json({ success: false, error: 'Job ID is required.' }, { status: 400 });
     }
 
-    if (typeof gear_manifest !== 'object' || gear_manifest === null) {
+    if (typeof gear_manifest !== 'object' || gear_manifest === null || Array.isArray(gear_manifest)) {
       return NextResponse.json({ success: false, error: 'Invalid gear manifest format.' }, { status: 400 });
+    }
+
+    const cleanManifest = sanitizeManifest(gear_manifest as Record<string, unknown>);
+    if (!cleanManifest) {
+      return NextResponse.json({ success: false, error: 'Gear manifest failed validation.' }, { status: 400 });
     }
 
     const supabase = getServiceSupabase();
@@ -36,7 +68,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from('jobs')
       .update({
-        gear_manifest,
+        gear_manifest: cleanManifest,
         updated_at: new Date().toISOString()
       })
       .eq('id', jobId)

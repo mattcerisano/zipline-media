@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { verifyOAuthState } from '@/lib/oauth-state';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
-  const userId = searchParams.get('state'); // State holds the userId
+
+  // The user id is recovered from the HMAC-signed state we issued at the start
+  // of the flow. A forged or expired state yields null and is rejected, so
+  // tokens can never be bound to an id the caller didn't prove they own.
+  const userId = verifyOAuthState(searchParams.get('state'));
 
   if (!code || !userId) {
-    console.error('Callback parameters missing:', { code: !!code, userId: !!userId });
+    console.error('Callback rejected:', { code: !!code, validState: !!userId });
     return NextResponse.redirect(new URL('/command-center?google_error=invalid_callback', request.url));
   }
 

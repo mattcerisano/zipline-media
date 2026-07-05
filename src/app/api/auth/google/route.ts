@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
+import { getAuthedUserId } from '@/lib/api-auth';
+import { signOAuthState } from '@/lib/oauth-state';
 
+// Returns the Google consent URL for the *authenticated* caller. The client
+// fetches this with its bearer token and then redirects the browser to `url`.
+// The user id is taken from the verified session and embedded in a signed
+// state, so a user can only ever start a connection for their own account.
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
-
+  const userId = await getAuthedUserId(request);
   if (!userId) {
-    return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -13,7 +17,7 @@ export async function GET(request: Request) {
 
   if (!clientId) {
     console.error('GOOGLE_CLIENT_ID is not configured in .env.local');
-    return NextResponse.redirect(new URL('/command-center?google_error=credentials_missing', request.url));
+    return NextResponse.json({ error: 'Google credentials are not configured.' }, { status: 500 });
   }
 
   // Request scopes for Google Calendar (two-way sync), Google Drive (file browser), and Gmail (inbox integration)
@@ -23,14 +27,16 @@ export async function GET(request: Request) {
     'https://www.googleapis.com/auth/gmail.modify'
   ].join(' ');
 
-  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + 
+  const state = signOAuthState(userId);
+
+  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     `client_id=${encodeURIComponent(clientId)}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&response_type=code` +
     `&scope=${encodeURIComponent(scopes)}` +
-    `&state=${encodeURIComponent(userId)}` +
+    `&state=${encodeURIComponent(state)}` +
     `&access_type=offline` +
     `&prompt=consent`;
 
-  return NextResponse.redirect(googleAuthUrl);
+  return NextResponse.json({ url: googleAuthUrl });
 }
