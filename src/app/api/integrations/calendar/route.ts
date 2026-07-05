@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getValidGoogleToken } from '@/lib/google-auth';
+import { getAuthedUserId } from '@/lib/api-auth';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
@@ -9,12 +10,15 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { action, userId, jobId } = body;
-
+    // Identity is derived from the verified session, not the request body, so a
+    // user can only sync their own connected Google Calendar.
+    const userId = await getAuthedUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
+
+    const body = await request.json();
+    const { action, jobId } = body;
 
     // 1. Retrieve a valid Google Token
     const token = await getValidGoogleToken(userId);

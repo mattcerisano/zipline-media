@@ -168,13 +168,15 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
 
       // Push the updated job to Google Calendar (no-op if not connected).
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        const userId = userData?.user?.id;
-        if (userId) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
           const res = await fetch('/api/integrations/calendar', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'push', userId, jobId: editingJob.id }),
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ action: 'push', jobId: editingJob.id }),
           });
           const data = await res.json();
           if (data.success) {

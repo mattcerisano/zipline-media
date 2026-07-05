@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getValidGoogleToken } from '@/lib/google-auth';
+import { getAuthedUserId } from '@/lib/api-auth';
 
 // Realistic mock email threads for fallbacks or demonstration
 const MOCK_THREADS = [
@@ -140,12 +141,14 @@ const MOCK_THREADS = [
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
   const action = searchParams.get('action') || 'list';
   const threadId = searchParams.get('threadId');
 
+  // Identity comes from the caller's verified session, never a query param, so
+  // a signed-in user can only ever read their own mailbox.
+  const userId = await getAuthedUserId(request);
   if (!userId) {
-    return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
   // 1. Fetch valid Google token
@@ -385,11 +388,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
-
+  const userId = await getAuthedUserId(request);
   if (!userId) {
-    return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
   try {

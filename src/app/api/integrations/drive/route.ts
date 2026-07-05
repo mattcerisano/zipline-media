@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getValidGoogleToken } from '@/lib/google-auth';
+import { getAuthedUserId } from '@/lib/api-auth';
 
 function extractFolderId(url: string): string | null {
   const match = url.match(/folders\/([a-zA-Z0-9-_]+)/) || url.match(/[?&]id=([a-zA-Z0-9-_]+)/);
@@ -19,7 +20,6 @@ function formatBytes(bytes: number | string | undefined): string {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
   const driveUrl = searchParams.get('url');
 
   const generateMockFiles = () => {
@@ -32,8 +32,11 @@ export async function GET(request: Request) {
     ];
   };
 
+  // Identity comes from the verified session so a user can only list folders
+  // through their own connected Drive account.
+  const userId = await getAuthedUserId(request);
   if (!userId) {
-    return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
   // 1. Get valid Google token
