@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isSameOrigin, withinRateLimit } from '@/lib/api-guard';
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -21,11 +22,15 @@ function deg2rad(deg: number) {
 }
 
 export async function GET(request: Request) {
+  if (!isSameOrigin(request) || !withinRateLimit(request)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const address = searchParams.get('address');
 
-  if (!address) {
-    return NextResponse.json({ error: 'Address is required' }, { status: 400 });
+  if (!address || address.length > 300) {
+    return NextResponse.json({ error: 'A valid address is required' }, { status: 400 });
   }
 
   if (!GOOGLE_MAPS_API_KEY) {

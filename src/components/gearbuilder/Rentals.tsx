@@ -12,6 +12,7 @@ import {
   Package,
   X,
   ClipboardList,
+  Archive,
   Check,
   ChevronDown,
   Layers,
@@ -42,6 +43,11 @@ import { useRealtime } from '@/lib/useRealtime';
 import { caps } from '@/lib/format';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+// A saved gear list drops out of the active library once its shoot date is
+// this many days in the past (~2 months). Archived lists stay accessible
+// behind a toggle — nothing is ever deleted.
+const GEAR_ARCHIVE_DAYS = 60;
 
 // Helper: Weather Code to Text
 const weatherCodeToText = (code: number) => {
@@ -155,6 +161,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const [activeSidebarTab, setActiveSidebarTab] = useState<'gear' | 'library' | 'templates'>('gear');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  // Older shoots auto-drop out of the library so building a new list isn't
+  // cluttered with months-old jobs. They're not deleted — a toggle reveals them.
+  const [showArchivedLists, setShowArchivedLists] = useState(false);
 
   // Templates State
   const [gearTemplates, setGearTemplates] = useState<GearTemplate[]>([]);
@@ -308,6 +317,25 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const allInventory = useMemo(() => {
     return [...dbInventory, ...customGear].sort((a, b) => a.name.localeCompare(b.name));
   }, [dbInventory, customGear]);
+
+  // Split saved gear lists (jobs) into recent vs archived by shoot date, most
+  // recent first. A list is "archived" once its shoot is more than
+  // GEAR_ARCHIVE_DAYS in the past; lists with no date or upcoming shoots always
+  // stay active. Purely time-based and non-destructive — nothing is deleted.
+  const { activeJobs, archivedJobs } = useMemo(() => {
+    const cutoff = Date.now() - GEAR_ARCHIVE_DAYS * 24 * 60 * 60 * 1000;
+    const sorted = [...jobs].sort(
+      (a, b) => new Date(b.shoot_date || 0).getTime() - new Date(a.shoot_date || 0).getTime()
+    );
+    const active: Job[] = [];
+    const archived: Job[] = [];
+    for (const job of sorted) {
+      const t = job.shoot_date ? new Date(job.shoot_date).getTime() : NaN;
+      if (!Number.isNaN(t) && t < cutoff) archived.push(job);
+      else active.push(job);
+    }
+    return { activeJobs: active, archivedJobs: archived };
+  }, [jobs]);
 
   const filteredItems = useMemo(() => {
     const term = search.toLowerCase().trim();
@@ -1698,37 +1726,59 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                         <p className="text-xs font-semibold text-white/40">Slate is empty</p>
                       </div>
                     ) : (
-                      [...jobs].sort((a,b) => new Date(b.shoot_date || 0).getTime() - new Date(a.shoot_date || 0).getTime()).map(job => (
-                        <div 
-                          key={job.id}
-                          className="group flex items-center justify-between p-4 border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all rounded-xl cursor-pointer"
-                          onClick={() => {
-                            loadJob(job);
-                            setActiveSidebarTab('gear');
-                          }}
-                        >
-                          <div className="flex-1 min-w-0 pr-4">
-                            <h4 className="text-sm font-semibold tracking-tight mb-1 group-hover:text-accent transition-colors truncate">{job.title}</h4>
-                            <div className="flex items-center gap-3 opacity-40">
-                              <p className="text-[10px] font-semibold flex items-center gap-1">
-                                <Calendar className="w-3 h-3" /> {job.shoot_date}
-                              </p>
-                              <p className="text-[10px] font-semibold flex items-center gap-1">
-                                <User className="w-3 h-3" /> {job.client_name || 'No Client'}
-                              </p>
-                            </div>
-                          </div>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteJob(job.id);
+                      <>
+                        {(showArchivedLists ? [...activeJobs, ...archivedJobs] : activeJobs).map(job => (
+                          <div
+                            key={job.id}
+                            className="group flex items-center justify-between p-4 border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all rounded-xl cursor-pointer"
+                            onClick={() => {
+                              loadJob(job);
+                              setActiveSidebarTab('gear');
                             }}
-                            className="p-3 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <div className="flex-1 min-w-0 pr-4">
+                              <h4 className="text-sm font-semibold tracking-tight mb-1 group-hover:text-accent transition-colors truncate">{job.title}</h4>
+                              <div className="flex items-center gap-3 opacity-40">
+                                <p className="text-[10px] font-semibold flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" /> {job.shoot_date}
+                                </p>
+                                <p className="text-[10px] font-semibold flex items-center gap-1">
+                                  <User className="w-3 h-3" /> {job.client_name || 'No Client'}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteJob(job.id);
+                              }}
+                              className="p-3 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+
+                        {activeJobs.length === 0 && !showArchivedLists && (
+                          <div className="py-20 text-center opacity-30">
+                            <ClipboardList className="w-12 h-12 mx-auto mb-3" />
+                            <p className="text-xs font-semibold text-white/40">No recent gear lists</p>
+                            <p className="text-[10px] text-white/30 mt-1">Older lists are archived below</p>
+                          </div>
+                        )}
+
+                        {archivedJobs.length > 0 && (
+                          <button
+                            onClick={() => setShowArchivedLists(v => !v)}
+                            className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/5 transition-all"
+                          >
+                            <Archive className="w-3.5 h-3.5" />
+                            {showArchivedLists
+                              ? 'Hide archived lists'
+                              : `Show ${archivedJobs.length} archived list${archivedJobs.length === 1 ? '' : 's'}`}
                           </button>
-                        </div>
-                      ))
+                        )}
+                      </>
                     )}
                   </div>
                 ) : (

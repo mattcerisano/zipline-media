@@ -9,6 +9,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { applyCachedAccent } from '@/lib/brand-theme';
 
 /**
  * Studio OS theming.
@@ -59,7 +60,7 @@ function resolve(choice: ThemeChoice): ResolvedTheme {
 // Applies the saved theme before first paint so light-mode users don't flash
 // the default dark theme. Runs as a following sibling of the wrapper, so the
 // element already exists in the DOM when it executes.
-const NO_FLASH_SCRIPT = `(function(){try{var c=localStorage.getItem('${STORAGE_KEY}')||'system';var r=c;if(c==='system'){r=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}var el=document.getElementById('studio-os-root');if(el){el.setAttribute('data-theme',r);}}catch(e){}})();`;
+const NO_FLASH_SCRIPT = `(function(){try{var c=localStorage.getItem('${STORAGE_KEY}')||'system';var r=c;if(c==='system'){r=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}var el=document.getElementById('studio-os-root');if(el){el.setAttribute('data-theme',r);}var a=localStorage.getItem('studio-os-accent');if(a&&/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(a)){document.documentElement.style.setProperty('--accent',a);}}catch(e){}})();`;
 
 export default function ThemeProvider({
   children,
@@ -86,6 +87,9 @@ export default function ThemeProvider({
     }
     setThemeState(stored);
     apply(stored);
+    // Re-skin to the cached brand accent (set the last time branding loaded)
+    // before paint, so returning users never flash the default blue.
+    applyCachedAccent();
   }, [apply]);
 
   // While following the OS, react to the user flipping their system appearance.

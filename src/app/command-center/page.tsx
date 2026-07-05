@@ -23,6 +23,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { supabase } from '@/lib/supabase';
+import { getBranding } from '@/lib/branding';
+import { applyAccent } from '@/lib/brand-theme';
 import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
 import ProfileSettings from '@/components/workspace/ProfileSettings';
 import { QuickStartGuideModal } from '@/components/workspace/QuickStartGuide';
@@ -179,9 +181,18 @@ export default function CommandCenterPage() {
     }
   };
 
+  // Pull the org's brand color and re-skin the whole app to match. Cached in
+  // localStorage by applyAccent, so subsequent loads (and other pages) pick it
+  // up instantly via ThemeProvider before this fetch resolves.
+  useEffect(() => {
+    getBranding()
+      .then((b) => { if (b.brand_color) applyAccent(b.brand_color); })
+      .catch(() => { /* fall back to default accent */ });
+  }, []);
+
   useEffect(() => {
     setIsMounted(true);
-    
+
     // Load persisted active tab
     const savedActiveTab = localStorage.getItem('studio_active_tab');
     if (savedActiveTab) {
@@ -340,6 +351,7 @@ export default function CommandCenterPage() {
         const { data, error } = await supabase
           .from('google_tokens')
           .select('id')
+          .eq('id', session.user.id)
           .maybeSingle();
         setIsGoogleConnected(!!data && !error);
       } catch (err) {
@@ -352,9 +364,21 @@ export default function CommandCenterPage() {
     }
   }, [isCalendarSyncOpen, session]);
 
-  const handleConnectGoogle = () => {
-    if (!session?.user?.id) return;
-    window.location.href = `/api/auth/google?userId=${session.user.id}`;
+  const handleConnectGoogle = async () => {
+    if (!session?.access_token) return;
+    try {
+      const res = await fetch('/api/auth/google', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        setSyncStatusMsg(data.error || 'Could not start Google connection.');
+      }
+    } catch {
+      setSyncStatusMsg('Could not reach Google connection service.');
+    }
   };
 
   const handleTriggerSync = async () => {

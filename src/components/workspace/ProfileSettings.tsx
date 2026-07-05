@@ -6,6 +6,7 @@ import { X, User as UserIcon, Building2, Upload, Loader2, Save, Palette, SwatchB
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/components/gearbuilder/types';
 import type { Branding } from '@/lib/branding';
+import { applyAccent, extractBrandColorFromImage } from '@/lib/brand-theme';
 import ThemeSwitcher from './ThemeSwitcher';
 import IntegrationsSettings from './IntegrationsSettings';
 
@@ -29,6 +30,8 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
   const [org, setOrg] = useState<Partial<Branding>>({});
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  // Brand color auto-detected from the uploaded logo, offered as a one-tap fill.
+  const [suggestedColor, setSuggestedColor] = useState<string | null>(null);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -86,9 +89,29 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
     if (!file) return;
     setUploadingLogo(true);
     setMessage(null);
+    setSuggestedColor(null);
     const url = await uploadImage('branding', file);
-    if (url) setOrg(o => ({ ...o, logo_url: url }));
+    if (url) {
+      setOrg(o => ({ ...o, logo_url: url }));
+      // Read the dominant brand color straight off the logo so the user can
+      // match the app to their brand in one tap. Fails soft to no suggestion.
+      try {
+        const detected = await extractBrandColorFromImage(url);
+        if (detected && detected.toLowerCase() !== (org.brand_color || '').toLowerCase()) {
+          setSuggestedColor(detected);
+        }
+      } catch {
+        /* extraction unavailable (e.g. CORS) — user can still pick manually */
+      }
+    }
     setUploadingLogo(false);
+  };
+
+  // Set the brand color and re-skin the app live so the change is visible
+  // immediately, before the user even saves.
+  const chooseBrandColor = (hex: string) => {
+    setOrg(o => ({ ...o, brand_color: hex }));
+    applyAccent(hex);
   };
 
   const handleSaveProfile = async () => {
@@ -137,7 +160,9 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
       };
       const { error } = await supabase.from('organizations').update(payload).eq('id', org.id);
       if (error) throw error;
-      setMessage('Branding saved. New exports will use it.');
+      // Persist the accent app-wide (and cache it for next load).
+      applyAccent(payload.brand_color);
+      setMessage('Branding saved. The app and new exports now use it.');
       onSaved?.();
     } catch (err: any) {
       setMessage(`Save failed: ${err.message}`);
@@ -321,17 +346,33 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                       <input
                         type="color"
                         value={org.brand_color || '#0077FF'}
-                        onChange={(e) => setOrg(o => ({ ...o, brand_color: e.target.value }))}
+                        onChange={(e) => chooseBrandColor(e.target.value)}
                         className="w-12 h-10 rounded-lg bg-transparent border border-white/10 cursor-pointer"
                       />
                       <input
                         className={inputClass}
                         value={org.brand_color || ''}
-                        onChange={(e) => setOrg(o => ({ ...o, brand_color: e.target.value }))}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setOrg(o => ({ ...o, brand_color: v }));
+                          if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v.trim())) applyAccent(v.trim());
+                        }}
                         placeholder="#0077FF"
                       />
                     </div>
-                    <p className="text-[8px] text-white/30 mt-1 uppercase tracking-widest">Used for headers & accents in exported call sheets and manifests</p>
+                    {suggestedColor && (
+                      <button
+                        type="button"
+                        onClick={() => { chooseBrandColor(suggestedColor); setSuggestedColor(null); }}
+                        className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:border-accent/50 transition-colors"
+                      >
+                        <span className="w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: suggestedColor }} />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-white/70">
+                          Use color from logo · {suggestedColor}
+                        </span>
+                      </button>
+                    )}
+                    <p className="text-[8px] text-white/30 mt-1 uppercase tracking-widest">Themes the whole app, plus headers & accents in exported call sheets and manifests</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

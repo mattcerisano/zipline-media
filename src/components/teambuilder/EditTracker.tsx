@@ -14,6 +14,7 @@ import {
   MessageSquareWarning, 
   CheckCircle2, 
   Archive,
+  MinusCircle,
   User,
   Calendar,
   ExternalLink,
@@ -238,6 +239,32 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
     }
   };
 
+  // Remove a card from the post-production board WITHOUT touching the Slate
+  // job. Clearing edit_status drops it from boardJobs and returns it to the
+  // "Add to Board" picker — for shoots that never go through editing. The job,
+  // its gear, crew, and schedule all remain intact in Slate.
+  const removeFromBoard = async (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    const label = job?.title ? `"${job.title}"` : 'this production';
+    if (!window.confirm(`Remove ${label} from the edit board?\n\nThis only clears its post-production status — the shoot stays in Slate with all its details.`)) {
+      return;
+    }
+    // Optimistic: null edit_status so boardJobs immediately drops the card.
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, edit_status: null as any } : j));
+    setActiveJob(null);
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ edit_status: null })
+        .eq('id', jobId);
+      if (error) throw error;
+    } catch (err) {
+      console.error('Error removing card from board:', err);
+      // Re-fetch to resync if the write failed.
+      fetchData();
+    }
+  };
+
   const openNewCardModal = (stageId: string) => {
     setActiveJob({
       id: `draft-${Date.now()}`, // Temporary ID for the modal
@@ -395,6 +422,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               setIsCreatingNew(false);
             }}
             onUpdate={handleJobUpdate}
+            onRemoveFromBoard={removeFromBoard}
             stages={EDIT_STAGES}
             isCreatingNew={isCreatingNew}
             isClient={isClient}
@@ -499,19 +527,21 @@ const getEmbedDetails = (url: string) => {
 // ----------------------------------------------------------------------
 // COMPONENT: CardDetailModal (The "Card Back")
 // ----------------------------------------------------------------------
-function CardDetailModal({ 
-  job, 
-  contacts, 
+function CardDetailModal({
+  job,
+  contacts,
   onClose,
   onUpdate,
+  onRemoveFromBoard,
   stages,
   isCreatingNew,
   isClient
-}: { 
-  job: Job, 
-  contacts: Contact[], 
+}: {
+  job: Job,
+  contacts: Contact[],
   onClose: () => void,
   onUpdate: (job: Job) => void,
+  onRemoveFromBoard: (jobId: string) => void,
   stages: typeof EDIT_STAGES,
   isCreatingNew?: boolean,
   isClient: boolean
@@ -1370,13 +1400,24 @@ function CardDetailModal({
                </div>
              </div>
 
-             <div className="space-y-2">
-               <h4 className="text-xs font-bold text-white/60 mb-2">Actions</h4>
-               {/* Quick movement buttons could go here */}
-               <button onClick={() => onUpdate({ ...job, job_status: 'Cancelled' })} className="w-full flex items-center gap-2 bg-white/10 hover:bg-red-500/20 hover:text-red-500 text-white p-2 rounded transition-colors text-sm font-medium">
-                 <Archive className="w-4 h-4" /> Cancel Job
-               </button>
-             </div>
+             {!isClient && !isCreatingNew && (
+               <div className="space-y-2">
+                 <h4 className="text-xs font-bold text-white/60 mb-2">Actions</h4>
+                 <button
+                   onClick={() => onRemoveFromBoard(job.id)}
+                   title="Take this off the edit board but keep the shoot in Slate"
+                   className="w-full flex items-center gap-2 bg-white/10 hover:bg-amber-500/20 hover:text-amber-400 text-white p-2 rounded transition-colors text-sm font-medium"
+                 >
+                   <MinusCircle className="w-4 h-4" /> Remove from Board
+                 </button>
+                 <p className="text-[10px] text-white/30 leading-snug px-0.5">
+                   Clears post-production status only. The shoot stays in Slate with all its details.
+                 </p>
+                 <button onClick={() => onUpdate({ ...job, job_status: 'Cancelled' })} className="w-full flex items-center gap-2 bg-white/10 hover:bg-red-500/20 hover:text-red-500 text-white p-2 rounded transition-colors text-sm font-medium">
+                   <Archive className="w-4 h-4" /> Cancel Job
+                 </button>
+               </div>
+             )}
           </div>
 
         </div>
