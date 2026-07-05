@@ -364,11 +364,11 @@ export default function CommandCenterPage() {
     try {
       const res = await fetch('/api/integrations/calendar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'pull',
-          userId: session.user.id
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ action: 'pull' })
       });
       const data = await res.json();
       if (data.success) {

@@ -20,7 +20,9 @@ import {
   Inbox
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DOMPurify from 'dompurify';
 import { supabase } from '@/lib/supabase';
+import { authHeader } from '@/lib/api-client';
 
 interface Message {
   id: string;
@@ -40,6 +42,21 @@ interface Thread {
   label: string;
   labelColor: string;
   messages?: Message[];
+}
+
+// Sanitize an email HTML body before rendering it. Message bodies come from
+// arbitrary senders, so DOMPurify strips <script>, event handlers, and
+// javascript: URLs while keeping ordinary rich-text formatting and links.
+// Anchors are forced to open in a new tab with noopener to avoid tab-nabbing.
+function sanitizeEmailHtml(html: string): string {
+  if (typeof window === 'undefined') return '';
+  const clean = DOMPurify.sanitize(html, {
+    ALLOWED_URI_REGEXP: /^(?:https?|mailto|tel|cid):/i,
+    ADD_ATTR: ['target'],
+    FORBID_TAGS: ['style', 'iframe', 'form', 'input', 'button'],
+    FORBID_ATTR: ['srcset'],
+  });
+  return clean.replace(/<a\s/gi, '<a target="_blank" rel="noopener noreferrer" ');
 }
 
 export default function InboxWidget() {
@@ -117,7 +134,7 @@ export default function InboxWidget() {
     if (!userId) return;
     setIsLoadingList(true);
     try {
-      const res = await fetch(`/api/integrations/mail?userId=${userId}&action=list`);
+      const res = await fetch(`/api/integrations/mail?action=list`, { headers: await authHeader() });
       const data = await res.json();
       if (data.threads) {
         setThreads(data.threads);
@@ -134,7 +151,7 @@ export default function InboxWidget() {
     if (!userId) return;
     setIsLoadingThread(true);
     try {
-      const res = await fetch(`/api/integrations/mail?userId=${userId}&action=thread&threadId=${threadId}`);
+      const res = await fetch(`/api/integrations/mail?action=thread&threadId=${threadId}`, { headers: await authHeader() });
       const data = await res.json();
       if (data.messages) {
         setCurrentThread(data);
@@ -168,9 +185,9 @@ export default function InboxWidget() {
 
       const cleanRecipient = recipient?.match(/<([^>]+)>/)?.[1] || recipient || '';
 
-      const res = await fetch(`/api/integrations/mail?userId=${userId}`, {
+      const res = await fetch(`/api/integrations/mail`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
         body: JSON.stringify({
           to: cleanRecipient || 'productions@zipline.media',
           subject: currentThread.subject.startsWith('Re:') ? currentThread.subject : `Re: ${currentThread.subject}`,
@@ -498,10 +515,13 @@ export default function InboxWidget() {
                       </span>
                     </div>
 
-                    {/* Rich HTML body render */}
-                    <div 
+                    {/* Rich HTML body render. Email bodies are attacker-
+                        controlled (anyone can send mail to the connected
+                        inbox), so sanitize before injecting to block script
+                        execution, inline handlers, and javascript: URLs. */}
+                    <div
                       className="text-sm font-normal leading-relaxed text-white/70 space-y-3 email-rendered-body"
-                      dangerouslySetInnerHTML={{ __html: msg.body }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(msg.body) }}
                     />
                   </div>
                 ))}

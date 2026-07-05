@@ -639,13 +639,15 @@ function CardDetailModal({
     const loadDriveFiles = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) {
+        if (!session?.access_token) {
           setIsLoadingDrive(false);
           return;
         }
 
         const driveUrl = job.drive_folder_url || '';
-        const res = await fetch(`/api/integrations/drive?userId=${session.user.id}&url=${encodeURIComponent(driveUrl)}`);
+        const res = await fetch(`/api/integrations/drive?url=${encodeURIComponent(driveUrl)}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
         if (!res.ok) throw new Error('API failed');
 
         const data = await res.json();
