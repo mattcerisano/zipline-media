@@ -41,6 +41,7 @@ import { Job, STATUSES, JobLink, Client, Project } from '@/components/gearbuilde
 import Autocomplete from 'react-google-autocomplete';
 import TeamBuilder from '@/components/teambuilder/TeamBuilder';
 import { generateMasterBrief } from '@/lib/pdf-generator';
+import { fetchGearCategoryMap, groupManifestByCategory, buildGearTableBody } from '@/lib/gear-manifest';
 import { getBranding, hexToRgb } from '@/lib/branding';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { formatLocalDate } from '@/lib/date';
@@ -456,6 +457,7 @@ export default function Slate({
 
       const doc = new jsPDF({ unit: "pt", format: "letter" });
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 40;
 
       const ZIPLINE_BLUE = branding.brand_color || '#0077FF';
@@ -508,13 +510,24 @@ export default function Slate({
 
       let finalY = (doc as any).lastAutoTable.finalY + 15;
 
+      // Keep a section title attached to its table — if the title would land
+      // in the bottom margin, start the section on a fresh page instead.
+      const ensureRoom = (needed: number) => {
+        if (finalY + needed > pageHeight - margin) {
+          doc.addPage();
+          finalY = margin;
+        }
+      };
+
       // Notes Section
       if (job.notes_general) {
+        ensureRoom(60);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
+        doc.setTextColor(TEXT_DARK);
         doc.text('GENERAL NOTES', margin, finalY);
         finalY += 5;
-        
+
         autoTable(doc, {
           startY: finalY,
           theme: 'plain',
@@ -527,6 +540,7 @@ export default function Slate({
 
       // Crew Section
       if (roles.length > 0) {
+        ensureRoom(70);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
         doc.setTextColor(ZIPLINE_BLUE);
@@ -536,8 +550,8 @@ export default function Slate({
         const crewData = roles.map(role => [
           caps((role as any).position, 'TBD'),
           caps((role as any).contact?.name || (role as any).name, 'TBD'),
-          (role as any).contact?.email || '—',
-          (role as any).contact?.phone || '—',
+          (role as any).contact?.email || (role as any).email || '—',
+          (role as any).contact?.phone || (role as any).phone || '—',
           caps((role as any).call_time || job.call_time, '—')
         ]);
 
@@ -547,34 +561,34 @@ export default function Slate({
           body: crewData,
           theme: 'grid',
           headStyles: { fillColor: [17, 17, 17], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
-          styles: { fontSize: 9, textColor: TEXT_DARK },
+          styles: { fontSize: 9, textColor: TEXT_DARK, cellPadding: 5 },
           margin: { left: margin, right: margin }
         });
         finalY = (doc as any).lastAutoTable.finalY + 20;
       }
 
-      // Gear Manifest Section
+      // Gear Manifest Section — grouped and ordered by inventory category so
+      // the call sheet reads in the same load-out order as the Equipment List.
       const manifestObj = job.gear_manifest as Record<string, number> | undefined;
-      if (manifestObj && Object.keys(manifestObj).length > 0) {
+      if (manifestObj && Object.values(manifestObj).some(count => count > 0)) {
+        const categoryMap = await fetchGearCategoryMap();
+        const gearGroups = groupManifestByCategory(manifestObj, categoryMap);
+
+        ensureRoom(80);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
         doc.setTextColor(ZIPLINE_BLUE);
         doc.text('EQUIPMENT MANIFEST', margin, finalY);
         finalY += 10;
 
-        const gearData = Object.keys(manifestObj).map(itemName => [
-          `${manifestObj[itemName]}X`,
-          caps(itemName)
-        ]);
-
         autoTable(doc, {
           startY: finalY,
           head: [['QTY', 'ITEM']],
-          body: gearData,
+          body: buildGearTableBody(gearGroups),
           theme: 'grid',
           headStyles: { fillColor: brandRgb, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
-          styles: { fontSize: 9, textColor: TEXT_DARK },
-          columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' }, 1: { cellWidth: 'auto' } },
+          styles: { fontSize: 9, textColor: TEXT_DARK, cellPadding: 5 },
+          columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold', halign: 'center' }, 1: { cellWidth: 'auto' } },
           margin: { left: margin, right: margin }
         });
       }
@@ -941,13 +955,13 @@ export default function Slate({
                 setIsJobModalOpen(false);
               }
             }}
-            className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center items-start md:items-center pt-8 md:pt-4 cursor-pointer"
+            className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center cursor-pointer"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-2xl bg-neutral-900 border border-white/10 rounded-xl p-4 shadow-2xl my-2 cursor-default"
+              className="w-full max-w-2xl bg-neutral-900 border border-white/10 rounded-xl p-4 shadow-2xl my-auto cursor-default"
             >
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-semibold tracking-tight text-white">
@@ -1234,11 +1248,12 @@ export default function Slate({
                   <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">General Notes</label>
                   <div className="relative">
                     <FileText className="absolute left-3 top-2 w-3.5 h-3.5 opacity-40 text-white" />
-                    <textarea 
-                      placeholder="Additional production notes..."
+                    <textarea
+                      placeholder="Additional production notes — write as much as you need, drag the corner to expand..."
                       value={editingJob.notes_general || ''}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, notes_general: e.target.value }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white h-11 resize-none"
+                      rows={5}
+                      className="w-full bg-black/50 border border-white/10 py-2 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-medium text-xs text-white leading-relaxed min-h-[110px] max-h-[50vh] resize-y"
                     />
                   </div>
                 </div>
@@ -1274,13 +1289,13 @@ export default function Slate({
                 setLinkModalJob(null);
               }
             }}
-            className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center items-start md:items-center pt-8 md:pt-4 cursor-pointer"
+            className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center cursor-pointer"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-neutral-900 border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl my-4 cursor-default"
+              className="w-full max-w-md bg-neutral-900 border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl my-auto cursor-default"
             >
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -1345,13 +1360,13 @@ export default function Slate({
                 setManageJobId(null);
               }
             }}
-            className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center items-start md:items-center pt-8 md:pt-4 cursor-pointer"
+            className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center cursor-pointer"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-6xl bg-black border border-white/10 rounded-3xl p-4 md:p-8 shadow-2xl my-4 md:my-8 min-h-[80vh] cursor-default"
+              className="w-full max-w-6xl bg-black border border-white/10 rounded-3xl p-4 md:p-8 shadow-2xl my-auto min-h-[80vh] cursor-default"
             >
               <TeamBuilder predefinedJobId={manageJobId} onClose={() => setManageJobId(null)} />
             </motion.div>

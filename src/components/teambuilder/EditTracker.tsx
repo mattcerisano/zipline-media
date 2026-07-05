@@ -119,15 +119,21 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
     }
   };
 
+  // Only productions that were deliberately added to the post pipeline live on
+  // the board. Jobs created on Slate no longer auto-appear as cards — they sit
+  // in the "Add to Board" picker until someone pulls them in.
+  const boardJobs = useMemo(() => jobs.filter(j => !!j.edit_status), [jobs]);
+  const availableJobs = useMemo(() => jobs.filter(j => !j.edit_status), [jobs]);
+
   const uniqueClients = useMemo(() => {
-    const clientsList = jobs.map(j => j.client_name || j.production_company).filter(Boolean);
+    const clientsList = boardJobs.map(j => j.client_name || j.production_company).filter(Boolean);
     return Array.from(new Set(clientsList)).sort();
-  }, [jobs]);
+  }, [boardJobs]);
 
   const uniqueYears = useMemo(() => {
-    const years = jobs.map(j => j.shoot_date ? j.shoot_date.substring(0, 4) : null).filter(Boolean);
+    const years = boardJobs.map(j => j.shoot_date ? j.shoot_date.substring(0, 4) : null).filter(Boolean);
     return Array.from(new Set(years)).sort((a, b) => (b as string).localeCompare(a as string));
-  }, [jobs]);
+  }, [boardJobs]);
 
   // Projects scoped to the client currently selected (by name → id)
   const projectsForFilter = useMemo(() => {
@@ -138,13 +144,13 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
   }, [projects, clients, clientFilter]);
 
   const filteredJobs = useMemo(() => {
-    return jobs.filter(j => {
+    return boardJobs.filter(j => {
       const matchClient = clientFilter === 'All' || (j.client_name === clientFilter || j.production_company === clientFilter);
       const matchProject = projectFilter === 'All' || j.project_id === projectFilter;
       const matchYear = yearFilter === 'All' || (j.shoot_date && j.shoot_date.startsWith(yearFilter));
       return matchClient && matchProject && matchYear;
     });
-  }, [jobs, clientFilter, projectFilter, yearFilter]);
+  }, [boardJobs, clientFilter, projectFilter, yearFilter]);
 
   const updateJobEditStatus = async (jobId: string, newStatus: string) => {
     const job = jobs.find(j => j.id === jobId);
@@ -268,6 +274,23 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
           <p className="text-[12px] font-medium tracking-tight opacity-50 text-white mt-1">Trello-style edit tracking</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
+          {!isClient && availableJobs.length > 0 && (
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) updateJobEditStatus(e.target.value, 'Filmed');
+              }}
+              className="bg-accent/10 border border-accent/30 text-accent px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-semibold tracking-tight rounded-xl cursor-pointer appearance-none min-w-[180px]"
+              title="Pull a Slate production onto the post-production board"
+            >
+              <option value="">+ Add Production to Board</option>
+              {availableJobs.map(j => (
+                <option key={j.id} value={j.id}>
+                  {j.title}{j.client_name ? ` — ${j.client_name}` : ''}
+                </option>
+              ))}
+            </select>
+          )}
           <div className="flex items-center gap-2">
             <select
               value={clientFilter}
@@ -732,14 +755,14 @@ function CardDetailModal({
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-[150] flex items-start justify-center pt-28 pb-10 bg-black/80 backdrop-blur-sm overflow-y-auto cursor-pointer"
+      className="fixed inset-0 z-[150] flex justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto cursor-pointer"
     >
       <motion.div
         onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-3xl bg-neutral-900 border border-white/10 rounded-2xl shadow-2xl relative min-h-[600px] flex flex-col cursor-default"
+        className="w-full max-w-3xl bg-neutral-900 border border-white/10 rounded-2xl shadow-2xl relative min-h-[600px] my-auto flex flex-col cursor-default"
       >
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors">
           <X className="w-5 h-5" />

@@ -1594,12 +1594,12 @@ export default function Rolodex() {
       {/* Import Options & Instructions Modal */}
       <AnimatePresence>
         {isImportOptionsOpen && (
-          <div className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center items-start md:items-center pt-8 md:pt-4">
+          <div className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg bg-neutral-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl my-4 md:my-8 text-white relative animate-in fade-in zoom-in-95 duration-200"
+              className="w-full max-w-lg bg-neutral-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl my-auto text-white relative animate-in fade-in zoom-in-95 duration-200"
             >
               <button 
                 onClick={() => setIsImportOptionsOpen(false)} 
