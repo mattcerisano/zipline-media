@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Job, JobShot, JobSchedule, JobRole, JobLink } from '@/components/gearbuilder/types';
 import { getBranding, hexToRgb } from '@/lib/branding';
 import { caps } from '@/lib/format';
+import { fetchGearCategoryMap, groupManifestByCategory, buildGearTableBody } from '@/lib/gear-manifest';
 
 // Neutral text colors (not brand-specific)
 const TEXT_DARK = '#111111';
@@ -86,6 +87,40 @@ export async function generateMasterBrief(jobId: string): Promise<void> {
 
     const shotlist: JobShot[] = shotData || [];
 
+    // 5. Gear manifest, grouped by inventory category — shares the exact
+    // grouping/ordering used by the Call Sheet export so both PDFs match.
+    const manifestObj = (job.gear_manifest || {}) as Record<string, number>;
+    const hasGear = Object.values(manifestObj).some(count => count > 0);
+    const gearGroups = hasGear
+      ? groupManifestByCategory(manifestObj, await fetchGearCategoryMap())
+      : [];
+
+    // Pre-compute the creative page content so the page is skipped entirely
+    // when the creative board was never filled out (no more blank pages).
+    let creativeBriefText = '';
+    if (job.creative_brief) {
+      creativeBriefText = job.creative_brief;
+      try {
+        if (job.creative_brief.trim().startsWith('{')) {
+          const parsed = JSON.parse(job.creative_brief);
+          let assembled = '';
+          if (parsed.concept) assembled += `CORE CONCEPT & THEME:\n${parsed.concept}\n\n`;
+          if (parsed.lighting) assembled += `LIGHTING & COLOR DIRECTION:\n${parsed.lighting}\n\n`;
+          if (parsed.camera) assembled += `CAMERA & MOVEMENT STYLE:\n${parsed.camera}\n\n`;
+          if (parsed.audio) assembled += `AUDIO & SOUNDSCAPE VIBE:\n${parsed.audio}\n\n`;
+          creativeBriefText = assembled.trim();
+        }
+      } catch {
+        creativeBriefText = job.creative_brief;
+      }
+      creativeBriefText = creativeBriefText.trim();
+    }
+    const colors = (job.color_palette || []) as string[];
+    const creativeLinks = ((job.links as JobLink[]) || []).filter(
+      (l: JobLink) => l.category === 'Creative' || l.category === 'Other'
+    );
+    const hasCreativeContent = !!creativeBriefText || colors.length > 0 || creativeLinks.length > 0;
+
     // Initialize PDF Document
     const doc = new jsPDF({ unit: 'pt', format: 'letter' });
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -140,19 +175,20 @@ export async function generateMasterBrief(jobId: string): Promise<void> {
       doc.line(margin, 65, pageWidth - margin, 65);
     };
 
-    // Helper to draw Footer page numbering
-    const drawFooter = (pageNum: number) => {
+    // Helper to draw Footer page numbering. Stamped once at the very end so
+    // page numbers stay correct no matter which sections were skipped.
+    const drawFooter = (pageNum: number, totalPages: number) => {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(150, 150, 150);
-      doc.text(`Page ${pageNum}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
+      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth / 2, pageHeight - 20, { align: 'center' });
       doc.text(`${branding.name.toUpperCase()} • INTERNAL PRODUCTION BRIEF`, margin, pageHeight - 20);
     };
 
     // ==========================================
-    // PAGE 1: PRODUCTION LOGISTICS & CALL SHEET
+    // PAGE: PRODUCTION LOGISTICS & CALL SHEET
     // ==========================================
-    drawBrandingHeader("Page 1: Logistics & Production Call Sheet");
+    drawBrandingHeader("Logistics & Production Call Sheet");
     
     // Shoot Date Header
     const formattedDate = job.shoot_date 
@@ -186,17 +222,17 @@ export async function generateMasterBrief(jobId: string): Promise<void> {
 
     let currentY = (doc as any).lastAutoTable.finalY + 20;
 
-    // Shoot Schedule Section
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(br, bg, bb);
-    doc.text('SHOOT DAY SCHEDULE', margin, currentY);
-    currentY += 8;
-
+    // Shoot Schedule Section — only rendered once a schedule actually exists.
     if (schedules.length > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(br, bg, bb);
+      doc.text('SHOOT DAY SCHEDULE', margin, currentY);
+      currentY += 8;
+
       const scheduleRows = schedules.map(s => [
         `${s.start_time}${s.end_time ? ` - ${s.end_time}` : ''}`,
-        s.notes 
+        s.notes
           ? `${s.task.toUpperCase()}\nDETAILS: ${s.notes}`
           : s.task.toUpperCase(),
         s.location ? s.location.toUpperCase() : 'ON SET'
@@ -217,12 +253,6 @@ export async function generateMasterBrief(jobId: string): Promise<void> {
         margin: { left: margin, right: margin }
       });
       currentY = (doc as any).lastAutoTable.finalY + 20;
-    } else {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(TEXT_GRAY);
-      doc.text('No schedule activities defined yet for this shoot.', margin, currentY + 10);
-      currentY += 25;
     }
 
     // General Notes
@@ -242,20 +272,18 @@ export async function generateMasterBrief(jobId: string): Promise<void> {
       });
     }
 
-    drawFooter(1);
-
     // ==========================================
-    // PAGE 2: CREW & TALENT DIRECTORY
+    // PAGE: CREW & TALENT DIRECTORY (only when crew is assigned)
     // ==========================================
-    doc.addPage();
-    drawBrandingHeader("Page 2: Crew & Talent Directory");
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(br, bg, bb);
-    doc.text('ASSIGNED CREW & ROLES', margin, 85);
-
     if (roles.length > 0) {
+      doc.addPage();
+      drawBrandingHeader("Crew & Talent Directory");
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(br, bg, bb);
+      doc.text('ASSIGNED CREW & ROLES', margin, 85);
+
       const crewData = roles.map(role => [
         caps(role.position, 'TBD'),
         caps(role.contact?.name || role.name, 'TBD'),
@@ -280,191 +308,165 @@ export async function generateMasterBrief(jobId: string): Promise<void> {
           4: { cellWidth: 60 },
           5: { cellWidth: 'auto' }
         },
-        margin: { left: margin, right: margin }
+        margin: { left: margin, right: margin, top: 50, bottom: 45 }
       });
-    } else {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(TEXT_GRAY);
-      doc.text('No crew assignments logged for this production.', margin, 105);
     }
 
-    drawFooter(2);
+    // ==========================================
+    // PAGE: EQUIPMENT MANIFEST (only when gear is assigned)
+    // Formatted identically to the Call Sheet's gear table.
+    // ==========================================
+    if (gearGroups.length > 0) {
+      doc.addPage();
+      drawBrandingHeader("Equipment Manifest");
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(br, bg, bb);
+      doc.text('EQUIPMENT MANIFEST', margin, 85);
+
+      autoTable(doc, {
+        startY: 95,
+        head: [['QTY', 'ITEM']],
+        body: buildGearTableBody(gearGroups),
+        theme: 'grid',
+        headStyles: { fillColor: [br, bg, bb], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+        styles: { fontSize: 9, textColor: TEXT_DARK, cellPadding: 5 },
+        columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold', halign: 'center' }, 1: { cellWidth: 'auto' } },
+        margin: { left: margin, right: margin, top: 50, bottom: 45 }
+      });
+    }
 
     // ==========================================
-    // PAGE 3: CREATIVE BRIEF & COLOR PALETTE
+    // PAGE: CREATIVE BRIEF & COLOR PALETTE (only when the board has content)
     // ==========================================
-    doc.addPage();
-    drawBrandingHeader("Page 3: Creative Treatment & Style Board");
+    if (hasCreativeContent) {
+      doc.addPage();
+      drawBrandingHeader("Creative Treatment & Style Board");
 
-    // Creative Brief Text
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(br, bg, bb);
-    doc.text('CREATIVE DIRECTION BRIEF', margin, 85);
-    
-    let creativeY = 95;
-    if (job.creative_brief) {
-      let printedText = job.creative_brief;
-      try {
-        if (job.creative_brief.trim().startsWith('{')) {
-          const parsed = JSON.parse(job.creative_brief);
-          printedText = '';
-          if (parsed.concept) printedText += `CORE CONCEPT & THEME:\n${parsed.concept}\n\n`;
-          if (parsed.lighting) printedText += `LIGHTING & COLOR DIRECTION:\n${parsed.lighting}\n\n`;
-          if (parsed.camera) printedText += `CAMERA & MOVEMENT STYLE:\n${parsed.camera}\n\n`;
-          if (parsed.audio) printedText += `AUDIO & SOUNDSCAPE VIBE:\n${parsed.audio}\n\n`;
-          printedText = printedText.trim();
-        }
-      } catch (e) {
-        printedText = job.creative_brief;
-      }
-      
-      if (printedText) {
-        const splitBrief = doc.splitTextToSize(printedText, pageWidth - (margin * 2));
+      let creativeY = 85;
+
+      // Creative Brief Text
+      if (creativeBriefText) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(br, bg, bb);
+        doc.text('CREATIVE DIRECTION BRIEF', margin, creativeY);
+        creativeY += 10;
+
+        const splitBrief = doc.splitTextToSize(creativeBriefText, pageWidth - (margin * 2));
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9.5);
         doc.setTextColor(TEXT_DARK);
         doc.text(splitBrief, margin, creativeY);
         creativeY += (splitBrief.length * 13) + 25;
-      } else {
-        doc.setFont('helvetica', 'italic');
-        doc.setFontSize(9);
-        doc.setTextColor(TEXT_GRAY);
-        doc.text('No creative brief or treatment outlines provided.', margin, creativeY);
-        creativeY += 20;
       }
-    } else {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(TEXT_GRAY);
-      doc.text('No creative brief or treatment outlines provided.', margin, creativeY);
-      creativeY += 20;
+
+      // Color Palette Swatches
+      if (colors.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(br, bg, bb);
+        doc.text('PRODUCTION STYLE & COLOR PALETTE', margin, creativeY);
+        creativeY += 10;
+
+        const swatchWidth = 60;
+        const swatchHeight = 40;
+        const swatchSpacing = 20;
+        let startX = margin;
+
+        colors.forEach((colorHex: string) => {
+          try {
+            const [r, g, b] = hexToRgb(colorHex);
+            doc.setFillColor(r, g, b);
+            doc.rect(startX, creativeY, swatchWidth, swatchHeight, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(TEXT_DARK);
+            doc.text(colorHex.toUpperCase(), startX + (swatchWidth / 2), creativeY + swatchHeight + 12, { align: 'center' });
+
+            startX += swatchWidth + swatchSpacing;
+          } catch (e) {
+            console.warn(`Invalid color format: ${colorHex}`);
+          }
+        });
+        creativeY += swatchHeight + 35;
+      }
+
+      // Custom Creative Reference Links
+      if (creativeLinks.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(br, bg, bb);
+        doc.text('CREATIVE REFERENCES & DECK ATTACHMENTS', margin, creativeY);
+        creativeY += 10;
+
+        const linksBody = creativeLinks.map((l: JobLink) => [l.label.toUpperCase(), l.url]);
+        autoTable(doc, {
+          startY: creativeY,
+          head: [['RESOURCE LABEL', 'ACCESS LINK URL']],
+          body: linksBody,
+          theme: 'grid',
+          headStyles: { fillColor: [17, 17, 17], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+          styles: { fontSize: 8, textColor: TEXT_DARK, cellPadding: 5 },
+          margin: { left: margin, right: margin, top: 50, bottom: 45 }
+        });
+      }
     }
-
-    // Color Palette Swatches
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(br, bg, bb);
-    doc.text('PRODUCTION STYLE & COLOR PALETTE', margin, creativeY);
-    creativeY += 10;
-
-    const colors = (job.color_palette || []) as string[];
-    if (colors.length > 0) {
-      const swatchWidth = 60;
-      const swatchHeight = 40;
-      const swatchSpacing = 20;
-      let startX = margin;
-
-      colors.forEach((colorHex: string) => {
-        try {
-          const [r, g, b] = hexToRgb(colorHex);
-          doc.setFillColor(r, g, b);
-          doc.rect(startX, creativeY, swatchWidth, swatchHeight, 'F');
-          
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(8);
-          doc.setTextColor(TEXT_DARK);
-          doc.text(colorHex.toUpperCase(), startX + (swatchWidth / 2), creativeY + swatchHeight + 12, { align: 'center' });
-          
-          startX += swatchWidth + swatchSpacing;
-        } catch (e) {
-          console.warn(`Invalid color format: ${colorHex}`);
-        }
-      });
-      creativeY += swatchHeight + 35;
-    } else {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(TEXT_GRAY);
-      doc.text('No production color swatches selected.', margin, creativeY);
-      creativeY += 25;
-    }
-
-    // Custom Creative Reference Links
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(br, bg, bb);
-    doc.text('CREATIVE REFERENCES & DECK ATTACHMENTS', margin, creativeY);
-    creativeY += 10;
-
-    const creativeLinks = ((job.links as JobLink[]) || []).filter((l: JobLink) => l.category === 'Creative' || l.category === 'Other');
-    
-    if (creativeLinks.length > 0) {
-      const linksBody = creativeLinks.map((l: JobLink) => [l.label.toUpperCase(), l.url]);
-      autoTable(doc, {
-        startY: creativeY,
-        head: [['RESOURCE LABEL', 'ACCESS LINK URL']],
-        body: linksBody,
-        theme: 'grid',
-        headStyles: { fillColor: [17, 17, 17], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-        styles: { fontSize: 8, textColor: TEXT_DARK, cellPadding: 5 },
-        margin: { left: margin, right: margin }
-      });
-    } else {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(TEXT_GRAY);
-      doc.text('No custom moodboards, pitch decks, or reference links attached.', margin, creativeY);
-    }
-
-    drawFooter(3);
 
     // ==========================================
-    // PAGE 4+: SHOTLIST & STORYBOARD REFERENCE
+    // PAGES: SHOTLIST & STORYBOARD REFERENCE (only when shots exist)
     // ==========================================
-    doc.addPage();
-    let pageNum = 4;
-    drawBrandingHeader(`Page ${pageNum}: Shotlist & Visual Storyboard`);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(br, bg, bb);
-    doc.text('PRODUCTION SHOTLIST', margin, 85);
-
-    let shotY = 95;
-    let currentScene = '';
-
     if (shotlist.length > 0) {
+      doc.addPage();
+      drawBrandingHeader("Shotlist & Visual Storyboard");
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(br, bg, bb);
+      doc.text('PRODUCTION SHOTLIST', margin, 85);
+
+      let shotY = 95;
+      let currentScene = '';
+
       // Loop shots
       for (let i = 0; i < shotlist.length; i++) {
         const shot = shotlist[i];
-        
+
         // Draw scene header if it changes
         const sceneName = shot.scene_group || 'Scene 1';
         if (sceneName !== currentScene) {
           currentScene = sceneName;
-          
+
           if (shotY + 40 > pageHeight - 45) {
             doc.addPage();
-            pageNum++;
-            drawBrandingHeader(`Page ${pageNum}: Shotlist & Visual Storyboard`);
+            drawBrandingHeader("Shotlist & Visual Storyboard");
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(11);
             doc.setTextColor(br, bg, bb);
             doc.text('PRODUCTION SHOTLIST (CONTINUED)', margin, 85);
             shotY = 95;
           }
-          
+
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(10);
           doc.setTextColor(br, bg, bb);
           doc.text(sceneName.toUpperCase(), margin, shotY + 15);
-          
+
           doc.setDrawColor(br, bg, bb);
           doc.setLineWidth(1);
           doc.line(margin, shotY + 20, pageWidth - margin, shotY + 20);
           shotY += 30;
         }
-        
+
         // Check if card fits on page, else create new page
         const hasImage = !!shot.image_url;
         const requiredHeight = hasImage ? 150 : 80;
-        
+
         if (shotY + requiredHeight > pageHeight - 45) {
           doc.addPage();
-          pageNum++;
-          drawBrandingHeader(`Page ${pageNum}: Shotlist & Visual Storyboard`);
+          drawBrandingHeader("Shotlist & Visual Storyboard");
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(11);
           doc.setTextColor(br, bg, bb);
@@ -576,14 +578,15 @@ export async function generateMasterBrief(jobId: string): Promise<void> {
 
         shotY += requiredHeight;
       }
-    } else {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(TEXT_GRAY);
-      doc.text('No storyboard shots mapped for this job.', margin, 105);
     }
 
-    drawFooter(pageNum);
+    // Stamp footers last so page numbers reflect only the sections that
+    // actually rendered (empty sections are skipped entirely).
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      drawFooter(i, totalPages);
+    }
 
     // Save File
     const fileName = `${job.title.replace(/\s+/g, '_')}_Production_Brief.pdf`;

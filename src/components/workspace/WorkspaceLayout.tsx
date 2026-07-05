@@ -438,7 +438,11 @@ function WorkspacePanel({
   };
 
   return (
-    <div className="flex-1 bg-zinc-950/40 backdrop-blur-md border border-white/10 rounded-2xl flex flex-col overflow-hidden min-h-0 min-w-0 shadow-xl m-1 group relative">
+    // NOTE: no backdrop-filter/transform on this shell — either would turn the
+    // panel into the containing block for `position: fixed` descendants,
+    // trapping every widget modal (Add Contact, Add Production, …) inside the
+    // panel instead of centering it in the viewport.
+    <div className="flex-1 bg-zinc-950/60 border border-white/10 rounded-2xl flex flex-col overflow-hidden min-h-0 min-w-0 shadow-xl m-1 group relative">
       {/* Panel Header */}
       <div className="h-10 bg-black/40 border-b border-white/5 px-3 flex items-center justify-between shrink-0 select-none relative z-40">
         
