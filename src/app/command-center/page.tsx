@@ -141,6 +141,7 @@ const STARTER_TOOLS: { id: string; label: string }[] = [
   { id: 'clock', label: 'Production Timer' },
   { id: 'budget', label: 'Budget Tracker' },
   { id: 'tasks', label: 'Task List' },
+  { id: 'mywork', label: 'My Work' },
 ];
 
 // Picking an icon pre-selects the closest real tool(s), so "Budget" doesn't
@@ -154,7 +155,7 @@ const ICON_TOOL_SUGGESTIONS: Record<string, string[]> = {
   Camera: ['slate', 'gear'], Clapperboard: ['slate'], Film: ['edits'], Video: ['edits'],
   Mic: ['script'], Palette: ['creative'], Scissors: ['edits'], Package: ['gear'],
   FolderOpen: ['notes'], FileText: ['notes'], Image: ['creative'], Upload: ['notes'],
-  Star: ['notes'], Flag: ['notes'], Lock: ['vault'], Settings: ['dashboard'],
+  Star: ['mywork'], Flag: ['mywork'], Lock: ['vault'], Settings: ['dashboard'],
 };
 
 const DEFAULT_TABS: CustomTab[] = [
