@@ -29,7 +29,9 @@ import {
   Lock,
   Mail,
   Share2,
-  Plug
+  Plug,
+  DollarSign,
+  ListTodo
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
@@ -47,6 +49,8 @@ import { QuickStartWidget } from './QuickStartGuide';
 import InboxWidget from '@/components/workspace/InboxWidget';
 import Vault from '@/components/workspace/Vault';
 import IntegrationsHub from '@/components/workspace/IntegrationsHub';
+import BudgetWidget from '@/components/workspace/BudgetWidget';
+import TasksWidget from '@/components/workspace/TasksWidget';
 
 export type LayoutNode = 
   | { type: 'row'; children: LayoutNode[]; sizes: number[] }
@@ -75,7 +79,9 @@ const WIDGET_ICONS: Record<string, any> = {
   quickstart: HelpCircle,
   inbox: Mail,
   vault: Lock,
-  integrations: Plug
+  integrations: Plug,
+  budget: DollarSign,
+  tasks: ListTodo
 };
 
 const WIDGET_LABELS: Record<string, string> = {
@@ -93,7 +99,9 @@ const WIDGET_LABELS: Record<string, string> = {
   quickstart: 'Quick Start Guide',
   inbox: 'Studio Inbox',
   vault: 'Vault',
-  integrations: 'Integrations'
+  integrations: 'Integrations',
+  budget: 'Budget Tracker',
+  tasks: 'Task List'
 };
 
 const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
@@ -160,11 +168,28 @@ export default function WorkspaceLayout({
       DEFAULT_LAYOUTS[activeTab] ||
       ({ type: 'panel', id: `${activeTab}-root`, activeTab: 'notes', tabs: ['notes'] } as LayoutNode);
 
+    // Layouts saved by the old dashboard-fallback bug are permanently
+    // contaminated: interacting with a custom tab back then persisted the
+    // dashboard's layout (panel id "dash-root") under the custom tab's own
+    // storage key, so those tabs kept showing the dashboard even after the
+    // fallback was fixed. Detect the tell-tale foreign root id and discard.
+    const isContaminated = (node: LayoutNode): boolean => {
+      if (node.type === 'panel') return node.id === 'dash-root' && activeTab !== 'dashboard';
+      return node.children.some(isContaminated);
+    };
+
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLayoutRoot(JSON.parse(saved));
+        const parsed = JSON.parse(saved) as LayoutNode;
+        if (!DEFAULT_LAYOUTS[activeTab] && isContaminated(parsed)) {
+          localStorage.removeItem(storageKey);
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setLayoutRoot(fallback);
+        } else {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setLayoutRoot(parsed);
+        }
       } catch (e) {
         setLayoutRoot(fallback);
       }
@@ -894,6 +919,10 @@ function WidgetMount({
       return <InboxWidget />;
     case 'integrations':
       return <IntegrationsHub />;
+    case 'budget':
+      return <BudgetWidget />;
+    case 'tasks':
+      return <TasksWidget />;
     case 'vault':
       return <Vault />;
     default:

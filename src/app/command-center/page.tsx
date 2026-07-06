@@ -139,16 +139,18 @@ const STARTER_TOOLS: { id: string; label: string }[] = [
   { id: 'notes', label: 'Scratch Notes' },
   { id: 'script', label: 'Script & Teleprompter' },
   { id: 'clock', label: 'Production Timer' },
+  { id: 'budget', label: 'Budget Tracker' },
+  { id: 'tasks', label: 'Task List' },
 ];
 
 // Picking an icon pre-selects the closest real tool(s), so "Budget" doesn't
 // silently create an empty page. Icons with no matching tool suggest Notes.
 const ICON_TOOL_SUGGESTIONS: Record<string, string[]> = {
   LayoutDashboard: ['dashboard'], BarChart3: ['dashboard'], PieChart: ['dashboard'], TrendingUp: ['dashboard'],
-  Calendar: ['calendar'], Clock: ['clock'], ListTodo: ['notes'], CheckSquare: ['notes'],
+  Calendar: ['calendar'], Clock: ['clock'], ListTodo: ['tasks'], CheckSquare: ['tasks'],
   Kanban: ['edits'], Briefcase: ['slate'],
   Users: ['rolodex'], Building2: ['rolodex'], MessageSquare: ['inbox'], Mail: ['inbox'], Phone: ['rolodex'],
-  DollarSign: ['notes'], Receipt: ['notes'], CreditCard: ['notes'],
+  DollarSign: ['budget'], Receipt: ['budget'], CreditCard: ['budget'],
   Camera: ['slate', 'gear'], Clapperboard: ['slate'], Film: ['edits'], Video: ['edits'],
   Mic: ['script'], Palette: ['creative'], Scissors: ['edits'], Package: ['gear'],
   FolderOpen: ['notes'], FileText: ['notes'], Image: ['creative'], Upload: ['notes'],
@@ -192,6 +194,9 @@ export default function CommandCenterPage() {
   // chosen icon until the user hand-picks (then their choice wins).
   const [newTabTools, setNewTabTools] = useState<string[]>(['notes']);
   const [newTabToolsTouched, setNewTabToolsTouched] = useState(false);
+  // Tracks whether the user typed their own label; until then, picking an
+  // icon autofills the workspace name with the icon's label.
+  const [newTabLabelTouched, setNewTabLabelTouched] = useState(false);
 
   // Form states for editing
   const [editTabLabel, setEditTabLabel] = useState('');
@@ -343,6 +348,7 @@ export default function CommandCenterPage() {
     setNewTabRoles(['admin', 'staff']);
     setNewTabTools(['notes']);
     setNewTabToolsTouched(false);
+    setNewTabLabelTouched(false);
     setIsCreateModalOpen(false);
   };
 
@@ -1331,11 +1337,11 @@ export default function CommandCenterPage() {
               <div className="space-y-4 text-xs">
                 <div>
                   <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Tab Label</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     placeholder="E.G. CLIENT BOARD"
                     value={newTabLabel}
-                    onChange={(e) => setNewTabLabel(e.target.value)}
+                    onChange={(e) => { setNewTabLabel(e.target.value); setNewTabLabelTouched(true); }}
                     className="w-full bg-black/40 border border-white/10 p-3 outline-none focus:border-accent text-xs font-bold rounded-xl text-white uppercase placeholder:opacity-20"
                   />
                 </div>
@@ -1406,6 +1412,12 @@ export default function CommandCenterPage() {
                       if (!newTabToolsTouched) {
                         const suggested = ICON_TOOL_SUGGESTIONS[name];
                         if (suggested && suggested.length > 0) setNewTabTools(suggested);
+                      }
+                      // Autofill the workspace name from the icon until the
+                      // user types their own.
+                      if (!newTabLabelTouched) {
+                        const iconMeta = SELECTABLE_ICONS.find(i => i.name === name);
+                        if (iconMeta) setNewTabLabel(iconMeta.label);
                       }
                     }}
                   />
