@@ -28,18 +28,22 @@ export default function IntegrationsHub() {
   const [session, setSession] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [googleConnected, setGoogleConnected] = useState<boolean | null>(null);
+  const [googleConfigured, setGoogleConfigured] = useState(true);
   const [busy, setBusy] = useState<'connect' | 'disconnect' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // Connect problems render right next to the button — a message at the
+  // bottom of a long page reads as "the button does nothing".
+  const [googleError, setGoogleError] = useState<string | null>(null);
   const [copiedFeed, setCopiedFeed] = useState(false);
 
-  const refreshGoogleStatus = useCallback(async (userId: string) => {
+  const refreshGoogleStatus = useCallback(async (accessToken: string) => {
     try {
-      const { data, error } = await supabase
-        .from('google_tokens')
-        .select('id')
-        .eq('id', userId)
-        .maybeSingle();
-      setGoogleConnected(!!data && !error);
+      const res = await fetch('/api/auth/google/status', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await res.json();
+      setGoogleConnected(!!data.connected);
+      setGoogleConfigured(data.configured !== false);
     } catch {
       setGoogleConnected(false);
     }
@@ -48,8 +52,8 @@ export default function IntegrationsHub() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      if (session?.user?.id) {
-        refreshGoogleStatus(session.user.id);
+      if (session?.access_token) {
+        refreshGoogleStatus(session.access_token);
         try {
           const { data } = await supabase
             .from('user_roles')
@@ -62,26 +66,31 @@ export default function IntegrationsHub() {
         } catch {
           setIsAdmin(true);
         }
+      } else {
+        setGoogleConnected(false);
       }
     });
   }, [refreshGoogleStatus]);
 
   const handleConnect = async () => {
-    if (!session?.access_token) return;
+    setGoogleError(null);
+    if (!session?.access_token) {
+      setGoogleError('Your session has expired — refresh the page and sign in again.');
+      return;
+    }
     setBusy('connect');
-    setMessage(null);
     try {
       const res = await fetch('/api/auth/google', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok && data.url) {
         window.location.href = data.url;
         return;
       }
-      setMessage(data.error || 'Could not start the Google connection.');
+      setGoogleError(data.error || `Could not start the Google connection (HTTP ${res.status}).`);
     } catch {
-      setMessage('Could not reach the connection service.');
+      setGoogleError('Could not reach the connection service — check your network and try again.');
     }
     setBusy(null);
   };
@@ -189,7 +198,7 @@ export default function IntegrationsHub() {
           ) : (
             <button
               onClick={handleConnect}
-              disabled={busy !== null || !session}
+              disabled={busy !== null}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {busy === 'connect' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plug className="w-3.5 h-3.5" />}
@@ -197,6 +206,14 @@ export default function IntegrationsHub() {
             </button>
           )}
         </div>
+        {!googleConfigured && (
+          <p className="text-[10px] font-bold text-amber-400 mt-2">
+            Google OAuth isn&apos;t configured on the server — set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI (this site&apos;s URL + /api/auth/google/callback) in your Vercel environment.
+          </p>
+        )}
+        {googleError && (
+          <p className="text-[10px] font-bold text-red-400 mt-2">{googleError}</p>
+        )}
       </section>
 
       {/* ============ CALENDAR FEED ============ */}

@@ -283,6 +283,7 @@ button, a, [role="button"], input[type="checkbox"], select {
    and notch so bottom buttons aren't pinned under the gesture bar. */
 @media (display-mode: standalone) {
   .studio-os {
+    padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);

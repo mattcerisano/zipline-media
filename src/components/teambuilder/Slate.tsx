@@ -520,7 +520,25 @@ export default function Slate({
     }
   };
 
-  const generateCallSheet = async (job: Job) => {
+  // What goes on an exported call sheet — every section is optional so the
+  // same production can produce a full crew sheet, a client-safe version, or
+  // a bare logistics sheet.
+  interface CallSheetOptions {
+    safety: boolean;        // weather / hospital / parking
+    notes: boolean;
+    crew: boolean;
+    crewContacts: boolean;  // email + phone columns on the crew table
+    gear: boolean;
+  }
+
+  const DEFAULT_CALL_SHEET_OPTIONS: CallSheetOptions = {
+    safety: true, notes: true, crew: true, crewContacts: true, gear: true,
+  };
+
+  const [exportJob, setExportJob] = useState<Job | null>(null);
+  const [exportOptions, setExportOptions] = useState<CallSheetOptions>(DEFAULT_CALL_SHEET_OPTIONS);
+
+  const generateCallSheet = async (job: Job, options: CallSheetOptions = DEFAULT_CALL_SHEET_OPTIONS) => {
     try {
       // Fetch crew roles
       const { data: rolesData, error: rolesError } = await supabase
@@ -580,10 +598,13 @@ export default function Slate({
           2: { cellWidth: 100, fontStyle: 'bold', fillColor: [240, 240, 240] },
           3: { cellWidth: 'auto' },
         },
-        body: [
+        body: options.safety ? [
           ['CALL TIME:', caps(job.call_time, 'TBD'), 'WEATHER:', caps(job.weather_summary, 'TBD')],
           ['LOCATION:', caps(job.location_name, 'TBD'), 'HOSPITAL:', caps(job.nearest_hospital_name, 'TBD')],
           ['ADDRESS:', caps(job.location_address), 'PARKING:', caps(job.nearest_parking_name, 'TBD')],
+        ] : [
+          ['CALL TIME:', caps(job.call_time, 'TBD'), 'LOCATION:', caps(job.location_name, 'TBD')],
+          ['ADDRESS:', caps(job.location_address), '', ''],
         ],
         margin: { left: margin, right: margin }
       });
@@ -600,7 +621,7 @@ export default function Slate({
       };
 
       // Notes Section
-      if (job.notes_general) {
+      if (options.notes && job.notes_general) {
         ensureRoom(60);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
@@ -619,7 +640,7 @@ export default function Slate({
       }
 
       // Crew Section
-      if (roles.length > 0) {
+      if (options.crew && roles.length > 0) {
         ensureRoom(70);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
@@ -627,17 +648,21 @@ export default function Slate({
         doc.text('CREW & TALENT', margin, finalY);
         finalY += 10;
 
-        const crewData = roles.map(role => [
+        const crewData = roles.map(role => options.crewContacts ? [
           caps((role as any).position, 'TBD'),
           caps((role as any).contact?.name || (role as any).name, 'TBD'),
           (role as any).contact?.email || (role as any).email || '—',
           (role as any).contact?.phone || (role as any).phone || '—',
           caps((role as any).call_time || job.call_time, '—')
+        ] : [
+          caps((role as any).position, 'TBD'),
+          caps((role as any).contact?.name || (role as any).name, 'TBD'),
+          caps((role as any).call_time || job.call_time, '—')
         ]);
 
         autoTable(doc, {
           startY: finalY,
-          head: [['POSITION', 'NAME', 'EMAIL', 'PHONE', 'IN']],
+          head: [options.crewContacts ? ['POSITION', 'NAME', 'EMAIL', 'PHONE', 'IN'] : ['POSITION', 'NAME', 'IN']],
           body: crewData,
           theme: 'grid',
           headStyles: { fillColor: [17, 17, 17], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
@@ -650,7 +675,7 @@ export default function Slate({
       // Gear Manifest Section — grouped and ordered by inventory category so
       // the call sheet reads in the same load-out order as the Equipment List.
       const manifestObj = job.gear_manifest as Record<string, number> | undefined;
-      if (manifestObj && Object.values(manifestObj).some(count => count > 0)) {
+      if (options.gear && manifestObj && Object.values(manifestObj).some(count => count > 0)) {
         const categoryMap = await fetchGearCategoryMap();
         const gearGroups = groupManifestByCategory(manifestObj, categoryMap);
 
@@ -948,7 +973,7 @@ export default function Slate({
                           onDelete={() => deleteJob(job.id)}
                           onAddLink={() => setLinkModalJob(job)}
                           onManage={() => setManageJobId(job.id)}
-                          onExportCallSheet={() => generateCallSheet(job)}
+                          onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
                           onEdit={() => openEditJobModal(job)}
                           onBuildGear={() => onBuildGear?.(job)}
                           onRefreshWeather={() => handleRefreshWeather(job)}
@@ -983,7 +1008,7 @@ export default function Slate({
                 onDelete={() => deleteJob(job.id)}
                 onAddLink={() => setLinkModalJob(job)}
                 onManage={() => setManageJobId(job.id)}
-                onExportCallSheet={() => generateCallSheet(job)}
+                onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
                 onEdit={() => openEditJobModal(job)}
                 onBuildGear={() => onBuildGear?.(job)}
                 onRefreshWeather={() => handleRefreshWeather(job)}
@@ -1017,7 +1042,7 @@ export default function Slate({
                 onDelete={() => deleteJob(job.id)}
                 onAddLink={() => setLinkModalJob(job)}
                 onManage={() => setManageJobId(job.id)}
-                onExportCallSheet={() => generateCallSheet(job)}
+                onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
                 onEdit={() => openEditJobModal(job)}
                 onBuildGear={() => onBuildGear?.(job)}
                 onRefreshWeather={() => handleRefreshWeather(job)}
@@ -1452,6 +1477,76 @@ export default function Slate({
               className="w-full max-w-6xl bg-black border border-white/10 rounded-3xl p-4 md:p-8 shadow-2xl my-auto min-h-[80vh] cursor-default"
             >
               <TeamBuilder predefinedJobId={manageJobId} onClose={() => setManageJobId(null)} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Call Sheet export options — pick exactly what goes on the PDF */}
+      <AnimatePresence>
+        {exportJob && (
+          <div
+            onClick={() => setExportJob(null)}
+            className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center cursor-pointer"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm h-fit my-auto bg-neutral-900 border border-white/10 rounded-2xl p-6 shadow-2xl cursor-default"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="text-base font-semibold tracking-tight text-white">Export Call Sheet</h2>
+                <button onClick={() => setExportJob(null)} className="p-1.5 text-white/40 hover:text-white transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-[10px] text-white/40 mb-4 truncate">{exportJob.title}</p>
+
+              <div className="space-y-1.5 mb-5">
+                {([
+                  { key: 'safety', label: 'Safety & Logistics', hint: 'Weather, hospital, parking' },
+                  { key: 'notes', label: 'General Notes', hint: 'Production notes block' },
+                  { key: 'crew', label: 'Crew & Talent', hint: 'The crew table' },
+                  { key: 'crewContacts', label: 'Crew Contact Info', hint: 'Email & phone columns' },
+                  { key: 'gear', label: 'Equipment Manifest', hint: 'Category-sorted gear list' },
+                ] as { key: keyof CallSheetOptions; label: string; hint: string }[]).map(opt => {
+                  const disabled = opt.key === 'crewContacts' && !exportOptions.crew;
+                  return (
+                    <label
+                      key={opt.key}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all ${
+                        disabled ? 'opacity-30 border-white/5' : 'cursor-pointer border-white/5 hover:border-white/15 bg-white/[0.02]'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        disabled={disabled}
+                        checked={exportOptions[opt.key] && !disabled}
+                        onChange={(e) => setExportOptions(prev => ({ ...prev, [opt.key]: e.target.checked }))}
+                        className="w-4 h-4 rounded border-white/20 text-accent focus:ring-accent bg-black cursor-pointer"
+                      />
+                      <span className="flex-1">
+                        <span className="block text-xs font-bold text-white">{opt.label}</span>
+                        <span className="block text-[9px] text-white/35">{opt.hint}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-[9px] text-white/25 mb-4">Rates and fees are never included on exported call sheets.</p>
+
+              <button
+                onClick={() => {
+                  const job = exportJob;
+                  setExportJob(null);
+                  if (job) generateCallSheet(job, exportOptions);
+                }}
+                className="w-full py-3 rounded-xl bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity"
+              >
+                Export PDF
+              </button>
             </motion.div>
           </div>
         )}

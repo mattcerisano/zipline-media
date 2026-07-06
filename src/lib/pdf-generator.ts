@@ -284,29 +284,29 @@ export async function generateMasterBrief(jobId: string): Promise<void> {
       doc.setTextColor(br, bg, bb);
       doc.text('ASSIGNED CREW & ROLES', margin, 85);
 
+      // NOTE: rates/fees are intentionally never exported — call sheets and
+      // briefs circulate to the whole crew and to clients.
       const crewData = roles.map(role => [
         caps(role.position, 'TBD'),
         caps(role.contact?.name || role.name, 'TBD'),
         role.contact?.email || role.email || '—',
         role.contact?.phone || role.phone || '—',
-        caps(role.call_time || job.call_time, '—'),
-        role.day_rate ? `$${role.day_rate}` : role.flat_fee ? `$${role.flat_fee} (Flat)` : '—'
+        caps(role.call_time || job.call_time, '—')
       ]);
 
       autoTable(doc, {
         startY: 95,
-        head: [['POSITION / ROLE', 'NAME', 'EMAIL', 'PHONE', 'CALL TIME', 'RATE']],
+        head: [['POSITION / ROLE', 'NAME', 'EMAIL', 'PHONE', 'CALL TIME']],
         body: crewData,
         theme: 'grid',
         headStyles: { fillColor: [17, 17, 17], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
         styles: { fontSize: 8.5, textColor: TEXT_DARK, cellPadding: 6 },
         columnStyles: {
           0: { cellWidth: 120, fontStyle: 'bold' },
-          1: { cellWidth: 100 },
-          2: { cellWidth: 130 },
-          3: { cellWidth: 90 },
-          4: { cellWidth: 60 },
-          5: { cellWidth: 'auto' }
+          1: { cellWidth: 110 },
+          2: { cellWidth: 140 },
+          3: { cellWidth: 100 },
+          4: { cellWidth: 'auto' }
         },
         margin: { left: margin, right: margin, top: 50, bottom: 45 }
       });
