@@ -118,6 +118,34 @@ export default function DashboardOverview({
   const showIntegrations = widgets.panel_gateway || widgets.panel_telemetry;
   const allHidden = !showStats && !showActions && !showIntegrations;
 
+  // Real integration status (replaces the old hardcoded "Active" rows).
+  const [telemetry, setTelemetry] = useState<{ google: boolean | null; webhooks: number | null }>({ google: null, webhooks: null });
+
+  useEffect(() => {
+    const check = async () => {
+      let google: boolean | null = false;
+      let webhooks: number | null = null;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const res = await fetch('/api/auth/google/status', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          const data = await res.json().catch(() => ({}));
+          google = !!data.connected;
+        }
+      } catch { google = false; }
+      try {
+        const { data } = await supabase
+          .from('notification_channels')
+          .select('id, enabled, webhook_url');
+        webhooks = (data || []).filter((c: any) => c.enabled && c.webhook_url).length;
+      } catch { webhooks = null; }
+      setTelemetry({ google, webhooks });
+    };
+    check();
+  }, []);
+
   const [discordMsg, setDiscordMsg] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sendResult, setSendResult] = useState<'success' | 'error' | null>(null);
@@ -382,31 +410,35 @@ export default function DashboardOverview({
             <h4 className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/70 mb-3 border-b border-white/5 pb-2">Integration Hub Telemetry</h4>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs py-1">
-                <span className="text-white/45 font-medium text-[11px]">Google Calendar Feed</span>
+                <span className="text-white/45 font-medium text-[11px]">Google Account</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${telemetry.google === null ? 'bg-white/20' : telemetry.google ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                  <span className={`font-medium text-[11px] ${telemetry.google === null ? 'text-white/30' : telemetry.google ? 'text-green-400' : 'text-red-400'}`}>
+                    {telemetry.google === null ? 'Checking…' : telemetry.google ? 'Connected' : 'Not connected'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs py-1 border-t border-white/5">
+                <span className="text-white/45 font-medium text-[11px]">Team Webhooks</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${telemetry.webhooks === null ? 'bg-white/20' : telemetry.webhooks > 0 ? 'bg-purple-500 animate-pulse' : 'bg-red-500'}`} />
+                  <span className={`font-medium text-[11px] ${telemetry.webhooks === null ? 'text-white/30' : telemetry.webhooks > 0 ? 'text-purple-400' : 'text-red-400'}`}>
+                    {telemetry.webhooks === null ? 'Checking…' : telemetry.webhooks > 0 ? `${telemetry.webhooks} channel${telemetry.webhooks === 1 ? '' : 's'} live` : 'None enabled'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs py-1 border-t border-white/5">
+                <span className="text-white/45 font-medium text-[11px]">Calendar Feed</span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                   <span className="text-green-400 font-medium text-[11px]">Active (Webcal)</span>
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs py-1 border-t border-white/5">
-                <span className="text-white/45 font-medium text-[11px]">Google Drive Vault</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-green-400 font-medium text-[11px]">Active (Embeds)</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-xs py-1 border-t border-white/5">
                 <span className="text-white/45 font-medium text-[11px]">Vimeo / Frame.io</span>
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-green-400 font-medium text-[11px]">Active (Embeds)</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-xs py-1 border-t border-white/5">
-                <span className="text-white/45 font-medium text-[11px]">Discord Webhooks</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" />
-                  <span className="text-purple-400 font-medium text-[11px]">Active (Gateway)</span>
+                  <span className="w-1.5 h-1.5 bg-white/30 rounded-full" />
+                  <span className="text-white/40 font-medium text-[11px]">Embed-based</span>
                 </div>
               </div>
             </div>

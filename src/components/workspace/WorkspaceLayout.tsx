@@ -53,6 +53,7 @@ import IntegrationsHub from '@/components/workspace/IntegrationsHub';
 import BudgetWidget from '@/components/workspace/BudgetWidget';
 import TasksWidget from '@/components/workspace/TasksWidget';
 import MyWorkWidget from '@/components/workspace/MyWorkWidget';
+import NotesLibraryWidget from '@/components/workspace/NotesLibraryWidget';
 
 export type LayoutNode = 
   | { type: 'row'; children: LayoutNode[]; sizes: number[] }
@@ -84,7 +85,8 @@ const WIDGET_ICONS: Record<string, any> = {
   integrations: Plug,
   budget: DollarSign,
   tasks: ListTodo,
-  mywork: UserCheck
+  mywork: UserCheck,
+  docs: FileText
 };
 
 const WIDGET_LABELS: Record<string, string> = {
@@ -105,7 +107,8 @@ const WIDGET_LABELS: Record<string, string> = {
   integrations: 'Integrations',
   budget: 'Budget Tracker',
   tasks: 'Task List',
-  mywork: 'My Work'
+  mywork: 'My Work',
+  docs: 'Notes Library'
 };
 
 const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
@@ -929,6 +932,8 @@ function WidgetMount({
       return <TasksWidget />;
     case 'mywork':
       return <MyWorkWidget />;
+    case 'docs':
+      return <NotesLibraryWidget />;
     case 'vault':
       return <Vault />;
     default:

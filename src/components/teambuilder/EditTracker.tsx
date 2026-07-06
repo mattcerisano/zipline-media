@@ -525,12 +525,12 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
         <TimelineView jobs={filteredJobs} stages={stages} onOpen={(job) => setActiveJob(job)} />
       ) : (
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex overflow-x-auto gap-4 pb-8 custom-scrollbar items-start flex-1">
+        <div className="flex flex-col overflow-y-auto md:flex-row md:overflow-x-auto md:overflow-y-visible gap-4 pb-8 custom-scrollbar items-stretch md:items-start flex-1">
           {stages.map(stage => {
             const stageJobs = filteredJobs.filter(j => (j.edit_status || firstStageId) === stage.id);
             
             return (
-              <div key={stage.id} className="flex-none w-[300px] flex flex-col bg-neutral-900/80 rounded-xl border border-white/5 max-h-full">
+              <div key={stage.id} className="flex-none w-full md:w-[300px] flex flex-col bg-neutral-900/80 rounded-xl border border-white/5 max-h-[70vh] md:max-h-full">
                 <div className={`flex items-center justify-between p-3 rounded-t-xl border-t-2 ${stage.borderT}`}>
                   <div className="flex items-center gap-2">
                     <stage.icon className={`w-4 h-4 ${stage.colorClass}`} />

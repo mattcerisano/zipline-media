@@ -27,6 +27,7 @@ interface JobOption {
 
 export default function TasksWidget() {
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [jobs, setJobs] = useState<JobOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTask, setNewTask] = useState('');
@@ -41,7 +42,11 @@ export default function TasksWidget() {
         .order('completed')
         .order('due_date', { ascending: true, nullsFirst: false })
         .order('sort_order');
-      if (!error && data) setTodos(data as Todo[]);
+      if (error) {
+        setErrorMsg(`Couldn't load tasks: ${error.message}`);
+      } else if (data) {
+        setTodos(data as Todo[]);
+      }
     } catch (err) {
       console.error('Failed to load tasks:', err);
     } finally {
@@ -72,18 +77,24 @@ export default function TasksWidget() {
 
   const addTask = async () => {
     if (!newTask.trim()) return;
+    setErrorMsg(null);
     try {
-      const { error } = await supabase.from('job_todos').insert([{
-        job_id: newJobId || null,
-        task: newTask.trim(),
-        completed: false,
-        sort_order: todos.length,
-      }]);
+      const { data, error } = await supabase
+        .from('job_todos')
+        .insert([{
+          job_id: newJobId || null,
+          task: newTask.trim(),
+          completed: false,
+          sort_order: todos.length,
+        }])
+        .select()
+        .single();
       if (error) throw error;
       setNewTask('');
-      fetchTodos();
-    } catch (err) {
+      if (data) setTodos(prev => [...prev, data as Todo]);
+    } catch (err: any) {
       console.error('Failed to add task:', err);
+      setErrorMsg(`Couldn't add the task: ${err?.message || 'unknown error'}. If this mentions permissions, run the latest database migrations.`);
     }
   };
 
@@ -118,6 +129,9 @@ export default function TasksWidget() {
 
   return (
     <div className="h-full overflow-y-auto no-scrollbar p-4 md:p-5 space-y-4">
+      {errorMsg && (
+        <p className="text-[10px] font-bold text-red-400 bg-red-500/5 border border-red-500/20 rounded-xl px-3 py-2">{errorMsg}</p>
+      )}
       {/* Add row */}
       <div className="flex gap-2 items-center bg-black/30 border border-white/10 rounded-2xl p-3">
         <input

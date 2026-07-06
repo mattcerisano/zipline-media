@@ -1171,7 +1171,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   };
 
   const ManifestContent = (
-    <section className="bg-neutral-900/80 border border-white/10 p-6 md:p-8 rounded-2xl lg:sticky lg:top-24 h-full lg:h-[calc(100vh-140px)] flex flex-col overflow-hidden">
+    <section className="bg-neutral-900/80 border border-white/10 p-6 md:p-8 rounded-2xl @5xl:sticky @5xl:top-24 h-full @5xl:h-[calc(100vh-140px)] @5xl:max-h-full flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <ClipboardList className="w-5 h-5 text-accent" />
@@ -1188,7 +1188,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           )}
           <button 
             onClick={() => setIsMobileManifestOpen(false)}
-            className="lg:hidden p-2 hover:bg-white/10 rounded-full transition-colors"
+            className="@5xl:hidden p-2 hover:bg-white/10 rounded-full transition-colors"
           >
             <ChevronDown className="w-5 h-5" />
           </button>
@@ -1285,11 +1285,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 type="date" 
                 value={shootDate}
                 onChange={(e) => setShootDate(e.target.value)}
-                className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
+                className="w-full min-w-0 bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
             />
             <button 
                 onClick={() => setIsCalendarOpen(true)}
-                className="bg-white/10 hover:bg-white/20 p-3 rounded-lg transition-colors text-white"
+                className="shrink-0 bg-white/10 hover:bg-white/20 p-3 rounded-lg transition-colors text-white"
                 title="Pick from Production Calendar"
             >
                 <Calendar className="w-5 h-5" />
@@ -1597,10 +1597,10 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     </section>);
 
     return (
-    <div className="pt-8 pb-32 lg:pb-8 px-4 md:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-start">
-          <div className="lg:col-span-7 space-y-8">
-            <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-fit max-h-[75vh] lg:max-h-none lg:h-[calc(100vh-140px)] sticky top-24">
+    <div className="@container pt-8 pb-32 @5xl:pb-8 px-4 md:px-6">
+        <div className="grid grid-cols-1 @5xl:grid-cols-12 gap-6 @5xl:gap-12 items-start">
+          <div className="@5xl:col-span-7 space-y-8">
+            <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-fit max-h-[75vh] @5xl:max-h-none @5xl:h-[calc(100vh-140px)] @5xl:sticky @5xl:top-24">
               
               <div className="bg-neutral-900/90 backdrop-blur-md p-4 md:p-0 z-20 sticky top-0 border-b md:border-b-0 border-white/10 space-y-4">
                 {/* Tab Toggle */}
@@ -1846,7 +1846,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       
           </div>
 
-          <div className="hidden lg:block lg:col-span-5 space-y-8">
+          <div className="hidden @5xl:block @5xl:col-span-5 space-y-8 min-h-0">
             {ManifestContent}
           </div>
         </div>
@@ -1858,7 +1858,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-0 z-[110] bg-neutral-950 lg:hidden flex flex-col"
+              className="fixed inset-0 z-[110] bg-neutral-950 @5xl:hidden flex flex-col"
             >
               <div className="flex items-center justify-between p-6 border-b border-white/10 bg-neutral-900/50 backdrop-blur-lg sticky top-0 z-20">
                 <div className="flex items-center gap-3">
@@ -1883,7 +1883,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         </AnimatePresence>
 
         {/* Floating Mobile Trigger */}
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[105] lg:hidden w-full px-6">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[105] @5xl:hidden w-full px-6">
           <motion.button
             initial={{ y: 100 }}
             animate={{ y: 0 }}

@@ -75,7 +75,7 @@ const SELECTABLE_ICONS = [
   { name: 'Package', label: 'Gear', desc: 'Equipment and kit inventory' },
   // Files & links
   { name: 'FolderOpen', label: 'Files', desc: 'Documents and shared assets' },
-  { name: 'FileText', label: 'Notes', desc: 'Freeform markdown notepad' },
+  { name: 'FileText', label: 'Notes', desc: 'Meeting notes library, sorted by client & production' },
   { name: 'Image', label: 'Media', desc: 'Image and graphic library' },
   { name: 'Link', label: 'Link', desc: 'Embedded external web tool' },
   { name: 'Globe', label: 'Website', desc: 'Live site or landing page' },
@@ -142,6 +142,7 @@ const STARTER_TOOLS: { id: string; label: string }[] = [
   { id: 'budget', label: 'Budget Tracker' },
   { id: 'tasks', label: 'Task List' },
   { id: 'mywork', label: 'My Work' },
+  { id: 'docs', label: 'Notes Library' },
 ];
 
 // Picking an icon pre-selects the closest real tool(s), so "Budget" doesn't
@@ -154,7 +155,7 @@ const ICON_TOOL_SUGGESTIONS: Record<string, string[]> = {
   DollarSign: ['budget'], Receipt: ['budget'], CreditCard: ['budget'],
   Camera: ['slate', 'gear'], Clapperboard: ['slate'], Film: ['edits'], Video: ['edits'],
   Mic: ['script'], Palette: ['creative'], Scissors: ['edits'], Package: ['gear'],
-  FolderOpen: ['notes'], FileText: ['notes'], Image: ['creative'], Upload: ['notes'],
+  FolderOpen: ['docs'], FileText: ['docs'], Image: ['creative'], Upload: ['docs'],
   Star: ['mywork'], Flag: ['mywork'], Lock: ['vault'], Settings: ['dashboard'],
 };
 
@@ -365,11 +366,32 @@ export default function CommandCenterPage() {
       embedUrl = 'https://' + embedUrl;
     }
 
+    // Icon, name, and contents stay one identity: when the icon changes on a
+    // workspace tab, re-seed that tab's panel to the icon's tool so editing
+    // the icon actually changes what the workspace IS (previously it only
+    // changed the picture, which read as a bug).
+    const iconChanged = editTabIcon !== selectedTabToEdit.iconName;
+    if (iconChanged && editTabType === 'workspace') {
+      const tools = ICON_TOOL_SUGGESTIONS[editTabIcon] || ['notes'];
+      localStorage.setItem(
+        `studio_workspace_layout_${selectedTabToEdit.id}`,
+        JSON.stringify({ type: 'panel', id: `${selectedTabToEdit.id}-root`, activeTab: tools[0], tabs: tools })
+      );
+      if (activeTab === selectedTabToEdit.id) setLayoutResetNonce(n => n + 1);
+    }
+
+    // If the label wasn't hand-edited, keep it in sync with the new icon.
+    const iconMeta = SELECTABLE_ICONS.find(i => i.name === editTabIcon);
+    const oldIconMeta = SELECTABLE_ICONS.find(i => i.name === selectedTabToEdit.iconName);
+    const labelFollowsIcon = iconChanged && iconMeta &&
+      (editTabLabel.trim() === '' || editTabLabel.trim() === selectedTabToEdit.label) &&
+      (selectedTabToEdit.label === oldIconMeta?.label || editTabLabel.trim() === '');
+
     const updated = tabs.map(t => {
       if (t.id === selectedTabToEdit.id) {
         return {
           ...t,
-          label: editTabLabel.trim() || t.label,
+          label: labelFollowsIcon ? iconMeta!.label : (editTabLabel.trim() || t.label),
           iconName: editTabIcon,
           type: editTabType,
           embedUrl: editTabType === 'embed' ? embedUrl : undefined,
@@ -415,6 +437,45 @@ export default function CommandCenterPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [isCalendarSyncOpen, setIsCalendarSyncOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Swipe in from the left screen edge to open the sidebar on touch devices
+  // (and swipe left while it's open to dismiss) — faster than the hamburger.
+  useEffect(() => {
+    let startX = 0;
+    let startY = 0;
+    let tracking: 'open' | 'close' | null = null;
+
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      if (t.clientX <= 24) tracking = 'open';        // edge swipe → open
+      else if (isSidebarOpen) tracking = 'close';    // swipe left anywhere → close
+      else tracking = null;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!tracking) return;
+      const t = e.touches[0];
+      const dx = t.clientX - startX;
+      const dy = Math.abs(t.clientY - startY);
+      if (dy > 60) { tracking = null; return; } // mostly-vertical → it's a scroll
+      if (tracking === 'open' && dx > 60) {
+        setIsSidebarOpen(true);
+        tracking = null;
+      } else if (tracking === 'close' && dx < -60) {
+        setIsSidebarOpen(false);
+        tracking = null;
+      }
+    };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+    };
+  }, [isSidebarOpen]);
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -429,14 +490,14 @@ export default function CommandCenterPage() {
 
   useEffect(() => {
     const checkGoogleConnection = async () => {
-      if (!session?.user) return;
+      if (!session?.access_token) return;
       try {
-        const { data, error } = await supabase
-          .from('google_tokens')
-          .select('id')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        setIsGoogleConnected(!!data && !error);
+        // Server-side check — google_tokens is not client-readable.
+        const res = await fetch('/api/auth/google/status', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const data = await res.json();
+        setIsGoogleConnected(!!data.connected);
       } catch (err) {
         setIsGoogleConnected(false);
       }
