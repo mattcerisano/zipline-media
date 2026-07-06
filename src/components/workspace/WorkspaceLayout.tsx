@@ -28,7 +28,8 @@ import {
   HelpCircle,
   Lock,
   Mail,
-  Share2
+  Share2,
+  Plug
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
@@ -45,6 +46,7 @@ import DashboardOverview from '@/components/workspace/DashboardOverview';
 import { QuickStartWidget } from './QuickStartGuide';
 import InboxWidget from '@/components/workspace/InboxWidget';
 import Vault from '@/components/workspace/Vault';
+import IntegrationsHub from '@/components/workspace/IntegrationsHub';
 
 export type LayoutNode = 
   | { type: 'row'; children: LayoutNode[]; sizes: number[] }
@@ -72,7 +74,8 @@ const WIDGET_ICONS: Record<string, any> = {
   clock: Timer,
   quickstart: HelpCircle,
   inbox: Mail,
-  vault: Lock
+  vault: Lock,
+  integrations: Plug
 };
 
 const WIDGET_LABELS: Record<string, string> = {
@@ -89,7 +92,8 @@ const WIDGET_LABELS: Record<string, string> = {
   clock: 'Production Timer',
   quickstart: 'Quick Start Guide',
   inbox: 'Studio Inbox',
-  vault: 'Vault'
+  vault: 'Vault',
+  integrations: 'Integrations'
 };
 
 const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
@@ -102,7 +106,8 @@ const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
   social: { type: 'panel', id: 'social-root', activeTab: 'social', tabs: ['social'] },
   rolodex: { type: 'panel', id: 'rolodex-root', activeTab: 'rolodex', tabs: ['rolodex'] },
   inbox: { type: 'panel', id: 'inbox-root', activeTab: 'inbox', tabs: ['inbox'] },
-  vault: { type: 'panel', id: 'vault-root', activeTab: 'vault', tabs: ['vault'] }
+  vault: { type: 'panel', id: 'vault-root', activeTab: 'vault', tabs: ['vault'] },
+  integrations: { type: 'panel', id: 'integrations-root', activeTab: 'integrations', tabs: ['integrations'] }
 };
 
 interface WorkspaceLayoutProps {
@@ -887,6 +892,8 @@ function WidgetMount({
       return <QuickStartWidget />;
     case 'inbox':
       return <InboxWidget />;
+    case 'integrations':
+      return <IntegrationsHub />;
     case 'vault':
       return <Vault />;
     default:

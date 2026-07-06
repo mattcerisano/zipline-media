@@ -18,7 +18,8 @@ import {
   GripVertical,
   Settings,
   HelpCircle,
-  RotateCcw
+  RotateCcw,
+  Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -27,6 +28,7 @@ import { getBranding } from '@/lib/branding';
 import { applyAccent } from '@/lib/brand-theme';
 import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
 import ProfileSettings from '@/components/workspace/ProfileSettings';
+import SearchPalette from '@/components/workspace/SearchPalette';
 import { QuickStartGuideModal } from '@/components/workspace/QuickStartGuide';
 
 interface CustomTab {
@@ -163,7 +165,8 @@ const DEFAULT_TABS: CustomTab[] = [
   { id: 'social', label: 'Social Media', iconName: 'Share2', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'inbox', label: 'Inbox', iconName: 'Mail', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'rolodex', label: 'Rolodex', iconName: 'Users', type: 'system', isDefault: true, allowedRoles: ['admin'] },
-  { id: 'vault', label: 'Vault', iconName: 'Lock', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] }
+  { id: 'vault', label: 'Vault', iconName: 'Lock', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
+  { id: 'integrations', label: 'Integrations', iconName: 'Plug', type: 'system', isDefault: true, allowedRoles: ['admin'] }
 ];
 
 export default function CommandCenterPage() {
@@ -217,6 +220,18 @@ export default function CommandCenterPage() {
       setLayoutResetNonce(n => n + 1);
     }
   };
+
+  // ⌘K / Ctrl+K opens smart search from anywhere in the command center.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(v => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Pull the org's brand color and re-skin the whole app to match. Cached in
   // localStorage by applyAccent, so subsequent loads (and other pages) pick it
@@ -388,6 +403,7 @@ export default function CommandCenterPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isCalendarSyncOpen, setIsCalendarSyncOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -1019,6 +1035,16 @@ export default function CommandCenterPage() {
 
              {/* Toolbar group — utility actions grouped into one segmented control */}
              <div className="flex items-center gap-0.5 p-0.5 bg-white/[0.03] border border-white/10 rounded-lg shrink-0">
+                {/* Smart Search (Cmd/Ctrl+K) */}
+                <button
+                   onClick={() => setIsSearchOpen(true)}
+                   className="p-2 rounded-md text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                   title="Smart search (⌘K) — search productions, contacts & clients by meaning"
+                   aria-label="Smart search"
+                >
+                   <Search className="w-4 h-4" />
+                </button>
+
                 {/* Reset Layout — only for workspaces that use the panel layout */}
                 {activeTabObj && activeTabObj.type !== 'embed' && activeTabObj.type !== 'notes' && (
                   <button
@@ -1119,6 +1145,21 @@ export default function CommandCenterPage() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Smart Search Palette (⌘K) */}
+      <SearchPalette
+        open={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onOpenJob={(jobId) => {
+          setPreselectedJobId(jobId);
+          setActiveTab('slate');
+          localStorage.setItem('studio_active_tab', 'slate');
+        }}
+        onOpenContacts={() => {
+          setActiveTab('rolodex');
+          localStorage.setItem('studio_active_tab', 'rolodex');
+        }}
+      />
 
       {/* Profile & Branding Settings Modal */}
       {isSettingsOpen && (
