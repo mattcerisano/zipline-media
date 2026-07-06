@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { Job, Contact, EditLabel, JobLink, Client, Project } from '@/components/gearbuilder/types';
 import { sanitizeUrl } from '@/lib/sanitize';
-import { parseLocalDate } from '@/lib/date';
+import { parseLocalDate, formatLocalDate } from '@/lib/date';
 import { caps } from '@/lib/format';
 import { 
   Film, 
@@ -30,6 +30,7 @@ import {
   X,
   Trash2,
   SlidersHorizontal,
+  UserCheck,
   ChevronUp,
   ChevronDown,
   Download,
@@ -135,6 +136,19 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
   const [stageDefs, setStageDefs] = useState<EditStageDef[]>(DEFAULT_STAGE_DEFS);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [isColumnsModalOpen, setIsColumnsModalOpen] = useState(false);
+
+  // Board vs timeline (agenda-by-deadline) presentation of the same cards.
+  const [viewMode, setViewMode] = useState<'board' | 'timeline'>('board');
+  // "My Cards" filter — only cards assigned to the signed-in user, matched to
+  // their Rolodex contact by email.
+  const [myCardsOnly, setMyCardsOnly] = useState(false);
+  const [myEmail, setMyEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setMyEmail(session?.user?.email?.toLowerCase() || null);
+    });
+  }, []);
 
   // Filter States
   const [clientFilter, setClientFilter] = useState('All');
@@ -265,9 +279,10 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
       const matchClient = clientFilter === 'All' || (j.client_name === clientFilter || j.production_company === clientFilter);
       const matchProject = projectFilter === 'All' || j.project_id === projectFilter;
       const matchYear = yearFilter === 'All' || (j.shoot_date && j.shoot_date.startsWith(yearFilter));
-      return matchClient && matchProject && matchYear;
+      const matchMine = !myCardsOnly || (!!myEmail && (j.editor?.email || '').toLowerCase() === myEmail);
+      return matchClient && matchProject && matchYear && matchMine;
     });
-  }, [boardJobs, clientFilter, projectFilter, yearFilter]);
+  }, [boardJobs, clientFilter, projectFilter, yearFilter, myCardsOnly, myEmail]);
 
   const updateJobEditStatus = async (jobId: string, newStatus: string) => {
     const job = jobs.find(j => j.id === jobId);
@@ -417,6 +432,35 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
           <p className="text-[12px] font-medium tracking-tight opacity-50 text-white mt-1">Trello-style edit tracking</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-0.5 p-0.5 bg-black/50 border border-white/10 rounded-xl">
+            <button
+              onClick={() => setViewMode('board')}
+              className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${viewMode === 'board' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+              title="Kanban board grouped by stage"
+            >
+              Board
+            </button>
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${viewMode === 'timeline' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+              title="Agenda view grouped by due date"
+            >
+              Timeline
+            </button>
+          </div>
+          {!isClient && myEmail && (
+            <button
+              onClick={() => setMyCardsOnly(v => !v)}
+              className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold tracking-tight rounded-xl border transition-colors ${
+                myCardsOnly
+                  ? 'bg-accent/15 border-accent/40 text-accent'
+                  : 'bg-black/50 border-white/10 text-white/60 hover:text-white hover:border-white/25'
+              }`}
+              title="Show only cards where the assigned editor matches your account email"
+            >
+              <UserCheck className="w-3.5 h-3.5" /> My Cards
+            </button>
+          )}
           {!isClient && (
             <button
               onClick={() => setIsColumnsModalOpen(true)}
@@ -477,6 +521,9 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
         </div>
       </div>
 
+      {viewMode === 'timeline' ? (
+        <TimelineView jobs={filteredJobs} stages={stages} onOpen={(job) => setActiveJob(job)} />
+      ) : (
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex overflow-x-auto gap-4 pb-8 custom-scrollbar items-start flex-1">
           {stages.map(stage => {
@@ -536,6 +583,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
           })}
         </div>
       </DragDropContext>
+      )}
 
       <AnimatePresence>
         {isColumnsModalOpen && (
@@ -569,6 +617,233 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
           />
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+// COMPONENT: CardChecklist — delivery-spec checklist on a tracker card.
+// Backed by job_todos (shared with the Slate prep checklist and the Task
+// List tool), so checking off "4K master uploaded" here reflects everywhere.
+// ----------------------------------------------------------------------
+function CardChecklist({ jobId, isClient }: { jobId: string; isClient: boolean }) {
+  const [items, setItems] = useState<{ id: string; task: string; completed: boolean }[]>([]);
+  const [newItem, setNewItem] = useState('');
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const { data } = await supabase
+          .from('job_todos')
+          .select('id, task, completed')
+          .eq('job_id', jobId)
+          .order('sort_order')
+          .order('created_at');
+        if (!cancelled && data) setItems(data as any);
+      } catch { /* table may not exist on older deployments */ }
+      if (!cancelled) setLoaded(true);
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [jobId]);
+
+  const add = async () => {
+    const task = newItem.trim();
+    if (!task) return;
+    setNewItem('');
+    try {
+      const { data, error } = await supabase
+        .from('job_todos')
+        .insert([{ job_id: jobId, task, completed: false, sort_order: items.length }])
+        .select('id, task, completed')
+        .single();
+      if (!error && data) setItems(prev => [...prev, data as any]);
+    } catch (err) {
+      console.error('Failed to add checklist item:', err);
+    }
+  };
+
+  const toggle = async (id: string, completed: boolean) => {
+    setItems(prev => prev.map(i => (i.id === id ? { ...i, completed } : i)));
+    try {
+      await supabase.from('job_todos').update({ completed }).eq('id', id);
+    } catch (err) {
+      console.error('Failed to toggle checklist item:', err);
+    }
+  };
+
+  const remove = async (id: string) => {
+    setItems(prev => prev.filter(i => i.id !== id));
+    try {
+      await supabase.from('job_todos').delete().eq('id', id);
+    } catch (err) {
+      console.error('Failed to delete checklist item:', err);
+    }
+  };
+
+  const done = items.filter(i => i.completed).length;
+  const pct = items.length > 0 ? Math.round((done / items.length) * 100) : 0;
+
+  if (!loaded) return null;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-base font-bold text-white">Checklist</h3>
+        {items.length > 0 && (
+          <span className="text-[10px] font-bold text-white/40">{done}/{items.length}</span>
+        )}
+      </div>
+
+      {items.length > 0 && (
+        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden mb-3">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${pct === 100 ? 'bg-green-500' : 'bg-accent'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+
+      <div className="space-y-1">
+        {items.map(item => (
+          <div key={item.id} className="group flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
+            <input
+              type="checkbox"
+              checked={item.completed}
+              disabled={isClient}
+              onChange={(e) => toggle(item.id, e.target.checked)}
+              className="w-4 h-4 rounded border-white/20 text-accent focus:ring-accent bg-black cursor-pointer"
+            />
+            <span className={`flex-1 text-sm ${item.completed ? 'text-white/35 line-through' : 'text-white/80'}`}>
+              {item.task}
+            </span>
+            {!isClient && (
+              <button
+                onClick={() => remove(item.id)}
+                className="p-1 text-white/0 group-hover:text-white/30 hover:!text-red-400 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {!isClient && (
+        <div className="flex gap-2 mt-2">
+          <input
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
+            placeholder="Add an item — e.g. 4K master uploaded"
+            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-accent transition-colors"
+          />
+          <button
+            onClick={add}
+            disabled={!newItem.trim()}
+            className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-colors disabled:opacity-40"
+          >
+            Add
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+// COMPONENT: TimelineView — the same cards as the board, grouped by due
+// date instead of stage, so post deadlines read like an agenda.
+// ----------------------------------------------------------------------
+function TimelineView({
+  jobs,
+  stages,
+  onOpen,
+}: {
+  jobs: Job[];
+  stages: ResolvedStage[];
+  onOpen: (job: Job) => void;
+}) {
+  const buckets = useMemo(() => {
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const today = startOfDay(new Date());
+    const in7 = new Date(today); in7.setDate(in7.getDate() + 7);
+    const in14 = new Date(today); in14.setDate(in14.getDate() + 14);
+
+    const groups: { key: string; label: string; accentClass: string; jobs: Job[] }[] = [
+      { key: 'overdue', label: 'Overdue', accentClass: 'text-red-400', jobs: [] },
+      { key: 'today', label: 'Due Today', accentClass: 'text-orange-400', jobs: [] },
+      { key: 'week', label: 'This Week', accentClass: 'text-yellow-400', jobs: [] },
+      { key: 'next', label: 'Next Week', accentClass: 'text-accent', jobs: [] },
+      { key: 'later', label: 'Later', accentClass: 'text-white/50', jobs: [] },
+      { key: 'none', label: 'No Due Date', accentClass: 'text-white/30', jobs: [] },
+    ];
+    const byKey = Object.fromEntries(groups.map(g => [g.key, g]));
+
+    const sorted = [...jobs].sort((a, b) => (a.due_date || '9999').localeCompare(b.due_date || '9999'));
+    for (const job of sorted) {
+      const due = parseLocalDate(job.due_date);
+      if (!due) { byKey.none.jobs.push(job); continue; }
+      const d = startOfDay(due);
+      if (d < today) byKey.overdue.jobs.push(job);
+      else if (d.getTime() === today.getTime()) byKey.today.jobs.push(job);
+      else if (d < in7) byKey.week.jobs.push(job);
+      else if (d < in14) byKey.next.jobs.push(job);
+      else byKey.later.jobs.push(job);
+    }
+    return groups.filter(g => g.jobs.length > 0);
+  }, [jobs]);
+
+  if (jobs.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center py-20 opacity-30">
+        <p className="text-xs font-semibold text-white/50">No cards match the current filters.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto custom-scrollbar pb-8 space-y-6">
+      {buckets.map(bucket => (
+        <div key={bucket.key}>
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <h3 className={`text-[11px] font-black uppercase tracking-widest ${bucket.accentClass}`}>{bucket.label}</h3>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/5 text-white/40">{bucket.jobs.length}</span>
+          </div>
+          <div className="space-y-1.5">
+            {bucket.jobs.map(job => {
+              const stage = stages.find(s => s.id === job.edit_status);
+              return (
+                <button
+                  key={job.id}
+                  onClick={() => onOpen(job)}
+                  className="w-full flex items-center gap-3 bg-neutral-900/60 border border-white/5 hover:border-accent/30 rounded-xl px-4 py-3 text-left transition-all"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{job.title}</p>
+                    <p className="text-[10px] text-white/40 truncate">{job.client_name || job.production_company || 'Internal'}</p>
+                  </div>
+                  {job.editor && (
+                    <div className="w-7 h-7 rounded-full bg-accent text-white flex items-center justify-center text-[10px] font-black shrink-0" title={job.editor.name}>
+                      {job.editor.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                    </div>
+                  )}
+                  {stage && (
+                    <span className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${stage.bg} ${stage.colorClass}`}>
+                      <stage.icon className="w-3 h-3" /> {stage.label}
+                    </span>
+                  )}
+                  <span className="shrink-0 text-[10px] font-bold text-white/40 w-20 text-right">
+                    {formatLocalDate(job.due_date, { month: 'short', day: 'numeric' }, '—')}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1046,7 +1321,35 @@ function CardDetailModal({
     }
   };
 
+  // Find @mentions of Rolodex contacts in a notes string. Matches @First or
+  // @First_Last (case-insensitive) against contact names.
+  const findMentions = (text: string): Contact[] => {
+    const tokens = Array.from(text.matchAll(/@([\w.]+)/g)).map(m => m[1].toLowerCase());
+    if (tokens.length === 0) return [];
+    return contacts.filter(c => {
+      const first = (c.name || '').split(/\s+/)[0]?.toLowerCase();
+      const full = (c.name || '').replace(/\s+/g, '_').toLowerCase();
+      return tokens.some(t => t === first || t === full);
+    });
+  };
+
   const saveNotes = () => {
+    // Ping teammates who are newly @mentioned (present in the new text but
+    // not the old) through every enabled team channel. Fire-and-forget.
+    const before = new Set(findMentions(job.edit_notes || '').map(c => c.id));
+    const added = findMentions(notes).filter(c => !before.has(c.id));
+    if (added.length > 0) {
+      const excerpt = notes.trim().length > 160 ? `${notes.trim().slice(0, 160)}…` : notes.trim();
+      const names = added.map(c => `**${c.name}**`).join(', ');
+      fetch('/api/integrations/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `💬 ${names} mentioned on "${job.title}" (Edit Tracker):\n${excerpt}`,
+        }),
+      }).catch(err => console.error('Mention notification failed:', err));
+    }
+
     onUpdate({ ...job, edit_notes: notes });
     setIsEditingNotes(false);
   };
@@ -1227,7 +1530,7 @@ function CardDetailModal({
                     </div>
                   </div>
                 ) : (
-                  <div 
+                  <div
                     onClick={() => setIsEditingNotes(true)}
                     className="text-sm text-white/80 bg-white/5 hover:bg-white/10 p-4 rounded-xl cursor-pointer transition-colors whitespace-pre-wrap"
                   >
@@ -1236,6 +1539,16 @@ function CardDetailModal({
                 )}
               </div>
             </div>
+
+            {/* Delivery Checklist */}
+            {!isCreatingNew && (
+              <div className="flex gap-4">
+                <CheckCircle2 className="w-6 h-6 text-white/40 shrink-0" />
+                <div className="flex-1">
+                  <CardChecklist jobId={job.id} isClient={isClient} />
+                </div>
+              </div>
+            )}
 
             {/* Attachments / Links & Live Integrations */}
             <div className="flex gap-4">

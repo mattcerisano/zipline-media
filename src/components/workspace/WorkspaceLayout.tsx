@@ -31,7 +31,8 @@ import {
   Share2,
   Plug,
   DollarSign,
-  ListTodo
+  ListTodo,
+  UserCheck
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
@@ -51,6 +52,7 @@ import Vault from '@/components/workspace/Vault';
 import IntegrationsHub from '@/components/workspace/IntegrationsHub';
 import BudgetWidget from '@/components/workspace/BudgetWidget';
 import TasksWidget from '@/components/workspace/TasksWidget';
+import MyWorkWidget from '@/components/workspace/MyWorkWidget';
 
 export type LayoutNode = 
   | { type: 'row'; children: LayoutNode[]; sizes: number[] }
@@ -81,7 +83,8 @@ const WIDGET_ICONS: Record<string, any> = {
   vault: Lock,
   integrations: Plug,
   budget: DollarSign,
-  tasks: ListTodo
+  tasks: ListTodo,
+  mywork: UserCheck
 };
 
 const WIDGET_LABELS: Record<string, string> = {
@@ -101,7 +104,8 @@ const WIDGET_LABELS: Record<string, string> = {
   vault: 'Vault',
   integrations: 'Integrations',
   budget: 'Budget Tracker',
-  tasks: 'Task List'
+  tasks: 'Task List',
+  mywork: 'My Work'
 };
 
 const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
@@ -923,6 +927,8 @@ function WidgetMount({
       return <BudgetWidget />;
     case 'tasks':
       return <TasksWidget />;
+    case 'mywork':
+      return <MyWorkWidget />;
     case 'vault':
       return <Vault />;
     default:
