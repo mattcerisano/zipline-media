@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User as UserIcon, Building2, Upload, Loader2, Save, Palette, SwatchBook, Bell, RotateCcw } from 'lucide-react';
+import { X, User as UserIcon, Building2, Upload, Loader2, Save, Palette, SwatchBook, Bell, RotateCcw, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/components/gearbuilder/types';
 import { DEFAULT_BRANDING, type Branding } from '@/lib/branding';
 import { applyAccent, extractBrandColorFromImage, resetAccent } from '@/lib/brand-theme';
 import ThemeSwitcher from './ThemeSwitcher';
 import IntegrationsSettings from './IntegrationsSettings';
+import TeamSettings from './TeamSettings';
 
 interface ProfileSettingsProps {
   session: any;
@@ -21,7 +22,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
   const isAdmin = userRole === 'admin';
   const userId = session?.user?.id;
 
-  const [tab, setTab] = useState<'profile' | 'appearance' | 'branding' | 'integrations'>('profile');
+  const [tab, setTab] = useState<'profile' | 'appearance' | 'branding' | 'integrations' | 'team'>('profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -249,6 +250,14 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                 <Bell className="w-3.5 h-3.5" /> Integrations
               </button>
             )}
+            {isAdmin && (
+              <button
+                onClick={() => setTab('team')}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'team' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
+              >
+                <Users className="w-3.5 h-3.5" /> Team
+              </button>
+            )}
           </div>
 
           {loading ? (
@@ -434,6 +443,10 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                 <IntegrationsSettings isAdmin={isAdmin} onMessage={setMessage} />
               )}
 
+              {tab === 'team' && isAdmin && (
+                <TeamSettings session={session} onMessage={setMessage} />
+              )}
+
               {message && (
                 <p className="text-[11px] font-bold text-accent">{message}</p>
               )}
@@ -446,7 +459,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
               <button onClick={onClose} className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white transition-colors">
                 Close
               </button>
-              {tab !== 'appearance' && tab !== 'integrations' && (
+              {tab !== 'appearance' && tab !== 'integrations' && tab !== 'team' && (
                 <button
                   onClick={tab === 'profile' ? handleSaveProfile : handleSaveBranding}
                   disabled={saving}

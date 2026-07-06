@@ -198,6 +198,9 @@ export default function CommandCenterPage() {
   // Tracks whether the user typed their own label; until then, picking an
   // icon autofills the workspace name with the icon's label.
   const [newTabLabelTouched, setNewTabLabelTouched] = useState(false);
+  // Full starter-tool checklist is collapsed behind "Change" to keep the
+  // create modal short.
+  const [showToolPicker, setShowToolPicker] = useState(false);
 
   // Form states for editing
   const [editTabLabel, setEditTabLabel] = useState('');
@@ -350,6 +353,7 @@ export default function CommandCenterPage() {
     setNewTabTools(['notes']);
     setNewTabToolsTouched(false);
     setNewTabLabelTouched(false);
+    setShowToolPicker(false);
     setIsCreateModalOpen(false);
   };
 
@@ -1181,12 +1185,12 @@ export default function CommandCenterPage() {
       {/* Calendar Sync Feed Modal */}
       <AnimatePresence>
         {isCalendarSyncOpen && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="fixed inset-0 z-[110] flex justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg bg-neutral-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative"
+              className="h-fit my-auto w-full max-w-lg bg-neutral-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative"
             >
               <button 
                 onClick={() => setIsCalendarSyncOpen(false)}
@@ -1311,12 +1315,12 @@ export default function CommandCenterPage() {
       {/* Create Tab Modal */}
       <AnimatePresence>
         {isCreateModalOpen && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-            <motion.div 
+          <div className="fixed inset-0 z-[110] flex justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-zinc-950 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative"
+              className="w-full max-w-md h-fit my-auto bg-zinc-950 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative"
             >
               <button 
                 onClick={() => setIsCreateModalOpen(false)}
@@ -1426,38 +1430,57 @@ export default function CommandCenterPage() {
 
                 {newTabType === 'workspace' && (
                   <div>
-                    <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Starter Tools</label>
-                    <p className="text-[9px] text-white/30 mb-2 leading-relaxed">
-                      Pick the tools this workspace opens with. You can add, split, and rearrange panels any time after.
-                    </p>
-                    <div className="grid grid-cols-2 gap-1.5 bg-black/40 border border-white/5 p-2 rounded-xl max-h-44 overflow-y-auto">
-                      {STARTER_TOOLS.map(tool => {
-                        const checked = newTabTools.includes(tool.id);
+                    <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">This workspace opens with</label>
+                    {/* Compact summary: the tools this tab will contain, picked
+                        automatically from the icon. "Change" reveals the full
+                        list without making the modal taller by default. */}
+                    <div className="flex flex-wrap items-center gap-1.5 bg-black/40 border border-white/5 p-2.5 rounded-xl">
+                      {(newTabTools.length > 0 ? newTabTools : ['notes']).map(id => {
+                        const tool = STARTER_TOOLS.find(t => t.id === id);
                         return (
-                          <label
-                            key={tool.id}
-                            className={`flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer select-none transition-all ${
-                              checked ? 'bg-accent/15 border border-accent/30 text-white' : 'border border-transparent text-white/50 hover:text-white hover:bg-white/5'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => {
-                                setNewTabToolsTouched(true);
-                                setNewTabTools(prev =>
-                                  checked ? prev.filter(t => t !== tool.id) : [...prev, tool.id]
-                                );
-                              }}
-                              className="rounded border-white/10 text-accent focus:ring-accent bg-black"
-                            />
-                            <span className="text-[9px] font-black uppercase tracking-wider">{tool.label}</span>
-                          </label>
+                          <span key={id} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent/15 border border-accent/30 text-[9px] font-black uppercase tracking-wider text-white">
+                            {tool?.label || id}
+                          </span>
                         );
                       })}
+                      <button
+                        type="button"
+                        onClick={() => setShowToolPicker(v => !v)}
+                        className="px-2.5 py-1.5 rounded-lg border border-white/10 text-[9px] font-black uppercase tracking-wider text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        {showToolPicker ? 'Done' : 'Change'}
+                      </button>
                     </div>
-                    {newTabTools.length === 0 && (
-                      <p className="text-[9px] text-amber-400/80 mt-1.5 font-bold">Pick at least one tool — an empty workspace defaults to Scratch Notes.</p>
+                    <p className="text-[9px] text-white/30 mt-1.5 leading-relaxed">
+                      These are the panels inside your new tab — picked to match the icon. You can add or split panels any time later.
+                    </p>
+                    {showToolPicker && (
+                      <div className="grid grid-cols-2 gap-1.5 bg-black/40 border border-white/5 p-2 rounded-xl max-h-36 overflow-y-auto mt-2">
+                        {STARTER_TOOLS.map(tool => {
+                          const checked = newTabTools.includes(tool.id);
+                          return (
+                            <label
+                              key={tool.id}
+                              className={`flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer select-none transition-all ${
+                                checked ? 'bg-accent/15 border border-accent/30 text-white' : 'border border-transparent text-white/50 hover:text-white hover:bg-white/5'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  setNewTabToolsTouched(true);
+                                  setNewTabTools(prev =>
+                                    checked ? prev.filter(t => t !== tool.id) : [...prev, tool.id]
+                                  );
+                                }}
+                                className="rounded border-white/10 text-accent focus:ring-accent bg-black"
+                              />
+                              <span className="text-[9px] font-black uppercase tracking-wider">{tool.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 )}
@@ -1514,12 +1537,12 @@ export default function CommandCenterPage() {
       {/* Edit Tab Modal */}
       <AnimatePresence>
         {isEditModalOpen && selectedTabToEdit && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="fixed inset-0 z-[110] flex justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-zinc-950 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative"
+              className="h-fit my-auto w-full max-w-md bg-zinc-950 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative"
             >
               <button 
                 onClick={() => setIsEditModalOpen(false)}

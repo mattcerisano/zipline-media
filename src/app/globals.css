@@ -252,3 +252,39 @@ button, a, [role="button"], input[type="checkbox"], select {
   background: var(--app-scrollbar-thumb);
 }
 
+
+/* ============================================================
+   Mobile ergonomics (Studio OS)
+   ============================================================ */
+
+/* iOS Safari zooms the page when a focused form control renders text under
+   16px. The desktop UI uses 11-13px inputs, so on touch screens we floor
+   form-control text at 16px — this single rule is what keeps the app from
+   lurch-zooming on every tap into a field on iPhone. */
+@media (pointer: coarse) {
+  .studio-os input,
+  .studio-os select,
+  .studio-os textarea {
+    font-size: 16px;
+  }
+}
+
+/* Snappier taps: no 300ms double-tap-zoom wait on buttons/links, and no gray
+   flash overlay on tap (the UI has its own hover/active states). */
+.studio-os button,
+.studio-os a,
+.studio-os select,
+.studio-os input[type="checkbox"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Installed-app (Add to Home Screen) mode: respect the iPhone home indicator
+   and notch so bottom buttons aren't pinned under the gesture bar. */
+@media (display-mode: standalone) {
+  .studio-os {
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}

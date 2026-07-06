@@ -25,6 +25,12 @@ const authClient = createClient(
  * Returns the verified user id, or null when the token is missing/invalid.
  */
 export async function getAuthedUserId(request: Request): Promise<string | null> {
+  const user = await getAuthedUser(request);
+  return user?.id || null;
+}
+
+/** Like getAuthedUserId but returns id + email for callers that need both. */
+export async function getAuthedUser(request: Request): Promise<{ id: string; email: string | null } | null> {
   const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
   if (!authHeader) return null;
 
@@ -35,7 +41,7 @@ export async function getAuthedUserId(request: Request): Promise<string | null> 
   try {
     const { data, error } = await authClient.auth.getUser(token);
     if (error || !data?.user) return null;
-    return data.user.id;
+    return { id: data.user.id, email: data.user.email?.toLowerCase() || null };
   } catch {
     return null;
   }
