@@ -120,6 +120,39 @@ function IconPickerGrid({ selected, onSelect }: { selected: string; onSelect: (n
   );
 }
 
+// The real, working tools a custom workspace can open with. These are the
+// widget ids WorkspaceLayout actually renders — the picker below only offers
+// these, so a new tab never promises a tool that doesn't exist.
+const STARTER_TOOLS: { id: string; label: string }[] = [
+  { id: 'dashboard', label: 'Overview' },
+  { id: 'calendar', label: 'Calendar' },
+  { id: 'slate', label: 'Production Slate' },
+  { id: 'edits', label: 'Edit Tracker' },
+  { id: 'gear', label: 'Gear Builder' },
+  { id: 'creative', label: 'Creative Board' },
+  { id: 'social', label: 'Social Media' },
+  { id: 'rolodex', label: 'Rolodex' },
+  { id: 'inbox', label: 'Studio Inbox' },
+  { id: 'vault', label: 'Vault' },
+  { id: 'notes', label: 'Scratch Notes' },
+  { id: 'script', label: 'Script & Teleprompter' },
+  { id: 'clock', label: 'Production Timer' },
+];
+
+// Picking an icon pre-selects the closest real tool(s), so "Budget" doesn't
+// silently create an empty page. Icons with no matching tool suggest Notes.
+const ICON_TOOL_SUGGESTIONS: Record<string, string[]> = {
+  LayoutDashboard: ['dashboard'], BarChart3: ['dashboard'], PieChart: ['dashboard'], TrendingUp: ['dashboard'],
+  Calendar: ['calendar'], Clock: ['clock'], ListTodo: ['notes'], CheckSquare: ['notes'],
+  Kanban: ['edits'], Briefcase: ['slate'],
+  Users: ['rolodex'], Building2: ['rolodex'], MessageSquare: ['inbox'], Mail: ['inbox'], Phone: ['rolodex'],
+  DollarSign: ['notes'], Receipt: ['notes'], CreditCard: ['notes'],
+  Camera: ['slate', 'gear'], Clapperboard: ['slate'], Film: ['edits'], Video: ['edits'],
+  Mic: ['script'], Palette: ['creative'], Scissors: ['edits'], Package: ['gear'],
+  FolderOpen: ['notes'], FileText: ['notes'], Image: ['creative'], Upload: ['notes'],
+  Star: ['notes'], Flag: ['notes'], Lock: ['vault'], Settings: ['dashboard'],
+};
+
 const DEFAULT_TABS: CustomTab[] = [
   { id: 'dashboard', label: 'Dashboard', iconName: 'LayoutDashboard', type: 'system', isDefault: true, allowedRoles: ['admin'] },
   { id: 'calendar', label: 'Calendar', iconName: 'Calendar', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
@@ -152,6 +185,10 @@ export default function CommandCenterPage() {
   const [newTabType, setNewTabType] = useState<'workspace' | 'embed' | 'notes'>('workspace');
   const [newTabUrl, setNewTabUrl] = useState('');
   const [newTabRoles, setNewTabRoles] = useState<('admin' | 'staff' | 'client')[]>(['admin', 'staff']);
+  // Which real tools the new workspace opens with. Auto-suggested from the
+  // chosen icon until the user hand-picks (then their choice wins).
+  const [newTabTools, setNewTabTools] = useState<string[]>(['notes']);
+  const [newTabToolsTouched, setNewTabToolsTouched] = useState(false);
 
   // Form states for editing
   const [editTabLabel, setEditTabLabel] = useState('');
@@ -264,6 +301,20 @@ export default function CommandCenterPage() {
       allowedRoles: newTabRoles
     };
 
+    // Seed the workspace with the chosen starter tools so the new tab opens
+    // as a working panel — previously an unknown tab id fell back to the
+    // Dashboard layout, which made every new tab look like a dashboard clone.
+    if (newTabType === 'workspace') {
+      const tools = newTabTools.length > 0 ? newTabTools : ['notes'];
+      const seededLayout = {
+        type: 'panel',
+        id: `${newTab.id}-root`,
+        activeTab: tools[0],
+        tabs: tools,
+      };
+      localStorage.setItem(`studio_workspace_layout_${newTab.id}`, JSON.stringify(seededLayout));
+    }
+
     const updated = [...tabs, newTab];
     setTabs(updated);
     localStorage.setItem('custom_tabs_list', JSON.stringify(updated));
@@ -275,6 +326,8 @@ export default function CommandCenterPage() {
     setNewTabType('workspace');
     setNewTabUrl('');
     setNewTabRoles(['admin', 'staff']);
+    setNewTabTools(['notes']);
+    setNewTabToolsTouched(false);
     setIsCreateModalOpen(false);
   };
 
@@ -311,6 +364,9 @@ export default function CommandCenterPage() {
     const updated = tabs.filter(t => t.id !== selectedTabToEdit.id);
     setTabs(updated);
     localStorage.setItem('custom_tabs_list', JSON.stringify(updated));
+    // Drop the tab's saved workspace layout so a future tab with a reused id
+    // can't inherit a stale layout.
+    localStorage.removeItem(`studio_workspace_layout_${selectedTabToEdit.id}`);
     if (activeTab === selectedTabToEdit.id) {
       setActiveTab('dashboard');
       localStorage.setItem('studio_active_tab', 'dashboard');
@@ -1255,8 +1311,8 @@ export default function CommandCenterPage() {
                           : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
                       }`}
                     >
-                      <div className="font-black text-[10px] uppercase tracking-wider">Grid</div>
-                      <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">Premiere Splits</div>
+                      <div className="font-black text-[10px] uppercase tracking-wider">Workspace</div>
+                      <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">Studio Tool Panels</div>
                     </button>
                     <button
                       type="button"
@@ -1268,7 +1324,7 @@ export default function CommandCenterPage() {
                       }`}
                     >
                       <div className="font-black text-[10px] uppercase tracking-wider">Embed</div>
-                      <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">iFrame Web Tool</div>
+                      <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">External Website</div>
                     </button>
                     <button
                       type="button"
@@ -1300,8 +1356,57 @@ export default function CommandCenterPage() {
 
                 <div>
                   <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Select Icon</label>
-                  <IconPickerGrid selected={newTabIcon} onSelect={setNewTabIcon} />
+                  <IconPickerGrid
+                    selected={newTabIcon}
+                    onSelect={(name) => {
+                      setNewTabIcon(name);
+                      // Until the user hand-picks tools, follow the icon's
+                      // suggestion so "Budget" opens with something useful.
+                      if (!newTabToolsTouched) {
+                        const suggested = ICON_TOOL_SUGGESTIONS[name];
+                        if (suggested && suggested.length > 0) setNewTabTools(suggested);
+                      }
+                    }}
+                  />
                 </div>
+
+                {newTabType === 'workspace' && (
+                  <div>
+                    <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Starter Tools</label>
+                    <p className="text-[9px] text-white/30 mb-2 leading-relaxed">
+                      Pick the tools this workspace opens with. You can add, split, and rearrange panels any time after.
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5 bg-black/40 border border-white/5 p-2 rounded-xl max-h-44 overflow-y-auto">
+                      {STARTER_TOOLS.map(tool => {
+                        const checked = newTabTools.includes(tool.id);
+                        return (
+                          <label
+                            key={tool.id}
+                            className={`flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer select-none transition-all ${
+                              checked ? 'bg-accent/15 border border-accent/30 text-white' : 'border border-transparent text-white/50 hover:text-white hover:bg-white/5'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                setNewTabToolsTouched(true);
+                                setNewTabTools(prev =>
+                                  checked ? prev.filter(t => t !== tool.id) : [...prev, tool.id]
+                                );
+                              }}
+                              className="rounded border-white/10 text-accent focus:ring-accent bg-black"
+                            />
+                            <span className="text-[9px] font-black uppercase tracking-wider">{tool.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {newTabTools.length === 0 && (
+                      <p className="text-[9px] text-amber-400/80 mt-1.5 font-bold">Pick at least one tool — an empty workspace defaults to Scratch Notes.</p>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Role Visibility</label>

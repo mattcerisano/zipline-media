@@ -17,6 +17,7 @@ import {
   AlertCircle,
   Link as LinkIcon,
   Copy,
+  CopyPlus,
   X,
   Save,
   FolderOpen,
@@ -406,6 +407,85 @@ export default function Slate({
       setJobs(prev => prev.filter(j => j.id !== id));
     } catch (err) {
       console.error('Error deleting job:', err);
+    }
+  };
+
+  // "Day 3 of the same shoot" titles: increment an existing Day N suffix,
+  // otherwise start at Day 2.
+  const nextDayTitle = (title: string): string => {
+    const m = title.match(/^(.*?)\s*[—–-]?\s*\(?day\s+(\d+)\)?\s*$/i);
+    if (m && m[1].trim()) return `${m[1].trim()} — Day ${parseInt(m[2], 10) + 1}`;
+    return `${title.trim()} — Day 2`;
+  };
+
+  // Date-only math at noon local so the +1 never lands on the wrong day
+  // across timezones/DST.
+  const nextShootDate = (dateStr: string): string => {
+    const d = new Date(`${dateStr}T12:00:00`);
+    if (isNaN(d.getTime())) return dateStr;
+    d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  // Duplicate a production for multi-day shoots: copies everything that
+  // carries across days (client, location, safety info, gear manifest, notes,
+  // links, creative) plus the full crew, bumps the shoot date to the next day,
+  // and numbers the title "— Day N". Post-production state, review links, and
+  // email threads are per-deliverable, so the copy starts clean.
+  const duplicateJob = async (job: Job) => {
+    try {
+      const {
+        id: _id,
+        updated_at: _updatedAt,
+        job_roles: _roles,
+        editor: _editor,
+        project: _project,
+        edit_status: _editStatus,
+        editor_id: _editorId,
+        edit_notes: _editNotes,
+        edit_labels: _editLabels,
+        review_link: _reviewLink,
+        review_password: _reviewPassword,
+        email_thread_id: _threadId,
+        email_thread_subject: _threadSubject,
+        gear_list_url: _gearListUrl,
+        ...copy
+      } = job as any;
+
+      const payload = {
+        ...copy,
+        title: nextDayTitle(job.title),
+        shoot_date: job.shoot_date ? nextShootDate(job.shoot_date) : undefined,
+      };
+
+      const { data, error } = await supabase
+        .from('jobs')
+        .insert([payload])
+        .select()
+        .single();
+      if (error) throw error;
+
+      // Carry the crew over — same team, same call times/rates as the source
+      // day, editable per-day afterwards. Fails soft: the day still exists
+      // without crew if this insert is rejected.
+      try {
+        const { data: roles } = await supabase
+          .from('job_roles')
+          .select('*')
+          .eq('job_id', job.id);
+        if (roles && roles.length > 0) {
+          const roleRows = roles.map(({ id: _rid, contact: _c, ...r }: any) => ({ ...r, job_id: data.id }));
+          const { error: rolesErr } = await supabase.from('job_roles').insert(roleRows);
+          if (rolesErr) console.error('Duplicated job but crew copy failed:', rolesErr);
+        }
+      } catch (rolesErr) {
+        console.error('Duplicated job but crew copy failed:', rolesErr);
+      }
+
+      setJobs(prev => [...prev, data as Job].sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')));
+    } catch (err: any) {
+      console.error('Error duplicating job:', err);
+      alert('Failed to duplicate production: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -864,6 +944,7 @@ export default function Slate({
                           isClient={isClient}
                           getStatusIcon={getStatusIcon}
                           onSaveAsTemplate={() => saveAsTemplate(job)}
+                          onDuplicate={() => duplicateJob(job)}
                           onDelete={() => deleteJob(job.id)}
                           onAddLink={() => setLinkModalJob(job)}
                           onManage={() => setManageJobId(job.id)}
@@ -898,6 +979,7 @@ export default function Slate({
                 isClient={isClient}
                 getStatusIcon={getStatusIcon} 
                 onSaveAsTemplate={() => saveAsTemplate(job)}
+                onDuplicate={() => duplicateJob(job)}
                 onDelete={() => deleteJob(job.id)}
                 onAddLink={() => setLinkModalJob(job)}
                 onManage={() => setManageJobId(job.id)}
@@ -931,6 +1013,7 @@ export default function Slate({
                 isClient={isClient}
                 getStatusIcon={getStatusIcon} 
                 onSaveAsTemplate={() => saveAsTemplate(job)}
+                onDuplicate={() => duplicateJob(job)}
                 onDelete={() => deleteJob(job.id)}
                 onAddLink={() => setLinkModalJob(job)}
                 onManage={() => setManageJobId(job.id)}
@@ -1382,6 +1465,7 @@ function JobCard({
   isClient,
   getStatusIcon, 
   onSaveAsTemplate,
+  onDuplicate,
   onDelete,
   onAddLink,
   onManage,
@@ -1395,6 +1479,7 @@ function JobCard({
   isClient: boolean,
   getStatusIcon: (s?: string) => React.ReactNode,
   onSaveAsTemplate: () => void,
+  onDuplicate: () => void,
   onDelete: () => void,
   onAddLink: () => void,
   onManage: () => void,
@@ -1463,7 +1548,14 @@ function JobCard({
           </button>
           {!isClient && (
             <>
-              <button 
+              <button
+                onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+                className="p-2 text-white/10 hover:text-accent hover:bg-accent/5 rounded-lg transition-all"
+                title="Duplicate for Next Day (copies gear, crew & details to a new shoot day)"
+              >
+                <CopyPlus className="w-3.5 h-3.5" />
+              </button>
+              <button
                 onClick={(e) => { e.stopPropagation(); onSaveAsTemplate(); }}
                 className="p-2 text-white/10 hover:text-accent hover:bg-accent/5 rounded-lg transition-all"
                 title="Save as Template"

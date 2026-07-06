@@ -147,16 +147,24 @@ export default function WorkspaceLayout({
   }, []);
 
   useEffect(() => {
+    // Custom tabs (unknown ids) fall back to a blank notes panel, NOT the
+    // dashboard — falling through to the dashboard made every new custom tab
+    // look like a broken dashboard clone. Freshly created tabs normally have
+    // a seeded layout in localStorage already (written at creation time).
+    const fallback: LayoutNode =
+      DEFAULT_LAYOUTS[activeTab] ||
+      ({ type: 'panel', id: `${activeTab}-root`, activeTab: 'notes', tabs: ['notes'] } as LayoutNode);
+
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLayoutRoot(JSON.parse(saved));
       } catch (e) {
-        setLayoutRoot(DEFAULT_LAYOUTS[activeTab] || DEFAULT_LAYOUTS.dashboard);
+        setLayoutRoot(fallback);
       }
     } else {
-      setLayoutRoot(DEFAULT_LAYOUTS[activeTab] || DEFAULT_LAYOUTS.dashboard);
+      setLayoutRoot(fallback);
     }
   }, [activeTab, storageKey]);
 

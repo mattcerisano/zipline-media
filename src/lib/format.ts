@@ -12,8 +12,11 @@
  */
 
 /** Uppercase a structured field for display/export. Null-safe; returns the
- *  fallback when the value is empty. */
+ *  fallback when the value is empty. Whitespace runs (double spaces, tabs,
+ *  non-breaking spaces from copy/paste) collapse to a single space — stray
+ *  whitespace in hand-typed names otherwise renders as large gaps in PDF
+ *  table cells. */
 export function caps(value: string | null | undefined, fallback = ''): string {
-  const v = (value ?? '').toString().trim();
+  const v = (value ?? '').toString().replace(/\s+/g, ' ').trim();
   return v ? v.toUpperCase() : fallback;
 }
