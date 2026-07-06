@@ -20,14 +20,60 @@ export interface DashboardOverviewProps {
   onSwitchTab: (tab: string) => void;
 }
 
-// Toggleable dashboard sections (#9). Kept coarse so customization stays simple.
-const DASHBOARD_WIDGETS: { id: string; label: string }[] = [
-  { id: 'stats', label: 'Stat Cards' },
-  { id: 'quickActions', label: 'Quick Actions' },
-  { id: 'integrations', label: 'Integrations Panel' },
+// Per-item dashboard customization: every stat card, quick action, and
+// integrations panel can be shown/hidden individually. Grouped so the
+// Customize popover reads as three short sections.
+const DASHBOARD_ITEMS: { group: string; items: { id: string; label: string }[] }[] = [
+  {
+    group: 'Stat Cards',
+    items: [
+      { id: 'stat_booked', label: 'Jobs Booked' },
+      { id: 'stat_edits', label: 'Edits in Progress' },
+      { id: 'stat_contacts', label: 'Total Contacts' },
+    ],
+  },
+  {
+    group: 'Quick Actions',
+    items: [
+      { id: 'action_slate', label: 'Production Slate' },
+      { id: 'action_gear', label: 'Build Gear List' },
+      { id: 'action_crew', label: 'Assemble Crew' },
+      { id: 'action_calendar', label: 'View Calendar' },
+      { id: 'action_guide', label: 'System Guide' },
+    ],
+  },
+  {
+    group: 'Integrations',
+    items: [
+      { id: 'panel_gateway', label: 'Team Alert Gateway' },
+      { id: 'panel_telemetry', label: 'Hub Telemetry' },
+    ],
+  },
 ];
-const DEFAULT_WIDGETS: Record<string, boolean> = { stats: true, quickActions: true, integrations: true };
-const WIDGETS_STORAGE_KEY = 'studio_dashboard_widgets';
+const DEFAULT_WIDGETS: Record<string, boolean> = Object.fromEntries(
+  DASHBOARD_ITEMS.flatMap(g => g.items.map(i => [i.id, true]))
+);
+const WIDGETS_STORAGE_KEY = 'studio_dashboard_widgets_v2';
+const LEGACY_WIDGETS_KEY = 'studio_dashboard_widgets';
+
+// Users on the old section-level prefs keep their choices: a hidden section
+// maps to all of its items hidden.
+function migrateLegacyPrefs(): Record<string, boolean> | null {
+  try {
+    const raw = localStorage.getItem(LEGACY_WIDGETS_KEY);
+    if (!raw) return null;
+    const legacy = JSON.parse(raw) as Record<string, boolean>;
+    const next = { ...DEFAULT_WIDGETS };
+    if (legacy.stats === false) ['stat_booked', 'stat_edits', 'stat_contacts'].forEach(k => { next[k] = false; });
+    if (legacy.quickActions === false) ['action_slate', 'action_gear', 'action_crew', 'action_calendar', 'action_guide'].forEach(k => { next[k] = false; });
+    if (legacy.integrations === false) ['panel_gateway', 'panel_telemetry'].forEach(k => { next[k] = false; });
+    localStorage.removeItem(LEGACY_WIDGETS_KEY);
+    localStorage.setItem(WIDGETS_STORAGE_KEY, JSON.stringify(next));
+    return next;
+  } catch {
+    return null;
+  }
+}
 
 export default function DashboardOverview({
   onSwitchTab
@@ -39,8 +85,13 @@ export default function DashboardOverview({
   useEffect(() => {
     try {
       const saved = localStorage.getItem(WIDGETS_STORAGE_KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (saved) setWidgets({ ...DEFAULT_WIDGETS, ...JSON.parse(saved) });
+      if (saved) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setWidgets({ ...DEFAULT_WIDGETS, ...JSON.parse(saved) });
+      } else {
+        const migrated = migrateLegacyPrefs();
+        if (migrated) setWidgets(migrated);
+      }
     } catch { /* ignore */ }
   }, []);
 
@@ -54,9 +105,18 @@ export default function DashboardOverview({
 
   const resetWidgets = () => {
     setWidgets(DEFAULT_WIDGETS);
-    try { localStorage.removeItem(WIDGETS_STORAGE_KEY); } catch { /* ignore */ }
+    try {
+      localStorage.removeItem(WIDGETS_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_WIDGETS_KEY);
+    } catch { /* ignore */ }
     setShowCustomize(false);
   };
+
+  // Section visibility derives from its items.
+  const showStats = widgets.stat_booked || widgets.stat_edits || widgets.stat_contacts;
+  const showActions = widgets.action_slate || widgets.action_gear || widgets.action_crew || widgets.action_calendar || widgets.action_guide;
+  const showIntegrations = widgets.panel_gateway || widgets.panel_telemetry;
+  const allHidden = !showStats && !showActions && !showIntegrations;
 
   const [discordMsg, setDiscordMsg] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -157,19 +217,23 @@ export default function DashboardOverview({
         {showCustomize && (
           <>
             <div className="fixed inset-0 z-30" onClick={() => setShowCustomize(false)} />
-            <div className="absolute right-0 top-11 z-40 w-60 bg-zinc-950 border border-white/10 rounded-xl shadow-2xl p-2">
-              <p className="text-[8px] font-black uppercase tracking-widest text-white/30 px-2 py-1.5">Show / Hide Sections</p>
-              {DASHBOARD_WIDGETS.map(w => (
-                <button
-                  key={w.id}
-                  onClick={() => toggleWidget(w.id)}
-                  className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors text-left"
-                >
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">{w.label}</span>
-                  <span className={`w-4 h-4 rounded border flex items-center justify-center ${widgets[w.id] ? 'bg-accent border-accent' : 'border-white/20'}`}>
-                    {widgets[w.id] && <Check className="w-3 h-3 text-white" />}
-                  </span>
-                </button>
+            <div className="absolute right-0 top-11 z-40 w-64 max-h-[70vh] overflow-y-auto bg-zinc-950 border border-white/10 rounded-xl shadow-2xl p-2">
+              {DASHBOARD_ITEMS.map(group => (
+                <div key={group.group}>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-white/30 px-2 pt-2 pb-1">{group.group}</p>
+                  {group.items.map(w => (
+                    <button
+                      key={w.id}
+                      onClick={() => toggleWidget(w.id)}
+                      className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors text-left"
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">{w.label}</span>
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center ${widgets[w.id] ? 'bg-accent border-accent' : 'border-white/20'}`}>
+                        {widgets[w.id] && <Check className="w-3 h-3 text-white" />}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               ))}
               <button
                 onClick={resetWidgets}
@@ -183,8 +247,9 @@ export default function DashboardOverview({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {widgets.stats && (
+      {showStats && (
         <>
+      {widgets.stat_booked && (
       <StatCard
         title="Jobs Booked"
         value={stats.bookedJobs.toString()}
@@ -192,6 +257,8 @@ export default function DashboardOverview({
         icon={Briefcase}
         isLoading={stats.loading}
       />
+      )}
+      {widgets.stat_edits && (
       <StatCard
         title="Edits in Progress"
         value={stats.editsInProgress.toString()}
@@ -199,6 +266,8 @@ export default function DashboardOverview({
         icon={Scissors}
         isLoading={stats.loading}
       />
+      )}
+      {widgets.stat_contacts && (
       <StatCard
         title="Total Contacts"
         value={stats.totalContacts.toString()}
@@ -206,47 +275,59 @@ export default function DashboardOverview({
         icon={Users}
         isLoading={stats.loading}
       />
+      )}
         </>
       )}
 
-      {widgets.quickActions && (
+      {showActions && (
       <div className="md:col-span-2 lg:col-span-3 mt-5">
         <h3 className="text-base font-semibold tracking-tight mb-3 text-white bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">Quick Actions</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          <ActionButton 
-            label="Production Slate" 
+          {widgets.action_slate && (
+          <ActionButton
+            label="Production Slate"
             onClick={() => onSwitchTab('slate')}
             icon={Briefcase}
           />
-          <ActionButton 
-            label="Build Gear List" 
+          )}
+          {widgets.action_gear && (
+          <ActionButton
+            label="Build Gear List"
             onClick={() => onSwitchTab('gear')}
             icon={Package}
           />
-          <ActionButton 
-            label="Assemble Crew" 
+          )}
+          {widgets.action_crew && (
+          <ActionButton
+            label="Assemble Crew"
             onClick={() => onSwitchTab('slate')}
             icon={Users}
           />
-          <ActionButton 
-            label="View Calendar" 
+          )}
+          {widgets.action_calendar && (
+          <ActionButton
+            label="View Calendar"
             onClick={() => onSwitchTab('calendar')}
             icon={LayoutDashboard}
           />
-          <ActionButton 
-            label="System Guide" 
+          )}
+          {widgets.action_guide && (
+          <ActionButton
+            label="System Guide"
             onClick={() => onSwitchTab('quickstart')}
             icon={HelpCircle}
           />
+          )}
         </div>
       </div>
       )}
 
       {/* Integrations Control Panel */}
-      {widgets.integrations && (
-      <div className="md:col-span-2 lg:col-span-3 mt-5 grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {showIntegrations && (
+      <div className={`md:col-span-2 lg:col-span-3 mt-5 grid grid-cols-1 gap-4 ${widgets.panel_gateway && widgets.panel_telemetry ? 'lg:grid-cols-3' : ''}`}>
 
         {/* Discord Controller */}
+        {widgets.panel_gateway && (
         <div className="lg:col-span-2 bg-zinc-950/40 backdrop-blur-md border border-white/10 p-4 rounded-2xl shadow-xl hover:border-white/15 transition-all duration-300 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-3 mb-3">
@@ -260,7 +341,7 @@ export default function DashboardOverview({
             </div>
 
             <p className="text-white/60 text-[11px] mb-4 leading-relaxed">
-              Sends real-time production updates, stage shifts, and new bookings to every enabled team channel. Configure channels in Settings → Integrations.
+              Sends real-time production updates, stage shifts, and new bookings to every enabled team channel. Configure channels in the Integrations tab.
             </p>
           </div>
 
@@ -288,12 +369,14 @@ export default function DashboardOverview({
               <p className="text-green-400 text-[10px] font-black uppercase tracking-widest animate-pulse">✓ Message dispatched to your team channels!</p>
             )}
             {sendResult === 'error' && (
-              <p className="text-red-400 text-[10px] font-black uppercase tracking-widest">✗ No enabled channels — add a webhook in Settings → Integrations.</p>
+              <p className="text-red-400 text-[10px] font-black uppercase tracking-widest">✗ No enabled channels — add a webhook in the Integrations tab.</p>
             )}
           </div>
         </div>
+        )}
 
         {/* Status Dashboard */}
+        {widgets.panel_telemetry && (
         <div className="bg-zinc-950/40 backdrop-blur-md border border-white/10 p-4 rounded-2xl flex flex-col justify-between hover:border-white/15 transition-all duration-300 shadow-xl">
           <div>
             <h4 className="text-[11px] font-medium uppercase tracking-[0.12em] text-white/70 mb-3 border-b border-white/5 pb-2">Integration Hub Telemetry</h4>
@@ -334,11 +417,12 @@ export default function DashboardOverview({
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
           </div>
         </div>
+        )}
 
       </div>
       )}
 
-      {!widgets.stats && !widgets.quickActions && !widgets.integrations && (
+      {allHidden && (
         <div className="py-20 text-center bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40">
           <p className="font-bold uppercase tracking-widest text-xs text-white">All sections hidden — use Customize to bring them back.</p>
         </div>

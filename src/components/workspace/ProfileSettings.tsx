@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User as UserIcon, Building2, Upload, Loader2, Save, Palette, SwatchBook, Bell } from 'lucide-react';
+import { X, User as UserIcon, Building2, Upload, Loader2, Save, Palette, SwatchBook, Bell, RotateCcw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/components/gearbuilder/types';
-import type { Branding } from '@/lib/branding';
-import { applyAccent, extractBrandColorFromImage } from '@/lib/brand-theme';
+import { DEFAULT_BRANDING, type Branding } from '@/lib/branding';
+import { applyAccent, extractBrandColorFromImage, resetAccent } from '@/lib/brand-theme';
 import ThemeSwitcher from './ThemeSwitcher';
 import IntegrationsSettings from './IntegrationsSettings';
 
@@ -112,6 +112,26 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
   const chooseBrandColor = (hex: string) => {
     setOrg(o => ({ ...o, brand_color: hex }));
     applyAccent(hex);
+  };
+
+  // Wipe branding back to factory defaults (logo cleared, default blue accent).
+  // Previews immediately; nothing persists until Save.
+  const handleResetBranding = () => {
+    if (!window.confirm('Reset branding to defaults?\n\nThis clears the logo and restores the default name, tagline, and color. Nothing is saved until you press Save.')) return;
+    setOrg(o => ({
+      ...o,
+      name: DEFAULT_BRANDING.name,
+      tagline: DEFAULT_BRANDING.tagline,
+      logo_url: null,
+      brand_color: DEFAULT_BRANDING.brand_color,
+      address: null,
+      phone: null,
+      email: null,
+      website: null,
+    }));
+    setSuggestedColor(null);
+    resetAccent();
+    setMessage('Defaults restored — press Save to apply.');
   };
 
   const handleSaveProfile = async () => {
@@ -395,6 +415,17 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                       <label className={labelClass}>Address</label>
                       <input className={inputClass} value={org.address || ''} onChange={(e) => setOrg(o => ({ ...o, address: e.target.value }))} />
                     </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-white/5">
+                    <button
+                      type="button"
+                      onClick={handleResetBranding}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" /> Reset Branding to Defaults
+                    </button>
+                    <p className="text-[8px] text-white/25 mt-1.5 uppercase tracking-widest">Clears logo & restores default name, tagline and color — takes effect when you save</p>
                   </div>
                 </>
               )}
