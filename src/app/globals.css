@@ -289,3 +289,61 @@ button, a, [role="button"], input[type="checkbox"], select {
     padding-right: env(safe-area-inset-right);
   }
 }
+
+/* ============================================================
+   Studio OS visual polish — lightweight motion & accent glow
+   ============================================================ */
+
+/* Tactile button press. Transform only (no transition-property override, so
+   Tailwind's transition utilities keep working); buttons that already carry
+   transition-all animate the press smoothly, everything else snaps. */
+@media (prefers-reduced-motion: no-preference) {
+  .studio-os button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+}
+
+/* Keyboard focus glows in the brand accent instead of the browser default. */
+.studio-os :focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 75%, transparent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Workspace panels fade in as tabs mount. Opacity only — transform/filter
+   here would turn panels into containing blocks for position:fixed modals
+   (see the WorkspacePanel note). */
+@media (prefers-reduced-motion: no-preference) {
+  .panel-rise {
+    animation: panelFadeIn 0.4s ease both;
+  }
+  @keyframes panelFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+/* Ambient brand glow behind the workspace panels: two soft radial washes in
+   the org's accent color, visible in the chrome gaps around panels. Follows
+   the brand color live via var(--accent). */
+.workspace-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(640px circle at 12% 6%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 65%),
+    radial-gradient(820px circle at 90% 95%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 65%);
+  opacity: 0.55;
+}
+
+/* Scrollbar thumbs warm to the accent under the cursor. */
+.studio-os ::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--accent) 55%, transparent);
+}
+
+/* Accent-tinted text selection inside the app. */
+.studio-os ::selection {
+  background-color: color-mix(in oklab, var(--accent) 80%, black);
+  color: #ffffff;
+}
