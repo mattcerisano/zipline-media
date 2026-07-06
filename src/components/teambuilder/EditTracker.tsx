@@ -28,6 +28,10 @@ import {
   FolderOpen,
   Plus,
   X,
+  Trash2,
+  SlidersHorizontal,
+  ChevronUp,
+  ChevronDown,
   Download,
   UploadCloud,
   Check,
@@ -40,14 +44,73 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
-const EDIT_STAGES = [
-  { id: 'Filmed', label: 'Filmed / Raw', icon: Film, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
-  { id: 'WIP', label: 'Work in Progress', icon: Scissors, color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' },
-  { id: 'V1', label: 'V1 / Review', icon: PlayCircle, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/20' },
-  { id: 'Revisions', label: 'Revisions', icon: MessageSquareWarning, color: 'text-orange-400', bg: 'bg-orange-400/10', border: 'border-orange-400/20' },
-  { id: 'Delivered', label: 'Delivered', icon: CheckCircle2, color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-400/20' },
-  { id: 'Wrapped', label: 'Wrapped', icon: Archive, color: 'text-neutral-400', bg: 'bg-neutral-400/10', border: 'border-neutral-400/20' }
-] as const;
+// Columns are customizable: definitions are { id, label, color } where color
+// is a token from STAGE_COLORS. Custom definitions live org-wide in
+// organizations.edit_stages (JSONB, see migration 20260706000001) with a
+// localStorage fallback for deployments that haven't run the migration yet.
+export interface EditStageDef {
+  id: string;
+  label: string;
+  color: string;
+}
+
+// Literal class strings (including the top-border variants) so Tailwind's
+// scanner compiles every color a custom column can use.
+const STAGE_COLORS: Record<string, { color: string; bg: string; border: string; borderT: string }> = {
+  blue:    { color: 'text-blue-400',    bg: 'bg-blue-400/10',    border: 'border-blue-400/20',    borderT: 'border-t-blue-400/20' },
+  yellow:  { color: 'text-yellow-400',  bg: 'bg-yellow-400/10',  border: 'border-yellow-400/20',  borderT: 'border-t-yellow-400/20' },
+  purple:  { color: 'text-purple-400',  bg: 'bg-purple-400/10',  border: 'border-purple-400/20',  borderT: 'border-t-purple-400/20' },
+  orange:  { color: 'text-orange-400',  bg: 'bg-orange-400/10',  border: 'border-orange-400/20',  borderT: 'border-t-orange-400/20' },
+  green:   { color: 'text-green-400',   bg: 'bg-green-400/10',   border: 'border-green-400/20',   borderT: 'border-t-green-400/20' },
+  red:     { color: 'text-red-400',     bg: 'bg-red-400/10',     border: 'border-red-400/20',     borderT: 'border-t-red-400/20' },
+  pink:    { color: 'text-pink-400',    bg: 'bg-pink-400/10',    border: 'border-pink-400/20',    borderT: 'border-t-pink-400/20' },
+  teal:    { color: 'text-teal-400',    bg: 'bg-teal-400/10',    border: 'border-teal-400/20',    borderT: 'border-t-teal-400/20' },
+  neutral: { color: 'text-neutral-400', bg: 'bg-neutral-400/10', border: 'border-neutral-400/20', borderT: 'border-t-neutral-400/20' },
+};
+
+// Icons for the built-in stage ids; custom columns get the generic tag icon.
+const STAGE_ICONS: Record<string, any> = {
+  Filmed: Film,
+  WIP: Scissors,
+  V1: PlayCircle,
+  Revisions: MessageSquareWarning,
+  Delivered: CheckCircle2,
+  Wrapped: Archive,
+};
+
+const DEFAULT_STAGE_DEFS: EditStageDef[] = [
+  { id: 'Filmed', label: 'Filmed / Raw', color: 'blue' },
+  { id: 'WIP', label: 'Work in Progress', color: 'yellow' },
+  { id: 'V1', label: 'V1 / Review', color: 'purple' },
+  { id: 'Revisions', label: 'Revisions', color: 'orange' },
+  { id: 'Delivered', label: 'Delivered', color: 'green' },
+  { id: 'Wrapped', label: 'Wrapped', color: 'neutral' },
+];
+
+const STAGES_STORAGE_KEY = 'studio_edit_stages';
+
+export interface ResolvedStage extends EditStageDef {
+  icon: any;
+  colorClass: string;
+  bg: string;
+  border: string;
+  borderT: string;
+}
+
+function resolveStages(defs: EditStageDef[]): ResolvedStage[] {
+  return defs.map(d => {
+    const c = STAGE_COLORS[d.color] || STAGE_COLORS.neutral;
+    return { ...d, icon: STAGE_ICONS[d.id] || Tag, colorClass: c.color, bg: c.bg, border: c.border, borderT: c.borderT };
+  });
+}
+
+function sanitizeStageDefs(raw: unknown): EditStageDef[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const defs = raw.filter(
+    (d: any) => d && typeof d.id === 'string' && d.id && typeof d.label === 'string' && d.label
+  ).map((d: any) => ({ id: d.id, label: d.label, color: typeof d.color === 'string' ? d.color : 'neutral' }));
+  return defs.length > 0 ? defs : null;
+}
 
 const AVAILABLE_LABEL_COLORS = [
   { id: 'red', class: 'bg-red-500' },
@@ -64,9 +127,14 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
   const [jobs, setJobs] = useState<Job[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+
+  // Board columns — org-customizable, defaulting to the classic pipeline.
+  const [stageDefs, setStageDefs] = useState<EditStageDef[]>(DEFAULT_STAGE_DEFS);
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [isColumnsModalOpen, setIsColumnsModalOpen] = useState(false);
 
   // Filter States
   const [clientFilter, setClientFilter] = useState('All');
@@ -113,6 +181,25 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
       if (!clientsRes.error && clientsRes.data) setClients(clientsRes.data as Client[]);
       // projects table may not exist on older deployments — fail soft
       if (!projectsRes.error && projectsRes.data) setProjects(projectsRes.data as Project[]);
+
+      // Custom board columns: org-wide definitions win, then this browser's
+      // saved set, then the built-in defaults. All paths fail soft.
+      try {
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('*')
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (org?.id) setOrgId(org.id);
+        const fromOrg = sanitizeStageDefs((org as any)?.edit_stages);
+        if (fromOrg) {
+          setStageDefs(fromOrg);
+        } else {
+          const local = sanitizeStageDefs(JSON.parse(localStorage.getItem(STAGES_STORAGE_KEY) || 'null'));
+          if (local) setStageDefs(local);
+        }
+      } catch { /* defaults stay */ }
     } catch (err) {
       console.error('Error fetching edit tracker data:', err);
     } finally {
@@ -125,6 +212,35 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
   // in the "Add to Board" picker until someone pulls them in.
   const boardJobs = useMemo(() => jobs.filter(j => !!j.edit_status), [jobs]);
   const availableJobs = useMemo(() => jobs.filter(j => !j.edit_status), [jobs]);
+
+  // Resolved columns for rendering. Any card whose status doesn't match a
+  // defined column (e.g. a column was deleted after cards used it) gets its
+  // own auto-column so cards can never silently vanish from the board.
+  const stages = useMemo(() => {
+    const resolved = resolveStages(stageDefs);
+    const known = new Set(resolved.map(s => s.id));
+    const orphaned = Array.from(
+      new Set(boardJobs.map(j => j.edit_status as string).filter(s => s && !known.has(s)))
+    );
+    return [
+      ...resolved,
+      ...resolveStages(orphaned.map(id => ({ id, label: id, color: 'neutral' }))),
+    ];
+  }, [stageDefs, boardJobs]);
+
+  const firstStageId = stageDefs[0]?.id || 'Filmed';
+
+  // Persist column edits: this browser immediately, the org table when the
+  // migration has been run (fails soft when it hasn't).
+  const saveStageDefs = async (defs: EditStageDef[]) => {
+    setStageDefs(defs);
+    try { localStorage.setItem(STAGES_STORAGE_KEY, JSON.stringify(defs)); } catch { /* ignore */ }
+    if (orgId) {
+      try {
+        await supabase.from('organizations').update({ edit_stages: defs }).eq('id', orgId);
+      } catch { /* column may not exist yet — localStorage still applies */ }
+    }
+  };
 
   const uniqueClients = useMemo(() => {
     const clientsList = boardJobs.map(j => j.client_name || j.production_company).filter(Boolean);
@@ -155,7 +271,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
 
   const updateJobEditStatus = async (jobId: string, newStatus: string) => {
     const job = jobs.find(j => j.id === jobId);
-    const oldStatus = job?.edit_status || 'Filmed';
+    const oldStatus = job?.edit_status || firstStageId;
 
     try {
       // Optimistic update for UI feel
@@ -301,11 +417,20 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
           <p className="text-[12px] font-medium tracking-tight opacity-50 text-white mt-1">Trello-style edit tracking</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
+          {!isClient && (
+            <button
+              onClick={() => setIsColumnsModalOpen(true)}
+              className="flex items-center gap-1.5 bg-black/50 border border-white/10 px-4 py-2 text-[12px] font-medium tracking-tight rounded-xl text-white/60 hover:text-white hover:border-white/25 transition-colors"
+              title="Rename, recolor, add, or remove board columns"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Columns
+            </button>
+          )}
           {!isClient && availableJobs.length > 0 && (
             <select
               value=""
               onChange={(e) => {
-                if (e.target.value) updateJobEditStatus(e.target.value, 'Filmed');
+                if (e.target.value) updateJobEditStatus(e.target.value, firstStageId);
               }}
               className="bg-accent/10 border border-accent/30 text-accent px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-semibold tracking-tight rounded-xl cursor-pointer appearance-none min-w-[180px]"
               title="Pull a Slate production onto the post-production board"
@@ -354,14 +479,14 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
 
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex overflow-x-auto gap-4 pb-8 custom-scrollbar items-start flex-1">
-          {EDIT_STAGES.map(stage => {
-            const stageJobs = filteredJobs.filter(j => (j.edit_status || 'Filmed') === stage.id);
+          {stages.map(stage => {
+            const stageJobs = filteredJobs.filter(j => (j.edit_status || firstStageId) === stage.id);
             
             return (
               <div key={stage.id} className="flex-none w-[300px] flex flex-col bg-neutral-900/80 rounded-xl border border-white/5 max-h-full">
-                <div className={`flex items-center justify-between p-3 rounded-t-xl border-t-2 ${stage.border.replace('border-', 'border-t-')}`}>
+                <div className={`flex items-center justify-between p-3 rounded-t-xl border-t-2 ${stage.borderT}`}>
                   <div className="flex items-center gap-2">
-                    <stage.icon className={`w-4 h-4 ${stage.color}`} />
+                    <stage.icon className={`w-4 h-4 ${stage.colorClass}`} />
                     <h3 className="text-xs font-semibold tracking-tight text-white">{stage.label}</h3>
                   </div>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/5 text-white/40">
@@ -395,9 +520,9 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
                         </Draggable>
                       ))}
                       {provided.placeholder}
-                      {stage.id === 'Filmed' && !isClient && (
+                      {stage.id === firstStageId && !isClient && (
                         <button 
-                          onClick={() => openNewCardModal('Filmed')}
+                          onClick={() => openNewCardModal(firstStageId)}
                           className="w-full text-left p-3 text-xs font-bold text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
                         >
                           <Plus className="w-4 h-4" /> Add a card
@@ -413,22 +538,190 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
       </DragDropContext>
 
       <AnimatePresence>
+        {isColumnsModalOpen && (
+          <ColumnsEditorModal
+            defs={stageDefs}
+            cardCounts={boardJobs.reduce<Record<string, number>>((acc, j) => {
+              const k = j.edit_status as string;
+              acc[k] = (acc[k] || 0) + 1;
+              return acc;
+            }, {})}
+            onSave={(defs) => { saveStageDefs(defs); setIsColumnsModalOpen(false); }}
+            onClose={() => setIsColumnsModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {activeJob && (
-          <CardDetailModal 
-            job={activeJob} 
-            contacts={contacts} 
+          <CardDetailModal
+            job={activeJob}
+            contacts={contacts}
             onClose={() => {
               setActiveJob(null);
               setIsCreatingNew(false);
             }}
             onUpdate={handleJobUpdate}
             onRemoveFromBoard={removeFromBoard}
-            stages={EDIT_STAGES}
+            stages={stages}
             isCreatingNew={isCreatingNew}
             isClient={isClient}
           />
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
+// COMPONENT: ColumnsEditorModal — rename, recolor, reorder, add, remove
+// board columns. Deleting a column with cards on it is blocked so cards
+// can never be stranded silently.
+// ----------------------------------------------------------------------
+function ColumnsEditorModal({
+  defs,
+  cardCounts,
+  onSave,
+  onClose,
+}: {
+  defs: EditStageDef[];
+  cardCounts: Record<string, number>;
+  onSave: (defs: EditStageDef[]) => void;
+  onClose: () => void;
+}) {
+  const [draft, setDraft] = useState<EditStageDef[]>(defs.map(d => ({ ...d })));
+  const [newLabel, setNewLabel] = useState('');
+
+  const update = (i: number, patch: Partial<EditStageDef>) =>
+    setDraft(prev => prev.map((d, idx) => (idx === i ? { ...d, ...patch } : d)));
+
+  const move = (i: number, dir: -1 | 1) =>
+    setDraft(prev => {
+      const next = [...prev];
+      const j = i + dir;
+      if (j < 0 || j >= next.length) return prev;
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+
+  const remove = (i: number) => {
+    const stage = draft[i];
+    const count = cardCounts[stage.id] || 0;
+    if (count > 0) {
+      alert(`"${stage.label}" still has ${count} card${count === 1 ? '' : 's'} on it. Drag those cards to another column first, then remove it.`);
+      return;
+    }
+    if (draft.length <= 1) {
+      alert('The board needs at least one column.');
+      return;
+    }
+    setDraft(prev => prev.filter((_, idx) => idx !== i));
+  };
+
+  const add = () => {
+    const label = newLabel.trim();
+    if (!label) return;
+    // Stable unique id from the label; cards store this id as their status.
+    let id = label.replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'Stage';
+    while (draft.some(d => d.id === id)) id = `${id}_`;
+    setDraft(prev => [...prev, { id, label, color: 'teal' }]);
+    setNewLabel('');
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[160] flex justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto cursor-pointer"
+    >
+      <motion.div
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        className="w-full max-w-lg bg-neutral-900 border border-white/10 rounded-2xl shadow-2xl my-auto p-6 cursor-default"
+      >
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-base font-semibold tracking-tight text-white">Board Columns</h3>
+          <button onClick={onClose} className="p-1.5 text-white/40 hover:text-white transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <p className="text-[10px] text-white/40 mb-4 leading-relaxed">
+          Rename, recolor, reorder, add, or remove pipeline stages. Changes apply to the whole team&apos;s board.
+        </p>
+
+        <div className="space-y-2 mb-4">
+          {draft.map((d, i) => (
+            <div key={d.id} className="flex items-center gap-2 bg-black/30 border border-white/5 rounded-xl px-2.5 py-2">
+              <div className="flex flex-col">
+                <button onClick={() => move(i, -1)} disabled={i === 0} className="p-0.5 text-white/20 hover:text-white disabled:opacity-20 transition-colors">
+                  <ChevronUp className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => move(i, 1)} disabled={i === draft.length - 1} className="p-0.5 text-white/20 hover:text-white disabled:opacity-20 transition-colors">
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <input
+                value={d.label}
+                onChange={(e) => update(i, { label: e.target.value })}
+                className="flex-1 min-w-0 bg-transparent border border-transparent focus:border-accent rounded-lg px-2 py-1.5 text-xs font-bold text-white outline-none transition-colors"
+              />
+              <select
+                value={STAGE_COLORS[d.color] ? d.color : 'neutral'}
+                onChange={(e) => update(i, { color: e.target.value })}
+                className={`bg-black/40 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none appearance-none cursor-pointer ${(STAGE_COLORS[d.color] || STAGE_COLORS.neutral).color}`}
+              >
+                {Object.keys(STAGE_COLORS).map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <span className="text-[9px] text-white/25 w-12 text-right shrink-0">
+                {(cardCounts[d.id] || 0)} card{(cardCounts[d.id] || 0) === 1 ? '' : 's'}
+              </span>
+              <button onClick={() => remove(i)} className="p-1.5 text-white/15 hover:text-red-400 transition-colors shrink-0">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-2 mb-5">
+          <input
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
+            placeholder="New column name — e.g. Color Grade"
+            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-accent transition-colors"
+          />
+          <button
+            onClick={add}
+            disabled={!newLabel.trim()}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors disabled:opacity-40"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setDraft(DEFAULT_STAGE_DEFS.map(d => ({ ...d })))}
+            className="text-[10px] font-black uppercase tracking-widest text-white/35 hover:text-accent transition-colors"
+          >
+            Reset to defaults
+          </button>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white transition-colors">
+              Cancel
+            </button>
+            <button
+              onClick={() => onSave(draft)}
+              className="px-5 py-2.5 rounded-xl bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity"
+            >
+              Save Columns
+            </button>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -542,7 +835,7 @@ function CardDetailModal({
   onClose: () => void,
   onUpdate: (job: Job) => void,
   onRemoveFromBoard: (jobId: string) => void,
-  stages: typeof EDIT_STAGES,
+  stages: ResolvedStage[],
   isCreatingNew?: boolean,
   isClient: boolean
 }) {
@@ -745,7 +1038,7 @@ function CardDetailModal({
     }, 150);
   };
 
-  const currentStage = stages.find(s => s.id === (job.edit_status || 'Filmed'));
+  const currentStage = stages.find(s => s.id === job.edit_status) || stages[0];
 
   const saveTitle = () => {
     if (title.trim() && title !== job.title) {
