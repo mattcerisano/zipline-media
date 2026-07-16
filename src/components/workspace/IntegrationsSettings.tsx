@@ -137,21 +137,32 @@ export default function IntegrationsSettings({ isAdmin, onMessage }: Props) {
 
   const sendTest = async (platform: NotificationPlatform) => {
     const channel = channelFor(platform);
-    if (!channel.id) {
-      onMessage('Save the webhook URL before sending a test.');
+    if (!channel.webhook_url || !channel.webhook_url.trim()) {
+      onMessage('Paste a webhook URL first, then send a test.');
       return;
     }
     setTesting(platform);
     setTestResult((r) => ({ ...r, [platform]: undefined as any }));
+    onMessage('');
     try {
+      // Test the URL that's currently in the box — no save required, and the
+      // server dispatches to it directly so a failure reports the real reason.
       const res = await fetch('/api/integrations/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ test: true, channel_id: channel.id }),
+        body: JSON.stringify({ test: true, platform, webhook_url: channel.webhook_url.trim() }),
       });
-      setTestResult((r) => ({ ...r, [platform]: res.ok ? 'ok' : 'fail' }));
-    } catch {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setTestResult((r) => ({ ...r, [platform]: 'ok' }));
+        onMessage('Test message sent — check your channel.');
+      } else {
+        setTestResult((r) => ({ ...r, [platform]: 'fail' }));
+        onMessage(data.error ? `Test failed: ${data.error}` : `Test failed (HTTP ${res.status}).`);
+      }
+    } catch (err: any) {
       setTestResult((r) => ({ ...r, [platform]: 'fail' }));
+      onMessage(`Test failed: ${err?.message || 'could not reach the server.'}`);
     } finally {
       setTesting(null);
     }

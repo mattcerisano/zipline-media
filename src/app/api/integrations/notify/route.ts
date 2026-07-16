@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isSameOrigin } from '@/lib/api-guard';
 
 // Service-role client so the route can read org channel/event config and
 // dispatch regardless of which user triggered the event.
@@ -66,12 +67,33 @@ async function dispatch(channel: Channel, text: string): Promise<{ platform: Pla
 }
 
 export async function POST(request: Request) {
+  const body = await request.json().catch(() => ({} as any));
+  const { event_key, variables = {}, test, channel_id, message, platform, webhook_url } = body;
+
+  // --- Direct test: dispatch straight to a supplied webhook URL. --------
+  // No database lookup and no service-role key required, so "Send Test"
+  // works before the channel is even saved AND surfaces the real reason a
+  // webhook fails (bad URL, deleted webhook, network) instead of a silent
+  // "failed". Same-origin only so it can't be used as an open relay.
+  if (test && webhook_url) {
+    if (!isSameOrigin(request)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    const result = await dispatch(
+      { id: '', platform: (platform as Platform) || 'discord', label: null, webhook_url, enabled: true },
+      '🛠️ Zipline Media test alert — your notifications are connected and working.'
+    );
+    return NextResponse.json(
+      result.ok ? { success: true } : { error: result.error || 'Failed to send test' },
+      { status: result.ok ? 200 : 502 }
+    );
+  }
+
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: 'Server not configured for notifications' }, { status: 500 });
+    return NextResponse.json({ error: 'Server not configured for notifications (SUPABASE_SERVICE_ROLE_KEY missing on the server).' }, { status: 500 });
   }
 
   try {
-    const { event_key, variables = {}, test, channel_id, message } = await request.json();
 
     // Resolve the singleton org (matches branding/settings loading elsewhere).
     const { data: org } = await supabaseAdmin
