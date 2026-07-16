@@ -781,7 +781,7 @@ export default function CommandCenterPage() {
                 type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="PRODUCTIONS@ZIPLINE.MEDIA"
+                placeholder="you@zipline.media"
                 required
                 className="w-full bg-black/40 border border-white/10 p-3.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-medium rounded-xl text-white placeholder:opacity-20 placeholder:uppercase placeholder:font-medium"
               />

@@ -1628,10 +1628,10 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 {activeSidebarTab === 'gear' ? (
                   <>
                     <div className="flex gap-4">
-                      <select 
+                      <select
                         value={filterCategory}
                         onChange={(e) => setFilterCategory(e.target.value)}
-                        className="flex-1 bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-xl appearance-none cursor-pointer"
+                        className="flex-1 min-w-0 bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-xl appearance-none cursor-pointer"
                       >
                         <option value="All">ALL CATEGORIES</option>
                         {ALL_CATEGORIES.map(cat => (
