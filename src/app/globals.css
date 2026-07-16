@@ -347,3 +347,18 @@ button, a, [role="button"], input[type="checkbox"], select {
   background-color: color-mix(in oklab, var(--accent) 80%, black);
   color: #ffffff;
 }
+
+/* Long unbreakable strings (emails, URLs, share links, IDs) must wrap rather
+   than force horizontal overflow — the most common way a mobile card blows
+   out its container. Scoped to text elements so layout boxes are unaffected. */
+.studio-os p,
+.studio-os span,
+.studio-os a,
+.studio-os h1,
+.studio-os h2,
+.studio-os h3,
+.studio-os h4,
+.studio-os label,
+.studio-os li {
+  overflow-wrap: break-word;
+}
