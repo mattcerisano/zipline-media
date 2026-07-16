@@ -208,7 +208,15 @@ export default function IntegrationsHub() {
         </div>
         {!googleConfigured && (
           <p className="text-[10px] font-bold text-amber-400 mt-2">
-            Google OAuth isn&apos;t configured on the server — set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI (this site&apos;s URL + /api/auth/google/callback) in your Vercel environment.
+            Google OAuth isn&apos;t configured on the server — set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI (this site&apos;s URL + /api/auth/google/callback) in your Vercel environment.{' '}
+            <a
+              href="https://github.com/mattcerisano/zipline-media/blob/main/docs/GOOGLE_SETUP.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-amber-300"
+            >
+              Step-by-step setup guide
+            </a>
           </p>
         )}
         {googleError && (
