@@ -70,6 +70,7 @@ export const APP_FEATURES: AppFeature[] = [
   { id: 'int-google', title: 'Connect Google Account', description: 'Link Google for Calendar sync, the Drive browser, and the Gmail inbox.', keywords: 'connect google account oauth link integration calendar drive gmail setup', tab: 'integrations' },
   { id: 'int-drive', title: 'Google Drive Browser', description: 'Browse the connected account\'s Drive files from inside the app.', keywords: 'google drive files browser documents folders', tab: 'integrations' },
   { id: 'int-webhooks', title: 'Discord / Webhook Notifications', description: 'Announce bookings and status changes to your team channels automatically.', keywords: 'discord webhook notifications announce channel alerts slack', tab: 'integrations' },
+  { id: 'int-push', title: 'Push Notifications', description: 'Call-time reminders and @mention pings straight to your phone or desktop.', keywords: 'push notifications phone mobile call time reminder mention ping alert device', tab: 'integrations' },
 
   // ---- Meta ----
   { id: 'meta-search', title: 'Smart Search (⌘K)', description: 'This palette — finds productions, contacts, clients, and app features by meaning, not just keywords.', keywords: 'search palette command k find semantic smart', tab: 'dashboard' },

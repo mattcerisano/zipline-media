@@ -7,6 +7,7 @@ import { Job, Contact, EditLabel, JobLink, Client, Project } from '@/components/
 import { sanitizeUrl } from '@/lib/sanitize';
 import { parseLocalDate, formatLocalDate } from '@/lib/date';
 import { caps } from '@/lib/format';
+import { authHeader } from '@/lib/api-client';
 import { 
   Film, 
   Scissors, 
@@ -1349,6 +1350,26 @@ function CardDetailModal({
           message: `💬 ${names} mentioned on "${job.title}" (Edit Tracker):\n${excerpt}`,
         }),
       }).catch(err => console.error('Mention notification failed:', err));
+
+      // Also push straight to the mentioned teammates' phones (matched by
+      // Rolodex email → account email; respects their mention-pings pref).
+      const emails = added.map(c => c.email).filter(Boolean);
+      if (emails.length > 0) {
+        authHeader()
+          .then(headers =>
+            fetch('/api/push/mention', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...headers },
+              body: JSON.stringify({
+                emails,
+                title: `💬 Mentioned on "${job.title}"`,
+                body: excerpt,
+                url: '/command-center',
+              }),
+            })
+          )
+          .catch(err => console.error('Mention push failed:', err));
+      }
     }
 
     onUpdate({ ...job, edit_notes: notes });

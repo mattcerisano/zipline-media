@@ -9,6 +9,7 @@ import { DEFAULT_BRANDING, type Branding } from '@/lib/branding';
 import { applyAccent, extractBrandColorFromImage, resetAccent } from '@/lib/brand-theme';
 import ThemeSwitcher from './ThemeSwitcher';
 import IntegrationsSettings from './IntegrationsSettings';
+import PushSettings from './PushSettings';
 import TeamSettings from './TeamSettings';
 import { confirmAction } from '@/components/Feedback';
 
@@ -317,6 +318,16 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                   <div>
                     <label className={labelClass}>Address</label>
                     <input className={inputClass} value={profile.address || ''} onChange={(e) => setProfile(p => ({ ...p, address: e.target.value }))} />
+                  </div>
+
+                  {/* Push lives on the profile tab (not integrations) so
+                      non-admin teammates can reach it too. */}
+                  <div className="pt-4 border-t border-white/5">
+                    <h4 className="text-[11px] font-black uppercase tracking-widest text-white mb-1">Push Notifications</h4>
+                    <p className="text-[10px] text-white/40 mb-3 leading-relaxed">
+                      Call-time reminders and @mention pings on this device.
+                    </p>
+                    <PushSettings />
                   </div>
                 </>
               )}

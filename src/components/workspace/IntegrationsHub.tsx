@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import IntegrationsSettings from './IntegrationsSettings';
+import PushSettings from './PushSettings';
 import { confirmAction } from '@/components/Feedback';
 
 // One page for every integration: connect your Google account (Gmail inbox,
@@ -255,6 +256,15 @@ export default function IntegrationsHub() {
         <p className="text-[10px] text-white/40 leading-relaxed">
           Vimeo and Frame.io review links pasted on Edit Tracker cards embed automatically — nothing to connect here. Adding a Vimeo API token on the server additionally pulls comments into cards.
         </p>
+      </section>
+
+      {/* ============ PUSH NOTIFICATIONS (this device) ============ */}
+      <section className="bg-zinc-950/40 border border-white/10 rounded-2xl p-5">
+        <div className="mb-4">
+          <h3 className="text-sm font-semibold tracking-tight text-white">Push Notifications</h3>
+          <p className="text-[10px] text-white/40 mt-0.5">Call-time reminders and @mention pings straight to your phone or desktop — personal to you, per device.</p>
+        </div>
+        <PushSettings />
       </section>
 
       {/* ============ TEAM NOTIFICATIONS (Discord / Slack / Teams) ============ */}
