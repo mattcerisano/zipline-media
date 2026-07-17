@@ -64,10 +64,21 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Load jobs from Supabase
+  // Load jobs for the months around the one being viewed. Unbounded, this
+  // pulled the whole jobs table on every mount; the ±4-month window keeps the
+  // query small forever and refetches as the user pages through months.
+  // Multi-day jobs overlapping the window edges are included via end_date.
+  const windowKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}`;
   const fetchJobs = React.useCallback(async () => {
     try {
-      const { data, error } = await supabase.from('jobs').select('*');
+      const base = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const start = new Date(base.getFullYear(), base.getMonth() - 4, 1).toISOString().split('T')[0];
+      const end = new Date(base.getFullYear(), base.getMonth() + 5, 0).toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .lte('shoot_date', end)
+        .or(`end_date.gte.${start},and(end_date.is.null,shoot_date.gte.${start})`);
       if (error) throw error;
       if (data) {
         setJobs(data as Job[]);
@@ -75,7 +86,8 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     } catch (err) {
       console.error('Error fetching jobs for calendar:', err);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [windowKey]);
 
   React.useEffect(() => {
     fetchJobs();

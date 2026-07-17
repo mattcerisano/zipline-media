@@ -292,7 +292,7 @@ export default function Rolodex() {
     setIsLoading(true);
     try {
       const [contactsRes, clientsRes] = await Promise.all([
-        supabase.from('contacts').select('*').order('name'),
+        supabase.from('contacts').select('*').order('name').limit(2000),
         supabase.from('clients').select('*').order('name')
       ]);
       if (contactsRes.error) throw contactsRes.error;
@@ -483,6 +483,14 @@ export default function Rolodex() {
       setSortOrder('asc');
     }
   };
+
+  // Windowed render: big rosters made the table paint hundreds of rows at
+  // once. Filtering/search still runs over the full set; only the DOM is
+  // capped, with a Show More escape hatch.
+  const [visibleCount, setVisibleCount] = useState(150);
+  useEffect(() => {
+    setVisibleCount(150);
+  }, [searchQuery, selectedRoleFilter, showFavoritesOnly, sortField, sortOrder]);
 
   const filteredContacts = useMemo(() => {
     let result = contacts;
@@ -939,7 +947,7 @@ export default function Rolodex() {
           </thead>
           <tbody className="divide-y divide-white/5">
             {activeView === 'crew' ? (
-              filteredContacts.map(contact => (
+              filteredContacts.slice(0, visibleCount).map(contact => (
                 <tr key={contact.id} onClick={() => openContactDetail(contact)} className="group hover:bg-white/[0.02] transition-colors text-white cursor-pointer">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -1002,7 +1010,20 @@ export default function Rolodex() {
                     </div>
                   </td>
                 </tr>
-              ))
+              )).concat(
+                filteredContacts.length > visibleCount ? [(
+                  <tr key="__show_more__">
+                    <td colSpan={6} className="px-6 py-3">
+                      <button
+                        onClick={() => setVisibleCount(c => c + 150)}
+                        className="w-full py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-[10px] font-semibold uppercase tracking-widest text-white/50 hover:text-white transition-all"
+                      >
+                        Show more ({filteredContacts.length - visibleCount} remaining)
+                      </button>
+                    </td>
+                  </tr>
+                )] : []
+              )
             ) : (
               filteredClients.map(client => (
                 <tr key={client.id} onClick={() => openClientDetail(client)} className="group hover:bg-white/[0.02] transition-colors text-white cursor-pointer">
