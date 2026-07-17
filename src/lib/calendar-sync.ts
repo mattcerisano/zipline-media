@@ -228,8 +228,10 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
   try {
     const timeMin = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const timeMax = new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString();
+    // showDeleted lets cancelled events flow through so their markers can be
+    // cleaned up here instead of lingering forever.
     const evRes = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=250` +
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=250&showDeleted=true` +
         `&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -237,12 +239,19 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
     if (evRes.ok) {
       const evData = await evRes.json();
       const markers: any[] = [];
+      const cancelledIds: string[] = [];
 
       for (const event of evData.items || []) {
         const summary: string = event.summary || '';
+        if (!event.id) continue;
+        // Deleted on Google's side → Google is authoritative; drop the
+        // marker (tombstoned or not).
+        if (event.status === 'cancelled') {
+          cancelledIds.push(event.id);
+          continue;
+        }
         // 🎥 events are productions — they sync as jobs above, not markers.
-        if (summary.startsWith('🎥') || !event.id) continue;
-        if (event.status === 'cancelled') continue;
+        if (summary.startsWith('🎥')) continue;
 
         const startDate: string | null =
           event.start?.date || event.start?.dateTime?.split('T')[0] || null;
@@ -279,6 +288,14 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
         } else {
           importCount = markers.length;
         }
+      }
+
+      if (cancelledIds.length > 0) {
+        const { error: delErr } = await supabaseAdmin
+          .from('calendar_events')
+          .delete()
+          .in('google_event_id', cancelledIds);
+        if (delErr) console.warn('Cancelled-event cleanup skipped:', delErr.message);
       }
     }
   } catch (importErr: any) {

@@ -90,7 +90,9 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     try {
       const { data, error } = await supabase.from('calendar_events').select('*').order('event_date');
       if (error) throw error;
-      if (data) setEvents(data as CalendarEvent[]);
+      // Filter tombstones in JS so pre-migration databases (no `hidden`
+      // column) keep working unchanged.
+      if (data) setEvents((data as CalendarEvent[]).filter(e => !e.hidden));
     } catch (err) {
       console.error('Error fetching calendar events:', err);
     }
@@ -118,7 +120,15 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
   };
 
   const deleteQuickEvent = async (id: string) => {
+    const ev = events.find(e => e.id === id);
     setEvents(prev => prev.filter(e => e.id !== id));
+    // Google-imported markers get a tombstone instead of a delete — a hard
+    // delete would just resurrect on the next sync. Manual markers (and
+    // pre-migration databases, where the update fails) delete outright.
+    if (ev?.google_event_id) {
+      const { error } = await supabase.from('calendar_events').update({ hidden: true }).eq('id', id);
+      if (!error) return;
+    }
     const { error } = await supabase.from('calendar_events').delete().eq('id', id);
     if (error) console.error('Error deleting calendar event:', error);
   };
