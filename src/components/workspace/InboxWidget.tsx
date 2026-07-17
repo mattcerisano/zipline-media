@@ -97,6 +97,8 @@ export default function InboxWidget() {
   const [userId, setUserId] = useState<string | null>(null);
   const [category, setCategory] = useState<MailCategory>('primary');
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
+  const [lastRefreshAt, setLastRefreshAt] = useState<Date | null>(null);
+  const [refreshFailed, setRefreshFailed] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -209,11 +211,17 @@ export default function InboxWidget() {
       if (data.threads) {
         setThreads(prev => (append ? [...prev, ...data.threads] : data.threads));
         setNextPageToken(data.nextPageToken || null);
+        // Falling from live Gmail into the mock fallback mid-session means the
+        // Gmail call failed server-side — flag it instead of silently showing
+        // stale sandbox data.
+        setRefreshFailed(isLive && data.isLive === false);
         setIsLive(data.isLive);
+        setLastRefreshAt(new Date());
         if (data.accountEmail) setAccountEmail(data.accountEmail);
       }
     } catch (e) {
       console.error('Error fetching threads:', e);
+      setRefreshFailed(true);
     } finally {
       if (append) setIsLoadingMore(false);
       else setIsLoadingList(false);
@@ -542,6 +550,18 @@ export default function InboxWidget() {
                   {c.label}
                 </button>
               ))}
+              {/* Freshness: quiet timestamp normally, loud when refresh breaks */}
+              <span className="ml-auto pr-1">
+                {refreshFailed ? (
+                  <span className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-red-400" title="The last refresh could not reach Gmail — retrying automatically.">
+                    <AlertCircle className="w-3 h-3" /> Refresh failed
+                  </span>
+                ) : lastRefreshAt ? (
+                  <span className="text-[8px] font-semibold uppercase tracking-wider text-white/20 select-none" title="Refreshes automatically every 60 seconds">
+                    Updated {lastRefreshAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                ) : null}
+              </span>
             </div>
           )}
 

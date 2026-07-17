@@ -14,6 +14,23 @@ export interface PullResult {
   message: string;
 }
 
+// Record the outcome of a sync attempt on the user's google_tokens row so the
+// UI can surface "last synced X ago / failing since Y". Update (not upsert):
+// a user who never connected has no row and should stay that way. Fails soft
+// on databases that haven't added the columns yet.
+async function recordSyncStatus(userId: string, ok: boolean, error?: string) {
+  try {
+    await supabaseAdmin
+      .from('google_tokens')
+      .update({
+        last_sync_at: new Date().toISOString(),
+        last_sync_ok: ok,
+        last_sync_error: ok ? null : (error || 'Sync failed').slice(0, 500),
+      })
+      .eq('id', userId);
+  } catch { /* status is best-effort */ }
+}
+
 /**
  * Pull the user's Google Calendar into the app: 🎥-tagged events sync as jobs
  * (two-way with Slate), everything else imports as read-mostly calendar
@@ -24,9 +41,24 @@ export interface PullResult {
 export async function pullGoogleCalendarForUser(userId: string, existingToken?: string): Promise<PullResult> {
   const token = existingToken || (await getValidGoogleToken(userId));
   if (!token) {
+    // A user with a google_tokens row but no valid token has a broken
+    // connection (revoked/expired refresh token) — record it so the UI can
+    // say so. Users who never connected have no row; the update is a no-op.
+    await recordSyncStatus(userId, false, 'Google token expired or revoked — reconnect in Integrations.');
     return { connected: false, syncCount: 0, createCount: 0, importCount: 0, message: 'Google account not connected.' };
   }
 
+  try {
+    const result = await runPull(userId, token);
+    await recordSyncStatus(userId, true);
+    return result;
+  } catch (err: any) {
+    await recordSyncStatus(userId, false, err?.message);
+    throw err;
+  }
+}
+
+async function runPull(_userId: string, token: string): Promise<PullResult> {
   const res = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/primary/events?q=🎥`,
     {
