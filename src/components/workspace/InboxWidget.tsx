@@ -17,12 +17,26 @@ import {
   Loader2,
   Clock,
   Sparkles,
-  Inbox
+  Inbox,
+  Star,
+  Archive,
+  Trash2,
+  Paperclip,
+  SquarePen,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/lib/supabase';
 import { authHeader } from '@/lib/api-client';
+
+interface Attachment {
+  messageId: string;
+  attachmentId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+}
 
 interface Message {
   id: string;
@@ -31,17 +45,28 @@ interface Message {
   date: string;
   snippet: string;
   body: string;
+  attachments?: Attachment[];
 }
 
 interface Thread {
   id: string;
   subject: string;
   snippet: string;
+  from?: string;
   lastMessageDate: string;
   unread: boolean;
+  starred?: boolean;
+  hasAttachments?: boolean;
   label: string;
   labelColor: string;
   messages?: Message[];
+}
+
+function formatBytes(bytes: number): string {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 // Sanitize an email HTML body before rendering it. Message bodies come from
@@ -71,7 +96,16 @@ type MailCategory = (typeof MAIL_CATEGORIES)[number]['key'];
 export default function InboxWidget() {
   const [userId, setUserId] = useState<string | null>(null);
   const [category, setCategory] = useState<MailCategory>('primary');
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [threads, setThreads] = useState<Thread[]>([]);
+
+  // Compose-new-email modal
+  const [showCompose, setShowCompose] = useState(false);
+  const [composeTo, setComposeTo] = useState('');
+  const [composeSubject, setComposeSubject] = useState('');
+  const [composeBody, setComposeBody] = useState('');
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [currentThread, setCurrentThread] = useState<Thread | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -133,6 +167,27 @@ export default function InboxWidget() {
     }
   }, [userId, category]);
 
+  // Mailbox-wide search, like Gmail's search bar: debounce keystrokes, then
+  // ask the server (which passes the query through to Gmail). Sandbox mode
+  // keeps the instant client-side filter instead.
+  useEffect(() => {
+    if (!userId || !isLive) return;
+    const t = setTimeout(() => fetchThreads(), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
+
+  // Quiet background refresh so new mail shows up without touching anything.
+  // Skipped mid-search so it can't stomp on search results.
+  useEffect(() => {
+    if (!userId) return;
+    const interval = setInterval(() => {
+      if (!searchQuery.trim()) fetchThreads({ silent: true });
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, category, searchQuery]);
+
   // Fetch thread details when thread selection changes
   useEffect(() => {
     if (userId && selectedThreadId) {
@@ -140,20 +195,119 @@ export default function InboxWidget() {
     }
   }, [userId, selectedThreadId]);
 
-  const fetchThreads = async () => {
+  const fetchThreads = async (opts?: { silent?: boolean; append?: boolean }) => {
     if (!userId) return;
-    setIsLoadingList(true);
+    const append = !!opts?.append;
+    if (append) setIsLoadingMore(true);
+    else if (!opts?.silent) setIsLoadingList(true);
     try {
-      const res = await fetch(`/api/integrations/mail?action=list&category=${category}`, { headers: await authHeader() });
+      const params = new URLSearchParams({ action: 'list', category });
+      if (searchQuery.trim()) params.set('q', searchQuery.trim());
+      if (append && nextPageToken) params.set('pageToken', nextPageToken);
+      const res = await fetch(`/api/integrations/mail?${params.toString()}`, { headers: await authHeader() });
       const data = await res.json();
       if (data.threads) {
-        setThreads(data.threads);
+        setThreads(prev => (append ? [...prev, ...data.threads] : data.threads));
+        setNextPageToken(data.nextPageToken || null);
         setIsLive(data.isLive);
+        if (data.accountEmail) setAccountEmail(data.accountEmail);
       }
     } catch (e) {
       console.error('Error fetching threads:', e);
     } finally {
-      setIsLoadingList(false);
+      if (append) setIsLoadingMore(false);
+      else setIsLoadingList(false);
+    }
+  };
+
+  // Is this message from the connected account? Drives the "me" styling and
+  // reply targeting. Falls back to the sandbox identity when offline.
+  const isMe = (from: string) =>
+    accountEmail ? from.toLowerCase().includes(accountEmail.toLowerCase()) : from.includes('matt@zipline.media');
+
+  // Gmail-style thread actions with optimistic UI; the server call runs the
+  // matching label operation (archive/trash/star/unread) against Gmail.
+  const threadAction = async (threadId: string, op: 'archive' | 'trash' | 'markUnread' | 'star' | 'unstar') => {
+    if (op === 'archive' || op === 'trash') {
+      setThreads(prev => prev.filter(t => t.id !== threadId));
+      if (selectedThreadId === threadId) {
+        setSelectedThreadId(null);
+        setCurrentThread(null);
+      }
+      triggerToast(op === 'archive' ? 'Conversation archived' : 'Conversation moved to Trash');
+    } else if (op === 'markUnread') {
+      setThreads(prev => prev.map(t => (t.id === threadId ? { ...t, unread: true } : t)));
+      if (selectedThreadId === threadId) {
+        setSelectedThreadId(null);
+        setCurrentThread(null);
+      }
+    } else {
+      setThreads(prev => prev.map(t => (t.id === threadId ? { ...t, starred: op === 'star' } : t)));
+    }
+
+    try {
+      const res = await fetch('/api/integrations/mail', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+        body: JSON.stringify({ threadId, op }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      triggerToast('Action may not have synced — refresh to verify.');
+    }
+  };
+
+  const downloadAttachment = async (att: Attachment) => {
+    try {
+      const params = new URLSearchParams({
+        action: 'attachment',
+        messageId: att.messageId,
+        attachmentId: att.attachmentId,
+        filename: att.filename,
+        mime: att.mimeType,
+      });
+      const res = await fetch(`/api/integrations/mail?${params.toString()}`, { headers: await authHeader() });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = att.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      triggerToast('Could not download attachment.');
+    }
+  };
+
+  const handleSendCompose = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!composeTo.trim() || !composeBody.trim()) return;
+    setIsSending(true);
+    try {
+      const res = await fetch('/api/integrations/mail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
+        body: JSON.stringify({
+          to: composeTo.trim(),
+          subject: composeSubject.trim() || '(No subject)',
+          body: composeBody.replace(/\n/g, '<br>'),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerToast('Email sent!');
+        setShowCompose(false);
+        setComposeTo('');
+        setComposeSubject('');
+        setComposeBody('');
+      } else {
+        triggerToast(data.error || 'Failed to send email.');
+      }
+    } catch {
+      triggerToast('Error sending email.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -189,8 +343,8 @@ export default function InboxWidget() {
     setIsSending(true);
     try {
       const activeMsg = currentThread.messages?.[currentThread.messages.length - 1];
-      const recipient = activeMsg?.from.includes('matt@zipline.media') 
-        ? currentThread.messages?.[0]?.from 
+      const recipient = activeMsg && isMe(activeMsg.from)
+        ? currentThread.messages?.find(m => !isMe(m.from))?.from || currentThread.messages?.[0]?.from
         : activeMsg?.from;
 
       const cleanRecipient = recipient?.match(/<([^>]+)>/)?.[1] || recipient || '';
@@ -212,7 +366,7 @@ export default function InboxWidget() {
         // Update thread UI locally
         const newMsg: Message = {
           id: data.messageId || `msg_${Date.now()}`,
-          from: 'Matt <matt@zipline.media>',
+          from: accountEmail ? `Me <${accountEmail}>` : 'Matt <matt@zipline.media>',
           to: recipient || 'Unknown',
           date: new Date().toLocaleString(undefined, {
             month: 'short',
@@ -313,12 +467,15 @@ export default function InboxWidget() {
     triggerToast('Template applied to composer.');
   };
 
-  // Filter threads by search query
-  const filteredThreads = threads.filter(t => 
-    t.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.snippet.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    t.label.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Live mode searches server-side (whole mailbox); the client filter only
+  // remains for the offline sandbox where there's no Gmail to ask.
+  const filteredThreads = isLive
+    ? threads
+    : threads.filter(t =>
+        t.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.snippet.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.label.toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
   return (
     <div className="flex-grow flex flex-col h-full bg-zinc-950/20 text-white min-h-[450px] relative select-text">
@@ -398,13 +555,20 @@ export default function InboxWidget() {
                 className="w-full bg-transparent border-none outline-none text-xs font-medium tracking-wide placeholder:opacity-30 text-white"
               />
             </div>
-            <button 
-              onClick={fetchThreads}
+            <button
+              onClick={() => fetchThreads()}
               disabled={isLoadingList}
               className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all text-white/60 hover:text-white cursor-pointer disabled:opacity-40"
               title="Refresh Mail List"
             >
               {isLoadingList ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              onClick={() => setShowCompose(true)}
+              className="p-2.5 bg-accent/15 hover:bg-accent/30 border border-accent/30 rounded-xl transition-all text-accent hover:text-white cursor-pointer"
+              title="Compose New Email"
+            >
+              <SquarePen className="w-3.5 h-3.5" />
             </button>
           </div>
 
@@ -423,12 +587,15 @@ export default function InboxWidget() {
               filteredThreads.map(t => {
                 const isSelected = selectedThreadId === t.id;
                 return (
-                  <button
+                  <div
                     key={t.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedThreadId(t.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') setSelectedThreadId(t.id); }}
                     className={`w-full text-left p-3 rounded-xl border transition-all duration-200 cursor-pointer relative group flex flex-col gap-1.5 ${
-                      isSelected 
-                        ? 'bg-gradient-to-r from-accent/15 to-accent/5 border-accent/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]' 
+                      isSelected
+                        ? 'bg-gradient-to-r from-accent/15 to-accent/5 border-accent/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]'
                         : 'bg-transparent border-transparent hover:bg-white/5'
                     }`}
                   >
@@ -437,16 +604,29 @@ export default function InboxWidget() {
                       <div className="absolute top-4 left-1.5 w-1.5 h-1.5 bg-accent rounded-full shadow-[0_0_8px_var(--accent)]" />
                     )}
 
-                    <div className="flex items-start justify-between gap-3 pl-1">
-                      <span className={`text-xs font-semibold tracking-wide truncate max-w-[70%] ${
-                        t.unread ? 'text-white' : 'text-white/60 group-hover:text-white/80'
+                    <div className="flex items-start justify-between gap-2 pl-1">
+                      <span className={`text-[11px] tracking-wide truncate flex-1 ${
+                        t.unread ? 'text-white font-bold' : 'text-white/60 font-semibold group-hover:text-white/80'
                       }`}>
-                        {t.subject}
+                        {t.from || t.subject}
                       </span>
-                      <span className="text-[9px] font-medium text-white/30 tracking-wide whitespace-nowrap pt-0.5">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); threadAction(t.id, t.starred ? 'unstar' : 'star'); }}
+                        className={`shrink-0 p-0.5 transition-all ${t.starred ? 'text-amber-400' : 'text-white/15 opacity-0 group-hover:opacity-100 hover:text-amber-400'}`}
+                        title={t.starred ? 'Unstar' : 'Star'}
+                      >
+                        <Star className={`w-3.5 h-3.5 ${t.starred ? 'fill-amber-400' : ''}`} />
+                      </button>
+                      <span className="text-[9px] font-medium text-white/30 tracking-wide whitespace-nowrap pt-0.5 shrink-0">
                         {t.lastMessageDate}
                       </span>
                     </div>
+
+                    <span className={`text-xs tracking-wide truncate pl-1 ${
+                      t.unread ? 'text-white/90 font-semibold' : 'text-white/50 font-medium'
+                    }`}>
+                      {t.subject}
+                    </span>
 
                     <p className="text-[10px] font-normal text-white/40 leading-normal line-clamp-2 pl-1 select-none">
                       {t.snippet}
@@ -456,13 +636,52 @@ export default function InboxWidget() {
                       <span className={`px-2 py-0.5 rounded-full text-[7px] font-semibold uppercase tracking-widest border border-${t.labelColor}/20 bg-${t.labelColor}/10 text-${t.labelColor}`}>
                         {t.label}
                       </span>
+                      {t.hasAttachments && (
+                        <Paperclip className="w-3 h-3 text-white/30" />
+                      )}
+
+                      {/* Hover quick actions, Gmail-style */}
+                      <span className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); threadAction(t.id, 'archive'); }}
+                          className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                          title="Archive"
+                        >
+                          <Archive className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); threadAction(t.id, 'trash'); }}
+                          className="p-1 rounded-md text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                          title="Move to Trash"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); threadAction(t.id, 'markUnread'); }}
+                          className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                          title="Mark as Unread"
+                        >
+                          <Mail className="w-3 h-3" />
+                        </button>
+                      </span>
                       {isSelected && (
-                        <ChevronRight className="w-3 h-3 text-accent ml-auto animate-pulse" />
+                        <ChevronRight className="w-3 h-3 text-accent animate-pulse group-hover:hidden ml-auto" />
                       )}
                     </div>
-                  </button>
+                  </div>
                 );
               })
+            )}
+
+            {/* Load older conversations (Gmail pagination) */}
+            {isLive && nextPageToken && !isLoadingList && (
+              <button
+                onClick={() => fetchThreads({ append: true })}
+                disabled={isLoadingMore}
+                className="w-full py-2.5 mt-1 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-[10px] font-semibold uppercase tracking-widest text-white/50 hover:text-white transition-all flex items-center justify-center gap-2"
+              >
+                {isLoadingMore ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Load older conversations'}
+              </button>
             )}
           </div>
         </div>
@@ -489,7 +708,43 @@ export default function InboxWidget() {
 
                 {/* Studio OS Integration Buttons */}
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <button 
+                  {(() => {
+                    const listThread = threads.find(t => t.id === currentThread.id);
+                    return (
+                      <>
+                        <button
+                          onClick={() => threadAction(currentThread.id, listThread?.starred ? 'unstar' : 'star')}
+                          className={`p-2 rounded-lg border border-white/10 transition-all ${listThread?.starred ? 'text-amber-400 bg-amber-400/10' : 'text-white/40 bg-white/5 hover:text-amber-400 hover:bg-white/10'}`}
+                          title={listThread?.starred ? 'Unstar conversation' : 'Star conversation'}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${listThread?.starred ? 'fill-amber-400' : ''}`} />
+                        </button>
+                        <button
+                          onClick={() => threadAction(currentThread.id, 'archive')}
+                          className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                          title="Archive conversation"
+                        >
+                          <Archive className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => threadAction(currentThread.id, 'trash')}
+                          className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                          title="Move conversation to Trash"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => threadAction(currentThread.id, 'markUnread')}
+                          className="p-2 rounded-lg bg-white/5 border border-white/10 text-white/40 hover:text-white hover:bg-white/10 transition-all"
+                          title="Mark as Unread and close"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="w-px h-5 bg-white/10 mx-1" />
+                      </>
+                    );
+                  })()}
+                  <button
                     onClick={handleLinkToSlate}
                     className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-semibold tracking-wide text-white/60 hover:text-white transition-colors cursor-pointer"
                     title="Link Email Conversation to active Slate"
@@ -511,16 +766,16 @@ export default function InboxWidget() {
               {/* Message List Area */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
                 {currentThread.messages?.map((msg, idx) => (
-                  <div 
+                  <div
                     key={msg.id || idx}
                     className={`bg-zinc-950/40 border border-white/10 rounded-2xl p-5 md:p-6 shadow-xl relative overflow-hidden transition-all duration-300 ${
-                      msg.from.includes('matt@zipline.media') 
-                        ? 'border-accent/20 bg-accent/5 ml-6' 
+                      isMe(msg.from)
+                        ? 'border-accent/20 bg-accent/5 ml-6'
                         : 'mr-6'
                     }`}
                   >
                     {/* Ambient layout accents for admin replies */}
-                    {msg.from.includes('matt@zipline.media') && (
+                    {isMe(msg.from) && (
                       <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
                     )}
 
@@ -528,11 +783,11 @@ export default function InboxWidget() {
                     <div className="flex items-start justify-between gap-3 border-b border-white/5 pb-3 mb-4 select-none">
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-semibold border ${
-                          msg.from.includes('matt@zipline.media') 
-                            ? 'bg-accent/15 border-accent/30 text-accent' 
+                          isMe(msg.from)
+                            ? 'bg-accent/15 border-accent/30 text-accent'
                             : 'bg-white/5 border-white/10 text-white/60'
                         }`}>
-                          {msg.from.includes('matt@zipline.media') ? 'ME' : <User className="w-3.5 h-3.5" />}
+                          {isMe(msg.from) ? 'ME' : <User className="w-3.5 h-3.5" />}
                         </div>
                         <div>
                           <p className="text-xs font-semibold tracking-wide text-white">{msg.from}</p>
@@ -552,6 +807,28 @@ export default function InboxWidget() {
                       className="text-sm font-normal leading-relaxed text-white/70 space-y-3 email-rendered-body"
                       dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(msg.body) }}
                     />
+
+                    {/* Attachments */}
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-white/5 flex flex-wrap gap-2 select-none">
+                        {msg.attachments.map(att => (
+                          <button
+                            key={att.attachmentId}
+                            onClick={() => downloadAttachment(att)}
+                            className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-accent/30 rounded-lg transition-all group/att max-w-full"
+                            title={`Download ${att.filename}`}
+                          >
+                            <Paperclip className="w-3.5 h-3.5 text-accent shrink-0" />
+                            <span className="text-[10px] font-semibold text-white/70 group-hover/att:text-white truncate">
+                              {att.filename}
+                            </span>
+                            {att.size > 0 && (
+                              <span className="text-[9px] font-medium text-white/30 shrink-0">{formatBytes(att.size)}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -641,6 +918,81 @@ export default function InboxWidget() {
         </div>
 
       </div>
+
+      {/* Compose New Email */}
+      <AnimatePresence>
+        {showCompose && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={() => setShowCompose(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.96, opacity: 0, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-xl bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-black/40">
+                <h3 className="text-sm font-semibold tracking-wide text-white flex items-center gap-2">
+                  <SquarePen className="w-4 h-4 text-accent" /> New Message
+                </h3>
+                <button onClick={() => setShowCompose(false)} className="text-white/40 hover:text-white transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <form onSubmit={handleSendCompose}>
+                <div className="px-5 divide-y divide-white/5">
+                  <div className="flex items-center gap-3 py-3">
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-white/30 w-14 shrink-0">To</label>
+                    <input
+                      autoFocus
+                      type="email"
+                      required
+                      value={composeTo}
+                      onChange={(e) => setComposeTo(e.target.value)}
+                      placeholder="recipient@example.com"
+                      className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-white placeholder:text-white/20"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3 py-3">
+                    <label className="text-[10px] font-semibold uppercase tracking-widest text-white/30 w-14 shrink-0">Subject</label>
+                    <input
+                      type="text"
+                      value={composeSubject}
+                      onChange={(e) => setComposeSubject(e.target.value)}
+                      placeholder="What's this about?"
+                      className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-white placeholder:text-white/20"
+                    />
+                  </div>
+                  <textarea
+                    value={composeBody}
+                    onChange={(e) => setComposeBody(e.target.value)}
+                    required
+                    placeholder="Write your message..."
+                    className="w-full bg-transparent border-none outline-none text-sm font-normal leading-relaxed text-white/80 placeholder:text-white/20 py-4 min-h-[180px] resize-none focus:ring-0"
+                  />
+                </div>
+                <div className="bg-black/40 border-t border-white/5 px-5 py-3 flex items-center justify-between select-none">
+                  <span className="text-[9px] font-medium text-white/20 tracking-wide">
+                    Sending as {accountEmail || (isLive ? 'connected account' : 'Sandbox')}
+                  </span>
+                  <button
+                    type="submit"
+                    disabled={isSending || !composeTo.trim() || !composeBody.trim()}
+                    className="bg-accent px-5 py-2 rounded-lg text-xs font-semibold tracking-wide text-white hover:bg-white hover:text-black transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {isSending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Send className="w-3 h-3" /> Send</>}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Link-to-Job picker */}
       <AnimatePresence>
