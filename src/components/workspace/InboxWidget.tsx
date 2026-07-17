@@ -522,11 +522,13 @@ export default function InboxWidget() {
       <div className="flex-1 flex min-h-0 relative">
         
         {/* Left Pane: Email Thread List */}
-        <div className="w-full md:w-80 lg:w-96 border-r border-white/5 flex flex-col shrink-0 min-h-0 bg-black/20">
+        {/* On phones the list and the conversation take turns (Gmail-style);
+            side-by-side from md up. */}
+        <div className={`w-full md:w-80 lg:w-96 border-r border-white/5 flex-col shrink-0 min-h-0 bg-black/20 ${selectedThreadId ? 'hidden md:flex' : 'flex'}`}>
           
           {/* Gmail category tabs (Primary / Social / Promotions / Updates) */}
           {isLive && (
-            <div className="flex items-center gap-1 px-3 pt-3 select-none shrink-0">
+            <div className="flex items-center gap-1 px-3 pt-3 select-none shrink-0 flex-wrap">
               {MAIL_CATEGORIES.map(c => (
                 <button
                   key={c.key}
@@ -612,7 +614,7 @@ export default function InboxWidget() {
                       </span>
                       <button
                         onClick={(e) => { e.stopPropagation(); threadAction(t.id, t.starred ? 'unstar' : 'star'); }}
-                        className={`shrink-0 p-0.5 transition-all ${t.starred ? 'text-amber-400' : 'text-white/15 opacity-0 group-hover:opacity-100 hover:text-amber-400'}`}
+                        className={`shrink-0 p-0.5 transition-all ${t.starred ? 'text-amber-400' : 'text-white/25 md:opacity-0 md:group-hover:opacity-100 hover:text-amber-400'}`}
                         title={t.starred ? 'Unstar' : 'Star'}
                       >
                         <Star className={`w-3.5 h-3.5 ${t.starred ? 'fill-amber-400' : ''}`} />
@@ -641,7 +643,7 @@ export default function InboxWidget() {
                       )}
 
                       {/* Hover quick actions, Gmail-style */}
-                      <span className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="ml-auto flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => { e.stopPropagation(); threadAction(t.id, 'archive'); }}
                           className="p-1 rounded-md text-white/40 hover:text-white hover:bg-white/10 transition-all"
@@ -687,7 +689,7 @@ export default function InboxWidget() {
         </div>
 
         {/* Right Pane: Conversation History */}
-        <div className="flex-1 flex flex-col min-w-0 bg-black/10">
+        <div className={`flex-1 flex-col min-w-0 bg-black/10 ${selectedThreadId ? 'flex' : 'hidden md:flex'}`}>
           {isLoadingThread ? (
             <div className="flex-grow flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-accent animate-spin" />
@@ -697,13 +699,23 @@ export default function InboxWidget() {
               
               {/* Thread Header / Context Action Bar */}
               <div className="p-4 md:px-6 bg-black/30 border-b border-white/5 flex flex-wrap items-center justify-between gap-3 select-none shrink-0">
-                <div className="min-w-0">
+                <div className="min-w-0 flex items-center gap-2">
+                  {/* Back to list (phones only) */}
+                  <button
+                    onClick={() => { setSelectedThreadId(null); setCurrentThread(null); }}
+                    className="md:hidden p-2 -ml-1 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white shrink-0"
+                    title="Back to inbox"
+                  >
+                    <CornerUpLeft className="w-4 h-4" />
+                  </button>
+                  <div className="min-w-0">
                   <h3 className="text-sm font-semibold tracking-wide text-white truncate max-w-md">
                     {currentThread.subject}
                   </h3>
                   <p className="text-[9px] font-semibold uppercase tracking-wider text-accent mt-0.5">
                     {currentThread.messages?.length} {currentThread.messages?.length === 1 ? 'Message' : 'Messages'} in thread
                   </p>
+                  </div>
                 </div>
 
                 {/* Studio OS Integration Buttons */}
@@ -934,7 +946,7 @@ export default function InboxWidget() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.96, opacity: 0, y: 10 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-xl bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+              className="w-full max-w-xl max-h-[88vh] overflow-y-auto bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl"
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-black/40">
                 <h3 className="text-sm font-semibold tracking-wide text-white flex items-center gap-2">

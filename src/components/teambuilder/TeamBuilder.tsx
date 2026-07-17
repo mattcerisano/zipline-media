@@ -936,8 +936,9 @@ function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: 
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Manifest order = Call Sheet order, so the arrows live on every row */}
-          <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-all">
+          {/* Manifest order = Call Sheet order, so the arrows live on every row.
+              Always visible on touch screens — hover reveal is desktop-only. */}
+          <div className="flex flex-col md:opacity-0 md:group-hover:opacity-100 transition-all">
             <button
               onClick={onMoveUp}
               disabled={!onMoveUp}
@@ -957,7 +958,7 @@ function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: 
           </div>
           <button
             onClick={onDelete}
-            className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+            className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-all text-white/40 md:text-current md:opacity-0 md:group-hover:opacity-100"
           >
             <Trash2 className="w-4 h-4" />
           </button>

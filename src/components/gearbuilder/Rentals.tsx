@@ -1496,14 +1496,14 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                                         {isCustom && (
                                             <button
                                                 onClick={() => handleEdit(invItem!)}
-                                                className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 hover:text-white transition-all rounded-md"
+                                                className="text-white/40 md:text-current md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-white/10 hover:text-white transition-all rounded-md"
                                             >
                                                 <Pencil className="w-3 h-3" />
                                             </button>
                                         )}
                                         <button 
                                             onClick={() => removeFromManifest(item.name)}
-                                            className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-500/20 hover:text-red-500 transition-all rounded-md"
+                                            className="text-white/40 md:text-current md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-red-500/20 hover:text-red-500 transition-all rounded-md"
                                         >
                                             <X className="w-3 h-3" />
                                         </button>
