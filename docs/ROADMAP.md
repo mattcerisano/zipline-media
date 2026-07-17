@@ -30,6 +30,6 @@ Ranked roughly by on-set impact. Items marked ✅ are done.
 - [x] ✅ **Google sync deletion round-trip** — tombstones so deleted Google events disappear here and in-app marker deletes don't resurrect
 - [ ] **Email round 2** — send attachments, drafts, Sent/Starred/Trash views, undo-send
 - [ ] **Web push notifications** — call-time reminders and @mention pings to phones
-- [ ] **Bounded queries** — date-bound the calendar jobs fetch; paginate Rolodex (currently 1,000 contacts up front)
+- [x] ✅ **Bounded queries** — date-bound the calendar jobs fetch; paginate Rolodex (currently 1,000 contacts up front)
 - [ ] **Component splitting** — Rolodex (2.2k lines), Rentals (2.2k), EditTracker (2k), Slate (1.8k): split opportunistically when touched
 - [ ] **⌘K onboarding surface** — show top features in the empty search palette for new teammates
