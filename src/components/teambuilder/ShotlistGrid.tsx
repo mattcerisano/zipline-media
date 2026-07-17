@@ -8,6 +8,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { JobShot, JobScene } from '@/components/gearbuilder/types';
 import { sanitizeUrl } from '@/lib/sanitize';
+import { confirmAction } from '@/components/Feedback';
 
 // Common option hints for the free-text dropdowns (matching the producer's sheet)
 const MOVEMENT_OPTS = ['Static', 'Handheld', 'Steadicam', 'Drone', 'Gimbal', 'Slider', 'Dolly', 'Pan', 'Tilt', 'Multi'];
@@ -187,7 +188,7 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
   };
 
   const deleteScene = async (id: string) => {
-    if (!confirm('Delete this scene and all of its shots?')) return;
+    if (!(await confirmAction({ message: 'Delete this scene and all of its shots?', danger: true, confirmLabel: 'Delete' }))) return;
     setScenes((prev) => prev.filter((s) => s.id !== id));
     setShots((prev) => prev.filter((s) => s.scene_id !== id));
     await supabase.from('job_shotlist').delete().eq('scene_id', id);

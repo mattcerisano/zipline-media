@@ -10,6 +10,7 @@ import { applyAccent, extractBrandColorFromImage, resetAccent } from '@/lib/bran
 import ThemeSwitcher from './ThemeSwitcher';
 import IntegrationsSettings from './IntegrationsSettings';
 import TeamSettings from './TeamSettings';
+import { confirmAction } from '@/components/Feedback';
 
 interface ProfileSettingsProps {
   session: any;
@@ -117,8 +118,8 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
 
   // Wipe branding back to factory defaults (logo cleared, default blue accent).
   // Previews immediately; nothing persists until Save.
-  const handleResetBranding = () => {
-    if (!window.confirm('Reset branding to defaults?\n\nThis clears the logo and restores the default name, tagline, and color. Nothing is saved until you press Save.')) return;
+  const handleResetBranding = async () => {
+    if (!(await confirmAction({ title: 'Reset branding to defaults?', message: 'This clears the logo and restores the default name, tagline, and color. Nothing is saved until you press Save.', confirmLabel: 'Reset' }))) return;
     setOrg(o => ({
       ...o,
       name: DEFAULT_BRANDING.name,

@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/components/Feedback';
 
 // Define structures matching the main catalog
 interface InventoryItem {
@@ -269,7 +270,7 @@ export default function ShareGearPage() {
 
     const finalName = customOwner.trim() ? `${customName.trim()} [${customOwner.trim()}]` : customName.trim();
     if (allInventory.some(i => i.name.toLowerCase() === finalName.toLowerCase())) {
-      alert('An item with this name already exists.');
+      toast('An item with this name already exists.', 'error');
       return;
     }
 

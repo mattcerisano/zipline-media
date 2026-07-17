@@ -19,6 +19,7 @@ import ShotlistGrid from '@/components/teambuilder/ShotlistGrid';
 import { generateMasterBrief } from '@/lib/pdf-generator';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { formatLocalDate } from '@/lib/date';
+import { toast } from '@/components/Feedback';
 
 const PRESET_COLORS = [
   '#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#4B0082', '#9400D3',
@@ -168,10 +169,10 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
         .eq('id', selectedJobId);
       
       if (error) throw error;
-      alert('Creative Board saved successfully!');
+      toast('Creative Board saved successfully!');
     } catch (err) {
       console.error('Error saving brief:', err);
-      alert('Failed to save Creative Board.');
+      toast('Failed to save Creative Board.');
     } finally {
       setIsSaving(false);
     }
@@ -184,7 +185,7 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
       await generateMasterBrief(selectedJobId);
     } catch (err) {
       console.error(err);
-      alert('Failed to export Production Brief PDF.');
+      toast('Failed to export Production Brief PDF.');
     } finally {
       setIsExporting(false);
     }
@@ -215,7 +216,7 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
       setNewLinkUrl('');
     } catch (err) {
       console.error('Error adding link:', err);
-      alert('Failed to add link');
+      toast('Failed to add link');
     }
   };
 
@@ -232,7 +233,7 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
       setJobLinks(updatedLinks);
     } catch (err) {
       console.error('Error deleting link:', err);
-      alert('Failed to delete link');
+      toast('Failed to delete link');
     }
   };
 

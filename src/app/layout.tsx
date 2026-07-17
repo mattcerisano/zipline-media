@@ -5,6 +5,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import FeedbackHost from "@/components/Feedback";
 
 
 
@@ -66,6 +67,7 @@ export default function RootLayout({
         <main>{children}</main>
         <Footer />
         <ServiceWorkerRegister />
+        <FeedbackHost />
         <Analytics />
       </body>
     </html>

@@ -41,6 +41,7 @@ import { supabase } from '@/lib/supabase';
 import { getBranding } from '@/lib/branding';
 import { useRealtime } from '@/lib/useRealtime';
 import { caps } from '@/lib/format';
+import { toast, confirmAction } from '@/components/Feedback';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -427,7 +428,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     if (!customName.trim()) return;
     const finalName = customOwner.trim() ? `${customName.trim()} [${customOwner.trim()}]` : customName.trim();
     if (finalName !== editingItemName && allInventory.find(i => i.name.toLowerCase() === finalName.toLowerCase())) {
-      alert('Item with this name already exists.');
+      toast('Item with this name already exists.');
       return;
     }
     const newItem: InventoryItem = {
@@ -503,7 +504,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
   const fetchWeather = async () => {
     if (!shootDate || !companyAddr) {
-        alert('Please enter a Location and Shoot Date first.');
+        toast('Please enter a Location and Shoot Date first.');
         return;
     }
     setWeatherLoading(true);
@@ -534,7 +535,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         }
     } catch (err: any) {
         console.error(err);
-        alert(err.message || 'Could not fetch weather. Check address and date.');
+        toast(err.message || 'Could not fetch weather. Check address and date.');
     } finally {
         setWeatherLoading(false);
     }
@@ -543,7 +544,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
   const findHospital = async () => {
      if (!companyAddr) {
-         alert('Please enter a location address first.');
+         toast('Please enter a location address first.');
          return;
      }
      setHospitalLoading(true);
@@ -557,11 +558,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
              setHospitalSuccess(true);
          } else {
              const errorMsg = data.googleStatus ? `${data.error} (Google: ${data.googleStatus})` : (data.error || 'No hospital found nearby.');
-             alert(errorMsg);
+             toast(errorMsg);
          }
      } catch (err) {
          console.error(err);
-         alert('Error searching for hospital.');
+         toast('Error searching for hospital.');
      } finally {
          setHospitalLoading(false);
      }
@@ -569,7 +570,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
   const findParking = async () => {
       if (!companyAddr) {
-          alert('Please enter a location address first.');
+          toast('Please enter a location address first.');
           return;
       }
       setParkingLoading(true);
@@ -583,11 +584,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               setParkingSuccess(true);
           } else {
               const errorMsg = data.googleStatus ? `${data.error} (Google: ${data.googleStatus})` : (data.error || 'No legitimate parking found nearby.');
-              alert(errorMsg);
+              toast(errorMsg);
           }
       } catch (err) {
           console.error(err);
-          alert('Error searching for parking.');
+          toast('Error searching for parking.');
       } finally {
           setParkingLoading(false);
       }
@@ -595,7 +596,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
   const saveJob = async () => {
     if (!jobTitle || !shootDate) {
-      alert('Please enter a Job Title and Shoot Date to log to Slate.');
+      toast('Please enter a Job Title and Shoot Date to log to Slate.');
       return;
     }
 
@@ -674,15 +675,15 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       if (existingJob) {
         setJobs(prev => prev.map(j => j.id === existingJob.id ? res.data![0] as Job : j));
         setSelectedJobId(res.data![0].id);
-        alert('Job updated on Slate successfully!');
+        toast('Job updated on Slate successfully!');
       } else {
         setJobs(prev => [...prev, res.data![0] as Job]);
         setSelectedJobId(res.data![0].id);
-        alert('Job logged to Slate successfully!');
+        toast('Job logged to Slate successfully!');
       }
     } catch (err: any) {
       console.error('Error saving job:', err);
-      alert('Failed to save job to Slate: ' + (err.message || 'Unknown error'));
+      toast('Failed to save job to Slate: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -767,7 +768,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   }, [selectedJobIdProp, jobs]);
 
   const deleteJob = async (jobId: string) => {
-    if (!confirm('Are you sure you want to permanently delete this job from Slate?')) return;
+    if (!(await confirmAction({ message: 'Permanently delete this job from Slate?', danger: true, confirmLabel: 'Delete' }))) return;
     
     try {
       const { error } = await supabase.from('jobs').delete().eq('id', jobId);
@@ -775,13 +776,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       setJobs(prev => prev.filter(j => j.id !== jobId));
     } catch (err: any) {
       console.error('Error deleting job:', err);
-      alert('Failed to delete job: ' + (err.message || 'Unknown error'));
+      toast('Failed to delete job: ' + (err.message || 'Unknown error'));
     }
   };
 
   const saveGearTemplate = async () => {
     if (!newTemplateName.trim()) {
-      alert('Please enter a template name.');
+      toast('Please enter a template name.');
       return;
     }
 
@@ -802,15 +803,15 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       setIsSaveTemplateModalOpen(false);
       setNewTemplateName('');
       setNewTemplateDesc('');
-      alert('Gear package template saved successfully!');
+      toast('Gear package template saved successfully!');
     } catch (err: any) {
       console.error('Error saving template:', err);
-      alert('Failed to save template: ' + (err.message || 'Unknown error'));
+      toast('Failed to save template: ' + (err.message || 'Unknown error'));
     }
   };
 
   const deleteGearTemplate = async (templateId: string) => {
-    if (!confirm('Are you sure you want to permanently delete this gear package template?')) return;
+    if (!(await confirmAction({ message: 'Permanently delete this gear package template?', danger: true, confirmLabel: 'Delete' }))) return;
 
     try {
       const { error } = await supabase
@@ -823,7 +824,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       setGearTemplates(prev => prev.filter(t => t.id !== templateId));
     } catch (err: any) {
       console.error('Error deleting template:', err);
-      alert('Failed to delete template: ' + (err.message || 'Unknown error'));
+      toast('Failed to delete template: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -840,7 +841,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       });
     }
     setActiveSidebarTab('gear');
-    alert(`Loaded template "${template.name}" successfully!`);
+    toast(`Loaded template "${template.name}" successfully!`);
   };
 
   const shareGearList = () => {
