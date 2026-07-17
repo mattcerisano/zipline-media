@@ -1484,14 +1484,15 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                                 const isCustom = customGear.some(c => c.name === item.name);
                                 
                                 return (
-                                <div key={item.name} className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5 group">
-                                    <div className="flex-1 min-w-0 pr-4">
-                                    <p className="text-xs font-semibold truncate">{item.name}</p>
-                                    <p className="text-[10px] opacity-40 font-medium">
+                                <div key={item.name} className="flex items-start justify-between bg-white/5 p-3 rounded-lg border border-white/5 group">
+                                    <div className="flex-1 min-w-0 pr-2">
+                                    {/* Full name wraps — truncating made long gear names unreadable while building */}
+                                    <p className="text-xs font-semibold break-words leading-snug">{item.name}</p>
+                                    <p className="text-[10px] opacity-40 font-medium mt-0.5">
                                         X{item.count} • ${( (invItem?.replacement || 0) * item.count ).toLocaleString()}
                                     </p>
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1 shrink-0">
                                         {isCustom && (
                                             <button
                                                 onClick={() => handleEdit(invItem!)}

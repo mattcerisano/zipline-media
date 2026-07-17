@@ -61,11 +61,12 @@ export async function generateMasterBrief(jobId: string): Promise<void> {
     const [br, bg, bb] = hexToRgb(branding.brand_color);
     const brandLogo = branding.logo_url ? await getBase64ImageFromUrl(branding.logo_url) : null;
 
-    // 2. Fetch Crew roles
+    // 2. Fetch Crew roles in the order set on the Crew Manifest
     const { data: rolesData, error: rolesErr } = await supabase
       .from('job_roles')
       .select('*, contact:contacts(*)')
-      .eq('job_id', jobId);
+      .eq('job_id', jobId)
+      .order('sort_order', { ascending: true, nullsFirst: false });
 
     const roles: JobRole[] = rolesData || [];
 

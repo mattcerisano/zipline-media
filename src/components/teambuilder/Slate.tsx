@@ -379,6 +379,10 @@ export default function Slate({
           sendNotification(`status_${newStatus.toLowerCase()}`, data as Job, prevStatus);
         }
       } else {
+        // New productions stay off the Edit Tracker board until someone adds
+        // them there. Explicit null beats the legacy DEFAULT 'Filmed' on
+        // databases that haven't dropped it yet.
+        (jobPayload as any).edit_status = null;
         const { data, error } = await supabase
           .from('jobs')
           .insert([jobPayload])
@@ -456,6 +460,9 @@ export default function Slate({
         ...copy,
         title: nextDayTitle(job.title),
         shoot_date: job.shoot_date ? nextShootDate(job.shoot_date) : undefined,
+        // Duplicated days start clean in post — keep them off the Edit
+        // Tracker board (explicit null beats the legacy DB default).
+        edit_status: null,
       };
 
       const { data, error } = await supabase
@@ -540,11 +547,12 @@ export default function Slate({
 
   const generateCallSheet = async (job: Job, options: CallSheetOptions = DEFAULT_CALL_SHEET_OPTIONS) => {
     try {
-      // Fetch crew roles
+      // Fetch crew roles in the order set on the Crew Manifest
       const { data: rolesData, error: rolesError } = await supabase
         .from('job_roles')
         .select('*, contact:contacts(*)')
-        .eq('job_id', job.id);
+        .eq('job_id', job.id)
+        .order('sort_order', { ascending: true, nullsFirst: false });
 
       if (rolesError) throw rolesError;
       const roles = rolesData || [];

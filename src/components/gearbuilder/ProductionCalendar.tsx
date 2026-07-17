@@ -19,7 +19,11 @@ export const EVENT_PRESETS: { key: CalendarEventPreset; label: string; color: st
   { key: 'available', label: 'Available', color: '#14b8a6', dot: 'bg-teal-500' },
   { key: 'travel', label: 'Travel Day', color: '#a855f7', dot: 'bg-purple-500' },
   { key: 'edit', label: 'Edit Day', color: '#d946ef', dot: 'bg-fuchsia-500' },
+  // Imported from Google Calendar by the sync — not offered in the quick-add
+  // menus (see QUICK_ADD_PRESETS) since these come from the connected account.
+  { key: 'google', label: 'Google Calendar', color: '#38bdf8', dot: 'bg-sky-400' },
 ];
+const QUICK_ADD_PRESETS = EVENT_PRESETS.filter(p => p.key !== 'google');
 const presetOf = (k?: string) => EVENT_PRESETS.find(p => p.key === k) || EVENT_PRESETS[0];
 
 interface ProductionCalendarProps {
@@ -481,7 +485,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                         <span className="text-[10px] font-semibold text-white/40">Quick add</span>
                         <button onClick={() => setQuickAddDate(null)} className="text-white/40 hover:text-white"><X className="w-3 h-3" /></button>
                       </div>
-                      {EVENT_PRESETS.map(p => (
+                      {QUICK_ADD_PRESETS.map(p => (
                         <button
                           key={p.key}
                           onClick={() => addQuickEvent(d.date, p.key)}
@@ -526,7 +530,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
             {enableQuickEvents && (
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-1.5">
-                  {EVENT_PRESETS.map(p => (
+                  {QUICK_ADD_PRESETS.map(p => (
                     <button
                       key={p.key}
                       onClick={() => addQuickEvent(selectedDate, p.key)}
