@@ -22,6 +22,7 @@ import {
   ClipboardList,
   LayoutTemplate,
   ChevronRight,
+  ChevronUp,
   MapPin,
   AlignLeft
 } from 'lucide-react';
@@ -107,7 +108,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
     const fetchJobData = async () => {
       try {
         const [rolesRes, schedulesRes, todosRes] = await Promise.all([
-          supabase.from('job_roles').select('*, contact:contacts(*)').eq('job_id', selectedJobId),
+          supabase.from('job_roles').select('*, contact:contacts(*)').eq('job_id', selectedJobId).order('sort_order', { ascending: true, nullsFirst: false }),
           supabase.from('job_schedules').select('*').eq('job_id', selectedJobId).order('sort_order', { ascending: true }),
           supabase.from('job_todos').select('*').eq('job_id', selectedJobId).order('sort_order', { ascending: true })
         ]);
@@ -132,12 +133,36 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
   const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId), [jobs, selectedJobId]);
 
   const addRole = () => {
+    const maxSortOrder = jobRoles.reduce((max, r) => Math.max(max, r.sort_order ?? -1), -1);
     const newRole: Partial<JobRole> = {
       job_id: selectedJobId,
       position: 'New Position',
       department: 'Production',
+      sort_order: maxSortOrder + 1,
     };
     handleSaveRole(newRole as JobRole);
+  };
+
+  // Move a crew member up/down the manifest. The on-screen order is the order
+  // used by the Call Sheet and Master Brief exports, so persist the whole
+  // sequence (index = sort_order) after the swap.
+  const moveRole = async (index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= jobRoles.length) return;
+    const next = [...jobRoles];
+    [next[index], next[target]] = [next[target], next[index]];
+    const renumbered = next.map((r, i) => ({ ...r, sort_order: i }));
+    setJobRoles(renumbered);
+    try {
+      await Promise.all(
+        renumbered.map(r =>
+          supabase.from('job_roles').update({ sort_order: r.sort_order }).eq('id', r.id)
+        )
+      );
+    } catch (err) {
+      console.error('Error saving crew order:', err);
+      alert('Failed to save the new crew order. If this persists, the sort_order migration may not have been applied.');
+    }
   };
 
   const addScheduleItem = () => {
@@ -227,11 +252,13 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
     setIsSaving(true);
     
     try {
-      const rolesToInsert = template.roles.map(r => ({
+      const baseSortOrder = jobRoles.reduce((max, r) => Math.max(max, r.sort_order ?? -1), -1) + 1;
+      const rolesToInsert = template.roles.map((r, i) => ({
         job_id: selectedJobId,
         position: r.position,
         department: r.department,
-        day_rate: r.day_rate
+        day_rate: r.day_rate,
+        sort_order: baseSortOrder + i
       }));
 
       const { error } = await supabase
@@ -244,7 +271,8 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       const { data: newRoles, error: fetchError } = await supabase
         .from('job_roles')
         .select('*, contact:contacts(*)')
-        .eq('job_id', selectedJobId);
+        .eq('job_id', selectedJobId)
+        .order('sort_order', { ascending: true, nullsFirst: false });
       
       if (fetchError) throw fetchError;
       setJobRoles(newRoles as JobRole[]);
@@ -586,12 +614,14 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
           <div className="space-y-3">
             {activeTab === 'crew' && (
               <AnimatePresence>
-                {jobRoles.map((role) => (
-                  <RoleItem 
-                    key={role.id} 
-                    role={role} 
+                {jobRoles.map((role, index) => (
+                  <RoleItem
+                    key={role.id}
+                    role={role}
                     onUpdate={handleSaveRole}
                     onDelete={() => deleteRole(role.id)}
+                    onMoveUp={index > 0 ? () => moveRole(index, -1) : undefined}
+                    onMoveDown={index < jobRoles.length - 1 ? () => moveRole(index, 1) : undefined}
                     contacts={contacts}
                   />
                 ))}
@@ -833,10 +863,12 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
   );
 }
 
-function RoleItem({ role, onUpdate, onDelete, contacts }: { 
-  role: JobRole, 
+function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: {
+  role: JobRole,
   onUpdate: (role: JobRole) => void,
   onDelete: () => void,
+  onMoveUp?: () => void,
+  onMoveDown?: () => void,
   contacts: Contact[]
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -904,7 +936,26 @@ function RoleItem({ role, onUpdate, onDelete, contacts }: {
         </div>
 
         <div className="flex items-center gap-2">
-          <button 
+          {/* Manifest order = Call Sheet order, so the arrows live on every row */}
+          <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-all">
+            <button
+              onClick={onMoveUp}
+              disabled={!onMoveUp}
+              className="p-1 hover:bg-white/10 hover:text-accent rounded transition-all disabled:opacity-20 disabled:hover:bg-transparent"
+              title="Move up the call sheet"
+            >
+              <ChevronUp className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={onMoveDown}
+              disabled={!onMoveDown}
+              className="p-1 hover:bg-white/10 hover:text-accent rounded transition-all disabled:opacity-20 disabled:hover:bg-transparent"
+              title="Move down the call sheet"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <button
             onClick={onDelete}
             className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-all opacity-0 group-hover:opacity-100"
           >

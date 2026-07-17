@@ -75,6 +75,7 @@ export interface JobRole {
   flat_fee?: number;
   is_overtime?: boolean;
   notes?: string;
+  sort_order?: number;
   contact?: Contact; // Hydrated
 }
 
@@ -162,7 +163,7 @@ export interface NotificationEvent {
   updated_at?: string;
 }
 
-export type CalendarEventPreset = 'timeout' | 'booked' | 'planning' | 'hold' | 'available' | 'travel' | 'edit';
+export type CalendarEventPreset = 'timeout' | 'booked' | 'planning' | 'hold' | 'available' | 'travel' | 'edit' | 'google';
 
 export interface CalendarEvent {
   id: string;
@@ -172,6 +173,8 @@ export interface CalendarEvent {
   end_date?: string | null;
   notes?: string;
   job_id?: string | null;
+  /** Set when the marker was imported from Google Calendar (read-mostly; re-sync restores it). */
+  google_event_id?: string | null;
 }
 
 export interface JobScene {

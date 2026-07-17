@@ -274,6 +274,9 @@ export async function POST(request: Request) {
               job_status: 'Scheduled',
               shoot_date: shootDate || new Date().toISOString().split('T')[0],
               call_time: callTime || '08:00 AM',
+              // Edit Tracker is opt-in — explicit null beats the legacy
+              // DEFAULT 'Filmed' on databases that haven't run the migration.
+              edit_status: null,
             };
 
             const clientMatch = description.match(/Client:\s*(.+)/);
@@ -303,13 +306,80 @@ export async function POST(request: Request) {
         const { error: bulkInsertErr } = await supabaseAdmin
           .from('jobs')
           .insert(jobsToInsert);
-        
+
         if (bulkInsertErr) {
           throw new Error(`Bulk insert failed: ${bulkInsertErr.message}`);
         }
       }
 
-      return NextResponse.json({ success: true, message: `Synced ${syncCount} existing jobs. Created ${createCount} new jobs from Google Calendar.` });
+      // Also import the connected account's regular events (meetings, holds,
+      // anything without the 🎥 job marker) as read-mostly calendar markers so
+      // the team calendar actually shows up in Command Center. Idempotent via
+      // google_event_id upsert; fails soft on deployments missing the column.
+      let importCount = 0;
+      try {
+        const timeMin = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const timeMax = new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString();
+        const evRes = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=250` +
+            `&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (evRes.ok) {
+          const evData = await evRes.json();
+          const markers: any[] = [];
+
+          for (const event of evData.items || []) {
+            const summary: string = event.summary || '';
+            // 🎥 events are productions — they sync as jobs above, not markers.
+            if (summary.startsWith('🎥') || !event.id) continue;
+            if (event.status === 'cancelled') continue;
+
+            const startDate: string | null =
+              event.start?.date || event.start?.dateTime?.split('T')[0] || null;
+            if (!startDate) continue;
+
+            // Google all-day end dates are exclusive; walk back one day so a
+            // single-day event doesn't paint two calendar cells.
+            let endDate: string | null = null;
+            if (event.end?.date) {
+              const d = new Date(`${event.end.date}T12:00:00Z`);
+              d.setUTCDate(d.getUTCDate() - 1);
+              const inclusive = d.toISOString().split('T')[0];
+              if (inclusive > startDate) endDate = inclusive;
+            } else if (event.end?.dateTime) {
+              const inclusive = event.end.dateTime.split('T')[0];
+              if (inclusive > startDate) endDate = inclusive;
+            }
+
+            markers.push({
+              title: summary || '(No title)',
+              preset: 'google',
+              event_date: startDate,
+              end_date: endDate,
+              google_event_id: event.id,
+            });
+          }
+
+          if (markers.length > 0) {
+            const { error: markerErr } = await supabaseAdmin
+              .from('calendar_events')
+              .upsert(markers, { onConflict: 'google_event_id' });
+            if (markerErr) {
+              console.warn('Google event import skipped:', markerErr.message);
+            } else {
+              importCount = markers.length;
+            }
+          }
+        }
+      } catch (importErr: any) {
+        // Import is additive — a failure here must not break the job sync.
+        console.warn('Google event import failed:', importErr?.message);
+      }
+
+      const importMsg = importCount > 0 ? ` Imported ${importCount} Google Calendar events.` : '';
+      return NextResponse.json({ success: true, message: `Synced ${syncCount} existing jobs. Created ${createCount} new jobs from Google Calendar.${importMsg}` });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

@@ -139,10 +139,20 @@ const MOCK_THREADS = [
   }
 ];
 
+// Gmail's standard inbox tabs. The values are Gmail search operators used
+// with threads.list's `q` param — identical to how Gmail's own tab bar works.
+const GMAIL_CATEGORIES: Record<string, string> = {
+  primary: 'category:primary',
+  social: 'category:social',
+  promotions: 'category:promotions',
+  updates: 'category:updates',
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action') || 'list';
   const threadId = searchParams.get('threadId');
+  const category = searchParams.get('category');
 
   // Identity comes from the caller's verified session, never a query param, so
   // a signed-in user can only ever read their own mailbox.
@@ -161,9 +171,12 @@ export async function GET(request: Request) {
 
   try {
     if (action === 'list') {
-      // 2. Fetch list of recent email threads
+      // 2. Fetch list of recent email threads, scoped to a Gmail tab when the
+      // client asked for one (Primary / Social / Promotions / Updates).
+      const categoryQuery = category ? GMAIL_CATEGORIES[category] : undefined;
       const resList = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=15`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=15` +
+          (categoryQuery ? `&q=${encodeURIComponent(categoryQuery)}` : ''),
         {
           headers: { Authorization: `Bearer ${token}` }
         }

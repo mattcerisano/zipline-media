@@ -59,8 +59,18 @@ function sanitizeEmailHtml(html: string): string {
   return clean.replace(/<a\s/gi, '<a target="_blank" rel="noopener noreferrer" ');
 }
 
+// Gmail's standard inbox tabs, mirrored 1:1 by the API route.
+const MAIL_CATEGORIES = [
+  { key: 'primary', label: 'Primary' },
+  { key: 'social', label: 'Social' },
+  { key: 'promotions', label: 'Promotions' },
+  { key: 'updates', label: 'Updates' },
+] as const;
+type MailCategory = (typeof MAIL_CATEGORIES)[number]['key'];
+
 export default function InboxWidget() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [category, setCategory] = useState<MailCategory>('primary');
   const [threads, setThreads] = useState<Thread[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [currentThread, setCurrentThread] = useState<Thread | null>(null);
@@ -116,12 +126,12 @@ export default function InboxWidget() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch threads once we have a userId
+  // Fetch threads once we have a userId, and refetch when switching Gmail tabs
   useEffect(() => {
     if (userId) {
       fetchThreads();
     }
-  }, [userId]);
+  }, [userId, category]);
 
   // Fetch thread details when thread selection changes
   useEffect(() => {
@@ -134,7 +144,7 @@ export default function InboxWidget() {
     if (!userId) return;
     setIsLoadingList(true);
     try {
-      const res = await fetch(`/api/integrations/mail?action=list`, { headers: await authHeader() });
+      const res = await fetch(`/api/integrations/mail?action=list&category=${category}`, { headers: await authHeader() });
       const data = await res.json();
       if (data.threads) {
         setThreads(data.threads);
@@ -357,6 +367,25 @@ export default function InboxWidget() {
         {/* Left Pane: Email Thread List */}
         <div className="w-full md:w-80 lg:w-96 border-r border-white/5 flex flex-col shrink-0 min-h-0 bg-black/20">
           
+          {/* Gmail category tabs (Primary / Social / Promotions / Updates) */}
+          {isLive && (
+            <div className="flex items-center gap-1 px-3 pt-3 select-none shrink-0">
+              {MAIL_CATEGORIES.map(c => (
+                <button
+                  key={c.key}
+                  onClick={() => setCategory(c.key)}
+                  className={`px-2.5 py-1.5 rounded-lg text-[9px] font-semibold uppercase tracking-wider transition-all ${
+                    category === c.key
+                      ? 'bg-accent/15 text-accent border border-accent/30'
+                      : 'text-white/40 border border-transparent hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* List Search Header */}
           <div className="p-4 border-b border-white/5 flex items-center gap-2 select-none shrink-0">
             <div className="flex-grow bg-black/40 border border-white/10 rounded-xl px-3 py-2 flex items-center gap-2 focus-within:border-accent transition-colors">
