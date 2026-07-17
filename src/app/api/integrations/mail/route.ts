@@ -153,6 +153,8 @@ export async function GET(request: Request) {
   const action = searchParams.get('action') || 'list';
   const threadId = searchParams.get('threadId');
   const category = searchParams.get('category');
+  const q = searchParams.get('q');
+  const pageToken = searchParams.get('pageToken');
 
   // Identity comes from the caller's verified session, never a query param, so
   // a signed-in user can only ever read their own mailbox.
@@ -171,12 +173,15 @@ export async function GET(request: Request) {
 
   try {
     if (action === 'list') {
-      // 2. Fetch list of recent email threads, scoped to a Gmail tab when the
-      // client asked for one (Primary / Social / Promotions / Updates).
+      // 2. Fetch list of recent email threads. A user search (`q`) spans the
+      // whole mailbox exactly like Gmail's search bar; otherwise the category
+      // tab (Primary / Social / Promotions / Updates) scopes the view.
       const categoryQuery = category ? GMAIL_CATEGORIES[category] : undefined;
+      const searchQ = q?.trim() ? q.trim() : categoryQuery;
       const resList = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=15` +
-          (categoryQuery ? `&q=${encodeURIComponent(categoryQuery)}` : ''),
+        `https://gmail.googleapis.com/gmail/v1/users/me/threads?maxResults=25` +
+          (searchQ ? `&q=${encodeURIComponent(searchQ)}` : '') +
+          (pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''),
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -188,6 +193,16 @@ export async function GET(request: Request) {
 
       const listData = await resList.json();
       const threads = listData.threads || [];
+
+      // The connected account's own address, so the client can tell "me"
+      // apart from everyone else (message alignment, reply targets).
+      let accountEmail: string | null = null;
+      try {
+        const profRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (profRes.ok) accountEmail = (await profRes.json()).emailAddress || null;
+      } catch { /* cosmetic only */ }
 
       // Fetch details for each thread in parallel
       const threadDetails = await Promise.all(
@@ -219,18 +234,22 @@ export async function GET(request: Request) {
             const from = getHeader(lastMsg, 'From') || 'Unknown';
             const snippet = lastMsg.snippet || '';
 
-            // Format date relative or short format
+            // Gmail-style dates: time of day for today's mail, short date otherwise
             const dateStr = getHeader(lastMsg, 'Date');
             let formattedDate = 'Recent';
             if (dateStr) {
               const d = new Date(dateStr);
-              formattedDate = isNaN(d.getTime())
-                ? 'Recent'
-                : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+              if (!isNaN(d.getTime())) {
+                formattedDate = d.toDateString() === new Date().toDateString()
+                  ? d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+                  : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+              }
             }
 
             // Determine if unread (contains UNREAD label)
             const isUnread = messages.some((m: any) => m.labelIds?.includes('UNREAD'));
+            const starred = messages.some((m: any) => m.labelIds?.includes('STARRED'));
+            const hasAttachments = messages.some((m: any) => collectAttachments(m).length > 0);
 
             // Label mapping (Client, Crew, Billing) based on content or headers
             let label = 'General';
@@ -256,8 +275,11 @@ export async function GET(request: Request) {
               id: t.id,
               subject,
               snippet,
+              from: parseFromName(from),
               lastMessageDate: formattedDate,
               unread: isUnread,
+              starred,
+              hasAttachments,
               label,
               labelColor
             };
@@ -269,7 +291,12 @@ export async function GET(request: Request) {
       );
 
       const filteredThreads = threadDetails.filter(Boolean);
-      return NextResponse.json({ threads: filteredThreads, isLive: true });
+      return NextResponse.json({
+        threads: filteredThreads,
+        nextPageToken: listData.nextPageToken || null,
+        accountEmail,
+        isLive: true
+      });
     }
 
     if (action === 'thread') {
@@ -361,7 +388,8 @@ export async function GET(request: Request) {
           to: getHeader('To') || 'Unknown',
           date: formattedDate,
           snippet: msg.snippet || '',
-          body: bodyHtml
+          body: bodyHtml,
+          attachments: collectAttachments(msg)
         };
       });
 
@@ -392,11 +420,95 @@ export async function GET(request: Request) {
       });
     }
 
+    if (action === 'attachment') {
+      // Stream one attachment down to the browser. The id pair comes from the
+      // thread payload we produced, and Gmail scopes it to this account's
+      // token, so there's nothing extra to authorize here.
+      const messageId = searchParams.get('messageId');
+      const attachmentId = searchParams.get('attachmentId');
+      const filename = (searchParams.get('filename') || 'attachment').replace(/[\r\n"\\]/g, '_');
+      const mime = searchParams.get('mime') || 'application/octet-stream';
+      if (!messageId || !attachmentId) {
+        return NextResponse.json({ error: 'messageId and attachmentId are required' }, { status: 400 });
+      }
+
+      const attRes = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!attRes.ok) {
+        throw new Error(`Gmail attachment fetch returned status ${attRes.status}`);
+      }
+      const attData = await attRes.json();
+      const buf = Buffer.from(attData.data || '', 'base64url');
+      return new NextResponse(new Uint8Array(buf), {
+        headers: {
+          'Content-Type': mime,
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'private, max-age=300',
+        },
+      });
+    }
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (err: any) {
     console.error('Gmail API Endpoint Error:', err.message);
     // If live API calls fail, fallback to mock data so layout remains fully operational
     return handleMockActions(action, threadId);
+  }
+}
+
+// Thread-level actions: archive, trash, star, read state. Mirrors Gmail's own
+// toolbar — all are label operations under the hood (gmail.modify scope).
+const THREAD_OPS: Record<string, { add?: string[]; remove?: string[]; trash?: boolean }> = {
+  archive: { remove: ['INBOX'] },
+  trash: { trash: true },
+  markRead: { remove: ['UNREAD'] },
+  markUnread: { add: ['UNREAD'] },
+  star: { add: ['STARRED'] },
+  unstar: { remove: ['STARRED'] },
+};
+
+export async function PATCH(request: Request) {
+  const userId = await getAuthedUserId(request);
+  if (!userId) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
+  try {
+    const { threadId, op } = await request.json();
+    const spec = op ? THREAD_OPS[op] : undefined;
+    if (!threadId || !spec) {
+      return NextResponse.json({ error: 'A threadId and a valid op are required' }, { status: 400 });
+    }
+
+    const token = await getValidGoogleToken(userId);
+    if (!token) {
+      // Sandbox mode: report success so the optimistic UI stays coherent.
+      return NextResponse.json({ success: true, isMock: true });
+    }
+
+    const url = spec.trash
+      ? `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}/trash`
+      : `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}/modify`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: spec.trash
+        ? undefined
+        : JSON.stringify({ addLabelIds: spec.add || [], removeLabelIds: spec.remove || [] }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Gmail ${op} returned status ${res.status}: ${errText}`);
+    }
+
+    return NextResponse.json({ success: true, isLive: true });
+  } catch (err: any) {
+    console.error('Gmail thread action failed:', err.message);
+    return NextResponse.json({ error: err.message || 'Thread action failed' }, { status: 500 });
   }
 }
 
@@ -477,6 +589,42 @@ function getHeaderValue(msg: any, name: string): string {
     (h: any) => h.name.toLowerCase() === name.toLowerCase()
   );
   return header ? header.value : '';
+}
+
+// "Jane Doe <jane@x.com>" → "Jane Doe"; bare addresses pass through.
+function parseFromName(from: string): string {
+  const name = from.replace(/<[^>]*>/g, '').replace(/["']/g, '').trim();
+  return name || from.match(/<([^>]+)>/)?.[1] || from;
+}
+
+interface AttachmentMeta {
+  messageId: string;
+  attachmentId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+}
+
+// Walk a message's MIME tree collecting real attachments (parts with a
+// filename and a server-side attachment body).
+function collectAttachments(msg: any): AttachmentMeta[] {
+  const out: AttachmentMeta[] = [];
+  const walk = (parts: any[]) => {
+    for (const part of parts || []) {
+      if (part.filename && part.body?.attachmentId) {
+        out.push({
+          messageId: msg.id,
+          attachmentId: part.body.attachmentId,
+          filename: part.filename,
+          mimeType: part.mimeType || 'application/octet-stream',
+          size: part.body.size || 0,
+        });
+      }
+      if (part.parts) walk(part.parts);
+    }
+  };
+  if (msg.payload?.parts) walk(msg.payload.parts);
+  return out;
 }
 
 function handleMockActions(action: string, threadId: string | null) {
