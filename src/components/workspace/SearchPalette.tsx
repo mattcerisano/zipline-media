@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Briefcase, Users, Building2, Loader2, Sparkles, X } from 'lucide-react';
+import { Search, Briefcase, Users, Building2, Loader2, Sparkles, X, Zap } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { APP_FEATURES } from '@/lib/feature-registry';
 import {
   ensureModel,
   getSemanticStatus,
@@ -21,7 +22,7 @@ import {
 
 interface Hit {
   key: string;
-  type: 'job' | 'contact' | 'client';
+  type: 'job' | 'contact' | 'client' | 'feature';
   title: string;
   subtitle: string;
   id: string;
@@ -38,9 +39,13 @@ interface SearchPaletteProps {
   onClose: () => void;
   onOpenJob: (jobId: string) => void;
   onOpenContacts: () => void;
+  /** Navigate to a Command Center tab (feature results). */
+  onNavigate?: (tabId: string) => void;
+  /** Tab ids visible to this user — feature results outside this set are hidden. */
+  availableTabs?: string[];
 }
 
-export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts }: SearchPaletteProps) {
+export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts, onNavigate, availableTabs }: SearchPaletteProps) {
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<Hit[]>([]);
   const [corpus, setCorpus] = useState<Corpus | null>(null);
@@ -80,6 +85,14 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
             const key = `client:${cl.id}`;
             docs.push({ key, text: [cl.name, cl.notes].filter(Boolean).join(' · ') });
             meta.set(key, { key, type: 'client', id: cl.id, title: cl.name || 'Unnamed', subtitle: 'Client' });
+          }
+          // App capabilities: "export a call sheet" should find the feature
+          // even when no data matches. Hidden for tabs this user can't see.
+          for (const f of APP_FEATURES) {
+            if (availableTabs && !availableTabs.includes(f.tab)) continue;
+            const key = `feature:${f.id}`;
+            docs.push({ key, text: [f.title, f.description, f.keywords].join(' · ') });
+            meta.set(key, { key, type: 'feature', id: f.tab, title: f.title, subtitle: f.description });
           }
           setCorpus({ docs, meta });
         } catch (err) {
@@ -132,8 +145,9 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
   const openHit = useCallback((hit: Hit) => {
     onClose();
     if (hit.type === 'job') onOpenJob(hit.id);
+    else if (hit.type === 'feature') onNavigate?.(hit.id);
     else onOpenContacts();
-  }, [onClose, onOpenJob, onOpenContacts]);
+  }, [onClose, onOpenJob, onOpenContacts, onNavigate]);
 
   // Keyboard: arrows to move, enter to open, esc to close.
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -143,8 +157,8 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
     else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
   };
 
-  const typeIcon = { job: Briefcase, contact: Users, client: Building2 };
-  const typeLabel = { job: 'Production', contact: 'Contact', client: 'Client' };
+  const typeIcon = { job: Briefcase, contact: Users, client: Building2, feature: Zap };
+  const typeLabel = { job: 'Production', contact: 'Contact', client: 'Client', feature: 'Feature' };
 
   return (
     <AnimatePresence>
@@ -169,7 +183,7 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="Search productions, contacts, clients…"
+                placeholder="Search productions, contacts, clients, or features…"
                 className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-white/25"
               />
               <button onClick={onClose} className="p-1 text-white/30 hover:text-white transition-colors">
@@ -181,7 +195,7 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
             <div className="max-h-[50vh] overflow-y-auto">
               {query.trim() === '' ? (
                 <p className="px-4 py-8 text-center text-[11px] text-white/30">
-                  Try &ldquo;the beverage shoot with the crane&rdquo; — smart search matches meaning, not just words.
+                  Try &ldquo;the beverage shoot with the crane&rdquo; — or ask for a feature, like &ldquo;export a call sheet&rdquo;.
                 </p>
               ) : hits.length === 0 ? (
                 <p className="px-4 py-8 text-center text-[11px] text-white/30">No matches.</p>

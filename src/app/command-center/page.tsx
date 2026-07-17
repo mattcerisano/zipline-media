@@ -1264,6 +1264,11 @@ export default function CommandCenterPage() {
           setActiveTab('rolodex');
           localStorage.setItem('studio_active_tab', 'rolodex');
         }}
+        onNavigate={(tabId) => {
+          setActiveTab(tabId);
+          localStorage.setItem('studio_active_tab', tabId);
+        }}
+        availableTabs={tabs.map(t => t.id)}
       />
 
       {/* Profile & Branding Settings Modal */}
