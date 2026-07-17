@@ -554,6 +554,39 @@ export default function CommandCenterPage() {
     }
   };
 
+  // Silent background pull while the app is open, so nobody has to remember to
+  // hit sync — new Google events flow in via Supabase realtime with no reload.
+  // The server-side cron covers the hours when nobody is looking. Throttled in
+  // localStorage so several open tabs don't multiply the Google API traffic.
+  useEffect(() => {
+    if (!session?.access_token) return;
+    const AUTO_SYNC_MS = 10 * 60 * 1000;
+    const THROTTLE_KEY = 'google_calendar_last_auto_sync';
+
+    const silentSync = async () => {
+      const last = Number(localStorage.getItem(THROTTLE_KEY) || 0);
+      if (Date.now() - last < AUTO_SYNC_MS - 5000) return;
+      localStorage.setItem(THROTTLE_KEY, String(Date.now()));
+      try {
+        await fetch('/api/integrations/calendar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ action: 'pull' }),
+        });
+      } catch {
+        // Background sync failures stay silent — the manual button still
+        // surfaces errors when the user wants details.
+      }
+    };
+
+    silentSync();
+    const interval = setInterval(silentSync, AUTO_SYNC_MS);
+    return () => clearInterval(interval);
+  }, [session?.access_token]);
+
   const fetchUserRole = async (userId: string, email: string, setDefaultTab = false) => {
     setIsLoading(true);
 
