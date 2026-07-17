@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
+import { loadMyScratchNotes, saveMyScratchNotes } from '@/lib/team-prefs';
 import { Job } from '@/components/gearbuilder/types';
 
 import Slate from '@/components/teambuilder/Slate';
@@ -956,10 +957,27 @@ function NotesWidget() {
     }
     return '';
   });
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Profile copy wins over this browser's copy, so notes follow the user
+  // across devices. Only applied before any local typing this session.
+  const touched = useRef(false);
+  useEffect(() => {
+    loadMyScratchNotes().then((remote) => {
+      if (remote !== null && !touched.current) {
+        setNotes(remote);
+        localStorage.setItem('studio_scratch_notes', remote);
+      }
+    });
+  }, []);
 
   const saveNotes = (val: string) => {
+    touched.current = true;
     setNotes(val);
     localStorage.setItem('studio_scratch_notes', val);
+    // Debounced profile write — one save per pause, not per keystroke.
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => saveMyScratchNotes(val), 800);
   };
 
   return (

@@ -42,6 +42,7 @@ import { getBranding } from '@/lib/branding';
 import { useRealtime } from '@/lib/useRealtime';
 import { caps } from '@/lib/format';
 import { toast, confirmAction } from '@/components/Feedback';
+import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -249,7 +250,8 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     fetchGearTemplates();
     fetchContacts();
 
-    // Load saved owners
+    // Load saved owners: this browser instantly, then the team's shared list
+    // (authoritative when present — synced across everyone's devices).
     const stored = localStorage.getItem('zipline_saved_owners');
     if (stored) {
       try {
@@ -258,6 +260,12 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         console.error('Error parsing saved owners:', e);
       }
     }
+    loadOrgPref<string[]>('saved_gear_owners').then((owners) => {
+      if (owners && Array.isArray(owners) && owners.length > 0) {
+        setSavedOwners(owners);
+        localStorage.setItem('zipline_saved_owners', JSON.stringify(owners));
+      }
+    });
   }, []);
 
   const fetchContacts = async () => {
@@ -461,6 +469,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         if (!prev.includes(owner)) {
           const next = [...prev, owner];
           localStorage.setItem('zipline_saved_owners', JSON.stringify(next));
+          saveOrgPref('saved_gear_owners', next);
           return next;
         }
         return prev;
