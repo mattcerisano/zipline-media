@@ -173,8 +173,10 @@ export interface CalendarEvent {
   end_date?: string | null;
   notes?: string;
   job_id?: string | null;
-  /** Set when the marker was imported from Google Calendar (read-mostly; re-sync restores it). */
+  /** Set when the marker was imported from Google Calendar. */
   google_event_id?: string | null;
+  /** Tombstone: removed in-app; re-syncs must not resurrect it. */
+  hidden?: boolean | null;
 }
 
 export interface JobScene {
