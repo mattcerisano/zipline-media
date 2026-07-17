@@ -19,8 +19,22 @@ import {
   Settings,
   HelpCircle,
   RotateCcw,
-  Search
+  Search,
+  AlertTriangle
 } from 'lucide-react';
+
+// "2m ago" / "3h ago" / "Jul 12" for the sync-health chip.
+function timeAgo(iso: string | null): string {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return '';
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { supabase } from '@/lib/supabase';
@@ -488,25 +502,38 @@ export default function CommandCenterPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatusMsg, setSyncStatusMsg] = useState('');
 
-  useEffect(() => {
-    const checkGoogleConnection = async () => {
-      if (!session?.access_token) return;
-      try {
-        // Server-side check — google_tokens is not client-readable.
-        const res = await fetch('/api/auth/google/status', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const data = await res.json();
-        setIsGoogleConnected(!!data.connected);
-      } catch (err) {
-        setIsGoogleConnected(false);
-      }
-    };
+  // Sync health for the header chip: last outcome recorded by any sync path
+  // (cron, silent, or manual). Refreshed on load, every 5 minutes, and when
+  // the sync modal opens.
+  const [googleSyncInfo, setGoogleSyncInfo] = useState<{ at: string | null; ok: boolean | null; error: string | null }>({ at: null, ok: null, error: null });
 
+  const checkGoogleConnection = useCallback(async () => {
+    if (!session?.access_token) return;
+    try {
+      // Server-side check — google_tokens is not client-readable.
+      const res = await fetch('/api/auth/google/status', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      setIsGoogleConnected(!!data.connected);
+      setGoogleSyncInfo({ at: data.lastSyncAt ?? null, ok: data.lastSyncOk ?? null, error: data.lastSyncError ?? null });
+    } catch (err) {
+      setIsGoogleConnected(false);
+    }
+  }, [session?.access_token]);
+
+  useEffect(() => {
     if (isCalendarSyncOpen && session) {
       checkGoogleConnection();
     }
-  }, [isCalendarSyncOpen, session]);
+  }, [isCalendarSyncOpen, session, checkGoogleConnection]);
+
+  useEffect(() => {
+    if (!session?.access_token) return;
+    checkGoogleConnection();
+    const interval = setInterval(checkGoogleConnection, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [session?.access_token, checkGoogleConnection]);
 
   const handleConnectGoogle = async () => {
     if (!session?.access_token) return;
@@ -1162,6 +1189,27 @@ export default function CommandCenterPage() {
                   </button>
                 )}
 
+                {/* Sync health: green = last sync ok, red = failing. Click opens the sync modal. */}
+                {isGoogleConnected && googleSyncInfo.ok === false && (
+                  <button
+                    onClick={() => setIsCalendarSyncOpen(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+                    title={`Google sync failing${googleSyncInfo.at ? ` since ${timeAgo(googleSyncInfo.at)}` : ''}: ${googleSyncInfo.error || 'unknown error'}`}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Sync failing</span>
+                  </button>
+                )}
+                {isGoogleConnected && googleSyncInfo.ok === true && googleSyncInfo.at && (
+                  <span
+                    className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest text-white/30 select-none"
+                    title={`Google Calendar last synced ${new Date(googleSyncInfo.at).toLocaleString()}`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
+                    Synced {timeAgo(googleSyncInfo.at)}
+                  </span>
+                )}
+
                 {/* Calendar Sync */}
                 <button
                    onClick={() => setIsCalendarSyncOpen(true)}
@@ -1396,6 +1444,24 @@ export default function CommandCenterPage() {
                     <p className="text-[10px] font-bold text-accent/80 italic mt-2 text-center animate-pulse">
                       {syncStatusMsg}
                     </p>
+                  )}
+
+                  {/* Sync health detail — surfaces silent background failures */}
+                  {isGoogleConnected && googleSyncInfo.at && (
+                    googleSyncInfo.ok === false ? (
+                      <div className="mt-3 flex items-start gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20">
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-red-300 leading-relaxed">
+                          <span className="font-black uppercase tracking-widest">Sync failing</span> (last attempt {timeAgo(googleSyncInfo.at)})
+                          {googleSyncInfo.error ? ` — ${googleSyncInfo.error}` : ''}{' '}
+                          Try Reconnect above if this persists.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-[9px] font-bold uppercase tracking-widest text-white/30 text-center">
+                        Last synced {timeAgo(googleSyncInfo.at)} · auto-syncs every 10 minutes
+                      </p>
+                    )
                   )}
                 </div>
 
