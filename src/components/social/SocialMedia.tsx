@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { sanitizeUrl } from '@/lib/sanitize';
+import { confirmAction } from '@/components/Feedback';
 
 /* ------------------------------------------------------------------ */
 /* Shared constants                                                    */
@@ -207,7 +208,7 @@ function PostModal({ post, clients, onClose, onSaved }: { post: Post; clients: C
     else await supabase.from('social_posts').insert([payload]);
     onSaved();
   };
-  const remove = async () => { if (draft.id && confirm('Delete this post?')) { await supabase.from('social_posts').delete().eq('id', draft.id); onSaved(); } };
+  const remove = async () => { if (draft.id && (await confirmAction({ message: 'Delete this post?', danger: true, confirmLabel: 'Delete' }))) { await supabase.from('social_posts').delete().eq('id', draft.id); onSaved(); } };
 
   return (
     <ModalShell title={draft.id ? 'Edit Post' : 'New Post'} onClose={onClose}>
@@ -298,7 +299,7 @@ function RolloutTracker({ clients }: { clients: Client[] }) {
     await supabase.from('social_campaigns').update(patch).eq('id', activeId);
   };
   const deleteCampaign = async () => {
-    if (!activeId || !confirm('Delete this campaign and its tasks?')) return;
+    if (!activeId || !(await confirmAction({ message: 'Delete this campaign and its tasks?', danger: true, confirmLabel: 'Delete' }))) return;
     await supabase.from('social_campaigns').delete().eq('id', activeId);
     setCampaigns((cs) => cs.filter((c) => c.id !== activeId));
     setActiveId('');

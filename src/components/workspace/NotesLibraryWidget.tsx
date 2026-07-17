@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
+import { toast, confirmAction } from '@/components/Feedback';
 
 // Notes Library — the meeting-notes home that replaces the running Google
 // Doc. Every note knows which client and production it belongs to, so the
@@ -125,7 +126,7 @@ export default function NotesLibraryWidget() {
       setNotes(prev => [data as Note, ...prev]);
       setActiveId((data as Note).id);
     } catch (err: any) {
-      alert(`Couldn't create the note: ${err?.message || 'unknown error'}`);
+      toast(`Couldn't create the note: ${err?.message || 'unknown error'}`);
     }
   };
 
@@ -171,7 +172,7 @@ export default function NotesLibraryWidget() {
   };
 
   const deleteNote = async (note: Note) => {
-    if (!window.confirm(`Delete "${note.title}"? This can't be undone.`)) return;
+    if (!(await confirmAction({ message: `Delete "${note.title}"? This can't be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     setNotes(prev => prev.filter(n => n.id !== note.id));
     if (activeId === note.id) setActiveId(null);
     try {

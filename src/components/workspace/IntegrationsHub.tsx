@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import IntegrationsSettings from './IntegrationsSettings';
+import { confirmAction } from '@/components/Feedback';
 
 // One page for every integration: connect your Google account (Gmail inbox,
 // Calendar sync, Drive browser all ride on it), wire team chat webhooks
@@ -97,7 +98,7 @@ export default function IntegrationsHub() {
 
   const handleDisconnect = async () => {
     if (!session?.access_token) return;
-    if (!window.confirm('Disconnect your Google account?\n\nThe Inbox, Calendar push, and Drive browser will fall back to offline mode until you reconnect.')) return;
+    if (!(await confirmAction({ title: 'Disconnect Google?', message: 'The Inbox, Calendar push, and Drive browser will fall back to offline mode until you reconnect.', danger: true, confirmLabel: 'Disconnect' }))) return;
     setBusy('disconnect');
     setMessage(null);
     try {

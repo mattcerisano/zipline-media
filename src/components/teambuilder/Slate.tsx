@@ -47,6 +47,7 @@ import { getBranding, hexToRgb } from '@/lib/branding';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { formatLocalDate } from '@/lib/date';
 import { caps } from '@/lib/format';
+import { toast, confirmAction } from '@/components/Feedback';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -145,7 +146,7 @@ export default function Slate({
   const handleAutoFillLogistics = async () => {
     const address = editingJob.location_address;
     if (!address) {
-      alert('Please enter a Full Address first.');
+      toast('Please enter a Full Address first.');
       return;
     }
     setIsAutoFillingLogistics(true);
@@ -204,7 +205,7 @@ export default function Slate({
       }));
     } catch (err: any) {
       console.error(err);
-      alert('Failed to auto-fill logistics: ' + (err.message || 'Unknown error'));
+      toast('Failed to auto-fill logistics: ' + (err.message || 'Unknown error'));
     } finally {
       setIsAutoFillingLogistics(false);
     }
@@ -213,7 +214,7 @@ export default function Slate({
   const handleRefreshWeather = async (job: Job) => {
     const address = job.location_address || job.location_name;
     if (!address || !job.shoot_date) {
-      alert('Location address and Shoot Date are required to fetch weather.');
+      toast('Location address and Shoot Date are required to fetch weather.');
       return;
     }
     try {
@@ -248,7 +249,7 @@ export default function Slate({
       }
     } catch (err: any) {
       console.error('Error refreshing weather:', err);
-      alert(`Could not refresh weather: ${err.message}`);
+      toast(`Could not refresh weather: ${err.message}`);
     }
   };
 
@@ -399,12 +400,12 @@ export default function Slate({
       setIsJobModalOpen(false);
     } catch (err: any) {
       console.error('Error saving job:', err);
-      alert('Failed to save job: ' + (err.message || 'Unknown error'));
+      toast('Failed to save job: ' + (err.message || 'Unknown error'));
     }
   };
 
   const deleteJob = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this production? This will remove all associated roles and gear lists.')) return;
+    if (!(await confirmAction({ title: 'Delete this production?', message: 'This will remove all associated roles and gear lists.', danger: true, confirmLabel: 'Delete' }))) return;
     try {
       const { error } = await supabase.from('jobs').delete().eq('id', id);
       if (error) throw error;
@@ -492,7 +493,7 @@ export default function Slate({
       setJobs(prev => [...prev, data as Job].sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')));
     } catch (err: any) {
       console.error('Error duplicating job:', err);
-      alert('Failed to duplicate production: ' + (err.message || 'Unknown error'));
+      toast('Failed to duplicate production: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -520,10 +521,10 @@ export default function Slate({
         .insert([templateData]);
 
       if (error) throw error;
-      alert('Job structure saved as a reusable template!');
+      toast('Job structure saved as a reusable template!');
     } catch (err) {
       console.error('Error saving template:', err);
-      alert('Failed to save template. Ensure the job_templates table exists.');
+      toast('Failed to save template. Ensure the job_templates table exists.');
     }
   };
 
@@ -709,7 +710,7 @@ export default function Slate({
       doc.save(`${job.title.replace(/\s+/g, '_')}_Call_Sheet.pdf`);
     } catch (err) {
       console.error('Error generating call sheet:', err);
-      alert('Failed to generate call sheet.');
+      toast('Failed to generate call sheet.');
     }
   };
 
@@ -733,7 +734,7 @@ export default function Slate({
       setNewLinkUrl('');
     } catch (err) {
       console.error('Error adding link:', err);
-      alert('Failed to add link');
+      toast('Failed to add link');
     }
   };
 
@@ -839,7 +840,7 @@ export default function Slate({
       setEditingJob(prev => ({ ...prev, project_id: newProject.id }));
     } catch (err: any) {
       console.error('Error creating project:', err);
-      alert(`Failed to create project: ${err.message || 'unknown error'}`);
+      toast(`Failed to create project: ${err.message || 'unknown error'}`);
     }
   };
 
@@ -1641,7 +1642,7 @@ function JobCard({
                 await generateMasterBrief(job.id); 
               } catch (err) { 
                 console.error(err);
-                alert('Failed to generate Master Production Brief.'); 
+                toast('Failed to generate Master Production Brief.'); 
               } 
             }}
             className="p-2 text-white/10 hover:text-accent hover:bg-white/5 rounded-lg transition-all"

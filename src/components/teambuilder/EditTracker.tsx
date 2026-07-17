@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { toast, confirmAction } from '@/components/Feedback';
 
 // Columns are customizable: definitions are { id, label, color } where color
 // is a token from STAGE_COLORS. Custom definitions live org-wide in
@@ -346,7 +347,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
           setIsCreatingNew(false);
        } catch (err) {
           console.error('Error creating standalone edit:', err);
-          alert('Failed to create new card.');
+          toast('Failed to create new card.');
        }
        return;
     }
@@ -377,7 +378,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
   const removeFromBoard = async (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
     const label = job?.title ? `"${job.title}"` : 'this production';
-    if (!window.confirm(`Remove ${label} from the edit board?\n\nThis only clears its post-production status — the shoot stays in Slate with all its details.`)) {
+    if (!(await confirmAction({ title: `Remove ${label} from the edit board?`, message: 'This only clears its post-production status — the shoot stays in Slate with all its details.', confirmLabel: 'Remove' }))) {
       return;
     }
     // Optimistic: null edit_status so boardJobs immediately drops the card.
@@ -883,11 +884,11 @@ function ColumnsEditorModal({
     const stage = draft[i];
     const count = cardCounts[stage.id] || 0;
     if (count > 0) {
-      alert(`"${stage.label}" still has ${count} card${count === 1 ? '' : 's'} on it. Drag those cards to another column first, then remove it.`);
+      toast(`"${stage.label}" still has ${count} card${count === 1 ? '' : 's'} on it. Drag those cards to another column first, then remove it.`);
       return;
     }
     if (draft.length <= 1) {
-      alert('The board needs at least one column.');
+      toast('The board needs at least one column.');
       return;
     }
     setDraft(prev => prev.filter((_, idx) => idx !== i));

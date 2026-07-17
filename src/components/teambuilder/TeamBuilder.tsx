@@ -32,6 +32,7 @@ import { supabase } from '@/lib/supabase';
 import { caps } from '@/lib/format';
 import { formatLocalDate } from '@/lib/date';
 import { Contact, Job, JobRole, DEPARTMENTS, JobTemplate, JobSchedule, JobTodo } from '@/components/gearbuilder/types';
+import { toast, confirmAction } from '@/components/Feedback';
 
 // Helper function to sort schedule items chronologically
 const sortSchedules = (schedules: JobSchedule[]) => {
@@ -161,7 +162,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       );
     } catch (err) {
       console.error('Error saving crew order:', err);
-      alert('Failed to save the new crew order. If this persists, the sort_order migration may not have been applied.');
+      toast('Failed to save the new crew order. If this persists, the sort_order migration may not have been applied.');
     }
   };
 
@@ -227,9 +228,9 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       console.error('Error saving schedule:', err);
       const errMsg = err?.message || JSON.stringify(err) || 'Unknown error';
       if (errMsg.includes('notes') || errMsg.includes('column') || errMsg.includes('schema cache')) {
-        alert('Database schema update required. Please run the SQL commands in database_updates.sql in your Supabase dashboard.');
+        toast('Database schema update required. Please run the SQL commands in database_updates.sql in your Supabase dashboard.');
       } else {
-        alert(`Failed to save schedule: ${errMsg}`);
+        toast(`Failed to save schedule: ${errMsg}`);
       }
     } finally {
       setIsSaving(false);
@@ -237,7 +238,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
   };
 
   const deleteSchedule = async (scheduleId: string) => {
-    if (!confirm('Remove this schedule item?')) return;
+    if (!(await confirmAction({ message: 'Remove this schedule item?', danger: true, confirmLabel: 'Remove' }))) return;
     try {
       const { error } = await supabase.from('job_schedules').delete().eq('id', scheduleId);
       if (error) throw error;
@@ -277,10 +278,10 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       if (fetchError) throw fetchError;
       setJobRoles(newRoles as JobRole[]);
       setIsTemplateModalOpen(false);
-      alert(`Applied ${template.name} structure to this job.`);
+      toast(`Applied ${template.name} structure to this job.`);
     } catch (err) {
       console.error('Error applying template:', err);
-      alert('Failed to apply template');
+      toast('Failed to apply template');
     } finally {
       setIsSaving(false);
     }
@@ -311,9 +312,9 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       console.error('Error saving role:', err);
       const errMsg = err?.message || JSON.stringify(err) || 'Unknown error';
       if (errMsg.includes('day_rate') || errMsg.includes('schema cache')) {
-        alert('Database schema update required. Please run the SQL commands in database_updates.sql in your Supabase dashboard.');
+        toast('Database schema update required. Please run the SQL commands in database_updates.sql in your Supabase dashboard.');
       } else {
-        alert(`Failed to save role: ${errMsg}`);
+        toast(`Failed to save role: ${errMsg}`);
       }
     } finally {
       setIsSaving(false);
@@ -321,7 +322,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
   };
 
   const deleteRole = async (roleId: string) => {
-    if (!confirm('Are you sure you want to remove this role?')) return;
+    if (!(await confirmAction({ message: 'Remove this role from the crew manifest?', danger: true, confirmLabel: 'Remove' }))) return;
     
     try {
       const { error } = await supabase.from('job_roles').delete().eq('id', roleId);
@@ -329,7 +330,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       setJobRoles(prev => prev.filter(r => r.id !== roleId));
     } catch (err) {
       console.error('Error deleting role:', err);
-      alert('Failed to delete role');
+      toast('Failed to delete role');
     }
   };
 
@@ -353,7 +354,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       });
     } catch (err: any) {
       console.error('Error saving todo:', err);
-      alert('Failed to save prep task.');
+      toast('Failed to save prep task.');
     } finally {
       setIsSaving(false);
     }
@@ -366,7 +367,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       setJobTodos(prev => prev.filter(t => t.id !== todoId));
     } catch (err) {
       console.error('Error deleting todo:', err);
-      alert('Failed to delete prep task.');
+      toast('Failed to delete prep task.');
     }
   };
 
@@ -386,7 +387,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       console.error('Error toggling todo:', err);
       // Revert on error
       setJobTodos(prev => prev.map(t => t.id === todo.id ? todo : t));
-      alert('Failed to update prep task status.');
+      toast('Failed to update prep task status.');
     }
   };
 
@@ -423,7 +424,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       }
     } catch (err) {
       console.error('Error loading presets:', err);
-      alert('Failed to load standard prep tasks.');
+      toast('Failed to load standard prep tasks.');
     } finally {
       setIsSaving(false);
     }

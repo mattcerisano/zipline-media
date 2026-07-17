@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import {
   deriveKey, encryptString, decryptString, createVerifier, checkVerifier, randomSaltBase64,
 } from '@/lib/vault-crypto';
+import { toast, confirmAction } from '@/components/Feedback';
 
 interface VaultItem {
   id: string;
@@ -183,14 +184,14 @@ export default function Vault() {
       setEditing(null);
       await loadItems();
     } catch (err: any) {
-      alert(`Save failed: ${err.message}`);
+      toast(`Save failed: ${err.message}`);
     } finally {
       setBusy(false);
     }
   };
 
   const handleDeleteItem = async (item: VaultItem) => {
-    if (!confirm(`Delete "${item.name}" from the vault?`)) return;
+    if (!(await confirmAction({ message: `Delete "${item.name}" from the vault?`, danger: true, confirmLabel: 'Delete' }))) return;
     if (item.file_path) await supabase.storage.from('vault').remove([item.file_path]);
     await supabase.from('vault_items').delete().eq('id', item.id);
     await loadItems();

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, UserPlus, Trash2, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { confirmAction } from '@/components/Feedback';
 
 // Admin-only team roster. Creates internal accounts (admin/staff) with a
 // temporary password the admin hands to the teammate — no client-facing
@@ -105,7 +106,7 @@ export default function TeamSettings({ session, onMessage }: Props) {
   };
 
   const removeMember = async (member: Member) => {
-    if (!window.confirm(`Remove ${member.email}?\n\nTheir login stops working immediately. Productions, cards, and contacts they created are not affected.`)) return;
+    if (!(await confirmAction({ title: 'Remove teammate?', message: `${member.email} — their login stops working immediately. Productions, cards, and contacts they created are not affected.`, danger: true, confirmLabel: 'Remove' }))) return;
     try {
       const res = await fetch('/api/team/members', {
         method: 'DELETE',

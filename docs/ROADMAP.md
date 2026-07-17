@@ -18,3 +18,18 @@ Your project is consolidated in:
 `~/Documents/zipline-media`
 
 Everything is self-contained in this folder.
+
+## 🔧 Studio OS Backlog (from July 2026 audit)
+Ranked roughly by on-set impact. Items marked ✅ are done.
+
+- [x] ✅ Replace all `alert()`/`confirm()` with in-app toasts + confirm modal (`src/components/Feedback.tsx`)
+- [ ] **Sync status indicator** — "last synced X min ago / ⚠️ failing" chip on Calendar + Inbox so a broken Google token is visible before someone misses a shoot
+- [ ] **Tighten allow-all RLS** — `calendar_events`, profiles/branding, `notification_integrations`, `social_media`, `gear_templates` still use `USING (true)`
+- [ ] **Team-synced preferences** — move `custom_tabs_list`, active tab, scratch notes, saved gear owners from localStorage to org/profile tables (edit-stage defs show the pattern)
+- [ ] **Offline / stale-cache support** — service worker caching last-viewed call sheets & gear lists for bad-signal locations
+- [ ] **Google sync deletion round-trip** — tombstones so deleted Google events disappear here and in-app marker deletes don't resurrect
+- [ ] **Email round 2** — send attachments, drafts, Sent/Starred/Trash views, undo-send
+- [ ] **Web push notifications** — call-time reminders and @mention pings to phones
+- [ ] **Bounded queries** — date-bound the calendar jobs fetch; paginate Rolodex (currently 1,000 contacts up front)
+- [ ] **Component splitting** — Rolodex (2.2k lines), Rentals (2.2k), EditTracker (2k), Slate (1.8k): split opportunistically when touched
+- [ ] **⌘K onboarding surface** — show top features in the empty search palette for new teammates

@@ -35,6 +35,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { Contact, Client } from '@/components/gearbuilder/types';
+import { toast, confirmAction } from '@/components/Feedback';
 
 const STANDARD_ROLES = [
   'Director', 'Producer', 'Director of Photography', 'Camera Operator', '1st AC', '2nd AC',
@@ -525,7 +526,7 @@ export default function Rolodex() {
     const isSupported = 'contacts' in navigator && 'ContactsManager' in window;
     
     if (!isSupported) {
-      alert(
+      toast(
         "Direct Contact Picker is not supported on this browser or device.\n\n" +
         "Please use the standard method below: Export your contacts from your iPhone as a .vcf file and upload it."
       );
@@ -561,7 +562,7 @@ export default function Rolodex() {
       console.error('Contact Picker error:', err);
       // Cancelled by user is not an error we need to alert, but other failures are
       if (err.name !== 'AbortError') {
-        alert('Could not retrieve contacts: ' + (err.message || 'Unknown error'));
+        toast('Could not retrieve contacts: ' + (err.message || 'Unknown error'));
       }
     }
   };
@@ -580,12 +581,12 @@ export default function Rolodex() {
       } else if (file.name.toLowerCase().endsWith('.csv')) {
         contactsList = parseCSV(text);
       } else {
-        alert('Please upload a .vcf (vCard) or .csv file.');
+        toast('Please upload a .vcf (vCard) or .csv file.');
         return;
       }
 
       if (contactsList.length === 0) {
-        alert('No valid contacts found in the file.');
+        toast('No valid contacts found in the file.');
         return;
       }
 
@@ -612,7 +613,7 @@ export default function Rolodex() {
         }));
 
       if (contactsToInsert.length === 0) {
-        alert('No contacts selected for import.');
+        toast('No contacts selected for import.');
         setIsImportLoading(false);
         return;
       }
@@ -623,12 +624,12 @@ export default function Rolodex() {
 
       if (error) throw error;
 
-      alert(`Successfully imported ${contactsToInsert.length} contacts!`);
+      toast(`Successfully imported ${contactsToInsert.length} contacts!`);
       setIsImportModalOpen(false);
       fetchData();
     } catch (err) {
       console.error('Error importing contacts:', err);
-      alert('Failed to import contacts. Please verify that all emails are unique.');
+      toast('Failed to import contacts. Please verify that all emails are unique.');
     } finally {
       setIsImportLoading(false);
     }
@@ -642,12 +643,12 @@ export default function Rolodex() {
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (!file.name.toLowerCase().endsWith('.csv')) {
-        alert('Please upload a .csv export from QuickBooks.');
+        toast('Please upload a .csv export from QuickBooks.');
         return;
       }
       const rows = parseClientCSV(text);
       if (rows.length === 0) {
-        alert('No clients found. Make sure the CSV has a Customer/Company column.');
+        toast('No clients found. Make sure the CSV has a Customer/Company column.');
         return;
       }
       setParsedClients(rows);
@@ -673,7 +674,7 @@ export default function Rolodex() {
         .filter(c => c.name && !existing.has(c.name.toLowerCase()));
 
       if (toInsert.length === 0) {
-        alert('Nothing to import — those clients already exist (matched by name).');
+        toast('Nothing to import — those clients already exist (matched by name).');
         setIsClientImportLoading(false);
         return;
       }
@@ -681,13 +682,13 @@ export default function Rolodex() {
       const { error } = await supabase.from('clients').insert(toInsert);
       if (error) throw error;
 
-      alert(`Imported ${toInsert.length} client${toInsert.length === 1 ? '' : 's'} from QuickBooks.`);
+      toast(`Imported ${toInsert.length} client${toInsert.length === 1 ? '' : 's'} from QuickBooks.`);
       setIsClientImportOpen(false);
       const { data } = await supabase.from('clients').select('*').order('name');
       if (data) setClients(data as Client[]);
     } catch (err) {
       console.error('Error importing clients:', err);
-      alert('Failed to import clients.');
+      toast('Failed to import clients.');
     } finally {
       setIsClientImportLoading(false);
     }
@@ -696,7 +697,7 @@ export default function Rolodex() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingContact?.name?.trim()) {
-      alert('Name is required');
+      toast('Name is required');
       return;
     }
 
@@ -713,7 +714,7 @@ export default function Rolodex() {
       fetchData();
     } catch (err) {
       console.error('Error saving contact:', err);
-      alert(`Failed to save contact: ${(err as any)?.message || 'unknown error'}`);
+      toast(`Failed to save contact: ${(err as any)?.message || 'unknown error'}`);
     }
   };
 
@@ -731,7 +732,7 @@ export default function Rolodex() {
   };
 
   const deleteContact = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
+    if (!(await confirmAction({ message: 'Delete this contact?', danger: true, confirmLabel: 'Delete' }))) return;
     try {
       const { error } = await supabase.from('contacts').delete().eq('id', id);
       if (error) throw error;
@@ -744,7 +745,7 @@ export default function Rolodex() {
   const handleClientSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingClient?.name) {
-      alert('Client Name is required');
+      toast('Client Name is required');
       return;
     }
 
@@ -754,7 +755,7 @@ export default function Rolodex() {
       c.id !== editingClient.id
     );
     if (nameExists) {
-      alert('A client with this name already exists.');
+      toast('A client with this name already exists.');
       return;
     }
 
@@ -769,12 +770,12 @@ export default function Rolodex() {
       if (data) setClients(data as Client[]);
     } catch (err) {
       console.error('Error saving client:', err);
-      alert('Failed to save client');
+      toast('Failed to save client');
     }
   };
 
   const deleteClient = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this client? Jobs associated with this client will remain, but the client record will be removed.')) return;
+    if (!(await confirmAction({ title: 'Delete this client?', message: 'Jobs associated with this client will remain, but the client record will be removed.', danger: true, confirmLabel: 'Delete' }))) return;
     try {
       const { error } = await supabase.from('clients').delete().eq('id', id);
       if (error) throw error;
