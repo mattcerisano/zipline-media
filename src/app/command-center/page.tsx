@@ -43,6 +43,7 @@ import { applyAccent } from '@/lib/brand-theme';
 import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
 import ProfileSettings from '@/components/workspace/ProfileSettings';
 import SearchPalette from '@/components/workspace/SearchPalette';
+import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
 import { QuickStartGuideModal } from '@/components/workspace/QuickStartGuide';
 
 interface CustomTab {
@@ -275,26 +276,36 @@ export default function CommandCenterPage() {
       setActiveTab(savedActiveTab);
     }
 
+    // Merge in any newer built-in system tabs a saved list predates
+    // (e.g. "social"), so existing users get them without losing custom
+    // tabs or ordering.
+    const mergeSystemTabs = (parsed: CustomTab[]): CustomTab[] => {
+      const savedIds = new Set(parsed.map((t) => t.id));
+      const missingSystemTabs = DEFAULT_TABS.filter((t) => t.type === 'system' && !savedIds.has(t.id));
+      return missingSystemTabs.length ? [...parsed, ...missingSystemTabs] : parsed;
+    };
+
+    // Instant layer: this browser's saved tabs.
     const savedTabs = localStorage.getItem('custom_tabs_list');
     if (savedTabs) {
       try {
-        const parsed = JSON.parse(savedTabs) as CustomTab[];
-        // Merge in any newer built-in system tabs the saved list predates
-        // (e.g. "social"), so existing users get them without losing custom
-        // tabs or ordering. New system tabs are appended before the last one.
-        const savedIds = new Set(parsed.map((t) => t.id));
-        const missingSystemTabs = DEFAULT_TABS.filter((t) => t.type === 'system' && !savedIds.has(t.id));
-        const merged = missingSystemTabs.length ? [...parsed, ...missingSystemTabs] : parsed;
-        setTabs(merged);
-        if (missingSystemTabs.length) {
-          localStorage.setItem('custom_tabs_list', JSON.stringify(merged));
-        }
+        setTabs(mergeSystemTabs(JSON.parse(savedTabs) as CustomTab[]));
       } catch (e) {
         setTabs(DEFAULT_TABS);
       }
     } else {
       setTabs(DEFAULT_TABS);
     }
+
+    // Authoritative layer: the team's shared tab layout, so every device and
+    // teammate sees the same Command Center. Fails soft pre-migration.
+    loadOrgPref<CustomTab[]>('custom_tabs').then((orgTabs) => {
+      if (orgTabs && Array.isArray(orgTabs) && orgTabs.length > 0) {
+        const merged = mergeSystemTabs(orgTabs);
+        setTabs(merged);
+        localStorage.setItem('custom_tabs_list', JSON.stringify(merged));
+      }
+    });
 
     const seenQuickStart = localStorage.getItem('studio_seen_quickstart');
     if (!seenQuickStart) {
@@ -314,13 +325,20 @@ export default function CommandCenterPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Persist the tab layout: this browser immediately, the whole team's org
+  // row in the background (fails soft pre-migration).
+  const persistTabs = (items: CustomTab[]) => {
+    persistTabs(items);
+    saveOrgPref('custom_tabs', items);
+  };
+
   const onDragEnd = (result: any) => {
     if (!result.destination) return;
     const items = Array.from(tabs);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
     setTabs(items);
-    localStorage.setItem('custom_tabs_list', JSON.stringify(items));
+    persistTabs(items);
   };
 
   const handleCreateTab = () => {
@@ -356,7 +374,7 @@ export default function CommandCenterPage() {
 
     const updated = [...tabs, newTab];
     setTabs(updated);
-    localStorage.setItem('custom_tabs_list', JSON.stringify(updated));
+    persistTabs(updated);
     setActiveTab(newTab.id);
     localStorage.setItem('studio_active_tab', newTab.id);
 
@@ -416,7 +434,7 @@ export default function CommandCenterPage() {
     });
 
     setTabs(updated);
-    localStorage.setItem('custom_tabs_list', JSON.stringify(updated));
+    persistTabs(updated);
     setIsEditModalOpen(false);
     setSelectedTabToEdit(null);
   };
@@ -425,7 +443,7 @@ export default function CommandCenterPage() {
     if (!selectedTabToEdit) return;
     const updated = tabs.filter(t => t.id !== selectedTabToEdit.id);
     setTabs(updated);
-    localStorage.setItem('custom_tabs_list', JSON.stringify(updated));
+    persistTabs(updated);
     // Drop the tab's saved workspace layout so a future tab with a reused id
     // can't inherit a stale layout.
     localStorage.removeItem(`studio_workspace_layout_${selectedTabToEdit.id}`);

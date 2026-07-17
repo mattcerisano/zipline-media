@@ -24,8 +24,8 @@ Ranked roughly by on-set impact. Items marked ✅ are done.
 
 - [x] ✅ Replace all `alert()`/`confirm()` with in-app toasts + confirm modal (`src/components/Feedback.tsx`)
 - [x] ✅ **Sync status indicator** — "last synced X min ago / ⚠️ failing" chip on Calendar + Inbox so a broken Google token is visible before someone misses a shoot
-- [ ] **Tighten allow-all RLS** — `calendar_events`, profiles/branding, `notification_integrations`, `social_media`, `gear_templates` still use `USING (true)`
-- [ ] **Team-synced preferences** — move `custom_tabs_list`, active tab, scratch notes, saved gear owners from localStorage to org/profile tables (edit-stage defs show the pattern)
+- [x] ✅ **Tighten allow-all RLS** — verified already fixed by 20260706000002 (audit grep hit superseded policies in older migration files); only the intentional public-read on jobs/inventory for the gear-share page remains
+- [x] ✅ **Team-synced preferences** — move `custom_tabs_list`, active tab, scratch notes, saved gear owners from localStorage to org/profile tables (edit-stage defs show the pattern)
 - [ ] **Offline / stale-cache support** — service worker caching last-viewed call sheets & gear lists for bad-signal locations
 - [ ] **Google sync deletion round-trip** — tombstones so deleted Google events disappear here and in-app marker deletes don't resurrect
 - [ ] **Email round 2** — send attachments, drafts, Sent/Starred/Trash views, undo-send
