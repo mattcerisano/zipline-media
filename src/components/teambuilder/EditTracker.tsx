@@ -7,7 +7,7 @@ import { Job, Contact, EditLabel, JobLink, Client, Project } from '@/components/
 import { sanitizeUrl } from '@/lib/sanitize';
 import { parseLocalDate, formatLocalDate } from '@/lib/date';
 import { caps } from '@/lib/format';
-import { authHeader } from '@/lib/api-client';
+import { notifyNewMentions } from '@/lib/mentions';
 import { 
   Film, 
   Scissors, 
@@ -1323,54 +1323,15 @@ function CardDetailModal({
     }
   };
 
-  // Find @mentions of Rolodex contacts in a notes string. Matches @First or
-  // @First_Last (case-insensitive) against contact names.
-  const findMentions = (text: string): Contact[] => {
-    const tokens = Array.from(text.matchAll(/@([\w.]+)/g)).map(m => m[1].toLowerCase());
-    if (tokens.length === 0) return [];
-    return contacts.filter(c => {
-      const first = (c.name || '').split(/\s+/)[0]?.toLowerCase();
-      const full = (c.name || '').replace(/\s+/g, '_').toLowerCase();
-      return tokens.some(t => t === first || t === full);
-    });
-  };
-
   const saveNotes = () => {
     // Ping teammates who are newly @mentioned (present in the new text but
-    // not the old) through every enabled team channel. Fire-and-forget.
-    const before = new Set(findMentions(job.edit_notes || '').map(c => c.id));
-    const added = findMentions(notes).filter(c => !before.has(c.id));
-    if (added.length > 0) {
-      const excerpt = notes.trim().length > 160 ? `${notes.trim().slice(0, 160)}…` : notes.trim();
-      const names = added.map(c => `**${c.name}**`).join(', ');
-      fetch('/api/integrations/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `💬 ${names} mentioned on "${job.title}" (Edit Tracker):\n${excerpt}`,
-        }),
-      }).catch(err => console.error('Mention notification failed:', err));
-
-      // Also push straight to the mentioned teammates' phones (matched by
-      // Rolodex email → account email; respects their mention-pings pref).
-      const emails = added.map(c => c.email).filter(Boolean);
-      if (emails.length > 0) {
-        authHeader()
-          .then(headers =>
-            fetch('/api/push/mention', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', ...headers },
-              body: JSON.stringify({
-                emails,
-                title: `💬 Mentioned on "${job.title}"`,
-                body: excerpt,
-                url: '/command-center',
-              }),
-            })
-          )
-          .catch(err => console.error('Mention push failed:', err));
-      }
-    }
+    // not the old) — team channels + their phones. Fire-and-forget.
+    notifyNewMentions({
+      oldText: job.edit_notes || '',
+      newText: notes,
+      contacts,
+      context: `"${job.title}" (Edit Tracker)`,
+    });
 
     onUpdate({ ...job, edit_notes: notes });
     setIsEditingNotes(false);

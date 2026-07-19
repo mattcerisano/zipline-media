@@ -15,6 +15,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { toast, confirmAction } from '@/components/Feedback';
+import { notifyNewMentions, type MentionContact } from '@/lib/mentions';
 
 // Notes Library — the meeting-notes home that replaces the running Google
 // Doc. Every note knows which client and production it belongs to, so the
@@ -52,6 +53,11 @@ export default function NotesLibraryWidget() {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const myEmail = useRef<string | null>(null);
+  // Rolodex contacts for @mention pings, plus each note's body as of the last
+  // mention check — so only *newly typed* mentions ping, never ones that were
+  // already in the note when it loaded.
+  const mentionContacts = useRef<MentionContact[]>([]);
+  const mentionBaseline = useRef<Map<string, string>>(new Map());
 
   const fetchNotes = useCallback(async () => {
     try {
@@ -65,6 +71,11 @@ export default function NotesLibraryWidget() {
       } else {
         setTableMissing(false);
         setNotes((data as Note[]) || []);
+        // Seed mention baselines for notes we haven't tracked yet; never
+        // clobber one mid-edit or its pending mentions would re-ping.
+        for (const n of (data as Note[]) || []) {
+          if (!mentionBaseline.current.has(n.id)) mentionBaseline.current.set(n.id, n.body || '');
+        }
       }
     } catch {
       setTableMissing(true);
@@ -78,12 +89,14 @@ export default function NotesLibraryWidget() {
       myEmail.current = session?.user?.email || null;
     });
     const loadRefs = async () => {
-      const [jobsRes, clientsRes] = await Promise.all([
+      const [jobsRes, clientsRes, contactsRes] = await Promise.all([
         supabase.from('jobs').select('id, title, job_status').neq('job_status', 'Cancelled').order('shoot_date', { ascending: false }).limit(300),
         supabase.from('clients').select('id, name').order('name').limit(300),
+        supabase.from('contacts').select('id, name, email').limit(1000),
       ]);
       setJobs(((jobsRes.data as any[]) || []).map(j => ({ id: j.id, name: j.title })));
       setClients(((clientsRes.data as any[]) || []).map(c => ({ id: c.id, name: c.name })));
+      mentionContacts.current = ((contactsRes.data as MentionContact[]) || []);
     };
     loadRefs();
     fetchNotes();
@@ -125,6 +138,7 @@ export default function NotesLibraryWidget() {
       if (error) throw error;
       setNotes(prev => [data as Note, ...prev]);
       setActiveId((data as Note).id);
+      mentionBaseline.current.set((data as Note).id, '');
     } catch (err: any) {
       toast(`Couldn't create the note: ${err?.message || 'unknown error'}`);
     }
@@ -153,6 +167,16 @@ export default function NotesLibraryWidget() {
             updated_at: new Date().toISOString(),
           })
           .eq('id', id);
+        // Ping teammates newly @mentioned since the last autosave. Running
+        // after the debounce (not per keystroke) means half-typed names have
+        // settled by the time we compare.
+        notifyNewMentions({
+          oldText: mentionBaseline.current.get(id) ?? current.body,
+          newText: current.body,
+          contacts: mentionContacts.current,
+          context: `"${current.title}" (Notes)`,
+        });
+        mentionBaseline.current.set(id, current.body || '');
         setSaveState('saved');
         setTimeout(() => setSaveState('idle'), 1500);
       } catch (err) {

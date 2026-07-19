@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, BellRing, BellOff, Send, Smartphone } from 'lucide-react';
+import { Loader2, BellRing, BellOff, Send, Smartphone, Monitor, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { authHeader } from '@/lib/api-client';
 
@@ -14,6 +14,33 @@ interface Prefs {
   call_reminders: boolean;
   call_reminder_lead_minutes: number;
   mention_pings: boolean;
+}
+
+interface Device {
+  id: string;
+  endpoint: string;
+  user_agent: string | null;
+  created_at: string;
+}
+
+// "Mozilla/5.0 (Macintosh; …) Chrome/126 …" → "Mac · Chrome". Best-effort;
+// unknown agents fall back to a generic label.
+function deviceLabel(ua: string | null): string {
+  const s = ua || '';
+  const os = /iPhone|iPod/.test(s) ? 'iPhone'
+    : /iPad/.test(s) ? 'iPad'
+    : /Android/.test(s) ? 'Android'
+    : /Macintosh/.test(s) ? 'Mac'
+    : /Windows/.test(s) ? 'Windows'
+    : /Linux/.test(s) ? 'Linux'
+    : 'Device';
+  const browser = /Edg\//.test(s) ? 'Edge'
+    : /OPR\//.test(s) ? 'Opera'
+    : /Chrome\//.test(s) ? 'Chrome'
+    : /Firefox\//.test(s) ? 'Firefox'
+    : /Safari\//.test(s) ? 'Safari'
+    : '';
+  return browser ? `${os} · ${browser}` : os;
 }
 
 const DEFAULT_PREFS: Prefs = { call_reminders: true, call_reminder_lead_minutes: 60, mention_pings: true };
@@ -46,18 +73,21 @@ export default function PushSettings() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [enabled, setEnabled] = useState(false); // this device has an active subscription
-  const [deviceCount, setDeviceCount] = useState(0);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [thisEndpoint, setThisEndpoint] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [busy, setBusy] = useState<'toggle' | 'test' | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshDeviceCount = useCallback(async () => {
+  const refreshDevices = useCallback(async () => {
     // RLS scopes this to the caller's own rows.
-    const { count } = await supabase
+    const { data } = await supabase
       .from('push_subscriptions')
-      .select('id', { count: 'exact', head: true });
-    setDeviceCount(count || 0);
+      .select('id, endpoint, user_agent, created_at')
+      .order('created_at', { ascending: true });
+    setDevices((data as Device[]) || []);
   }, []);
 
   useEffect(() => {
@@ -82,9 +112,10 @@ export default function PushSettings() {
           const reg = await navigator.serviceWorker.getRegistration();
           const sub = await reg?.pushManager.getSubscription();
           setEnabled(!!sub);
+          setThisEndpoint(sub?.endpoint || null);
         }
         if (session?.user?.id) {
-          await refreshDeviceCount();
+          await refreshDevices();
           const { data: prefRow } = await supabase
             .from('push_prefs')
             .select('call_reminders, call_reminder_lead_minutes, mention_pings')
@@ -99,7 +130,7 @@ export default function PushSettings() {
       }
     };
     load();
-  }, [refreshDeviceCount]);
+  }, [refreshDevices]);
 
   const enable = async () => {
     if (!publicKey) return;
@@ -130,8 +161,9 @@ export default function PushSettings() {
         throw new Error(data.error || `HTTP ${res.status}`);
       }
       setEnabled(true);
+      setThisEndpoint(sub.endpoint);
       setMessage('Push enabled on this device.');
-      await refreshDeviceCount();
+      await refreshDevices();
     } catch (err: any) {
       console.error('Push enable failed:', err);
       setMessage(`Could not enable push: ${err?.message || 'unknown error'}`);
@@ -155,13 +187,37 @@ export default function PushSettings() {
         await sub.unsubscribe();
       }
       setEnabled(false);
+      setThisEndpoint(null);
       setMessage('Push disabled on this device.');
-      await refreshDeviceCount();
+      await refreshDevices();
     } catch (err: any) {
       console.error('Push disable failed:', err);
       setMessage(`Could not disable push: ${err?.message || 'unknown error'}`);
     } finally {
       setBusy(null);
+    }
+  };
+
+  // Revoke one device. Removing *this* browser goes through the full disable
+  // flow so the local subscription is torn down too; a remote device just
+  // loses its row (its stale subscription is pruned on the next send).
+  const removeDevice = async (device: Device) => {
+    if (device.endpoint === thisEndpoint) {
+      await disable();
+      return;
+    }
+    setRemoving(device.id);
+    setMessage(null);
+    try {
+      const { error } = await supabase.from('push_subscriptions').delete().eq('id', device.id);
+      if (error) throw error;
+      setMessage('Device removed — it will no longer receive notifications.');
+      await refreshDevices();
+    } catch (err: any) {
+      console.error('Device removal failed:', err);
+      setMessage(`Could not remove the device: ${err?.message || 'unknown error'}`);
+    } finally {
+      setRemoving(null);
     }
   };
 
@@ -237,7 +293,6 @@ export default function PushSettings() {
         <div className="flex items-center gap-2 text-[10px] text-white/50">
           <Smartphone className="w-3.5 h-3.5" />
           {enabled ? 'Enabled on this device' : 'Off on this device'}
-          {deviceCount > 0 && <span className="text-white/30">· {deviceCount} device{deviceCount === 1 ? '' : 's'} registered</span>}
         </div>
         <div className="flex items-center gap-2">
           {enabled && (
@@ -309,7 +364,7 @@ export default function PushSettings() {
           <label className="flex items-center justify-between cursor-pointer">
             <div>
               <span className="text-[11px] font-black uppercase tracking-widest text-white">@Mention pings</span>
-              <p className="text-[9px] text-white/35 mt-0.5">When a teammate @mentions you in Edit Tracker notes.</p>
+              <p className="text-[9px] text-white/35 mt-0.5">When a teammate @mentions you in Edit Tracker or Notes Library notes.</p>
             </div>
             <input
               type="checkbox"
@@ -320,6 +375,42 @@ export default function PushSettings() {
           </label>
         </div>
       </div>
+
+      {/* Every device this account gets pushes on, revocable from anywhere —
+          lost phone, old laptop, a browser profile you forgot about. */}
+      {devices.length > 0 && (
+        <div>
+          <h4 className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-2">Your devices</h4>
+          <div className="space-y-1.5">
+            {devices.map((d) => (
+              <div key={d.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  {/iPhone|iPad|Android/.test(d.user_agent || '') ? (
+                    <Smartphone className="w-3.5 h-3.5 text-white/40 shrink-0" />
+                  ) : (
+                    <Monitor className="w-3.5 h-3.5 text-white/40 shrink-0" />
+                  )}
+                  <span className="text-[11px] text-white truncate">{deviceLabel(d.user_agent)}</span>
+                  {d.endpoint === thisEndpoint && (
+                    <span className="text-[8px] font-black uppercase tracking-widest text-accent shrink-0">This device</span>
+                  )}
+                  <span className="text-[9px] text-white/30 shrink-0">
+                    since {new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+                <button
+                  onClick={() => removeDevice(d)}
+                  disabled={removing !== null || busy !== null}
+                  title="Stop notifications on this device"
+                  className="p-1 rounded-md text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40 shrink-0"
+                >
+                  {removing === d.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {message && <p className="text-[10px] font-bold text-accent">{message}</p>}
     </div>

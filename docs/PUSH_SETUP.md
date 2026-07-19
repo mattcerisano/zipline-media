@@ -67,9 +67,11 @@ haven't set up push. The message template supports `{title}`, `{client}`,
 `{shoot_date}`, `{location}`, and `{call_time}`. This works even without
 VAPID keys; it only needs a webhook channel.
 
-Mention pings fire immediately when someone saves Edit Tracker notes that
-@mention you (matched by your Rolodex contact's email), unless you've turned
-mention pings off.
+Mention pings fire immediately when someone @mentions you in Edit Tracker
+notes or a Notes Library note (matched by your Rolodex contact's email),
+unless you've turned mention pings off. Only newly added mentions ping —
+re-saving a note never re-pings. Registered devices are listed on the push
+settings card, where any of them can be revoked (lost phone, old laptop).
 
 If `CRON_SECRET` is set in the environment, Vercel Cron authenticates with it
 automatically — same arrangement as the calendar sync cron.
