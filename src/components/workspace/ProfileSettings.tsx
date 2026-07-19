@@ -20,6 +20,21 @@ interface ProfileSettingsProps {
   onSaved?: () => void;
 }
 
+// Every IANA zone the runtime knows, with a hand-picked fallback for older
+// browsers. Drives the org timezone picker (used by call-time reminders).
+const TIMEZONES: string[] = (() => {
+  try {
+    const all = (Intl as any).supportedValuesOf?.('timeZone') as string[] | undefined;
+    if (all && all.length > 0) return all;
+  } catch { /* fall through to the short list */ }
+  return [
+    'America/New_York', 'America/Chicago', 'America/Denver', 'America/Phoenix',
+    'America/Los_Angeles', 'America/Anchorage', 'Pacific/Honolulu', 'America/Toronto',
+    'America/Vancouver', 'Europe/London', 'Europe/Paris', 'Europe/Berlin',
+    'Asia/Tokyo', 'Asia/Shanghai', 'Australia/Sydney', 'UTC',
+  ];
+})();
+
 export default function ProfileSettings({ session, userRole, onClose, onSaved }: ProfileSettingsProps) {
   const isAdmin = userRole === 'admin';
   const userId = session?.user?.id;
@@ -179,9 +194,17 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
         phone: org.phone || null,
         email: org.email || null,
         website: org.website || null,
+        timezone: org.timezone || 'America/New_York',
         updated_at: new Date().toISOString(),
       };
-      const { error } = await supabase.from('organizations').update(payload).eq('id', org.id);
+      let { error } = await supabase.from('organizations').update(payload).eq('id', org.id);
+      if (error && /timezone/i.test(error.message)) {
+        // DB predates the timezone column (migration 20260717000004) — still
+        // save the rest of the branding rather than failing the whole form.
+        const legacy: Partial<typeof payload> = { ...payload };
+        delete legacy.timezone;
+        ({ error } = await supabase.from('organizations').update(legacy).eq('id', org.id));
+      }
       if (error) throw error;
       // Persist the accent app-wide (and cache it for next load).
       applyAccent(payload.brand_color);
@@ -436,6 +459,20 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                       <label className={labelClass}>Address</label>
                       <input className={inputClass} value={org.address || ''} onChange={(e) => setOrg(o => ({ ...o, address: e.target.value }))} />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Timezone</label>
+                    <select
+                      className={inputClass}
+                      value={org.timezone || 'America/New_York'}
+                      onChange={(e) => setOrg(o => ({ ...o, timezone: e.target.value }))}
+                    >
+                      {TIMEZONES.map((tz) => (
+                        <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+                      ))}
+                    </select>
+                    <p className="text-[8px] text-white/25 mt-1.5 uppercase tracking-widest">Call times (&ldquo;07:30 AM&rdquo;) are read in this zone — it drives call-time push reminders</p>
                   </div>
 
                   <div className="pt-2 border-t border-white/5">

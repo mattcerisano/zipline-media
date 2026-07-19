@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isSameOrigin } from '@/lib/api-guard';
+import { renderTemplate, dispatchToChannel as dispatch, type TeamChannel as Channel, type NotificationPlatform as Platform } from '@/lib/team-notify';
 
 // Service-role client so the route can read org channel/event config and
 // dispatch regardless of which user triggered the event.
@@ -8,63 +9,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-type Platform = 'discord' | 'slack' | 'teams';
-
-interface Channel {
-  id: string;
-  platform: Platform;
-  label: string | null;
-  webhook_url: string | null;
-  enabled: boolean;
-}
-
-// Replace {placeholder} tokens with values; unknown/empty tokens render as TBD.
-function renderTemplate(template: string, variables: Record<string, string | undefined>): string {
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => {
-    const val = variables[key];
-    return val && val.trim() ? val : 'TBD';
-  });
-}
-
-// Build the platform-specific request body for a rendered text message.
-function buildPayload(platform: Platform, text: string): Record<string, unknown> {
-  switch (platform) {
-    case 'discord':
-      // Discord webhooks accept markdown directly in `content`.
-      return { content: text };
-    case 'slack':
-      return { text };
-    case 'teams':
-      // Teams legacy Incoming Webhook expects a MessageCard.
-      return {
-        '@type': 'MessageCard',
-        '@context': 'http://schema.org/extensions',
-        text,
-      };
-    default:
-      return { text };
-  }
-}
-
-async function dispatch(channel: Channel, text: string): Promise<{ platform: Platform; ok: boolean; error?: string }> {
-  if (!channel.webhook_url) {
-    return { platform: channel.platform, ok: false, error: 'No webhook URL configured' };
-  }
-  try {
-    const res = await fetch(channel.webhook_url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildPayload(channel.platform, text)),
-    });
-    if (!res.ok) {
-      return { platform: channel.platform, ok: false, error: `HTTP ${res.status}` };
-    }
-    return { platform: channel.platform, ok: true };
-  } catch (err: any) {
-    return { platform: channel.platform, ok: false, error: err?.message || 'Request failed' };
-  }
-}
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({} as any));

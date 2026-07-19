@@ -15,6 +15,7 @@ const PLATFORMS: { platform: NotificationPlatform; label: string; hint: string }
 // Human-friendly labels for each event rule, in display order.
 const EVENT_META: { key: string; label: string }[] = [
   { key: 'job_created', label: 'New production added' },
+  { key: 'call_reminder', label: 'Call-time reminder (1 hour before call)' },
   { key: 'status_booked', label: 'Status → Booked' },
   { key: 'status_hold', label: 'Status → Hold' },
   { key: 'status_planning', label: 'Status → Planning' },
@@ -22,7 +23,7 @@ const EVENT_META: { key: string; label: string }[] = [
   { key: 'status_cancelled', label: 'Status → Cancelled' },
 ];
 
-const PLACEHOLDERS = '{title} · {client} · {production_company} · {shoot_date} · {location} · {old_status} · {new_status}';
+const PLACEHOLDERS = '{title} · {client} · {production_company} · {shoot_date} · {location} · {call_time} · {old_status} · {new_status}';
 
 const inputClass = 'w-full bg-black/50 border border-white/10 py-2.5 px-3 rounded-lg outline-none focus:border-accent text-sm text-white transition-colors';
 const labelClass = 'block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5';

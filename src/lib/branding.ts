@@ -13,6 +13,8 @@ export interface Branding {
   phone?: string | null;
   email?: string | null;
   website?: string | null;
+  /** IANA zone (e.g. "America/New_York") call times are interpreted in. */
+  timezone?: string | null;
 }
 
 export const DEFAULT_BRANDING: Branding = {

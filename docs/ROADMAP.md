@@ -29,7 +29,7 @@ Ranked roughly by on-set impact. Items marked ✅ are done.
 - [ ] **Offline / stale-cache support** — service worker caching last-viewed call sheets & gear lists for bad-signal locations
 - [x] ✅ **Google sync deletion round-trip** — tombstones so deleted Google events disappear here and in-app marker deletes don't resurrect
 - [ ] **Email round 2** — send attachments, drafts, Sent/Starred/Trash views, undo-send
-- [x] ✅ **Web push notifications** — call-time reminders and @mention pings to phones (per-device opt-in under Integrations → Push Notifications; needs VAPID keys, see `docs/PUSH_SETUP.md`)
+- [x] ✅ **Web push notifications** — call-time reminders (multi-day aware, per-user lead time, optional team-channel echo) and @mention pings to phones; per-device opt-in under Integrations → Push Notifications, needs VAPID keys — see `docs/PUSH_SETUP.md`
 - [x] ✅ **Bounded queries** — date-bound the calendar jobs fetch; paginate Rolodex (currently 1,000 contacts up front)
 - [ ] **Component splitting** — Rolodex (2.2k lines), Rentals (2.2k), EditTracker (2k), Slate (1.8k): split opportunistically when touched
 - [ ] **⌘K onboarding surface** — show top features in the empty search palette for new teammates
