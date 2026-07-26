@@ -539,12 +539,17 @@ function WorkspacePanel({
                   {isJobBound && (
                     <Lock className="w-2.5 h-2.5 text-accent opacity-60 shrink-0" />
                   )}
+                  {/* Fat tap target on phones — the desktop 10px X sits inside the
+                      tab's own select handler, so a near miss switched tabs
+                      instead of closing one. */}
                   {node.tabs.length > 1 && (
-                    <button 
+                    <button
                       onClick={(e) => handleCloseTab(t, e)}
-                      className="p-0.5 hover:bg-white/10 rounded text-white/30 hover:text-white transition-colors ml-1"
+                      aria-label={`Close ${label}`}
+                      title={`Close ${label}`}
+                      className="p-2 -mr-1.5 md:p-0.5 md:mr-0 hover:bg-white/10 rounded text-white/30 hover:text-white transition-colors ml-1 shrink-0 touch-manipulation"
                     >
-                      <X className="w-2.5 h-2.5" />
+                      <X className="w-3.5 h-3.5 md:w-2.5 md:h-2.5" />
                     </button>
                   )}
                 </div>
@@ -644,29 +649,36 @@ function WorkspacePanel({
           </div>
         </div>
  
-        {/* Panel splitting operations */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button 
+        {/* Panel splitting operations. The hover reveal is desktop-only: touch
+            devices never fire hover, so gating these behind group-hover left the
+            close button permanently invisible and a panel impossible to dismiss
+            on a phone. */}
+        <div className="flex items-center gap-1 shrink-0 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
+          {/* Splits are mouse-only — the resize handle listens for mousedown —
+              so they stay off the phone header rather than making panes that
+              can never be resized. */}
+          <button
             onClick={() => handleSplit('row')}
-            className="p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white transition-colors"
+            className="hidden md:block p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white transition-colors"
             title="Split Vertically (Row)"
           >
             <Columns className="w-3.5 h-3.5" />
           </button>
-          <button 
+          <button
             onClick={() => handleSplit('col')}
-            className="p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white transition-colors"
+            className="hidden md:block p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white transition-colors"
             title="Split Horizontally (Column)"
           >
             <Rows className="w-3.5 h-3.5" />
           </button>
           {onDelete && (
-            <button 
+            <button
               onClick={onDelete}
-              className="p-1.5 hover:bg-red-500/10 rounded text-red-400 hover:text-red-300 transition-colors ml-1 border border-transparent hover:border-red-500/20"
+              aria-label="Close panel"
+              className="p-2 md:p-1.5 md:ml-1 rounded text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors border border-red-500/20 md:border-transparent md:hover:border-red-500/20 touch-manipulation"
               title="Close Panel"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4 md:w-3.5 md:h-3.5" />
             </button>
           )}
         </div>
