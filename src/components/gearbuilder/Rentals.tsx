@@ -1180,8 +1180,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     doc.save(`${safeJob || "Equipment_List"}.pdf`);
   };
 
+  // Grows to the true height of the manifest rather than scrolling inside a
+  // viewport-height box — the list is read by scrolling the page, with the
+  // catalog staying pinned alongside it.
   const ManifestContent = (
-    <section className="bg-neutral-900/80 border border-white/10 p-6 md:p-8 rounded-2xl @4xl:sticky @4xl:top-24 h-full @4xl:h-[calc(100vh-140px)] @4xl:max-h-full flex flex-col overflow-hidden">
+    <section className="bg-neutral-900/80 border border-white/10 p-6 md:p-8 rounded-2xl flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <ClipboardList className="w-5 h-5 text-accent" />
@@ -1461,7 +1464,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         />
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto mb-6 pr-2 custom-scrollbar">
+      <div className="mb-6 pr-2">
         <AnimatePresence mode="popLayout">
           {Object.keys(manifestByOwner).length === 0 ? (
             <motion.div 
@@ -1610,7 +1613,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     return (
     <div className="@container pt-8 pb-32 @4xl:pb-8 px-4 md:px-6">
         <div className="grid grid-cols-1 @4xl:grid-cols-12 gap-6 @4xl:gap-12 items-start">
-          <div className="@4xl:col-span-7 space-y-8">
+          {/* self-stretch so the sticky catalog can travel the full height of
+              the (now content-sized) manifest instead of scrolling away. */}
+          <div className="@4xl:col-span-7 space-y-8 @4xl:self-stretch">
             <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-fit max-h-[75vh] @4xl:max-h-none @4xl:h-[calc(100vh-140px)] @4xl:sticky @4xl:top-24">
               
               <div className="bg-neutral-900/90 backdrop-blur-md p-4 md:p-0 z-20 sticky top-0 border-b md:border-b-0 border-white/10 space-y-4">

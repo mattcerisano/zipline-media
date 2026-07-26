@@ -146,10 +146,15 @@ main:has(.fixed.z-\[150\]) {
    Mobile / cross-platform polish (#7)
    ===================================================================== */
 
-/* Never allow accidental horizontal scrolling on small screens */
+/* Never allow accidental horizontal scrolling on small screens.
+   `clip` rather than `hidden`: `overflow-x: hidden` forces overflow-y to
+   compute to `auto`, which turns html/body into scroll containers and
+   silently kills every page-level `position: sticky` (pinned gear catalog,
+   manifest action bar). `clip` suppresses the same horizontal overflow
+   without creating a scrollport. */
 html, body {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Smooth momentum scrolling on iOS for scroll containers */
