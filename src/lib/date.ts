@@ -23,6 +23,25 @@ export function parseLocalDate(value: string | null | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/**
+ * Compact relative time ("just now", "12m ago", "3h ago", then a date).
+ *
+ * `now` is injectable so callers that render this on screen can pass a ticking
+ * value — reading the clock during render is impure, and a label that never
+ * recomputes will happily claim "2m ago" an hour later.
+ */
+export function timeAgo(iso: string | null, now: number = Date.now()): string {
+  if (!iso) return '';
+  const ms = now - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return '';
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return 'just now';
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 /** Format a stored date string for display without timezone drift. */
 export function formatLocalDate(
   value: string | null | undefined,

@@ -23,18 +23,6 @@ import {
   AlertTriangle
 } from 'lucide-react';
 
-// "2m ago" / "3h ago" / "Jul 12" for the sync-health chip.
-function timeAgo(iso: string | null): string {
-  if (!iso) return '';
-  const ms = Date.now() - new Date(iso).getTime();
-  if (!Number.isFinite(ms) || ms < 0) return '';
-  const min = Math.floor(ms / 60000);
-  if (min < 1) return 'just now';
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { supabase } from '@/lib/supabase';
@@ -44,6 +32,8 @@ import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
 import ProfileSettings from '@/components/workspace/ProfileSettings';
 import SearchPalette from '@/components/workspace/SearchPalette';
 import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
+import { timeAgo } from '@/lib/date';
+import { clearOfflineData } from '@/lib/offline-status';
 import { QuickStartGuideModal } from '@/components/workspace/QuickStartGuide';
 
 interface CustomTab {
@@ -816,6 +806,9 @@ export default function CommandCenterPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    // Purge cached productions too — on a shared iPad the next person to sign
+    // in must not be able to read the last user's jobs out of the offline cache.
+    clearOfflineData();
   };
 
   if (isLoading) {

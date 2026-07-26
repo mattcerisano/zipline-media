@@ -26,7 +26,7 @@ Ranked roughly by on-set impact. Items marked ✅ are done.
 - [x] ✅ **Sync status indicator** — "last synced X min ago / ⚠️ failing" chip on Calendar + Inbox so a broken Google token is visible before someone misses a shoot
 - [x] ✅ **Tighten allow-all RLS** — verified already fixed by 20260706000002 (audit grep hit superseded policies in older migration files); only the intentional public-read on jobs/inventory for the gear-share page remains
 - [x] ✅ **Team-synced preferences** — move `custom_tabs_list`, active tab, scratch notes, saved gear owners from localStorage to org/profile tables (edit-stage defs show the pattern)
-- [ ] **Offline / stale-cache support** — service worker caching last-viewed call sheets & gear lists for bad-signal locations
+- [x] ✅ **Offline / stale-cache support** — the worker now caches the Supabase reads behind call sheets, gear manifests, and crew lists (allowlisted tables only — never tokens or the vault) and replays them on a dead signal, with a banner naming how old the data is. Uncovered along the way: the worker had never actually been registering in production (it waited on a `load` event that had already fired), so the PWA had been inert since it shipped.
 - [x] ✅ **Google sync deletion round-trip** — tombstones so deleted Google events disappear here and in-app marker deletes don't resurrect
 - [ ] **Email round 2** — send attachments, drafts, Sent/Starred/Trash views, undo-send
 - [ ] **Web push notifications** — call-time reminders and @mention pings to phones

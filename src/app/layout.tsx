@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import FeedbackHost from "@/components/Feedback";
+import OfflineIndicator from "@/components/OfflineIndicator";
 
 
 
@@ -68,6 +69,7 @@ export default function RootLayout({
         <Footer />
         <ServiceWorkerRegister />
         <FeedbackHost />
+        <OfflineIndicator />
         <Analytics />
       </body>
     </html>
