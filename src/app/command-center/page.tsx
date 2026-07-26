@@ -515,6 +515,12 @@ export default function CommandCenterPage() {
   // the sync modal opens.
   const [googleSyncInfo, setGoogleSyncInfo] = useState<{ at: string | null; ok: boolean | null; error: string | null }>({ at: null, ok: null, error: null });
 
+  // Whether the server has Google OAuth credentials at all. The status endpoint
+  // has always reported this and the UI used to discard it, so a deployment
+  // missing GOOGLE_CLIENT_ID looked identical to a revoked token — and told
+  // people to reconnect, which could never work.
+  const [isGoogleConfigured, setIsGoogleConfigured] = useState<boolean | null>(null);
+
   const checkGoogleConnection = useCallback(async () => {
     if (!session?.access_token) return;
     try {
@@ -524,6 +530,7 @@ export default function CommandCenterPage() {
       });
       const data = await res.json();
       setIsGoogleConnected(!!data.connected);
+      setIsGoogleConfigured(data.configured ?? null);
       setGoogleSyncInfo({ at: data.lastSyncAt ?? null, ok: data.lastSyncOk ?? null, error: data.lastSyncError ?? null });
     } catch (err) {
       setIsGoogleConnected(false);
@@ -1465,7 +1472,9 @@ export default function CommandCenterPage() {
                         <p className="text-[10px] text-red-300 leading-relaxed">
                           <span className="font-black uppercase tracking-widest">Sync failing</span> (last attempt {timeAgo(googleSyncInfo.at)})
                           {googleSyncInfo.error ? ` — ${googleSyncInfo.error}` : ''}{' '}
-                          Try Reconnect above if this persists.
+                          {isGoogleConfigured === false
+                            ? 'This deployment has no Google OAuth credentials, so reconnecting cannot fix it — set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET on the server.'
+                            : 'Try Reconnect above if this persists.'}
                         </p>
                       </div>
                     ) : (

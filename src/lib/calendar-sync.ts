@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { getValidGoogleToken } from '@/lib/google-auth';
+import { resolveGoogleToken, describeGoogleTokenFailure, type GoogleTokenResult } from '@/lib/google-auth';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
@@ -39,12 +39,16 @@ async function recordSyncStatus(userId: string, ok: boolean, error?: string) {
  * marker upserts are idempotent.
  */
 export async function pullGoogleCalendarForUser(userId: string, existingToken?: string): Promise<PullResult> {
-  const token = existingToken || (await getValidGoogleToken(userId));
+  const resolved: GoogleTokenResult = existingToken
+    ? { token: existingToken }
+    : await resolveGoogleToken(userId);
+  const token = resolved.token;
   if (!token) {
-    // A user with a google_tokens row but no valid token has a broken
-    // connection (revoked/expired refresh token) — record it so the UI can
-    // say so. Users who never connected have no row; the update is a no-op.
-    await recordSyncStatus(userId, false, 'Google token expired or revoked — reconnect in Integrations.');
+    // Record the actual cause rather than assuming the token was revoked.
+    // "Reconnect in Integrations" is useless advice when the real problem is
+    // missing server credentials or a failed write, and it had people
+    // reconnecting repeatedly against a wall.
+    await recordSyncStatus(userId, false, describeGoogleTokenFailure(resolved.reason, resolved.detail));
     return { connected: false, syncCount: 0, createCount: 0, importCount: 0, message: 'Google account not connected.' };
   }
 
