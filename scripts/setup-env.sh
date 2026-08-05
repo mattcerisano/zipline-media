@@ -103,8 +103,10 @@ echo "────────────────────────�
 ask_plain  QB_ID     "QUICKBOOKS_CLIENT_ID"
 ask_secret QB_SECRET "Paste QUICKBOOKS_CLIENT_SECRET (input hidden)"
 ask_plain  QB_ENV    "Environment (sandbox or production)" "sandbox"
-ask_plain  QB_URL    "Redirect URI — must match Intuit exactly" \
-  "https://zipline.media/api/auth/quickbooks/callback"
+# No default on purpose. Left unset, both the authorize and callback routes
+# derive the redirect URI from the request origin, so it always matches the
+# domain you're actually on. Only pin it if you need a specific one.
+ask_plain  QB_URL    "Redirect URI (press Enter to auto-detect — recommended)"
 
 put QUICKBOOKS_CLIENT_ID     "$QB_ID"
 put QUICKBOOKS_CLIENT_SECRET "$QB_SECRET"
