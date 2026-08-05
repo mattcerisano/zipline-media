@@ -10,6 +10,7 @@ import { Job, CalendarEvent, CalendarEventPreset } from './types';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { pushJobToGoogleCalendar } from '@/lib/calendar-push';
+import { Modal } from '@/components/workspace/Overlay';
 
 // Quick-add presets for the Calendar tab. Lightweight markers, not productions.
 //
@@ -70,6 +71,10 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
   // Quick calendar markers (gated by enableQuickEvents)
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [quickAddDate, setQuickAddDate] = useState<string | null>(null);
+  /** The event being created or edited. Null when the form is closed. */
+  const [eventDraft, setEventDraft] = useState<Partial<CalendarEvent> | null>(null);
+  const [savingEvent, setSavingEvent] = useState(false);
+  const [eventError, setEventError] = useState<string | null>(null);
 
   // Inline event editor state (only used when `editable`)
   const [editingJob, setEditingJob] = useState<Job | null>(null);
@@ -147,22 +152,64 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
   React.useEffect(() => { fetchEvents(); }, [fetchEvents]);
   useRealtime(enableQuickEvents ? ['calendar_events'] : [], fetchEvents);
 
-  const addQuickEvent = async (date: string, preset: CalendarEventPreset) => {
-    const label = presetOf(preset).label;
-    const optimistic: CalendarEvent = { id: `temp-${Date.now()}`, title: label, preset, event_date: date };
-    setEvents(prev => [...prev, optimistic]);
+  /**
+   * Open the event form. Picking a preset used to insert a marker immediately,
+   * titled with the preset's own label — so every entry read "Hold" or
+   * "Meeting" and the date range, notes, and a real name had to be filled in
+   * afterwards, if at all. The preset now seeds a form instead.
+   */
+  const openNewEvent = (date: string, preset: CalendarEventPreset) => {
     setQuickAddDate(null);
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .insert([{ title: label, preset, event_date: date }])
-      .select()
-      .single();
-    if (error) {
-      console.error('Error adding calendar event:', error);
-      setEvents(prev => prev.filter(e => e.id !== optimistic.id));
+    setEventError(null);
+    setEventDraft({ preset, event_date: date, title: presetOf(preset).label, end_date: '', notes: '' });
+  };
+
+  const openEditEvent = (ev: CalendarEvent) => {
+    setEventError(null);
+    setEventDraft({ ...ev, end_date: ev.end_date || '', notes: ev.notes || '' });
+  };
+
+  const saveEvent = async () => {
+    if (!eventDraft) return;
+    const title = (eventDraft.title || '').trim();
+    if (!title) { setEventError('Give the event a name.'); return; }
+    if (!eventDraft.event_date) { setEventError('Pick a start date.'); return; }
+    // A backwards range is a typo, not a span — catching it here beats
+    // rendering an event that silently covers only its first day.
+    if (eventDraft.end_date && eventDraft.end_date < eventDraft.event_date) {
+      setEventError('The end date is before the start date.');
       return;
     }
-    setEvents(prev => prev.map(e => (e.id === optimistic.id ? (data as CalendarEvent) : e)));
+
+    setSavingEvent(true);
+    setEventError(null);
+    const payload = {
+      title,
+      preset: eventDraft.preset,
+      event_date: eventDraft.event_date,
+      // Empty string is rejected by a DATE column, and an end equal to the
+      // start is a single day rather than a span.
+      end_date: eventDraft.end_date && eventDraft.end_date > eventDraft.event_date ? eventDraft.end_date : null,
+      notes: (eventDraft.notes || '').trim() || null,
+    };
+
+    try {
+      if (eventDraft.id) {
+        const { error } = await supabase.from('calendar_events').update(payload).eq('id', eventDraft.id);
+        if (error) throw error;
+        setEvents(prev => prev.map(e => (e.id === eventDraft.id ? { ...e, ...payload } as CalendarEvent : e)));
+      } else {
+        const { data, error } = await supabase.from('calendar_events').insert([payload]).select().single();
+        if (error) throw error;
+        setEvents(prev => [...prev, data as CalendarEvent]);
+      }
+      setEventDraft(null);
+    } catch (err: any) {
+      console.error('Error saving calendar event:', err);
+      setEventError(err?.message || 'Could not save the event.');
+    } finally {
+      setSavingEvent(false);
+    }
   };
 
   const deleteQuickEvent = async (id: string) => {
@@ -179,10 +226,6 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     if (error) console.error('Error deleting calendar event:', error);
   };
 
-  const renameQuickEvent = async (id: string, title: string) => {
-    setEvents(prev => prev.map(e => (e.id === id ? { ...e, title } : e)));
-    await supabase.from('calendar_events').update({ title }).eq('id', id);
-  };
 
   // Open the inline editor for a clicked event
   const openEditor = (job: Job) => {
@@ -462,22 +505,20 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                           className={`group/ev p-1.5 rounded bg-white/5 border-l-2 hover:bg-white/10 overflow-hidden transition-all flex items-center justify-between ${isStart ? '' : 'opacity-60'}`}
                           style={{ borderLeftColor: p.color }}
                         >
-                          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                          {/* The whole row opens the form now — an inline
+                              rename box could only ever change the title, so
+                              dates and notes had nowhere to be edited. */}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); openEditEvent(ev); }}
+                            className="flex items-center gap-1.5 flex-1 min-w-0 text-left"
+                            title={ev.notes || 'Edit event'}
+                          >
                             <span className={`w-1.5 h-1.5 rounded-full ${p.dot} shrink-0`} />
-                            {isStart ? (
-                              <input
-                                value={ev.title || ''}
-                                onChange={(e) => setEvents(prev => prev.map(x => x.id === ev.id ? { ...x, title: e.target.value } : x))}
-                                onBlur={(e) => renameQuickEvent(ev.id, e.target.value)}
-                                onClick={(e) => e.stopPropagation()}
-                                className="bg-transparent outline-none text-[10px] font-medium leading-tight truncate w-full focus:bg-white/5 rounded"
-                              />
-                            ) : (
-                              <span className="text-[10px] font-medium leading-tight truncate w-full text-white/70">
-                                {ev.title || p.label}
-                              </span>
-                            )}
-                          </div>
+                            <span className={`text-[10px] font-medium leading-tight truncate w-full ${isStart ? '' : 'text-white/70'}`}>
+                              {!isStart && '↳ '}{ev.title || p.label}
+                            </span>
+                          </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); deleteQuickEvent(ev.id); }}
                             className="opacity-0 group-hover/ev:opacity-100 p-0.5 hover:text-red-500 transition-all shrink-0"
@@ -517,7 +558,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                       {QUICK_ADD_PRESETS.map(p => (
                         <button
                           key={p.key}
-                          onClick={() => addQuickEvent(d.date, p.key)}
+                          onClick={() => openNewEvent(d.date as string, p.key)}
                           className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/10 text-left transition-colors"
                         >
                           <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
@@ -562,7 +603,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                   {QUICK_ADD_PRESETS.map(p => (
                     <button
                       key={p.key}
-                      onClick={() => addQuickEvent(selectedDate, p.key)}
+                      onClick={() => openNewEvent(selectedDate, p.key)}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
                     >
                       <span className={`w-2 h-2 rounded-full ${p.dot}`} />
@@ -574,10 +615,14 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                   const p = presetOf(ev.preset);
                   return (
                     <div key={ev.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/5 border-l-2" style={{ borderLeftColor: p.color }}>
-                      <div className="flex items-center gap-2 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => openEditEvent(ev)}
+                        className="flex items-center gap-2 min-w-0 flex-1 text-left"
+                      >
                         <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
                         <span className="text-[10px] font-semibold truncate text-white">{ev.title || p.label}</span>
-                      </div>
+                      </button>
                       <button onClick={() => deleteQuickEvent(ev.id)} className="p-1 text-white/30 hover:text-red-500 shrink-0"><X className="w-4 h-4" /></button>
                     </div>
                   );
@@ -646,6 +691,147 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
           <div className="w-2 h-2 rounded-full bg-purple-500" /> Rental
         </div>
       </div>
+
+      {/* Calendar event form — create and edit share one sheet. Portalled, so
+          it can't end up painting under the sticky page header. */}
+      <Modal
+        open={!!eventDraft}
+        onClose={() => setEventDraft(null)}
+        title={eventDraft?.id ? 'Edit Event' : 'New Event'}
+        maxWidth="max-w-md"
+        footer={
+          <div className="flex items-center justify-between gap-2">
+            {eventDraft?.id ? (
+              <button
+                type="button"
+                onClick={() => { deleteQuickEvent(eventDraft.id as string); setEventDraft(null); }}
+                className="px-3 py-2.5 rounded-lg text-[11px] font-semibold text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                Delete
+              </button>
+            ) : <span />}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setEventDraft(null)}
+                className="px-4 py-2.5 rounded-lg font-semibold text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="calendar-event-form"
+                disabled={savingEvent}
+                className="flex items-center gap-2 bg-accent text-white px-5 py-2.5 rounded-lg font-semibold text-xs hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {savingEvent ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                {savingEvent ? 'Saving…' : 'Save Event'}
+              </button>
+            </div>
+          </div>
+        }
+      >
+        {eventDraft && (
+          <form
+            id="calendar-event-form"
+            onSubmit={(e) => { e.preventDefault(); saveEvent(); }}
+            className="space-y-4"
+          >
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Event Name</label>
+              <input
+                autoFocus
+                value={eventDraft.title || ''}
+                onChange={(e) => setEventDraft({ ...eventDraft, title: e.target.value })}
+                placeholder="e.g. Client call — Tony Awards"
+                className="w-full bg-black/50 border border-white/10 px-3 py-2.5 rounded-xl outline-none focus:border-accent text-sm font-semibold text-white"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Type</label>
+              <div className="grid grid-cols-2 gap-2">
+                {QUICK_ADD_PRESETS.map(p => {
+                  const active = eventDraft.preset === p.key;
+                  return (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setEventDraft({
+                        ...eventDraft,
+                        preset: p.key,
+                        // Retitle only while the name is still the previous
+                        // preset's label — never overwrite something typed.
+                        title: !eventDraft.title || eventDraft.title === presetOf(eventDraft.preset).label
+                          ? p.label
+                          : eventDraft.title,
+                      })}
+                      className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-colors ${
+                        active ? 'bg-white/10 border-white/25' : 'bg-black/40 border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
+                      <span className={`text-[11px] font-semibold ${active ? 'text-white' : 'text-white/60'}`}>{p.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Starts</label>
+                <input
+                  type="date"
+                  value={eventDraft.event_date || ''}
+                  onChange={(e) => setEventDraft({ ...eventDraft, event_date: e.target.value })}
+                  className="w-full bg-black/50 border border-white/10 px-3 py-2.5 rounded-xl outline-none focus:border-accent text-sm font-semibold text-white [color-scheme:dark]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">
+                  Ends <span className="opacity-50 normal-case tracking-normal font-medium">(optional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={eventDraft.end_date || ''}
+                  min={eventDraft.event_date || undefined}
+                  onChange={(e) => setEventDraft({ ...eventDraft, end_date: e.target.value })}
+                  className="w-full bg-black/50 border border-white/10 px-3 py-2.5 rounded-xl outline-none focus:border-accent text-sm font-semibold text-white [color-scheme:dark]"
+                />
+              </div>
+            </div>
+            <p className="text-[9px] text-white/30 -mt-1 ml-1">
+              Leave the end date blank for a single day. A range paints across every day it covers.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Notes</label>
+              <textarea
+                rows={3}
+                value={eventDraft.notes || ''}
+                onChange={(e) => setEventDraft({ ...eventDraft, notes: e.target.value })}
+                placeholder="Anything the team should know"
+                className="w-full bg-black/50 border border-white/10 px-3 py-2.5 rounded-xl outline-none focus:border-accent text-xs font-medium text-white leading-relaxed resize-y"
+              />
+            </div>
+
+            {/* The importer upserts on google_event_id, so a title edited here
+                is replaced on the next pull. Worth saying before they type. */}
+            {eventDraft.google_event_id && (
+              <p className="text-[10px] font-semibold text-amber-400/90 leading-relaxed">
+                Synced from Google Calendar — edits here are overwritten on the next sync. Change it in Google to make it stick.
+              </p>
+            )}
+
+            {eventError && (
+              <p className="text-[11px] font-bold text-red-400 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {eventError}
+              </p>
+            )}
+          </form>
+        )}
+      </Modal>
 
       {/* Inline Event Editor (two-way Google Calendar sync) */}
       <AnimatePresence>
