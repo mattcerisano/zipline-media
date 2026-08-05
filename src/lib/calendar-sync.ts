@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { getValidGoogleToken } from '@/lib/google-auth';
+import { getGoogleToken, describeTokenFailure } from '@/lib/google-auth';
 import { formatCallTime, wallClockFromGoogleDateTime, addDays } from '@/lib/date';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
@@ -99,13 +99,23 @@ async function recordSyncStatus(userId: string, ok: boolean, error?: string) {
  * marker upserts are idempotent.
  */
 export async function pullGoogleCalendarForUser(userId: string, existingToken?: string): Promise<PullResult> {
-  const token = existingToken || (await getValidGoogleToken(userId));
+  let token = existingToken || null;
   if (!token) {
-    // A user with a google_tokens row but no valid token has a broken
-    // connection (revoked/expired refresh token) — record it so the UI can
-    // say so. Users who never connected have no row; the update is a no-op.
-    await recordSyncStatus(userId, false, 'Google token expired or revoked — reconnect in Integrations.');
-    return { connected: false, syncCount: 0, createCount: 0, importCount: 0, message: 'Google account not connected.' };
+    const result = await getGoogleToken(userId);
+    token = result.token;
+    if (!token) {
+      // A user with a google_tokens row but no valid token has a broken
+      // connection — record *which* kind, so the chip can distinguish a
+      // revoked grant (reconnect) from a server misconfiguration (don't
+      // bother). Users who never connected have no row; the update is a no-op.
+      const failure = result.failure || 'refresh_failed';
+      const message = describeTokenFailure(failure, result.detail);
+      if (result.detail) {
+        console.error(`Google token unavailable for ${userId} (${failure}):`, result.detail);
+      }
+      await recordSyncStatus(userId, false, message);
+      return { connected: false, syncCount: 0, createCount: 0, importCount: 0, message };
+    }
   }
 
   try {
