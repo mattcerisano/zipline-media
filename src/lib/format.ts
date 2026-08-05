@@ -20,3 +20,15 @@ export function caps(value: string | null | undefined, fallback = ''): string {
   const v = (value ?? '').toString().replace(/\s+/g, ' ').trim();
   return v ? v.toUpperCase() : fallback;
 }
+
+/** USD for money on screen. Whole dollars by default — cents are noise on a
+ *  production card; pass `cents` when the exact figure matters. */
+export function currency(amount: number | null | undefined, opts: { cents?: boolean } = {}): string {
+  const n = Number(amount || 0);
+  return n.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: opts.cents ? 2 : 0,
+    maximumFractionDigits: opts.cents ? 2 : 0,
+  });
+}

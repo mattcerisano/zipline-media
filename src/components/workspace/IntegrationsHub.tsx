@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   XCircle,
   Video,
+  Receipt,
+  AlertTriangle,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import IntegrationsSettings from './IntegrationsSettings';
@@ -37,6 +39,14 @@ export default function IntegrationsHub() {
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [copiedFeed, setCopiedFeed] = useState(false);
   const [feed, setFeed] = useState<{ url: string; secured: boolean } | null>(null);
+  const [qb, setQb] = useState<{
+    connected: boolean; configured: boolean; environment: string;
+    refreshTokenExpiresAt: string | null; lastSyncOk: boolean | null; lastSyncError: string | null;
+    /** Days until the Intuit refresh token lapses, fixed when the status loads. */
+    daysUntilLapse: number | null;
+  } | null>(null);
+  const [qbBusy, setQbBusy] = useState<'connect' | 'disconnect' | null>(null);
+  const [qbError, setQbError] = useState<string | null>(null);
 
   const refreshGoogleStatus = useCallback(async (accessToken: string) => {
     try {
@@ -60,6 +70,17 @@ export default function IntegrationsHub() {
           .then(res => (res.ok ? res.json() : null))
           .then(data => { if (data?.url) setFeed(data); })
           .catch(() => { /* the fallback URL still works */ });
+        fetch('/api/auth/quickbooks/status', { headers: { Authorization: `Bearer ${session.access_token}` } })
+          .then(res => (res.ok ? res.json() : null))
+          .then(data => {
+            if (!data) return;
+            const expiry = data.refreshTokenExpiresAt ? new Date(data.refreshTokenExpiresAt).getTime() : null;
+            setQb({
+              ...data,
+              daysUntilLapse: expiry ? Math.floor((expiry - Date.now()) / 86_400_000) : null,
+            });
+          })
+          .catch(() => { /* the card renders as not-connected */ });
         try {
           const { data } = await supabase
             .from('user_roles')
@@ -122,6 +143,51 @@ export default function IntegrationsHub() {
       setMessage('Failed to disconnect.');
     }
     setBusy(null);
+  };
+
+  const connectQuickBooks = async () => {
+    setQbError(null);
+    if (!session?.access_token) {
+      setQbError('Your session has expired — refresh the page and sign in again.');
+      return;
+    }
+    setQbBusy('connect');
+    try {
+      const res = await fetch('/api/auth/quickbooks', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setQbError(data.error || `Could not start the QuickBooks connection (HTTP ${res.status}).`);
+    } catch {
+      setQbError('Could not reach the connection service — check your network and try again.');
+    }
+    setQbBusy(null);
+  };
+
+  const disconnectQuickBooks = async () => {
+    if (!session?.access_token) return;
+    if (!(await confirmAction({
+      title: 'Disconnect QuickBooks?',
+      message: 'Invoice and quote totals will stop appearing on production cards. Nothing in QuickBooks changes.',
+      danger: true,
+      confirmLabel: 'Disconnect',
+    }))) return;
+    setQbBusy('disconnect');
+    try {
+      const res = await fetch('/api/auth/quickbooks/disconnect', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) setQb(prev => (prev ? { ...prev, connected: false } : prev));
+      else setQbError('Failed to disconnect.');
+    } catch {
+      setQbError('Failed to disconnect.');
+    }
+    setQbBusy(null);
   };
 
   // The real feed URL carries the shared secret, which only the server knows —
@@ -232,6 +298,85 @@ export default function IntegrationsHub() {
         {googleError && (
           <p className="text-[10px] font-bold text-red-400 mt-2">{googleError}</p>
         )}
+      </section>
+
+      {/* ============ QUICKBOOKS (READ-ONLY) ============ */}
+      <section className="bg-zinc-950/40 border border-white/10 rounded-2xl p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-accent" /> QuickBooks
+              <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40">
+                Read-only
+              </span>
+            </h3>
+            <p className="text-[10px] text-white/40 mt-1 leading-relaxed max-w-lg">
+              Pulls invoice and quote totals onto production cards so you can see what&rsquo;s been billed and
+              what&rsquo;s outstanding without leaving Slate. Studio OS never writes to your books — it only reads.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {qb?.environment === 'sandbox' && qb?.connected && (
+              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                Sandbox
+              </span>
+            )}
+            {qb === null ? (
+              <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-white/40">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking…
+              </span>
+            ) : qb.connected ? (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-bold uppercase tracking-widest text-green-400">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Connected
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white/40">
+                <XCircle className="w-3.5 h-3.5" /> Not connected
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {qb?.connected ? (
+            <button
+              onClick={disconnectQuickBooks}
+              disabled={qbBusy !== null}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors disabled:opacity-40"
+            >
+              {qbBusy === 'disconnect' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unplug className="w-3.5 h-3.5" />}
+              Disconnect
+            </button>
+          ) : (
+            <button
+              onClick={connectQuickBooks}
+              disabled={qbBusy !== null || qb?.configured === false}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-40"
+            >
+              {qbBusy === 'connect' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plug className="w-3.5 h-3.5" />}
+              Connect QuickBooks
+            </button>
+          )}
+        </div>
+
+        {qb?.configured === false && (
+          <p className="text-[10px] font-bold text-amber-400/90 mt-2.5 leading-relaxed">
+            QuickBooks isn&rsquo;t configured on the server. Set <span className="font-mono">QUICKBOOKS_CLIENT_ID</span> and{' '}
+            <span className="font-mono">QUICKBOOKS_CLIENT_SECRET</span> in the environment first.
+          </p>
+        )}
+        {/* Intuit refresh tokens die after 100 days of inactivity — worth a
+            warning before it happens rather than a mystery outage after. */}
+        {qb?.connected && qb.daysUntilLapse !== null && qb.daysUntilLapse <= 14 && (
+          <p className="text-[10px] font-bold text-amber-400/90 mt-2.5 flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            This connection lapses in {qb.daysUntilLapse} day{qb.daysUntilLapse === 1 ? '' : 's'} unless refreshed — reconnect to reset the clock.
+          </p>
+        )}
+        {qb?.connected && qb.lastSyncOk === false && qb.lastSyncError && (
+          <p className="text-[10px] font-bold text-red-400 mt-2.5">{qb.lastSyncError}</p>
+        )}
+        {qbError && <p className="text-[10px] font-bold text-red-400 mt-2.5">{qbError}</p>}
       </section>
 
       {/* ============ CALENDAR FEED ============ */}
