@@ -62,3 +62,21 @@ export function removeJobFromGoogleCalendar(googleEventId?: string | null): Prom
   if (!googleEventId) return Promise.resolve({ ok: true, message: '' });
   return callCalendar({ action: 'delete', googleEventId });
 }
+
+/**
+ * Mirror a Calendar-tab marker (Hold, Meeting, time off) onto Google as an
+ * all-day event. Safe to call on every save — the server updates in place once
+ * the marker has a Google event id, and ignores markers imported from Google.
+ */
+export function pushEventToGoogleCalendar(eventId: string): Promise<PushResult> {
+  return callCalendar({ action: 'push_event', eventId });
+}
+
+/**
+ * Remove a marker's Google event. Shares the job delete path — the Google API
+ * call is the same, and both treat an already-gone event as success.
+ */
+export function removeEventFromGoogleCalendar(googleEventId?: string | null): Promise<PushResult> {
+  if (!googleEventId) return Promise.resolve({ ok: true, message: '' });
+  return callCalendar({ action: 'delete', googleEventId });
+}

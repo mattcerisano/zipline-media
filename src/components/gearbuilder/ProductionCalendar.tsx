@@ -9,7 +9,7 @@ import {
 import { Job, CalendarEvent, CalendarEventPreset } from './types';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
-import { pushJobToGoogleCalendar } from '@/lib/calendar-push';
+import { pushJobToGoogleCalendar, pushEventToGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
 import { Modal } from '@/components/workspace/Overlay';
 
 // Quick-add presets for the Calendar tab. Lightweight markers, not productions.
@@ -194,6 +194,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     };
 
     try {
+      let savedId = eventDraft.id;
       if (eventDraft.id) {
         const { error } = await supabase.from('calendar_events').update(payload).eq('id', eventDraft.id);
         if (error) throw error;
@@ -201,9 +202,22 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       } else {
         const { data, error } = await supabase.from('calendar_events').insert([payload]).select().single();
         if (error) throw error;
+        savedId = (data as CalendarEvent).id;
         setEvents(prev => [...prev, data as CalendarEvent]);
       }
       setEventDraft(null);
+
+      // Mirror onto Google. Fire-and-forget: the row is already saved, and a
+      // push failure shouldn't undo it or block the form from closing. The
+      // server ignores markers that came *from* Google.
+      if (savedId && eventDraft.preset !== 'google') {
+        pushEventToGoogleCalendar(savedId).then(r => {
+          if (!r.ok && r.message) console.warn('Calendar event push:', r.message);
+          // Pick up the google_event_id the push just stored, so a later
+          // delete knows to remove it from Google too.
+          fetchEvents();
+        });
+      }
     } catch (err: any) {
       console.error('Error saving calendar event:', err);
       setEventError(err?.message || 'Could not save the event.');
@@ -215,13 +229,18 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
   const deleteQuickEvent = async (id: string) => {
     const ev = events.find(e => e.id === id);
     setEvents(prev => prev.filter(e => e.id !== id));
-    // Google-imported markers get a tombstone instead of a delete — a hard
-    // delete would just resurrect on the next sync. Manual markers (and
-    // pre-migration databases, where the update fails) delete outright.
-    if (ev?.google_event_id) {
+
+    // Markers imported *from* Google get a tombstone — Google still has the
+    // event, so a hard delete would just resurrect it on the next sync.
+    if (ev?.preset === 'google') {
       const { error } = await supabase.from('calendar_events').update({ hidden: true }).eq('id', id);
       if (!error) return;
+    } else if (ev?.google_event_id) {
+      // Ours, and mirrored to Google — clear the Google side first so it
+      // doesn't outlive the row and get re-imported as a new marker.
+      await removeEventFromGoogleCalendar(ev.google_event_id);
     }
+
     const { error } = await supabase.from('calendar_events').delete().eq('id', id);
     if (error) console.error('Error deleting calendar event:', error);
   };
@@ -816,9 +835,18 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
               />
             </div>
 
+            {/* Syncing is invisible otherwise — worth one line so nobody
+                wonders whether this reached the shared calendar. */}
+            {eventDraft.preset !== 'google' && (
+              <p className="text-[10px] text-white/35 leading-relaxed flex items-center gap-1.5">
+                <RefreshCw className="w-3 h-3 shrink-0" />
+                Saving also adds this to your Google Calendar as an all-day event.
+              </p>
+            )}
+
             {/* The importer upserts on google_event_id, so a title edited here
                 is replaced on the next pull. Worth saying before they type. */}
-            {eventDraft.google_event_id && (
+            {eventDraft.preset === 'google' && (
               <p className="text-[10px] font-semibold text-amber-400/90 leading-relaxed">
                 Synced from Google Calendar — edits here are overwritten on the next sync. Change it in Google to make it stick.
               </p>
