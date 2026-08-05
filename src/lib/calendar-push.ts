@@ -25,7 +25,9 @@ async function callCalendar(body: Record<string, unknown>): Promise<PushResult> 
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
-      return { ok: false, message: '' };
+      // An empty message here made every signed-out push fail with no trace
+      // at all — callers skip logging when there's nothing to log.
+      return { ok: false, message: 'Your session expired — sign in again to sync with Google Calendar.' };
     }
 
     const res = await fetch('/api/integrations/calendar', {
