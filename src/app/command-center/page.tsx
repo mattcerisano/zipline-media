@@ -1149,7 +1149,9 @@ export default function CommandCenterPage() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative custom-scrollbar flex flex-col z-10">
-        <header className="sticky top-0 z-45 bg-black/40 backdrop-blur-xl border-b border-white/5 p-4 md:p-6 flex items-center justify-between gap-4">
+        {/* z-45 is not a Tailwind scale value, so this compiled to no z-index
+            at all and the header's paint order was left to chance. */}
+        <header className="sticky top-0 z-30 bg-black/40 backdrop-blur-xl border-b border-white/5 p-4 md:p-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {isMobile && (
               <button
