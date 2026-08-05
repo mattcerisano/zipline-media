@@ -10,6 +10,26 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+/**
+ * Google Calendar colour ids per marker preset. Mirrors EVENT_PRESETS in
+ * ProductionCalendar — duplicated deliberately, because that module is
+ * 'use client' and importing it into a route would drag React into the server
+ * bundle. Keep the two in step.
+ */
+const GOOGLE_COLOR_BY_PRESET: Record<string, string> = {
+  hold: '5',       // Banana
+  timeout: '4',    // Flamingo
+  booked: '10',    // Basil
+  meeting: '7',    // Peacock
+  planning: '1',   // Lavender
+  available: '2',  // Sage
+  travel: '9',     // Blueberry
+  edit: '3',       // Grape
+};
+
+/** Tangerine. Productions, so they stand apart from every marker type. */
+const PRODUCTION_COLOR_ID = '6';
+
 const DEFAULT_SHOOT_HOURS = 8;
 
 /**
@@ -98,6 +118,9 @@ export async function POST(request: Request) {
         location: job.location_address || job.location_name || '',
         start: timing.start,
         end: timing.end,
+        // Tangerine — productions get their own colour so a shoot is never
+        // mistaken for a meeting at a glance.
+        colorId: PRODUCTION_COLOR_ID,
         // Machine-readable linkage back to Slate. The "Slate ID:" line in the
         // description is human-facing and breaks the moment someone edits the
         // description in Google; this survives edits and lets the pull find
@@ -209,6 +232,9 @@ export async function POST(request: Request) {
         // Google's all-day end is exclusive, so a single day ends tomorrow.
         start: { date: event.event_date },
         end: { date: addDays(lastDay, 1) },
+        // Same colour as the chip in Studio OS, so a Hold reads as a Hold in
+        // both places rather than taking the calendar's default blue.
+        colorId: GOOGLE_COLOR_BY_PRESET[event.preset] || undefined,
         extendedProperties: { private: { app: STUDIO_MARKER_TAG, studioEventId: event.id } },
       };
 

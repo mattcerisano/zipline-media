@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Calendar as CalendarIcon,
-  Clock, MapPin, User, AlertCircle, X, Save, Loader2, RefreshCw, Plus
+  Clock, AlertCircle, X, Save, Loader2, RefreshCw, Plus
 } from 'lucide-react';
 import { Job, CalendarEvent, CalendarEventPreset } from './types';
 import { supabase } from '@/lib/supabase';
@@ -19,19 +19,27 @@ import { toast } from '@/components/Feedback';
 // markers created before the menu was simplified — and the ones the Google
 // import writes — keep their own label and colour; dropping them outright would
 // have re-coloured existing entries as whatever sat first in this array.
-export const EVENT_PRESETS: { key: CalendarEventPreset; label: string; color: string; dot: string; quickAdd?: boolean }[] = [
-  { key: 'hold', label: 'Hold', color: '#f59e0b', dot: 'bg-amber-500', quickAdd: true },
-  { key: 'timeout', label: 'Out of Office', color: '#f43f5e', dot: 'bg-rose-500', quickAdd: true },
-  { key: 'booked', label: 'Booked', color: '#10b981', dot: 'bg-emerald-500', quickAdd: true },
-  { key: 'meeting', label: 'Meeting', color: '#3b82f6', dot: 'bg-blue-500', quickAdd: true },
-  // Legacy / imported — rendered, never offered.
-  { key: 'planning', label: 'Planning Shoot', color: '#6366f1', dot: 'bg-indigo-500' },
-  { key: 'available', label: 'Available', color: '#14b8a6', dot: 'bg-teal-500' },
-  { key: 'travel', label: 'Travel Day', color: '#a855f7', dot: 'bg-purple-500' },
-  { key: 'edit', label: 'Edit Day', color: '#d946ef', dot: 'bg-fuchsia-500' },
-  // Imported from Google Calendar by the sync.
-  { key: 'google', label: 'Google Calendar', color: '#38bdf8', dot: 'bg-sky-400' },
+// Colours are Google Calendar's own event palette, by name and hex, with the
+// `colorId` the API expects. Picking arbitrary Tailwind colours here meant a
+// Hold was amber in Studio OS and the calendar's default blue in Google — the
+// same event, two identities. These are the same colour in both places.
+export const EVENT_PRESETS: { key: CalendarEventPreset; label: string; color: string; googleColorId: string; quickAdd?: boolean }[] = [
+  { key: 'hold',     label: 'Hold',           color: '#f6bf26', googleColorId: '5',  quickAdd: true }, // Banana
+  { key: 'timeout',  label: 'Out of Office',  color: '#e67c73', googleColorId: '4',  quickAdd: true }, // Flamingo
+  { key: 'booked',   label: 'Booked',         color: '#0b8043', googleColorId: '10', quickAdd: true }, // Basil
+  { key: 'meeting',  label: 'Meeting',        color: '#039be5', googleColorId: '7',  quickAdd: true }, // Peacock
+  // Legacy — rendered so old markers keep their identity, never offered.
+  { key: 'planning',  label: 'Planning Shoot', color: '#7986cb', googleColorId: '1' },  // Lavender
+  { key: 'available', label: 'Available',      color: '#33b679', googleColorId: '2' },  // Sage
+  { key: 'travel',    label: 'Travel Day',     color: '#3f51b5', googleColorId: '9' },  // Blueberry
+  { key: 'edit',      label: 'Edit Day',       color: '#8e24aa', googleColorId: '3' },  // Grape
+  // Imported from Google. Graphite reads as "this came from elsewhere".
+  { key: 'google',    label: 'Google Calendar', color: '#616161', googleColorId: '8' }, // Graphite
 ];
+
+/** Productions get their own colour so a shoot never reads as a meeting. */
+export const PRODUCTION_COLOR = '#f4511e';      // Tangerine
+export const PRODUCTION_COLOR_ID = '6';
 const QUICK_ADD_PRESETS = EVENT_PRESETS.filter(p => p.quickAdd);
 const presetOf = (k?: string) => EVENT_PRESETS.find(p => p.key === k) || EVENT_PRESETS[0];
 
@@ -316,36 +324,131 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     setSelectedDate(new Date().toISOString().split('T')[0]);
   }, []);
 
-  // Calendar Helpers
-  const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
-
   const monthYear = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-  const calendarDays = useMemo(() => {
+  // Local parts, not toISOString — the UTC form marks the wrong cell as today
+  // for most of the evening anywhere west of UTC.
+  const todayStr = (() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+  })();
+
+  /** Every visible cell, padded to whole weeks with real dates on both sides.
+   *  Padding used to be `{day: null, date: null}`, which meant a span crossing
+   *  a month boundary had nowhere to draw. */
+  const calendarCells = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
-    const daysCount = daysInMonth(year, month);
-    const startDay = firstDayOfMonth(year, month);
-    
-    const days = [];
-    
-    // Padding for previous month
-    for (let i = 0; i < startDay; i++) {
-      days.push({ day: null, date: null });
-    }
-    
-    // Actual days
-    for (let i = 1; i <= daysCount; i++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-      
-      const dayJobs = jobs.filter(j => coversDate(j.shoot_date, j.end_date, dateStr));
+    const gridStart = new Date(year, month, 1);
+    gridStart.setDate(gridStart.getDate() - gridStart.getDay());
 
-      days.push({ day: i, date: dateStr, jobs: dayJobs });
+    const cells: { date: string; dayNum: number; inMonth: boolean }[] = [];
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(gridStart);
+      d.setDate(gridStart.getDate() + i);
+      cells.push({
+        // Built from local parts, never toISOString — that shifts the day for
+        // anyone west of UTC.
+        date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+        dayNum: d.getDate(),
+        inMonth: d.getMonth() === month,
+      });
     }
-    
-    return days;
-  }, [currentDate, jobs]);
+    // A 6th row that is entirely next month is dead space — Google drops it.
+    return cells.slice(0, cells.slice(35).some(c => c.inMonth) ? 42 : 35);
+  }, [currentDate]);
+
+  /**
+   * Week rows of positioned bars.
+   *
+   * A multi-day entry used to be redrawn as a separate chip in every day it
+   * covered, so a week-long hold read as seven unrelated blocks. Each week now
+   * gets one bar per entry, clipped to that week and stacked into lanes, which
+   * is how Google draws it.
+   */
+  const weeks = useMemo(() => {
+    const MAX_LANES = 3;
+    const rows: {
+      cells: typeof calendarCells;
+      bars: {
+        key: string; label: string; color: string; startCol: number; span: number;
+        continuesLeft: boolean; continuesRight: boolean; lane: number;
+        job?: Job; event?: CalendarEvent; time?: string;
+      }[];
+      overflow: Record<string, number>;
+    }[] = [];
+
+    for (let w = 0; w < calendarCells.length; w += 7) {
+      const cells = calendarCells.slice(w, w + 7);
+      const weekStart = cells[0].date;
+      const weekEnd = cells[cells.length - 1].date;
+
+      type Item = { start: string; end: string; label: string; color: string; job?: Job; event?: CalendarEvent; time?: string };
+      const items: Item[] = [];
+
+      for (const j of jobs) {
+        if (!j.shoot_date) continue;
+        const end = j.end_date && j.end_date > j.shoot_date ? j.end_date : j.shoot_date;
+        if (end < weekStart || j.shoot_date > weekEnd) continue;
+        items.push({
+          start: j.shoot_date, end, label: j.title || 'Untitled',
+          color: PRODUCTION_COLOR, job: j, time: j.call_time || undefined,
+        });
+      }
+
+      if (enableQuickEvents) {
+        for (const ev of events) {
+          const end = ev.end_date && ev.end_date > ev.event_date ? ev.end_date : ev.event_date;
+          if (end < weekStart || ev.event_date > weekEnd) continue;
+          const preset = presetOf(ev.preset);
+          items.push({
+            start: ev.event_date, end, label: ev.title || preset.label,
+            color: preset.color, event: ev,
+          });
+        }
+      }
+
+      // Earliest first, longest breaking ties. Sorting purely by length wastes
+      // lanes: a long bar starting midweek would claim lane 0 and force an
+      // earlier short one onto lane 1 with the space beside it left empty.
+      items.sort((a, b) =>
+        a.start.localeCompare(b.start) ||
+        b.end.localeCompare(a.end) ||
+        a.label.localeCompare(b.label));
+
+      const laneEnds: number[] = [];
+      const bars: (typeof rows)[number]['bars'] = [];
+      const overflow: Record<string, number> = {};
+
+      for (const it of items) {
+        const startCol = Math.max(0, cells.findIndex(c => c.date === it.start));
+        const endIdx = cells.findIndex(c => c.date === it.end);
+        const lastCol = endIdx === -1 ? cells.length - 1 : endIdx;
+        const span = Math.max(1, lastCol - startCol + 1);
+
+        let lane = laneEnds.findIndex(e => e < startCol);
+        if (lane === -1) { lane = laneEnds.length; laneEnds.push(lastCol); }
+        else laneEnds[lane] = lastCol;
+
+        if (lane >= MAX_LANES) {
+          // Counted per day so the "+N more" lands on the days it applies to.
+          for (let c = startCol; c <= lastCol; c++) overflow[cells[c].date] = (overflow[cells[c].date] || 0) + 1;
+          continue;
+        }
+
+        bars.push({
+          key: (it.job?.id || it.event?.id || it.label) + '-' + it.start,
+          label: it.label, color: it.color, startCol, span, lane,
+          continuesLeft: it.start < weekStart,
+          continuesRight: it.end > weekEnd,
+          job: it.job, event: it.event, time: it.time,
+        });
+      }
+
+      rows.push({ cells, bars, overflow });
+    }
+    return rows;
+  }, [calendarCells, jobs, events, enableQuickEvents]);
 
   // Selected Day Jobs Details Helper
   const selectedDateJobs = useMemo(() => {
@@ -411,188 +514,154 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
         ))}
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-lg overflow-hidden">
-        {calendarDays.map((d, i) => {
-          const isToday = d.date === new Date().toISOString().split('T')[0];
-          // Spans paint every day they cover. Matching on the start date alone
-          // is what made a week-long Google event show up as a single square.
-          const dayEvents = enableQuickEvents && d.date
-            ? events.filter(ev => coversDate(ev.event_date, ev.end_date, d.date as string))
-            : [];
-
+      {/* Month grid — one row per week, bars laid over the day cells so a
+          multi-day entry draws as a single unbroken pill. */}
+      <div className="border border-white/5 rounded-lg overflow-hidden bg-white/5 space-y-px">
+        {weeks.map((week, wi) => {
+          const laneCount = Math.max(1, ...week.bars.map(b => b.lane + 1));
           return (
-            <div 
-              key={i} 
-              onClick={() => {
-                  if (d.date) {
-                      setSelectedDate(d.date);
-                      if (selectionMode === 'range' && onSelectRange) {
-                          if (!rangeStart) {
-                              setRangeStart(d.date);
-                          } else {
-                              // Ensure start is before end
-                              const start = new Date(rangeStart) < new Date(d.date) ? rangeStart : d.date;
-                              const end = new Date(rangeStart) < new Date(d.date) ? d.date : rangeStart;
-                              onSelectRange(start, end);
-                              setRangeStart(null);
-                          }
-                      } else if (enableQuickEvents && !isMobile) {
-                          setQuickAddDate(prev => (prev === d.date ? null : d.date));
-                      } else {
-                          onSelectDate?.(d.date);
-                      }
-                  }
-              }}
-              className={`min-h-[60px] md:min-h-[140px] bg-black/40 p-1.5 md:p-2 transition-colors relative group
-                ${!d.day ? 'opacity-20 pointer-events-none' : ''}
-                ${(onSelectDate || onSelectRange || isMobile || enableQuickEvents) ? 'cursor-pointer hover:bg-white/10' : 'hover:bg-black/60'}
-                ${rangeStart === d.date ? 'bg-blue-500/20 ring-2 ring-blue-500 inset-0 z-10' : ''}
-                ${selectedDate === d.date && d.day ? 'bg-accent/[0.08] ring-1 ring-accent z-10' : ''}
-              `}
+            <div
+              key={wi}
+              className="relative grid grid-cols-7 gap-px"
+              style={{ gridTemplateRows: `auto repeat(${laneCount}, minmax(0, auto)) 1fr` }}
             >
-              {d.day && (
-                <>
-                  <span className={`text-[10px] md:text-xs font-semibold mb-1 md:mb-2 block ${isToday ? 'text-accent' : 'opacity-40'}`}>
-                    {d.day}
-                  </span>
+              {/* Day cells. Span every row so they act as the backdrop the
+                  bars sit on, and stay the click target for quick-add. */}
+              {week.cells.map((c, ci) => {
+                const isSelected = selectedDate === c.date;
+                return (
+                  <div
+                    key={c.date}
+                    onClick={() => {
+                      setSelectedDate(c.date);
+                      if (selectionMode === 'range' && onSelectRange) {
+                        if (!rangeStart) setRangeStart(c.date);
+                        else {
+                          const [a, b] = rangeStart < c.date ? [rangeStart, c.date] : [c.date, rangeStart];
+                          onSelectRange(a, b);
+                          setRangeStart(null);
+                        }
+                      } else if (enableQuickEvents && !isMobile) {
+                        setQuickAddDate(prev => (prev === c.date ? null : c.date));
+                      } else {
+                        onSelectDate?.(c.date);
+                      }
+                    }}
+                    style={{ gridColumn: ci + 1, gridRow: '1 / -1' }}
+                    className={`min-h-[76px] md:min-h-[124px] p-1 md:p-1.5 transition-colors group
+                      ${c.inMonth ? 'bg-black/40' : 'bg-black/60'}
+                      ${(onSelectDate || onSelectRange || isMobile || enableQuickEvents) ? 'cursor-pointer hover:bg-white/[0.07]' : ''}
+                      ${rangeStart === c.date ? 'ring-2 ring-blue-500 z-20' : ''}
+                      ${isSelected ? 'ring-1 ring-accent z-10' : ''}`}
+                  />
+                );
+              })}
 
-                  {/* Quick-add "+" affordance (desktop, calendar tab only) */}
-                  {enableQuickEvents && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setQuickAddDate(prev => (prev === d.date ? null : d.date)); }}
-                      className="hidden md:flex absolute top-1.5 right-1.5 w-5 h-5 items-center justify-center rounded-md bg-white/5 hover:bg-accent/20 text-white/40 hover:text-accent opacity-0 group-hover:opacity-100 transition-all z-20"
-                      title="Quick add"
+              {/* Date numbers */}
+              {week.cells.map((c, ci) => {
+                const isToday = c.date === todayStr;
+                return (
+                  <div
+                    key={`n-${c.date}`}
+                    style={{ gridColumn: ci + 1, gridRow: 1 }}
+                    className="pointer-events-none px-1 pt-1 pb-0.5 flex items-center justify-between"
+                  >
+                    <span
+                      className={`text-[10px] md:text-[11px] font-semibold leading-none
+                        ${isToday ? 'bg-accent text-white rounded-full w-5 h-5 flex items-center justify-center' : ''}
+                        ${!isToday && c.inMonth ? 'opacity-50' : ''}
+                        ${!c.inMonth ? 'opacity-20' : ''}`}
+                      style={isToday ? { backgroundColor: 'var(--accent)' } : undefined}
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-
-                  {/* Desktop Layout: Job Badges list */}
-                  <div className="hidden md:block space-y-1">
-                    {d.jobs?.map(job => (
-                      <motion.div 
-                        initial={{ opacity: 0, x: -5 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        key={job.id}
-                        onClick={(e) => {
-                            if (editable) {
-                                e.stopPropagation();
-                                openEditor(job);
-                            } else if (onSelectJob) {
-                                e.stopPropagation();
-                                onSelectJob(job);
-                            }
-                        }}
-                        className={`group/job-item p-1.5 rounded bg-white/5 border-l-2 border-accent group/job hover:bg-white/10 cursor-pointer overflow-hidden transition-all flex items-center justify-between ${(onSelectJob || editable) ? 'hover:scale-105 active:scale-95' : ''}`}
-                        style={{ borderLeftColor: `var(--accent)` }}
+                      {c.dayNum}
+                    </span>
+                    {enableQuickEvents && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setQuickAddDate(prev => (prev === c.date ? null : c.date)); }}
+                        className="pointer-events-auto hidden md:flex w-4 h-4 items-center justify-center rounded bg-white/5 hover:bg-accent/25 text-white/40 hover:text-accent opacity-0 group-hover:opacity-100 transition-all"
+                        title="Add event"
+                        aria-label={`Add event on ${c.date}`}
                       >
-                        <div className="flex-1 min-w-0 pr-2">
-                          <p className="text-[10px] font-semibold leading-tight truncate">{job.title}</p>
-                          <div className="flex items-center justify-between gap-1 mt-0.5">
-                            <div className="flex items-center gap-1 min-w-0 opacity-40">
-                               <div className={`w-1.5 h-1.5 rounded-full ${getStatusColor(job)}`} />
-                               <p className="text-[8px] font-medium tracking-tight truncate">{job.client_name || 'No Client'}</p>
-                            </div>
-                            {job.call_time && (
-                              <span className="text-[7.5px] font-bold text-accent shrink-0 flex items-center gap-0.5" style={{ color: 'var(--accent)' }}>
-                                <Clock className="w-2 h-2" />
-                                {job.call_time}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {onDeleteJob && (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteJob(job.id);
-                            }}
-                            className="opacity-0 group-hover/job-item:opacity-100 p-1 hover:text-red-500 transition-all"
-                          >
-                            <AlertCircle className="w-3 h-3" />
-                          </button>
-                        )}
-                      </motion.div>
-                    ))}
-
-                    {/* Quick calendar markers (events) */}
-                    {dayEvents.map(ev => {
-                      const p = presetOf(ev.preset);
-                      // Continuation days render the title read-only: editing
-                      // belongs on the day the span starts.
-                      const isStart = ev.event_date === d.date;
-                      return (
-                        <div
-                          key={ev.id}
-                          onClick={(e) => e.stopPropagation()}
-                          className={`group/ev p-1.5 rounded bg-white/5 border-l-2 hover:bg-white/10 overflow-hidden transition-all flex items-center justify-between ${isStart ? '' : 'opacity-60'}`}
-                          style={{ borderLeftColor: p.color }}
-                        >
-                          {/* The whole row opens the form now — an inline
-                              rename box could only ever change the title, so
-                              dates and notes had nowhere to be edited. */}
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); openEditEvent(ev); }}
-                            className="flex items-center gap-1.5 flex-1 min-w-0 text-left"
-                            title={ev.notes || 'Edit event'}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${p.dot} shrink-0`} />
-                            <span className={`text-[10px] font-medium leading-tight truncate w-full ${isStart ? '' : 'text-white/70'}`}>
-                              {!isStart && '↳ '}{ev.title || p.label}
-                            </span>
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); deleteQuickEvent(ev.id); }}
-                            className="opacity-0 group-hover/ev:opacity-100 p-0.5 hover:text-red-500 transition-all shrink-0"
-                            title="Remove"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      );
-                    })}
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
+                );
+              })}
 
-                  {/* Mobile Layout: Row of tiny colored dots */}
-                  <div className="flex md:hidden flex-wrap gap-0.5 mt-1 justify-center">
-                    {d.jobs?.map(job => (
-                      <div
-                        key={job.id}
-                        className={`w-1 h-1 rounded-full ${getStatusColor(job)} shrink-0`}
-                        title={job.title}
-                      />
-                    ))}
-                    {dayEvents.map(ev => (
-                      <div key={ev.id} className={`w-1 h-1 rounded-full ${presetOf(ev.preset).dot} shrink-0`} title={ev.title || presetOf(ev.preset).label} />
-                    ))}
-                  </div>
+              {/* Spanning bars */}
+              {week.bars.map(b => (
+                <button
+                  key={b.key}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (b.event) openEditEvent(b.event);
+                    else if (b.job) { if (editable) openEditor(b.job); else onSelectJob?.(b.job); }
+                  }}
+                  style={{
+                    gridColumn: `${b.startCol + 1} / span ${b.span}`,
+                    gridRow: b.lane + 2,
+                    backgroundColor: b.color,
+                    // Flat edges where the entry runs on into the next week,
+                    // so the eye reads it as continuing rather than stopping.
+                    borderTopLeftRadius: b.continuesLeft ? 0 : undefined,
+                    borderBottomLeftRadius: b.continuesLeft ? 0 : undefined,
+                    borderTopRightRadius: b.continuesRight ? 0 : undefined,
+                    borderBottomRightRadius: b.continuesRight ? 0 : undefined,
+                  }}
+                  className="relative z-10 mx-0.5 mb-0.5 px-1.5 py-[3px] rounded text-left overflow-hidden hover:brightness-110 transition-all"
+                  title={b.job ? `${b.label}${b.time ? ` · ${b.time}` : ''}` : b.label}
+                >
+                  <span className="block text-[9px] md:text-[10px] font-semibold text-white truncate leading-tight drop-shadow-sm">
+                    {b.continuesLeft && '‹ '}
+                    {b.job && '🎥 '}
+                    {b.label}
+                    {b.time && <span className="font-normal opacity-80"> · {b.time}</span>}
+                    {b.continuesRight && ' ›'}
+                  </span>
+                </button>
+              ))}
 
-                  {/* Quick-add preset popover */}
-                  {enableQuickEvents && quickAddDate === d.date && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className={`absolute z-30 top-8 ${i % 7 >= 4 ? 'right-1' : 'left-1'} w-44 bg-neutral-900 border border-white/15 rounded-xl shadow-2xl p-2 space-y-1`}
-                    >
-                      <div className="flex items-center justify-between px-1 pb-1 mb-1 border-b border-white/10">
-                        <span className="text-[10px] font-semibold text-white/40">Quick add</span>
-                        <button onClick={() => setQuickAddDate(null)} className="text-white/40 hover:text-white"><X className="w-3 h-3" /></button>
-                      </div>
-                      {QUICK_ADD_PRESETS.map(p => (
-                        <button
-                          key={p.key}
-                          onClick={() => openNewEvent(d.date as string, p.key)}
-                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/10 text-left transition-colors"
-                        >
-                          <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
-                          <span className="text-[10px] font-semibold text-white/80">{p.label}</span>
-                        </button>
-                      ))}
+              {/* Overflow counts, on the days they apply to */}
+              {week.cells.map((c, ci) => (
+                week.overflow[c.date] ? (
+                  <button
+                    key={`o-${c.date}`}
+                    onClick={(e) => { e.stopPropagation(); setSelectedDate(c.date); onSelectDate?.(c.date); }}
+                    style={{ gridColumn: ci + 1, gridRow: laneCount + 2 }}
+                    className="relative z-10 mx-0.5 mb-0.5 px-1.5 text-left text-[9px] font-semibold text-white/50 hover:text-white transition-colors self-start"
+                  >
+                    +{week.overflow[c.date]} more
+                  </button>
+                ) : null
+              ))}
+
+              {/* Quick-add popover */}
+              {enableQuickEvents && week.cells.map((c, ci) => (
+                quickAddDate === c.date ? (
+                  <div
+                    key={`q-${c.date}`}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ gridColumn: ci + 1, gridRow: 2 }}
+                    className={`absolute z-30 mt-1 w-44 bg-neutral-900 border border-white/15 rounded-xl shadow-2xl p-2 space-y-1 ${ci >= 4 ? 'right-1' : 'left-1'}`}
+                  >
+                    <div className="flex items-center justify-between px-1 pb-1 mb-1 border-b border-white/10">
+                      <span className="text-[10px] font-semibold text-white/40">Add event</span>
+                      <button onClick={() => setQuickAddDate(null)} className="text-white/40 hover:text-white"><X className="w-3 h-3" /></button>
                     </div>
-                  )}
-                </>
-              )}
+                    {QUICK_ADD_PRESETS.map(pr => (
+                      <button
+                        key={pr.key}
+                        onClick={() => openNewEvent(c.date, pr.key)}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/10 text-left transition-colors"
+                      >
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: pr.color }} />
+                        <span className="text-[10px] font-semibold text-white/80">{pr.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null
+              ))}
             </div>
           );
         })}
@@ -630,7 +699,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                       onClick={() => openNewEvent(selectedDate, p.key)}
                       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
                     >
-                      <span className={`w-2 h-2 rounded-full ${p.dot}`} />
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
                       <span className="text-[9px] font-semibold text-white/80">{p.label}</span>
                     </button>
                   ))}
@@ -644,7 +713,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                         onClick={() => openEditEvent(ev)}
                         className="flex items-center gap-2 min-w-0 flex-1 text-left"
                       >
-                        <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
                         <span className="text-[10px] font-semibold truncate text-white">{ev.title || p.label}</span>
                       </button>
                       <button onClick={() => deleteQuickEvent(ev.id)} className="p-1 text-white/30 hover:text-red-500 shrink-0"><X className="w-4 h-4" /></button>
@@ -700,20 +769,22 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
         )}
       </AnimatePresence>
 
-      {/* Legend */}
-      <div className="mt-8 flex flex-wrap gap-4 md:gap-6 border-t border-white/5 pt-6 opacity-40 justify-center md:justify-start">
-        <div className="flex items-center gap-2 text-[10px] font-semibold">
-          <div className="w-2 h-2 rounded-full bg-green-500" /> Booked
-        </div>
-        <div className="flex items-center gap-2 text-[10px] font-semibold">
-          <div className="w-2 h-2 rounded-full bg-yellow-500" /> Hold
-        </div>
-        <div className="flex items-center gap-2 text-[10px] font-semibold">
-          <div className="w-2 h-2 rounded-full bg-blue-500" /> Planning
-        </div>
-        <div className="flex items-center gap-2 text-[10px] font-semibold">
-          <div className="w-2 h-2 rounded-full bg-purple-500" /> Rental
-        </div>
+      {/* Legend — the actual bar colours, which are Google's. The old one
+          listed job statuses in Tailwind colours that appeared nowhere on the
+          grid, so it explained nothing you could see. */}
+      <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/5 pt-5">
+        <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/50">
+          <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: PRODUCTION_COLOR }} /> Production
+        </span>
+        {QUICK_ADD_PRESETS.map(p => (
+          <span key={p.key} className="flex items-center gap-1.5 text-[10px] font-semibold text-white/50">
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: p.color }} /> {p.label}
+          </span>
+        ))}
+        <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/50">
+          <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: presetOf('google').color }} /> From Google
+        </span>
+        <span className="text-[9px] text-white/25 ml-auto hidden md:block">Colours match your Google Calendar</span>
       </div>
 
       {/* Calendar event form — create and edit share one sheet. Portalled, so
@@ -794,7 +865,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                         active ? 'bg-white/10 border-white/25' : 'bg-black/40 border-white/10 hover:border-white/20'
                       }`}
                     >
-                      <span className={`w-2 h-2 rounded-full ${p.dot} shrink-0`} />
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
                       <span className={`text-[11px] font-semibold ${active ? 'text-white' : 'text-white/60'}`}>{p.label}</span>
                     </button>
                   );
