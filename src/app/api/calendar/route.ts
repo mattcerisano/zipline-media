@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as ics from 'ics';
 import { Job } from '@/components/gearbuilder/types';
 import { STUDIO_TIME_ZONE, parseCallTime, zonedWallClockToDate, parseLocalDate, addDays } from '@/lib/date';
+import { buildJobDescription } from '@/lib/event-description';
 
 // Subscribable ICS feed of the studio's productions — the "share your calendar"
 // half of Slate. Any calendar app can subscribe to this URL and see shoots
@@ -71,7 +72,11 @@ export async function GET(request: Request) {
 
       const common = {
         title: `🎥 ${job.title}`,
-        description: `Client: ${job.client_name || 'N/A'}\nStatus: ${job.job_status}\nNotes: ${job.notes_general || 'None'}`,
+        // Same layout the Google events get, with one deliberate omission: no
+        // crew block. This feed has no per-person access control — without
+        // CALENDAR_FEED_TOKEN it is world-readable — so crew names and mobile
+        // numbers stay on the Google event, which is shared with named people.
+        description: buildJobDescription(job),
         location: job.location_address || job.location_name || undefined,
         status: 'CONFIRMED' as const,
         busyStatus: 'BUSY' as const,

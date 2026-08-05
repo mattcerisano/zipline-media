@@ -4,6 +4,7 @@ import { getValidGoogleToken } from '@/lib/google-auth';
 import { pullGoogleCalendarForUser, SLATE_APP_TAG, STUDIO_MARKER_TAG } from '@/lib/calendar-sync';
 import { getAuthedUserId } from '@/lib/api-auth';
 import { STUDIO_TIME_ZONE, parseCallTime, addDays } from '@/lib/date';
+import { buildJobDescription, buildMarkerDescription } from '@/lib/event-description';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
@@ -25,6 +26,18 @@ const GOOGLE_COLOR_BY_PRESET: Record<string, string> = {
   available: '2',  // Sage
   travel: '9',     // Blueberry
   edit: '3',       // Grape
+};
+
+/** Display names for marker presets, for the event description. */
+const PRESET_LABELS: Record<string, string> = {
+  hold: 'Hold',
+  timeout: 'Out of Office',
+  booked: 'Booked',
+  meeting: 'Meeting',
+  planning: 'Planning Shoot',
+  available: 'Available',
+  travel: 'Travel Day',
+  edit: 'Edit Day',
 };
 
 /** Tangerine. Productions, so they stand apart from every marker type. */
@@ -111,10 +124,19 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 });
       }
 
+      // Crew rides along in the description, so the event doubles as a
+      // pocket call sheet. Ordered the way the manifest is, and failing soft:
+      // a roles lookup that errors must not block the calendar push.
+      const { data: crew } = await supabaseAdmin
+        .from('job_roles')
+        .select('name, position, department, phone, call_time, sort_order')
+        .eq('job_id', job.id)
+        .order('sort_order', { ascending: true, nullsFirst: false });
+
       const timing = buildEventTiming(job);
       const eventBody: any = {
         summary: `🎥 ${job.title}`,
-        description: `Client: ${job.client_name || 'N/A'}\nSlate ID: ${job.id}\nNotes: ${job.notes_general || 'None'}`,
+        description: buildJobDescription(job, crew || []),
         location: job.location_address || job.location_name || '',
         start: timing.start,
         end: timing.end,
@@ -228,7 +250,12 @@ export async function POST(request: Request) {
       const lastDay = event.end_date && event.end_date > event.event_date ? event.end_date : event.event_date;
       const eventBody: any = {
         summary: event.title || 'Untitled',
-        description: event.notes || '',
+        description: buildMarkerDescription({
+          notes: event.notes,
+          presetLabel: PRESET_LABELS[event.preset] || null,
+          event_date: event.event_date,
+          end_date: event.end_date,
+        }),
         // Google's all-day end is exclusive, so a single day ends tomorrow.
         start: { date: event.event_date },
         end: { date: addDays(lastDay, 1) },
