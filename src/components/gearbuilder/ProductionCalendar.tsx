@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { pushJobToGoogleCalendar, pushEventToGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
 import { Modal } from '@/components/workspace/Overlay';
+import { toast } from '@/components/Feedback';
 
 // Quick-add presets for the Calendar tab. Lightweight markers, not productions.
 //
@@ -212,7 +213,11 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       // server ignores markers that came *from* Google.
       if (savedId && eventDraft.preset !== 'google') {
         pushEventToGoogleCalendar(savedId).then(r => {
-          if (!r.ok && r.message) console.warn('Calendar event push:', r.message);
+          // Surfaced, not just logged. A console warning is invisible to
+          // anyone not holding devtools open, so a failed push looked
+          // identical to a successful one — the event saved locally and
+          // simply never appeared on Google.
+          if (!r.ok) toast(r.message || 'Saved here, but Google Calendar sync failed.');
           // Pick up the google_event_id the push just stored, so a later
           // delete knows to remove it from Google too.
           fetchEvents();
