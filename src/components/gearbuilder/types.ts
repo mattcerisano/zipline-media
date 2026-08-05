@@ -224,6 +224,8 @@ export interface Job {
   email_thread_subject?: string;
   job_roles: JobRole[];
   // Integrations
+  /** Google Calendar event this job is mirrored to, set by the push/sync. */
+  google_event_id?: string | null;
   discord_url?: string;
   review_link?: string; // Frame.io / Vimeo
   review_password?: string;

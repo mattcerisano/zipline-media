@@ -36,6 +36,7 @@ export default function IntegrationsHub() {
   // bottom of a long page reads as "the button does nothing".
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [copiedFeed, setCopiedFeed] = useState(false);
+  const [feed, setFeed] = useState<{ url: string; secured: boolean } | null>(null);
 
   const refreshGoogleStatus = useCallback(async (accessToken: string) => {
     try {
@@ -55,6 +56,10 @@ export default function IntegrationsHub() {
       setSession(session);
       if (session?.access_token) {
         refreshGoogleStatus(session.access_token);
+        fetch('/api/calendar/feed-url', { headers: { Authorization: `Bearer ${session.access_token}` } })
+          .then(res => (res.ok ? res.json() : null))
+          .then(data => { if (data?.url) setFeed(data); })
+          .catch(() => { /* the fallback URL still works */ });
         try {
           const { data } = await supabase
             .from('user_roles')
@@ -119,7 +124,11 @@ export default function IntegrationsHub() {
     setBusy(null);
   };
 
-  const feedUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/calendar` : '/api/calendar';
+  // The real feed URL carries the shared secret, which only the server knows —
+  // so it's fetched rather than assembled here. Falls back to the bare path
+  // until it arrives (and on deployments with no token configured).
+  const fallbackFeedUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/calendar` : '/api/calendar';
+  const feedUrl = feed?.url || fallbackFeedUrl;
   const copyFeed = async () => {
     try {
       await navigator.clipboard.writeText(feedUrl);
@@ -236,6 +245,12 @@ export default function IntegrationsHub() {
               Subscribe from Google Calendar or Apple Calendar (&ldquo;Add calendar → From URL&rdquo;) and every booked shoot appears automatically — no account connection required.
             </p>
             <p className="text-[9px] text-white/25 font-mono mt-2 break-all">{feedUrl}</p>
+            {feed && !feed.secured && (
+              <p className="text-[9px] font-bold text-amber-400/90 mt-2 leading-relaxed">
+                This feed is readable by anyone who knows the URL — including job titles, clients, and notes.
+                Set <span className="font-mono">CALENDAR_FEED_TOKEN</span> in the environment to lock it to a secret link.
+              </p>
+            )}
           </div>
           <button
             onClick={copyFeed}

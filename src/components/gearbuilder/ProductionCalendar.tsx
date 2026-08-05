@@ -9,6 +9,7 @@ import {
 import { Job, CalendarEvent, CalendarEventPreset } from './types';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
+import { pushJobToGoogleCalendar } from '@/lib/calendar-push';
 
 // Quick-add presets for the Calendar tab. Lightweight markers, not productions.
 export const EVENT_PRESETS: { key: CalendarEventPreset; label: string; color: string; dot: string }[] = [
@@ -25,6 +26,21 @@ export const EVENT_PRESETS: { key: CalendarEventPreset; label: string; color: st
 ];
 const QUICK_ADD_PRESETS = EVENT_PRESETS.filter(p => p.key !== 'google');
 const presetOf = (k?: string) => EVENT_PRESETS.find(p => p.key === k) || EVENT_PRESETS[0];
+
+/**
+ * Does an entry that runs from `start` through `end` (both inclusive, both
+ * "YYYY-MM-DD") cover `date`?
+ *
+ * Stored dates are zero-padded ISO days, so a plain string comparison orders
+ * them correctly — and unlike `new Date(...)` it can't drag a date across a
+ * timezone boundary on the way to the answer.
+ */
+function coversDate(start: string | null | undefined, end: string | null | undefined, date: string): boolean {
+  if (!start) return false;
+  if (start === date) return true;
+  if (!end || end <= start) return false;
+  return date > start && date <= end;
+}
 
 interface ProductionCalendarProps {
   onSelectDate?: (date: string) => void;
@@ -100,7 +116,18 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
   const fetchEvents = React.useCallback(async () => {
     if (!enableQuickEvents) return;
     try {
-      const { data, error } = await supabase.from('calendar_events').select('*').order('event_date');
+      // Windowed like the jobs query above. The Google import reaches a year
+      // out, so an unbounded select would grow without limit; spans crossing
+      // the window edge are kept via end_date.
+      const base = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const start = new Date(base.getFullYear(), base.getMonth() - 4, 1).toISOString().split('T')[0];
+      const end = new Date(base.getFullYear(), base.getMonth() + 5, 0).toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .lte('event_date', end)
+        .or(`end_date.gte.${start},and(end_date.is.null,event_date.gte.${start})`)
+        .order('event_date');
       if (error) throw error;
       // Filter tombstones in JS so pre-migration databases (no `hidden`
       // column) keep working unchanged.
@@ -108,7 +135,8 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     } catch (err) {
       console.error('Error fetching calendar events:', err);
     }
-  }, [enableQuickEvents]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enableQuickEvents, windowKey]);
 
   React.useEffect(() => { fetchEvents(); }, [fetchEvents]);
   useRealtime(enableQuickEvents ? ['calendar_events'] : [], fetchEvents);
@@ -193,27 +221,11 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       if (error) throw error;
 
       // Push the updated job to Google Calendar (no-op if not connected).
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          const res = await fetch('/api/integrations/calendar', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({ action: 'push', jobId: editingJob.id }),
-          });
-          const data = await res.json();
-          if (data.success) {
-            setSyncMsg('Saved and synced to Google Calendar.');
-          } else {
-            setSyncMsg(data.message || 'Saved. Google Calendar not connected.');
-          }
-        }
-      } catch (syncErr) {
-        console.error('Google Calendar push failed:', syncErr);
-        setSyncMsg('Saved locally, but Google Calendar sync failed.');
+      const push = await pushJobToGoogleCalendar(editingJob.id);
+      if (push.ok) {
+        setSyncMsg('Saved and synced to Google Calendar.');
+      } else if (push.message) {
+        setSyncMsg(push.message);
       }
 
       await fetchJobs();
@@ -254,24 +266,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     for (let i = 1; i <= daysCount; i++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
       
-      const dayJobs = jobs.filter(j => {
-          if (!j.shoot_date) return false;
-          // Simple string comparison for single day matches first
-          if (j.shoot_date === dateStr) return true;
-          
-          // Range check
-          if (j.end_date) {
-              const start = new Date(j.shoot_date);
-              const end = new Date(j.end_date);
-              const current = new Date(dateStr);
-              // Normalize times to avoid timezone issues
-              start.setHours(0,0,0,0);
-              end.setHours(0,0,0,0);
-              current.setHours(0,0,0,0);
-              return current >= start && current <= end;
-          }
-          return false;
-      });
+      const dayJobs = jobs.filter(j => coversDate(j.shoot_date, j.end_date, dateStr));
 
       days.push({ day: i, date: dateStr, jobs: dayJobs });
     }
@@ -282,21 +277,14 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
   // Selected Day Jobs Details Helper
   const selectedDateJobs = useMemo(() => {
     if (!selectedDate) return [];
-    return jobs.filter(j => {
-      if (!j.shoot_date) return false;
-      if (j.shoot_date === selectedDate) return true;
-      if (j.end_date) {
-        const start = new Date(j.shoot_date);
-        const end = new Date(j.end_date);
-        const current = new Date(selectedDate);
-        start.setHours(0,0,0,0);
-        end.setHours(0,0,0,0);
-        current.setHours(0,0,0,0);
-        return current >= start && current <= end;
-      }
-      return false;
-    });
+    return jobs.filter(j => coversDate(j.shoot_date, j.end_date, selectedDate));
   }, [selectedDate, jobs]);
+
+  // Markers for the selected day, spans included (mobile drawer).
+  const selectedDateEvents = useMemo(() => {
+    if (!selectedDate || !enableQuickEvents) return [];
+    return events.filter(ev => coversDate(ev.event_date, ev.end_date, selectedDate));
+  }, [selectedDate, events, enableQuickEvents]);
 
   const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
   const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
@@ -354,7 +342,11 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-lg overflow-hidden">
         {calendarDays.map((d, i) => {
           const isToday = d.date === new Date().toISOString().split('T')[0];
-          const dayEvents = enableQuickEvents && d.date ? events.filter(ev => ev.event_date === d.date) : [];
+          // Spans paint every day they cover. Matching on the start date alone
+          // is what made a week-long Google event show up as a single square.
+          const dayEvents = enableQuickEvents && d.date
+            ? events.filter(ev => coversDate(ev.event_date, ev.end_date, d.date as string))
+            : [];
 
           return (
             <div 
@@ -454,22 +446,31 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                     {/* Quick calendar markers (events) */}
                     {dayEvents.map(ev => {
                       const p = presetOf(ev.preset);
+                      // Continuation days render the title read-only: editing
+                      // belongs on the day the span starts.
+                      const isStart = ev.event_date === d.date;
                       return (
                         <div
                           key={ev.id}
                           onClick={(e) => e.stopPropagation()}
-                          className="group/ev p-1.5 rounded bg-white/5 border-l-2 hover:bg-white/10 overflow-hidden transition-all flex items-center justify-between"
+                          className={`group/ev p-1.5 rounded bg-white/5 border-l-2 hover:bg-white/10 overflow-hidden transition-all flex items-center justify-between ${isStart ? '' : 'opacity-60'}`}
                           style={{ borderLeftColor: p.color }}
                         >
                           <div className="flex items-center gap-1.5 flex-1 min-w-0">
                             <span className={`w-1.5 h-1.5 rounded-full ${p.dot} shrink-0`} />
-                            <input
-                              value={ev.title || ''}
-                              onChange={(e) => setEvents(prev => prev.map(x => x.id === ev.id ? { ...x, title: e.target.value } : x))}
-                              onBlur={(e) => renameQuickEvent(ev.id, e.target.value)}
-                              onClick={(e) => e.stopPropagation()}
-                              className="bg-transparent outline-none text-[10px] font-medium leading-tight truncate w-full focus:bg-white/5 rounded"
-                            />
+                            {isStart ? (
+                              <input
+                                value={ev.title || ''}
+                                onChange={(e) => setEvents(prev => prev.map(x => x.id === ev.id ? { ...x, title: e.target.value } : x))}
+                                onBlur={(e) => renameQuickEvent(ev.id, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-transparent outline-none text-[10px] font-medium leading-tight truncate w-full focus:bg-white/5 rounded"
+                              />
+                            ) : (
+                              <span className="text-[10px] font-medium leading-tight truncate w-full text-white/70">
+                                {ev.title || p.label}
+                              </span>
+                            )}
                           </div>
                           <button
                             onClick={(e) => { e.stopPropagation(); deleteQuickEvent(ev.id); }}
@@ -563,7 +564,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                     </button>
                   ))}
                 </div>
-                {events.filter(ev => ev.event_date === selectedDate).map(ev => {
+                {selectedDateEvents.map(ev => {
                   const p = presetOf(ev.preset);
                   return (
                     <div key={ev.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/5 border-l-2" style={{ borderLeftColor: p.color }}>

@@ -46,6 +46,7 @@ import { fetchGearCategoryMap, groupManifestByCategory, buildGearTableBody } fro
 import { getBranding, hexToRgb } from '@/lib/branding';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { formatLocalDate } from '@/lib/date';
+import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
 import { caps } from '@/lib/format';
 import { toast, confirmAction } from '@/components/Feedback';
 
@@ -344,6 +345,13 @@ export default function Slate({
       // Resolve (or create) the client so the job carries a stable client_id link.
       // This powers the Client → Project hierarchy filtering across the app.
       const jobPayload: Partial<Job> = { ...editingJob };
+      // Cleared date pickers hand back "", which Postgres rejects for a DATE
+      // column. Null is what "no end date" actually means.
+      // Null rather than undefined: supabase-js drops undefined keys, so
+      // clearing an end date has to be sent explicitly to take effect.
+      for (const key of ['shoot_date', 'end_date', 'due_date'] as const) {
+        if (jobPayload[key] === '') (jobPayload as any)[key] = null;
+      }
       if (editingJob.client_name && editingJob.client_name.trim()) {
         const name = editingJob.client_name.trim();
         let client = clients.find(c => c.name.toLowerCase() === name.toLowerCase());
@@ -396,7 +404,19 @@ export default function Slate({
         // Announce the new production across all enabled channels.
         sendNotification('job_created', data as Job);
       }
-      
+
+      // Auto-populate Google Calendar. This is the whole point of Slate: a
+      // production booked here lands on the team's calendar without anyone
+      // re-entering it. Fire-and-forget — the row is already saved, and a
+      // failed push is reported without rolling anything back.
+      if (savedJobData?.id) {
+        pushJobToGoogleCalendar(savedJobData.id).then(result => {
+          if (!result.ok && result.message) {
+            toast(result.message);
+          }
+        });
+      }
+
       setIsJobModalOpen(false);
     } catch (err: any) {
       console.error('Error saving job:', err);
@@ -405,13 +425,19 @@ export default function Slate({
   };
 
   const deleteJob = async (id: string) => {
-    if (!(await confirmAction({ title: 'Delete this production?', message: 'This will remove all associated roles and gear lists.', danger: true, confirmLabel: 'Delete' }))) return;
+    if (!(await confirmAction({ title: 'Delete this production?', message: 'This will remove all associated roles and gear lists, and clear the shoot from Google Calendar.', danger: true, confirmLabel: 'Delete' }))) return;
     try {
+      // Clear Google first: once the row is gone its google_event_id goes with
+      // it, and the orphaned event would be re-imported as a new job.
+      const googleEventId = jobs.find(j => j.id === id)?.google_event_id;
+      if (googleEventId) await removeJobFromGoogleCalendar(googleEventId);
+
       const { error } = await supabase.from('jobs').delete().eq('id', id);
       if (error) throw error;
       setJobs(prev => prev.filter(j => j.id !== id));
     } catch (err) {
       console.error('Error deleting job:', err);
+      toast('Failed to delete production.');
     }
   };
 
@@ -1220,6 +1246,21 @@ export default function Slate({
                       type="date"
                       value={editingJob.shoot_date}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, shoot_date: e.target.value }))}
+                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-2 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                {/* End Date — multi-day shoots. Blank means a single day. */}
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">End Date <span className="opacity-50 normal-case tracking-normal">(multi-day)</span></label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white pointer-events-none" />
+                    <input
+                      type="date"
+                      value={editingJob.end_date || ''}
+                      min={editingJob.shoot_date || undefined}
+                      onChange={(e) => setEditingJob(prev => ({ ...prev, end_date: e.target.value }))}
                       className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-2 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                   </div>

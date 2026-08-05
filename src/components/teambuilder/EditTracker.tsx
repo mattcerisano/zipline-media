@@ -306,9 +306,13 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
         if (newStatus === 'V1') message = `✂️ **Edit Ready for Review:** ${job.title}`;
         if (newStatus === 'Delivered') message = `✅ **Final Delivery Complete:** ${job.title}`;
 
+        const { data: { session } } = await supabase.auth.getSession();
         await fetch('/api/integrations/discord', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
           body: JSON.stringify({
             message,
             embed: {
