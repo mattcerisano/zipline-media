@@ -27,10 +27,22 @@ interface ConfirmOptions {
   danger?: boolean;
 }
 
+interface PromptOptions {
+  title?: string;
+  message?: string;
+  label?: string;
+  placeholder?: string;
+  defaultValue?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}
+
 type ConfirmRequest = ConfirmOptions & { resolve: (ok: boolean) => void };
+type PromptRequest = PromptOptions & { resolve: (value: string | null) => void };
 
 let pushToast: ((t: Omit<ToastItem, 'id'>) => void) | null = null;
 let pushConfirm: ((r: ConfirmRequest) => void) | null = null;
+let pushPrompt: ((r: PromptRequest) => void) | null = null;
 
 /** Show a transient toast. Type defaults to error when the message reads like a failure. */
 export function toast(message: string, type?: ToastType) {
@@ -49,11 +61,26 @@ export function confirmAction(opts: ConfirmOptions | string): Promise<boolean> {
   return new Promise(resolve => pushConfirm!({ ...options, resolve }));
 }
 
+/** Styled, promise-based text prompt. Drop-in for `window.prompt`. Resolves
+ *  null when cancelled, and never resolves an empty string. */
+export function promptAction(opts: PromptOptions | string): Promise<string | null> {
+  const options: PromptOptions = typeof opts === 'string' ? { message: opts } : opts;
+  if (!pushPrompt) {
+    const fallback = typeof window !== 'undefined'
+      ? window.prompt(options.message || options.title || '', options.defaultValue || '')
+      : null;
+    return Promise.resolve(fallback?.trim() || null);
+  }
+  return new Promise(resolve => pushPrompt!({ ...options, resolve }));
+}
+
 const TOAST_MS = 3500;
 
 export default function FeedbackHost() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null);
+  const [promptReq, setPromptReq] = useState<PromptRequest | null>(null);
+  const [promptValue, setPromptValue] = useState('');
   const idRef = useRef(0);
 
   useEffect(() => {
@@ -68,7 +95,20 @@ export default function FeedbackHost() {
       if (prev) { r.resolve(false); return prev; }
       return r;
     });
-    return () => { pushToast = null; pushConfirm = null; };
+    pushPrompt = (r) => setPromptReq(prev => {
+      if (prev) { r.resolve(null); return prev; }
+      setPromptValue(r.defaultValue || '');
+      return r;
+    });
+    return () => { pushToast = null; pushConfirm = null; pushPrompt = null; };
+  }, []);
+
+  const settlePrompt = useCallback((value: string | null) => {
+    setPromptReq(prev => {
+      prev?.resolve(value && value.trim() ? value.trim() : null);
+      return null;
+    });
+    setPromptValue('');
   }, []);
 
   const settle = useCallback((ok: boolean) => {
@@ -115,6 +155,64 @@ export default function FeedbackHost() {
           ))}
         </AnimatePresence>
       </div>
+
+      {/* Prompt modal */}
+      <AnimatePresence>
+        {promptReq && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={() => settlePrompt(null)}
+          >
+            <motion.form
+              initial={{ scale: 0.95, opacity: 0, y: 8 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 8 }}
+              onClick={e => e.stopPropagation()}
+              onSubmit={(e) => { e.preventDefault(); settlePrompt(promptValue); }}
+              className="w-full max-w-sm bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-5 space-y-3">
+                <h3 className="text-sm font-semibold text-white">{promptReq.title || 'Enter a value'}</h3>
+                {promptReq.message && (
+                  <p className="text-xs text-white/50 leading-relaxed">{promptReq.message}</p>
+                )}
+                <div className="space-y-1.5">
+                  {promptReq.label && (
+                    <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">{promptReq.label}</label>
+                  )}
+                  <input
+                    autoFocus
+                    value={promptValue}
+                    onChange={(e) => setPromptValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Escape') settlePrompt(null); }}
+                    placeholder={promptReq.placeholder}
+                    className="w-full bg-black/50 border border-white/10 px-3 py-2.5 rounded-xl outline-none focus:border-accent text-sm font-semibold text-white"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 px-5 pb-5">
+                <button
+                  type="button"
+                  onClick={() => settlePrompt(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-white/70 hover:text-white transition-all"
+                >
+                  {promptReq.cancelLabel || 'Cancel'}
+                </button>
+                <button
+                  type="submit"
+                  disabled={!promptValue.trim()}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white bg-accent hover:opacity-90 transition-all disabled:opacity-30"
+                >
+                  {promptReq.confirmLabel || 'Create'}
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Confirm modal */}
       <AnimatePresence>

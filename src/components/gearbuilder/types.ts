@@ -163,7 +163,20 @@ export interface NotificationEvent {
   updated_at?: string;
 }
 
-export type CalendarEventPreset = 'timeout' | 'booked' | 'planning' | 'hold' | 'available' | 'travel' | 'edit' | 'google';
+// The four offered in the Calendar tab's quick-add are 'hold', 'timeout'
+// (Out of Office), 'booked', and 'meeting'. The rest are legacy values kept so
+// markers created before the menu was simplified still render with their own
+// label and colour instead of falling back to the first preset.
+export type CalendarEventPreset =
+  | 'hold'
+  | 'timeout'
+  | 'booked'
+  | 'meeting'
+  | 'planning'
+  | 'available'
+  | 'travel'
+  | 'edit'
+  | 'google';
 
 export interface CalendarEvent {
   id: string;

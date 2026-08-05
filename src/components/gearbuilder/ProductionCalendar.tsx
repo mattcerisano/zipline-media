@@ -12,19 +12,25 @@ import { useRealtime } from '@/lib/useRealtime';
 import { pushJobToGoogleCalendar } from '@/lib/calendar-push';
 
 // Quick-add presets for the Calendar tab. Lightweight markers, not productions.
-export const EVENT_PRESETS: { key: CalendarEventPreset; label: string; color: string; dot: string }[] = [
-  { key: 'timeout', label: 'Timeout', color: '#f43f5e', dot: 'bg-rose-500' },
-  { key: 'booked', label: 'Book to Shoot', color: '#10b981', dot: 'bg-emerald-500' },
-  { key: 'planning', label: 'Planning Shoot', color: '#3b82f6', dot: 'bg-blue-500' },
-  { key: 'hold', label: 'Hold', color: '#f59e0b', dot: 'bg-amber-500' },
+//
+// `quickAdd` marks the four offered in the menu. The others are still listed so
+// markers created before the menu was simplified — and the ones the Google
+// import writes — keep their own label and colour; dropping them outright would
+// have re-coloured existing entries as whatever sat first in this array.
+export const EVENT_PRESETS: { key: CalendarEventPreset; label: string; color: string; dot: string; quickAdd?: boolean }[] = [
+  { key: 'hold', label: 'Hold', color: '#f59e0b', dot: 'bg-amber-500', quickAdd: true },
+  { key: 'timeout', label: 'Out of Office', color: '#f43f5e', dot: 'bg-rose-500', quickAdd: true },
+  { key: 'booked', label: 'Booked', color: '#10b981', dot: 'bg-emerald-500', quickAdd: true },
+  { key: 'meeting', label: 'Meeting', color: '#3b82f6', dot: 'bg-blue-500', quickAdd: true },
+  // Legacy / imported — rendered, never offered.
+  { key: 'planning', label: 'Planning Shoot', color: '#6366f1', dot: 'bg-indigo-500' },
   { key: 'available', label: 'Available', color: '#14b8a6', dot: 'bg-teal-500' },
   { key: 'travel', label: 'Travel Day', color: '#a855f7', dot: 'bg-purple-500' },
   { key: 'edit', label: 'Edit Day', color: '#d946ef', dot: 'bg-fuchsia-500' },
-  // Imported from Google Calendar by the sync — not offered in the quick-add
-  // menus (see QUICK_ADD_PRESETS) since these come from the connected account.
+  // Imported from Google Calendar by the sync.
   { key: 'google', label: 'Google Calendar', color: '#38bdf8', dot: 'bg-sky-400' },
 ];
-const QUICK_ADD_PRESETS = EVENT_PRESETS.filter(p => p.key !== 'google');
+const QUICK_ADD_PRESETS = EVENT_PRESETS.filter(p => p.quickAdd);
 const presetOf = (k?: string) => EVENT_PRESETS.find(p => p.key === k) || EVENT_PRESETS[0];
 
 /**
