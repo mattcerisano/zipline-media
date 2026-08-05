@@ -90,13 +90,39 @@ export default function IntegrationsSettings({ isAdmin, onMessage }: Props) {
   };
 
   const handleSave = async () => {
-    if (!isAdmin || !orgId) return;
+    // Both guards used to be a bare `return`: Save appeared to work, nothing
+    // persisted, and nothing said why. A missing organization row is the more
+    // likely of the two — the app reads and updates that table but has never
+    // had any code that creates one, so a database whose seed didn't run has
+    // no org and every org-scoped setting silently discards itself.
+    if (!isAdmin) {
+      onMessage('Only an admin can change notification settings.');
+      return;
+    }
+
     setSaving(true);
     onMessage('');
     try {
+      let oid = orgId;
+      if (!oid) {
+        const { data: created, error: orgErr } = await supabase
+          .from('organizations')
+          .insert([{ name: 'Zipline Media', tagline: 'Creative Video Production', brand_color: '#0077FF' }])
+          .select('id')
+          .single();
+        if (orgErr || !created) {
+          throw new Error(
+            `No organization exists yet and one couldn't be created${orgErr ? `: ${orgErr.message}` : ''}. ` +
+            'Run the profiles_and_branding migration in Supabase.'
+          );
+        }
+        oid = created.id;
+        setOrgId(oid);
+      }
+      const orgId2 = oid;
       const channelRows = channels.map((c) => ({
         ...(c.id ? { id: c.id } : {}),
-        org_id: orgId,
+        org_id: orgId2,
         platform: c.platform,
         label: c.label || PLATFORMS.find((p) => p.platform === c.platform)?.label,
         webhook_url: c.webhook_url || null,
@@ -105,7 +131,7 @@ export default function IntegrationsSettings({ isAdmin, onMessage }: Props) {
       }));
       const eventRows = events.map((e) => ({
         ...(e.id ? { id: e.id } : {}),
-        org_id: orgId,
+        org_id: orgId2,
         event_key: e.event_key,
         enabled: e.enabled,
         message_template: e.message_template || null,
