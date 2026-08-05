@@ -17,6 +17,7 @@ import {
   Link as LinkIcon,
   ChevronDown,
   MoreVertical,
+  Receipt,
   ClipboardList,
   CalendarPlus,
   BookmarkPlus,
@@ -47,9 +48,10 @@ import { getBranding, hexToRgb } from '@/lib/branding';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { formatLocalDate } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
-import { caps } from '@/lib/format';
+import { caps, currency } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
 import { Modal, DropdownMenu } from '@/components/workspace/Overlay';
+import type { BillingSummary } from '@/app/api/integrations/quickbooks/route';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -845,6 +847,41 @@ export default function Slate({
   const projectNameById = useMemo(() => new Map(projects.map(p => [p.id, p.name])), [projects]);
   const clientNameById = useMemo(() => new Map(clients.map(c => [c.id, c.name])), [clients]);
 
+  // QuickBooks billing, read-only. Fetched once for every client on the board
+  // rather than per card, so the whole grid costs one round trip. Silent when
+  // QuickBooks isn't connected — this is additive, never a blocker.
+  const [billing, setBilling] = useState<Record<string, BillingSummary>>({});
+
+  const clientIdsOnBoard = useMemo(
+    () => Array.from(new Set(jobs.map(j => j.client_id).filter(Boolean))) as string[],
+    [jobs],
+  );
+
+  useEffect(() => {
+    if (clientIdsOnBoard.length === 0) { setBilling({}); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const res = await fetch('/api/integrations/quickbooks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ action: 'summary', clientIds: clientIdsOnBoard }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && data?.summaries) setBilling(data.summaries);
+      } catch {
+        // Billing is decoration on top of the board; a failure stays quiet.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [clientIdsOnBoard.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+
   const filteredJobs = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return jobs.filter(job => {
@@ -1131,6 +1168,7 @@ export default function Slate({
                           onBuildGear={() => onBuildGear?.(job)}
                           onRefreshWeather={() => handleRefreshWeather(job)}
                           onStatusChange={(status) => updateJobStatus(job, status)}
+                  billing={job.client_id ? billing[job.client_id] : undefined}
                         />
                       ))}
                     </div>
@@ -1169,6 +1207,7 @@ export default function Slate({
                   onBuildGear={() => onBuildGear?.(job)}
                   onRefreshWeather={() => handleRefreshWeather(job)}
                   onStatusChange={(status) => updateJobStatus(job, status)}
+                  billing={job.client_id ? billing[job.client_id] : undefined}
                   projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
                 />
               ))}
@@ -1200,6 +1239,7 @@ export default function Slate({
                 onBuildGear={() => onBuildGear?.(job)}
                 onRefreshWeather={() => handleRefreshWeather(job)}
                 onStatusChange={(status) => updateJobStatus(job, status)}
+                billing={job.client_id ? billing[job.client_id] : undefined}
                 projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
               />
             ))}
@@ -1235,6 +1275,7 @@ export default function Slate({
                 onBuildGear={() => onBuildGear?.(job)}
                 onRefreshWeather={() => handleRefreshWeather(job)}
                 onStatusChange={(status) => updateJobStatus(job, status)}
+                billing={job.client_id ? billing[job.client_id] : undefined}
                 projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
               />
             ))}
@@ -1728,6 +1769,7 @@ function JobCard({
   onBuildGear,
   onRefreshWeather,
   onStatusChange,
+  billing,
   projectName
 }: {
   job: Job,
@@ -1743,6 +1785,7 @@ function JobCard({
   onBuildGear?: () => void,
   onRefreshWeather?: () => void,
   onStatusChange?: (status: Job['job_status']) => void,
+  billing?: BillingSummary,
   projectName?: string
 }) {
   const shootDate = formatLocalDate(job.shoot_date, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -1910,6 +1953,40 @@ function JobCard({
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-1">Notes</p>
               <p className="text-xs text-white/80 line-clamp-3 leading-relaxed">{job.notes_general}</p>
            </div>
+        )}
+
+        {/* QuickBooks, read-only. Only rendered once the client has actually
+            been billed something — an empty billing block on every card would
+            be the "No vault links" placeholder all over again. */}
+        {billing && (billing.invoiced > 0 || billing.estimateCount > 0) && (
+          <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 flex items-center gap-1.5">
+                <Receipt className="w-3 h-3" /> Billing
+              </p>
+              {billing.overdue > 0 ? (
+                <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/25">
+                  {currency(billing.overdue)} overdue
+                </span>
+              ) : billing.outstanding > 0 ? (
+                <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                  {currency(billing.outstanding)} open
+                </span>
+              ) : billing.invoiced > 0 ? (
+                <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-green-500/15 text-green-300 border border-green-500/25">
+                  Paid in full
+                </span>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-3 text-[10px] font-semibold text-white/50">
+              {billing.invoiced > 0 && <span>{currency(billing.invoiced)} invoiced</span>}
+              {billing.estimateCount > 0 && (
+                <span className="text-white/35">
+                  {currency(billing.estimateTotal)} quoted{billing.estimateCount > 1 ? ` · ${billing.estimateCount}` : ''}
+                </span>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Project Vault — rendered only when there is something in it. The

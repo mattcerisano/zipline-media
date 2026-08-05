@@ -36,6 +36,7 @@ import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { Contact, Client } from '@/components/gearbuilder/types';
 import { toast, confirmAction } from '@/components/Feedback';
+import ContactSuggest from '@/components/workspace/ContactSuggest';
 
 const STANDARD_ROLES = [
   'Director', 'Producer', 'Director of Photography', 'Camera Operator', '1st AC', '2nd AC',
@@ -2047,6 +2048,16 @@ export default function Rolodex() {
                   </datalist>
                 </div>
                 <div className="space-y-2 md:col-span-2">
+                  <label className="text-xs font-semibold text-white/50 ml-1">Tags <span className="opacity-50 font-medium">(comma-separated)</span></label>
+                  <input
+                    type="text"
+                    placeholder="e.g. steadicam, local-nyc, owns-fx6"
+                    value={editingContact?.tags || ''}
+                    onChange={(e) => setEditingContact({ ...editingContact!, tags: e.target.value })}
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
                   <label className="text-xs font-semibold text-white/50 ml-1">Notes</label>
                   <textarea 
                     value={editingContact?.notes_general || ''}
@@ -2054,6 +2065,15 @@ export default function Rolodex() {
                     className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm h-32 text-white"
                   />
                 </div>
+
+                {/* Claude suggestion — proposes a role and tags from the fields
+                    above; applies only to the form, saving stays manual. */}
+                {editingContact && (
+                  <ContactSuggest
+                    contact={editingContact}
+                    onApply={(fields) => setEditingContact({ ...editingContact!, ...fields })}
+                  />
+                )}
 
                 <div className="md:col-span-2 flex justify-end gap-4 mt-4">
                   <button 
