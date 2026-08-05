@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
-  Briefcase, 
-  Search, 
+  Search,
   Plus, 
   Trash2, 
   Calendar, 
@@ -16,8 +15,10 @@ import {
   Clock3,
   AlertCircle,
   Link as LinkIcon,
-  Copy,
-  CopyPlus,
+  ChevronDown,
+  ClipboardList,
+  CalendarPlus,
+  BookmarkPlus,
   X,
   Save,
   FolderOpen,
@@ -48,7 +49,7 @@ import { sanitizeUrl } from '@/lib/sanitize';
 import { formatLocalDate } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
 import { caps } from '@/lib/format';
-import { toast, confirmAction } from '@/components/Feedback';
+import { toast, confirmAction, promptAction } from '@/components/Feedback';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -107,8 +108,28 @@ export default function Slate({
     links: []
   });
 
+  // Snapshot of the job as the modal opened, so a backdrop click can tell
+  // "nothing typed yet" from "13 fields of work about to be thrown away".
+  const [jobModalBaseline, setJobModalBaseline] = useState('');
+
+  const isJobModalDirty = () => JSON.stringify(editingJob) !== jobModalBaseline;
+
+  const closeJobModal = async () => {
+    if (isJobModalDirty()) {
+      const discard = await confirmAction({
+        title: 'Discard changes?',
+        message: 'This production has unsaved edits.',
+        confirmLabel: 'Discard',
+        cancelLabel: 'Keep editing',
+        danger: true,
+      });
+      if (!discard) return;
+    }
+    setIsJobModalOpen(false);
+  };
+
   const openNewJobModal = () => {
-    setEditingJob({
+    const blank: Partial<Job> = {
       title: '',
       client_name: '',
       production_company: '',
@@ -120,12 +141,15 @@ export default function Slate({
       location_address: '',
       notes_general: '',
       links: []
-    });
+    };
+    setEditingJob(blank);
+    setJobModalBaseline(JSON.stringify(blank));
     setIsJobModalOpen(true);
   };
 
   const openEditJobModal = (job: Job) => {
     setEditingJob(job);
+    setJobModalBaseline(JSON.stringify(job));
     setIsJobModalOpen(true);
   };
 
@@ -280,8 +304,21 @@ export default function Slate({
   const fetchJobs = async () => {
     setIsLoading(true);
     try {
+      // Bounded like the calendar and Rolodex queries. This pulled the entire
+      // jobs table on every mount; a rolling two-year archive covers what the
+      // board is actually used for, and undated jobs are always included via
+      // the null branch so a new production can never fall outside the window.
+      const archiveFloor = new Date();
+      archiveFloor.setFullYear(archiveFloor.getFullYear() - 2);
+      const floorStr = archiveFloor.toISOString().split('T')[0];
+
       const [jobsRes, clientsRes, projectsRes] = await Promise.all([
-        supabase.from('jobs').select('*').order('shoot_date', { ascending: true }),
+        supabase
+          .from('jobs')
+          .select('*')
+          .or(`shoot_date.gte.${floorStr},shoot_date.is.null,end_date.gte.${floorStr}`)
+          .order('shoot_date', { ascending: true })
+          .limit(2000),
         supabase.from('clients').select('*'),
         supabase.from('projects').select('*').order('name', { ascending: true })
       ]);
@@ -422,6 +459,26 @@ export default function Slate({
       console.error('Error saving job:', err);
       toast('Failed to save job: ' + (err.message || 'Unknown error'));
     }
+  };
+
+  /**
+   * Change a production's status straight from its card. Hold → Booked is the
+   * most frequent edit on this board and used to require opening the full
+   * 13-field modal and saving it. Optimistic, with the Google Calendar push
+   * left to the modal — a status change doesn't alter the event's timing.
+   */
+  const updateJobStatus = async (job: Job, status: Job['job_status']) => {
+    if (!status || status === job.job_status) return;
+    const previous = job.job_status;
+    setJobs(prev => prev.map(j => (j.id === job.id ? { ...j, job_status: status } : j)));
+    const { error } = await supabase.from('jobs').update({ job_status: status }).eq('id', job.id);
+    if (error) {
+      console.error('Error updating status:', error);
+      setJobs(prev => prev.map(j => (j.id === job.id ? { ...j, job_status: previous } : j)));
+      toast('Failed to update status.');
+      return;
+    }
+    sendNotification(`status_${status.toLowerCase()}`, { ...job, job_status: status }, previous);
   };
 
   const deleteJob = async (id: string) => {
@@ -770,28 +827,66 @@ export default function Slate({
     return projects.filter(p => p.client_id === clientFilter);
   }, [projects, clientFilter]);
 
+  const projectNameById = useMemo(() => new Map(projects.map(p => [p.id, p.name])), [projects]);
+  const clientNameById = useMemo(() => new Map(clients.map(c => [c.id, c.name])), [clients]);
+
   const filteredJobs = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     return jobs.filter(job => {
-      const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          job.client_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      // Search spans everything you'd plausibly remember a shoot by, not just
+      // its title and client.
+      const matchesSearch = !q || [
+        job.title,
+        job.client_name,
+        job.production_company,
+        job.location_name,
+        job.location_address,
+        job.notes_general,
+        job.project_id ? projectNameById.get(job.project_id) : undefined,
+      ].some(field => field?.toLowerCase().includes(q));
       const matchesStatus = statusFilter === 'All' || job.job_status === statusFilter;
-      const matchesClient = clientFilter === 'All' || job.client_id === clientFilter;
+      // Jobs linked to a client by name only (no client_id) used to vanish
+      // from the filtered list while still showing up under Grouped, which
+      // matches on either. Both now agree.
+      const matchesClient =
+        clientFilter === 'All' ||
+        job.client_id === clientFilter ||
+        (!job.client_id && !!job.client_name &&
+          job.client_name.trim().toLowerCase() === (clientNameById.get(clientFilter) || '').trim().toLowerCase());
       const matchesProject = projectFilter === 'All' || job.project_id === projectFilter;
       return matchesSearch && matchesStatus && matchesClient && matchesProject;
     });
-  }, [jobs, searchQuery, statusFilter, clientFilter, projectFilter]);
+  }, [jobs, searchQuery, statusFilter, clientFilter, projectFilter, projectNameById, clientNameById]);
+
+  /** The last day a shoot occupies — its end date for a multi-day run. */
+  const lastDayOf = (job: Job) => job.end_date && job.end_date > (job.shoot_date || '')
+    ? job.end_date
+    : job.shoot_date;
+
+  // Productions with no date yet. These used to fall into "Completed &
+  // Archive" alongside finished work, so a shoot you'd just created appeared
+  // greyed out under a heading that reads as deleted.
+  const unscheduledJobs = useMemo(
+    () => filteredJobs.filter(j => !j.shoot_date),
+    [filteredJobs],
+  );
 
   const upcomingJobs = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    return filteredJobs.filter(j => j.shoot_date && j.shoot_date >= today);
+    // Compared against the *last* day so a multi-day shoot stays "upcoming"
+    // while it is still running, rather than archiving itself on day two.
+    return filteredJobs.filter(j => j.shoot_date && (lastDayOf(j) as string) >= today);
   }, [filteredJobs]);
 
   const pastJobs = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    return filteredJobs.filter(j => !j.shoot_date || j.shoot_date < today);
+    return filteredJobs
+      .filter(j => j.shoot_date && (lastDayOf(j) as string) < today)
+      // Most recent first: an archive that leads with the oldest job ever
+      // buries the shoot you actually just wrapped.
+      .sort((a, b) => (b.shoot_date || '').localeCompare(a.shoot_date || ''));
   }, [filteredJobs]);
 
-  const projectNameById = useMemo(() => new Map(projects.map(p => [p.id, p.name])), [projects]);
 
   // Client → Project → Jobs grouping for the "Grouped" view
   const groupedJobs = useMemo(() => {
@@ -851,7 +946,12 @@ export default function Slate({
 
   // Create a new project inline for the job's current client
   const handleCreateProject = async () => {
-    const name = window.prompt('New project name (e.g. "Moulin Rouge Campaign"):')?.trim();
+    const name = await promptAction({
+      title: 'New project',
+      message: 'Projects group several shoots for the same client.',
+      label: 'Project name',
+      placeholder: 'e.g. Moulin Rouge Campaign',
+    });
     if (!name) return;
     const clientId = resolveClientId(editingJob);
     try {
@@ -875,6 +975,9 @@ export default function Slate({
       case 'Booked': return <CheckCircle2 className="w-3 h-3 text-green-500" />;
       case 'Hold': return <Clock3 className="w-3 h-3 text-yellow-500" />;
       case 'Planning': return <Clock3 className="w-3 h-3 text-blue-500" />;
+      // Wrapped had no case and fell through to the grey default, so a
+      // finished shoot looked identical to one with no status at all.
+      case 'Wrapped': return <CheckCircle2 className="w-3 h-3 text-white/50" />;
       case 'Cancelled': return <AlertCircle className="w-3 h-3 text-red-500" />;
       default: return <Clock3 className="w-3 h-3 opacity-20" />;
     }
@@ -1012,6 +1115,7 @@ export default function Slate({
                           onEdit={() => openEditJobModal(job)}
                           onBuildGear={() => onBuildGear?.(job)}
                           onRefreshWeather={() => handleRefreshWeather(job)}
+                          onStatusChange={(status) => updateJobStatus(job, status)}
                         />
                       ))}
                     </div>
@@ -1024,6 +1128,39 @@ export default function Slate({
       ) : (
       /* Sections */
       <div className="space-y-12">
+        {/* Undated productions, above the dated ones — they need a date, not
+            an archive. Hidden entirely when there are none. */}
+        {unscheduledJobs.length > 0 && (
+          <section className="space-y-6">
+            <div className="flex items-center gap-4">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-amber-400 whitespace-nowrap">Needs a Date</h2>
+              <div className="h-px bg-amber-400/20 flex-1" />
+              <span className="text-[11px] font-medium opacity-40 tracking-tight text-white">{unscheduledJobs.length} {unscheduledJobs.length === 1 ? 'Job' : 'Jobs'}</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {unscheduledJobs.map(job => (
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  isClient={isClient}
+                  getStatusIcon={getStatusIcon}
+                  onSaveAsTemplate={() => saveAsTemplate(job)}
+                  onDuplicate={() => duplicateJob(job)}
+                  onDelete={() => deleteJob(job.id)}
+                  onAddLink={() => setLinkModalJob(job)}
+                  onManage={() => setManageJobId(job.id)}
+                  onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
+                  onEdit={() => openEditJobModal(job)}
+                  onBuildGear={() => onBuildGear?.(job)}
+                  onRefreshWeather={() => handleRefreshWeather(job)}
+                  onStatusChange={(status) => updateJobStatus(job, status)}
+                  projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="space-y-6">
           <div className="flex items-center gap-4">
             <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent whitespace-nowrap">Upcoming Productions</h2>
@@ -1047,6 +1184,7 @@ export default function Slate({
                 onEdit={() => openEditJobModal(job)}
                 onBuildGear={() => onBuildGear?.(job)}
                 onRefreshWeather={() => handleRefreshWeather(job)}
+                onStatusChange={(status) => updateJobStatus(job, status)}
                 projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
               />
             ))}
@@ -1081,6 +1219,7 @@ export default function Slate({
                 onEdit={() => openEditJobModal(job)}
                 onBuildGear={() => onBuildGear?.(job)}
                 onRefreshWeather={() => handleRefreshWeather(job)}
+                onStatusChange={(status) => updateJobStatus(job, status)}
                 projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
               />
             ))}
@@ -1095,7 +1234,7 @@ export default function Slate({
           <div 
             onClick={(e) => {
               if (e.target === e.currentTarget) {
-                setIsJobModalOpen(false);
+                closeJobModal();
               }
             }}
             className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center cursor-pointer"
@@ -1110,12 +1249,18 @@ export default function Slate({
                 <h2 className="text-lg font-semibold tracking-tight text-white">
                   {editingJob.id ? 'Edit Production' : 'Create New Production'}
                 </h2>
-                <button onClick={() => setIsJobModalOpen(false)} className="p-1 hover:bg-white/5 rounded-full text-white">
+                <button type="button" onClick={closeJobModal} className="p-1 hover:bg-white/5 rounded-full text-white">
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveJob} className="grid grid-cols-1 md:grid-cols-6 gap-x-3 gap-y-1.5">
+              <form onSubmit={handleSaveJob} className="grid grid-cols-1 md:grid-cols-6 gap-x-3 gap-y-3">
+                {/* --- section --- */}
+                <div className="md:col-span-6 flex items-center gap-3 mt-2 first:mt-0">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">The Production</span>
+                  <div className="h-px bg-white/10 flex-1" />
+                </div>
+
                 {/* Production Title (the individual shoot) */}
                 <div className="md:col-span-4 space-y-1">
                   <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Title</label>
@@ -1125,7 +1270,7 @@ export default function Slate({
                     placeholder="e.g. Broadway Opening Night"
                     value={editingJob.title}
                     onChange={(e) => setEditingJob(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
+                    className="w-full bg-black/50 border border-white/10 py-2.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
                   />
                 </div>
 
@@ -1135,11 +1280,17 @@ export default function Slate({
                   <select 
                     value={editingJob.type}
                     onChange={(e) => setEditingJob(prev => ({ ...prev, type: e.target.value as any }))}
-                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
+                    className="w-full bg-black/50 border border-white/10 py-2.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
                   >
                     <option value="production">Production</option>
                     <option value="rental">Rental Only</option>
                   </select>
+                </div>
+
+                {/* --- section --- */}
+                <div className="md:col-span-6 flex items-center gap-3 mt-2 first:mt-0">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">Client & Project</span>
+                  <div className="h-px bg-white/10 flex-1" />
                 </div>
 
                 {/* Client Name */}
@@ -1161,7 +1312,7 @@ export default function Slate({
                       }));
                     }}
                     list="slate-clients"
-                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
+                    className="w-full bg-black/50 border border-white/10 py-2.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
                   />
                   <datalist id="slate-clients">
                     {clients.map(c => <option key={c.id} value={c.name} />)}
@@ -1188,7 +1339,7 @@ export default function Slate({
                       placeholder="Production co"
                       value={editingJob.production_company || ''}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, production_company: e.target.value }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
+                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
                     />
                   </div>
                 </div>
@@ -1210,7 +1361,7 @@ export default function Slate({
                     <select
                       value={editingJob.project_id || ''}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, project_id: e.target.value || undefined }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
+                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
                     >
                       <option value="">No Project</option>
                       {(() => {
@@ -1222,6 +1373,12 @@ export default function Slate({
                   </div>
                 </div>
 
+                {/* --- section --- */}
+                <div className="md:col-span-6 flex items-center gap-3 mt-2 first:mt-0">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">Schedule</span>
+                  <div className="h-px bg-white/10 flex-1" />
+                </div>
+
                 {/* Job Status */}
                 <div className="md:col-span-2 space-y-1">
                   <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Job Status</label>
@@ -1230,7 +1387,7 @@ export default function Slate({
                     <select 
                       value={editingJob.job_status}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, job_status: e.target.value as any }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
+                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
                     >
                       {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -1246,7 +1403,7 @@ export default function Slate({
                       type="date"
                       value={editingJob.shoot_date}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, shoot_date: e.target.value }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-2 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-2 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                   </div>
                 </div>
@@ -1261,7 +1418,7 @@ export default function Slate({
                       value={editingJob.end_date || ''}
                       min={editingJob.shoot_date || undefined}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, end_date: e.target.value }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-2 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:left-2 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-8 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                     />
                   </div>
                 </div>
@@ -1274,7 +1431,7 @@ export default function Slate({
                     <select 
                       value={editingJob.call_time || ''}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, call_time: e.target.value }))}
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
+                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
                     >
                       <option value="">TBD</option>
                       {Array.from({ length: 48 }).map((_, i) => {
@@ -1304,6 +1461,12 @@ export default function Slate({
                   </div>
                 </div>
 
+                {/* --- section --- */}
+                <div className="md:col-span-6 flex items-center gap-3 mt-2 first:mt-0">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">Location</span>
+                  <div className="h-px bg-white/10 flex-1" />
+                </div>
+
                 {/* Location Name */}
                 <div className="md:col-span-2 space-y-1">
                   <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Location Name</label>
@@ -1312,7 +1475,7 @@ export default function Slate({
                     placeholder="e.g. Hudson Theatre"
                     value={editingJob.location_name || ''}
                     onChange={(e) => setEditingJob(prev => ({ ...prev, location_name: e.target.value }))}
-                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
+                    className="w-full bg-black/50 border border-white/10 py-2.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
                   />
                 </div>
 
@@ -1327,7 +1490,7 @@ export default function Slate({
                       onPlaceSelected={handlePlaceSelected}
                       defaultValue={editingJob.location_address || ''}
                       placeholder="Street, City, State, Zip"
-                      className="w-full bg-black/50 border border-white/10 py-1.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
+                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
                       onBlur={handleAddressBlur}
                     />
                   </div>
@@ -1364,24 +1527,30 @@ export default function Slate({
                         placeholder="Nearest hospital"
                         value={editingJob.nearest_hospital_name || ''}
                         onChange={(e) => setEditingJob(prev => ({ ...prev, nearest_hospital_name: e.target.value }))}
-                        className="w-full bg-black/50 border border-white/10 p-1.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
+                        className="w-full bg-black/50 border border-white/10 p-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
                       />
                       <input 
                         type="text"
                         placeholder="Nearest parking"
                         value={editingJob.nearest_parking_name || ''}
                         onChange={(e) => setEditingJob(prev => ({ ...prev, nearest_parking_name: e.target.value }))}
-                        className="w-full bg-black/50 border border-white/10 p-1.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
+                        className="w-full bg-black/50 border border-white/10 p-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
                       />
                       <input 
                         type="text"
                         placeholder="Weather override"
                         value={editingJob.weather_summary || ''}
                         onChange={(e) => setEditingJob(prev => ({ ...prev, weather_summary: e.target.value }))}
-                        className="w-full bg-black/50 border border-white/10 p-1.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
+                        className="w-full bg-black/50 border border-white/10 p-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
                       />
                    </div>
                    <p className="text-[8px] text-white/30 italic mt-0.5">If left blank, logistics will auto-fetch in the Gear Builder based on the Full Address.</p>
+                </div>
+
+                {/* --- section --- */}
+                <div className="md:col-span-6 flex items-center gap-3 mt-2 first:mt-0">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">Notes & Contact</span>
+                  <div className="h-px bg-white/10 flex-1" />
                 </div>
 
                 {/* Contact Email (linked correspondence) */}
@@ -1397,7 +1566,7 @@ export default function Slate({
                     placeholder="client@example.com"
                     value={editingJob.contact_email || ''}
                     onChange={(e) => setEditingJob(prev => ({ ...prev, contact_email: e.target.value }))}
-                    className="w-full bg-black/50 border border-white/10 py-1.5 px-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
+                    className="w-full bg-black/50 border border-white/10 py-2.5 px-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
                   />
                 </div>
 
@@ -1420,7 +1589,7 @@ export default function Slate({
                 <div className="md:col-span-6 flex justify-end gap-2 mt-1.5 border-t border-white/5 pt-1.5">
                    <button 
                     type="button"
-                    onClick={() => setIsJobModalOpen(false)}
+                    onClick={closeJobModal}
                     className="px-4 py-1.5 rounded-lg font-medium text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
                   >
                     Cancel
@@ -1618,6 +1787,7 @@ function JobCard({
   onEdit,
   onBuildGear,
   onRefreshWeather,
+  onStatusChange,
   projectName
 }: {
   job: Job,
@@ -1632,87 +1802,124 @@ function JobCard({
   onEdit: () => void,
   onBuildGear?: () => void,
   onRefreshWeather?: () => void,
+  onStatusChange?: (status: Job['job_status']) => void,
   projectName?: string
 }) {
   const shootDate = formatLocalDate(job.shoot_date, { month: 'short', day: 'numeric', year: 'numeric' });
 
   const gearCount = job.gear_manifest ? Object.values(job.gear_manifest as Record<string, number>).reduce((a, b) => a + b, 0) : 0;
 
+  const hasVaultLinks = !!(job.review_link || job.discord_url || job.drive_folder_url || job.links?.length);
+
+  const statusTone: Record<string, string> = {
+    Booked: 'bg-green-500/10 border-green-500/20 text-green-300',
+    Hold: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-300',
+    Planning: 'bg-blue-500/10 border-blue-500/20 text-blue-300',
+    Wrapped: 'bg-white/5 border-white/10 text-white/60',
+    Cancelled: 'bg-red-500/10 border-red-500/20 text-red-300',
+  };
+  const currentStatus = job.job_status || 'Planning';
+
   return (
-    <div 
-      onClick={isClient ? undefined : onEdit}
-      className={`group bg-neutral-900/40 border border-white/5 p-6 rounded-2xl transition-all relative flex flex-col h-full overflow-hidden ${isClient ? '' : 'hover:border-accent/30 hover:bg-neutral-900/60 cursor-pointer'}`}
+    <div
+      className={`group bg-neutral-900/40 border border-white/5 p-6 rounded-2xl transition-all relative flex flex-col h-full overflow-hidden ${isClient ? '' : 'hover:border-accent/30 hover:bg-neutral-900/60'}`}
     >
       {/* Background Decor */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-accent/10 transition-colors" />
-      
-      <div className="flex justify-between items-start mb-6 relative z-10">
-        <div className="flex flex-col gap-2 items-start">
-          <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5">
-            {getStatusIcon(job.job_status)}
-            <span className="text-[10px] font-semibold tracking-wide opacity-80 text-white">{job.job_status || 'Planning'}</span>
-          </div>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-accent/10 transition-colors pointer-events-none" />
+
+      <div className="flex justify-between items-start mb-5 relative z-10 gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Status is a real control now. Hold → Booked is the most common
+              edit on this board and used to require the full edit modal. */}
+          {isClient || !onStatusChange ? (
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${statusTone[currentStatus] || 'bg-white/5 border-white/5 text-white'}`}>
+              {getStatusIcon(job.job_status)}
+              <span className="text-[10px] font-semibold tracking-wide">{currentStatus}</span>
+            </div>
+          ) : (
+            <div className={`relative flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full border transition-colors ${statusTone[currentStatus] || 'bg-white/5 border-white/5 text-white'}`}>
+              {getStatusIcon(job.job_status)}
+              <span className="text-[10px] font-semibold tracking-wide">{currentStatus}</span>
+              <ChevronDown className="w-3 h-3 opacity-50" />
+              <select
+                value={currentStatus}
+                onChange={(e) => onStatusChange(e.target.value as Job['job_status'])}
+                aria-label={`Status for ${job.title}`}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              >
+                {STATUSES.map(s => <option key={s} value={s} className="bg-zinc-900 text-white">{s}</option>)}
+              </select>
+            </div>
+          )}
           {gearCount > 0 && (
-            <div className="flex items-center gap-1 px-2 py-0.5 bg-accent/10 rounded-full border border-accent/20">
+            <div className="flex items-center gap-1 px-2 py-1 bg-accent/10 rounded-full border border-accent/20">
                <Package className="w-3.5 h-3.5 text-accent" />
                <span className="text-[10px] font-medium tracking-wide text-accent">{gearCount} Gear</span>
             </div>
           )}
         </div>
-        <div className="flex gap-1">
+        {/* Actions sit at a legible opacity instead of white/10. They were
+            effectively invisible until hover, which on a tablet — where there
+            is no hover — meant invisible full stop. */}
+        <div className="flex gap-0.5 shrink-0">
           {!isClient && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); onBuildGear?.(); }}
-              className="p-2 text-white/10 hover:text-accent hover:bg-white/5 rounded-lg transition-all"
-              title="Build Gear List"
+            <button
+              onClick={onBuildGear}
+              className="p-2 text-white/40 hover:text-accent hover:bg-white/5 rounded-lg transition-all"
+              title="Build gear list"
+              aria-label="Build gear list"
             >
-              <Package className="w-3.5 h-3.5" />
+              <Package className="w-4 h-4" />
             </button>
           )}
-          <button 
-            onClick={(e) => { e.stopPropagation(); onExportCallSheet(); }}
-            className="p-2 text-white/10 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-            title="Export Call Sheet"
+          <button
+            onClick={onExportCallSheet}
+            className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+            title="Export call sheet"
+            aria-label="Export call sheet"
           >
-            <FileText className="w-3.5 h-3.5" />
+            <ClipboardList className="w-4 h-4" />
           </button>
-          <button 
-            onClick={async (e) => { 
-              e.stopPropagation(); 
-              try { 
-                await generateMasterBrief(job.id); 
-              } catch (err) { 
+          <button
+            onClick={async () => {
+              try {
+                await generateMasterBrief(job.id);
+              } catch (err) {
                 console.error(err);
-                toast('Failed to generate Master Production Brief.'); 
-              } 
+                toast('Failed to generate Master Production Brief.');
+              }
             }}
-            className="p-2 text-white/10 hover:text-accent hover:bg-white/5 rounded-lg transition-all"
+            className="p-2 text-white/40 hover:text-accent hover:bg-white/5 rounded-lg transition-all"
             title="Export Master Production Brief (PDF)"
+            aria-label="Export Master Production Brief"
           >
-            <FileText className="w-3.5 h-3.5 text-accent" />
+            <FileText className="w-4 h-4" />
           </button>
           {!isClient && (
             <>
               <button
-                onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
-                className="p-2 text-white/10 hover:text-accent hover:bg-accent/5 rounded-lg transition-all"
-                title="Duplicate for Next Day (copies gear, crew & details to a new shoot day)"
+                onClick={onDuplicate}
+                className="p-2 text-white/40 hover:text-accent hover:bg-accent/5 rounded-lg transition-all"
+                title="Duplicate for next shoot day (copies gear, crew & details)"
+                aria-label="Duplicate for next shoot day"
               >
-                <CopyPlus className="w-3.5 h-3.5" />
+                <CalendarPlus className="w-4 h-4" />
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); onSaveAsTemplate(); }}
-                className="p-2 text-white/10 hover:text-accent hover:bg-accent/5 rounded-lg transition-all"
-                title="Save as Template"
+                onClick={onSaveAsTemplate}
+                className="p-2 text-white/40 hover:text-accent hover:bg-accent/5 rounded-lg transition-all"
+                title="Save crew as a reusable template"
+                aria-label="Save as template"
               >
-                <Copy className="w-3.5 h-3.5" />
+                <BookmarkPlus className="w-4 h-4" />
               </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                className="p-2 text-white/10 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                title="Delete Production"
+              <button
+                onClick={onDelete}
+                className="p-2 text-white/40 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                title="Delete production"
+                aria-label="Delete production"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
               </button>
             </>
           )}
@@ -1720,7 +1927,19 @@ function JobCard({
       </div>
 
       <div className="flex-1 relative z-10 text-white">
-        <h3 className="text-lg font-semibold tracking-tight mb-1 group-hover:text-accent transition-colors line-clamp-2">{job.title}</h3>
+        {/* The title is the click target rather than the whole card. Every
+            action above used to need stopPropagation to avoid also opening
+            the edit modal, and a stray tap anywhere opened it by accident. */}
+        {isClient ? (
+          <h3 className="text-lg font-semibold tracking-tight mb-1 line-clamp-2">{job.title}</h3>
+        ) : (
+          <button
+            onClick={onEdit}
+            className="text-left w-full mb-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <h3 className="text-lg font-semibold tracking-tight hover:text-accent transition-colors line-clamp-2">{job.title}</h3>
+          </button>
+        )}
         <div className="flex items-center flex-wrap gap-2 mb-4">
           <p className="text-[12px] font-medium tracking-tight opacity-50">{job.client_name || 'Individual Client'}</p>
           {projectName && (
@@ -1752,12 +1971,10 @@ function JobCard({
               </div>
               {!isClient && (
                 <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    await onRefreshWeather?.();
-                  }}
-                  className="p-1 hover:bg-white/5 rounded text-white/20 hover:text-accent transition-colors cursor-pointer"
-                  title="Refresh Weather Forecast"
+                  onClick={() => onRefreshWeather?.()}
+                  className="p-1 hover:bg-white/5 rounded text-white/40 hover:text-accent transition-colors cursor-pointer"
+                  title="Refresh weather forecast"
+                  aria-label="Refresh weather forecast"
                 >
                   <RefreshCw className="w-3 h-3" />
                 </button>
@@ -1773,70 +1990,63 @@ function JobCard({
            </div>
         )}
 
-        {/* Links Section */}
-        <div className="space-y-2 mb-6">
-           <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/30 flex items-center gap-2">
-                <LinkIcon className="w-3 h-3" /> Project Vault
-              </p>
-              {!isClient && (
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onAddLink(); }}
-                  className="p-1 hover:bg-white/5 rounded text-white/20 hover:text-accent transition-colors"
-                >
-                  <Plus className="w-3 h-3" />
-                </button>
-              )}
-           </div>
-           <div className="grid grid-cols-2 gap-2">
-              {job.review_link && (
-                <a href={sanitizeUrl(job.review_link)} target="_blank" onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
-                  <Eye className="w-3 h-3 text-accent" />
-                  <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Review</span>
-                </a>
-              )}
-              {job.discord_url && (
-                <a href={sanitizeUrl(job.discord_url)} target="_blank" onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
-                  <MessageSquare className="w-3 h-3 text-purple-400" />
-                  <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Discord</span>
-                </a>
-              )}
-              {job.drive_folder_url && (
-                <a href={sanitizeUrl(job.drive_folder_url)} target="_blank" onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
-                  <FolderOpen className="w-3 h-3 text-yellow-500" />
-                  <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Drive</span>
-                </a>
-              )}
-              {job.links?.map((link, i) => (
-                <a key={i} href={sanitizeUrl(link.url)} target="_blank" onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
-                  <ExternalLink className="w-3 h-3 text-white/30" />
-                  <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100 truncate">{link.label}</span>
-                </a>
-              ))}
-              {!job.review_link && !job.discord_url && !job.drive_folder_url && (!job.links || job.links.length === 0) && (
-                <div className="col-span-2 text-center py-3 rounded-lg border border-dashed border-white/5 opacity-20">
-                   <span className="text-[11px] font-medium tracking-tight">No vault links</span>
-                </div>
-              )}
-           </div>
-        </div>
+        {/* Project Vault — rendered only when there is something in it. The
+            empty "No vault links" placeholder used to occupy a block on every
+            card that had no links, which was most of them. */}
+        {hasVaultLinks && (
+          <div className="space-y-2 mb-6">
+             <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/30 flex items-center gap-2 mb-3">
+               <LinkIcon className="w-3 h-3" /> Project Vault
+             </p>
+             <div className="grid grid-cols-2 gap-2">
+                {job.review_link && (
+                  <a href={sanitizeUrl(job.review_link)} target="_blank" className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
+                    <Eye className="w-3 h-3 text-accent shrink-0" />
+                    <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Review</span>
+                  </a>
+                )}
+                {job.discord_url && (
+                  <a href={sanitizeUrl(job.discord_url)} target="_blank" className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
+                    <MessageSquare className="w-3 h-3 text-purple-400 shrink-0" />
+                    <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Discord</span>
+                  </a>
+                )}
+                {job.drive_folder_url && (
+                  <a href={sanitizeUrl(job.drive_folder_url)} target="_blank" className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
+                    <FolderOpen className="w-3 h-3 text-yellow-500 shrink-0" />
+                    <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Drive</span>
+                  </a>
+                )}
+                {job.links?.map((link, i) => (
+                  <a key={i} href={sanitizeUrl(link.url)} target="_blank" className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
+                    <ExternalLink className="w-3 h-3 text-white/30 shrink-0" />
+                    <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100 truncate">{link.label}</span>
+                  </a>
+                ))}
+             </div>
+          </div>
+        )}
       </div>
 
-      <div className="pt-4 border-t border-white/5 mt-auto flex items-center justify-between relative z-10">
-         <div className="flex -space-x-2">
-            <div className="w-7 h-7 rounded-full bg-accent/20 border-2 border-neutral-900 flex items-center justify-center text-[9px] font-black group-hover:bg-accent group-hover:text-white transition-colors">
-               <Briefcase className="w-3 h-3 text-accent group-hover:text-white" />
-            </div>
-         </div>
-         {!isClient && (
-           <button 
-             onClick={(e) => { e.stopPropagation(); onManage(); }}
-             className="text-[12px] font-medium tracking-tight text-white/30 hover:text-white transition-all flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 rounded-lg"
+      {/* Footer: the two things you actually do next. The old left-hand slot
+          held a static briefcase styled as an avatar stack that never had any
+          avatars in it. */}
+      {!isClient && (
+        <div className="pt-4 border-t border-white/5 mt-auto flex items-center justify-between gap-2 relative z-10">
+           <button
+             onClick={onAddLink}
+             className="text-[11px] font-medium tracking-tight text-white/30 hover:text-accent transition-all flex items-center gap-1.5 px-2 py-1.5 hover:bg-white/5 rounded-lg"
+           >
+             <Plus className="w-3.5 h-3.5" /> Link
+           </button>
+           <button
+             onClick={onManage}
+             className="text-[12px] font-medium tracking-tight text-white/40 hover:text-white transition-all flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 rounded-lg"
            >
              Manage <ChevronRight className="w-4 h-4" />
            </button>
-         )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
