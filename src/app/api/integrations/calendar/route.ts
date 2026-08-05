@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getValidGoogleToken } from '@/lib/google-auth';
-import { pullGoogleCalendarForUser, SLATE_APP_TAG } from '@/lib/calendar-sync';
+import { pullGoogleCalendarForUser, SLATE_APP_TAG, STUDIO_MARKER_TAG } from '@/lib/calendar-sync';
 import { getAuthedUserId } from '@/lib/api-auth';
 import { STUDIO_TIME_ZONE, parseCallTime, addDays } from '@/lib/date';
 
@@ -172,6 +172,86 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({ success: true, message: 'Google Calendar event synced.', googleEventId: newGoogleEventId });
+    }
+
+    // ==========================================
+    // ACTION: PUSH A CALENDAR MARKER TO GOOGLE
+    // ==========================================
+    // Holds, meetings, and time off created on the Calendar tab. Pushed as
+    // all-day events — a marker has no call time, and inventing one would put
+    // it at an hour nobody chose.
+    if (action === 'push_event') {
+      const { eventId } = body;
+      if (!eventId) {
+        return NextResponse.json({ error: 'Event ID is required' }, { status: 400 });
+      }
+
+      const { data: event, error: evErr } = await supabaseAdmin
+        .from('calendar_events')
+        .select('*')
+        .eq('id', eventId)
+        .single();
+
+      if (evErr || !event) {
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+      }
+
+      // Markers imported *from* Google are Google's to change, not ours —
+      // pushing one back would fight the next sync.
+      if (event.preset === 'google') {
+        return NextResponse.json({ success: true, message: 'Imported event — left as-is.' });
+      }
+
+      const lastDay = event.end_date && event.end_date > event.event_date ? event.end_date : event.event_date;
+      const eventBody: any = {
+        summary: event.title || 'Untitled',
+        description: event.notes || '',
+        // Google's all-day end is exclusive, so a single day ends tomorrow.
+        start: { date: event.event_date },
+        end: { date: addDays(lastDay, 1) },
+        extendedProperties: { private: { app: STUDIO_MARKER_TAG, studioEventId: event.id } },
+      };
+
+      let res: Response;
+      if (event.google_event_id) {
+        res = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(event.google_event_id)}`,
+          {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventBody),
+          }
+        );
+        // 404 = deleted, 410 = cancelled. Neither can be updated in place.
+        if (res.status === 404 || res.status === 410) {
+          res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(eventBody),
+          });
+        }
+      } else {
+        res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(eventBody),
+        });
+      }
+
+      if (!res.ok) {
+        throw new Error(`Google Calendar event push failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
+      }
+
+      const created = await res.json();
+      if (created.id && created.id !== event.google_event_id) {
+        // Storing the id is what stops the next import creating a duplicate.
+        await supabaseAdmin
+          .from('calendar_events')
+          .update({ google_event_id: created.id })
+          .eq('id', event.id);
+      }
+
+      return NextResponse.json({ success: true, message: 'Event synced to Google Calendar.', googleEventId: created.id });
     }
 
     // ==========================================

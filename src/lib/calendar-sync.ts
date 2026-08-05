@@ -10,6 +10,17 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 /** Tag written to `extendedProperties.private.app` on every event Slate pushes. */
 export const SLATE_APP_TAG = 'zipline-slate';
 
+/**
+ * Tag for calendar *markers* pushed from the Calendar tab (Hold, Meeting, …).
+ *
+ * Deliberately distinct from SLATE_APP_TAG: the job sync treats anything
+ * carrying that tag as a production and would turn every Hold into a job. The
+ * importer skips events carrying this one instead — the local row is the
+ * source of truth for them, so re-importing would both duplicate the marker
+ * and overwrite its preset with 'google'.
+ */
+export const STUDIO_MARKER_TAG = 'zipline-marker';
+
 /** How far either side of today the sync looks. Matches the marker import window. */
 const PULL_DAYS_BACK = 30;
 const PULL_DAYS_FORWARD = 365;
@@ -323,6 +334,10 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
       }
       // Productions sync as jobs above, not markers.
       if (isProductionEvent(event)) continue;
+      // Pushed from the Calendar tab — the local row already exists and owns
+      // the title and preset. Importing it back would duplicate the marker and
+      // relabel it 'google'.
+      if (event.extendedProperties?.private?.app === STUDIO_MARKER_TAG) continue;
 
       const startDate: string | null =
         event.start?.date || wallClockFromGoogleDateTime(event.start?.dateTime)?.date || null;
