@@ -16,11 +16,10 @@ import {
   AlertCircle,
   Link as LinkIcon,
   ChevronDown,
+  MoreVertical,
   ClipboardList,
   CalendarPlus,
   BookmarkPlus,
-  X,
-  Save,
   FolderOpen,
   MessageSquare,
   Eye,
@@ -34,7 +33,7 @@ import {
   FolderKanban,
   Mail
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { supabase } from '@/lib/supabase';
@@ -50,6 +49,7 @@ import { formatLocalDate } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
 import { caps } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
+import { Modal, DropdownMenu } from '@/components/workspace/Overlay';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -99,9 +99,11 @@ export default function Slate({
     client_name: '',
     production_company: '',
     job_status: 'Planning',
+    // Still stamped on every new job so the rentals side keeps working; it is
+    // no longer a choice in the form, where nobody was picking "Rental Only".
     type: 'production',
     shoot_date: new Date().toISOString().split('T')[0],
-    call_time: '08:00 AM',
+    call_time: '',
     location_name: '',
     location_address: '',
     notes_general: '',
@@ -111,6 +113,9 @@ export default function Slate({
   // Snapshot of the job as the modal opened, so a backdrop click can tell
   // "nothing typed yet" from "13 fields of work about to be thrown away".
   const [jobModalBaseline, setJobModalBaseline] = useState('');
+  // Optional fields stay folded away while creating; an existing job that
+  // already uses any of them opens with them showing.
+  const [showJobDetails, setShowJobDetails] = useState(false);
 
   const isJobModalDirty = () => JSON.stringify(editingJob) !== jobModalBaseline;
 
@@ -136,7 +141,10 @@ export default function Slate({
       job_status: 'Planning',
       type: 'production',
       shoot_date: new Date().toISOString().split('T')[0],
-      call_time: '08:00 AM',
+      // Call time defaults to TBD rather than inventing an 8:00 AM call
+      // nobody chose — which also pushed a wrong time to Google Calendar.
+      // An empty call time syncs as an all-day event until it's set.
+      call_time: '',
       location_name: '',
       location_address: '',
       notes_general: '',
@@ -144,12 +152,19 @@ export default function Slate({
     };
     setEditingJob(blank);
     setJobModalBaseline(JSON.stringify(blank));
+    setShowJobDetails(false);
     setIsJobModalOpen(true);
   };
 
   const openEditJobModal = (job: Job) => {
     setEditingJob(job);
     setJobModalBaseline(JSON.stringify(job));
+    // Open the optional block already expanded when the job uses any of it,
+    // so existing detail is never hidden behind a collapsed heading.
+    setShowJobDetails(!!(
+      job.production_company || job.project_id || job.notes_general || job.contact_email ||
+      job.nearest_hospital_name || job.nearest_parking_name || job.weather_summary
+    ));
     setIsJobModalOpen(true);
   };
 
@@ -1229,68 +1244,43 @@ export default function Slate({
       )}
 
       {/* Edit Job Modal */}
-      <AnimatePresence>
-        {isJobModalOpen && (
-          <div 
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                closeJobModal();
-              }
-            }}
-            className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center cursor-pointer"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-2xl bg-neutral-900 border border-white/10 rounded-xl p-4 shadow-2xl my-auto cursor-default"
+      <Modal
+        open={isJobModalOpen}
+        onClose={closeJobModal}
+        title={editingJob.id ? 'Edit Production' : 'New Production'}
+        subtitle={editingJob.id ? undefined : 'A title is all you need — everything else can wait.'}
+        footer={
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={closeJobModal}
+              className="px-4 py-2.5 rounded-lg font-semibold text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
             >
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold tracking-tight text-white">
-                  {editingJob.id ? 'Edit Production' : 'Create New Production'}
-                </h2>
-                <button type="button" onClick={closeJobModal} className="p-1 hover:bg-white/5 rounded-full text-white">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveJob} className="grid grid-cols-1 md:grid-cols-6 gap-x-3 gap-y-3">
-                {/* --- section --- */}
-                <div className="md:col-span-6 flex items-center gap-3 mt-2 first:mt-0">
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">The Production</span>
-                  <div className="h-px bg-white/10 flex-1" />
-                </div>
-
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="slate-job-form"
+              className="bg-accent text-white px-6 py-2.5 rounded-lg font-semibold text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
+            >
+              {editingJob.id ? 'Save Changes' : 'Create Production'}
+            </button>
+          </div>
+        }
+      >
+              <form id="slate-job-form" onSubmit={handleSaveJob} className="grid grid-cols-1 md:grid-cols-6 gap-x-3 gap-y-3">
                 {/* Production Title (the individual shoot) */}
-                <div className="md:col-span-4 space-y-1">
+                <div className="md:col-span-6 space-y-1">
                   <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Title</label>
-                  <input 
+                  <input
                     required
+                    autoFocus
                     type="text"
                     placeholder="e.g. Broadway Opening Night"
                     value={editingJob.title}
                     onChange={(e) => setEditingJob(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full bg-black/50 border border-white/10 py-2.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
+                    className="w-full bg-black/50 border border-white/10 py-2.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-sm text-white"
                   />
-                </div>
-
-                {/* Production Type */}
-                <div className="md:col-span-2 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Type</label>
-                  <select 
-                    value={editingJob.type}
-                    onChange={(e) => setEditingJob(prev => ({ ...prev, type: e.target.value as any }))}
-                    className="w-full bg-black/50 border border-white/10 py-2.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
-                  >
-                    <option value="production">Production</option>
-                    <option value="rental">Rental Only</option>
-                  </select>
-                </div>
-
-                {/* --- section --- */}
-                <div className="md:col-span-6 flex items-center gap-3 mt-2 first:mt-0">
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">Client & Project</span>
-                  <div className="h-px bg-white/10 flex-1" />
                 </div>
 
                 {/* Client Name */}
@@ -1327,50 +1317,6 @@ export default function Slate({
                       </p>
                     );
                   })()}
-                </div>
-
-                {/* Production Company */}
-                <div className="md:col-span-3 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Company <span className="opacity-60 normal-case tracking-normal font-medium">(if a prod co hired you for their client)</span></label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white" />
-                    <input 
-                      type="text"
-                      placeholder="Production co"
-                      value={editingJob.production_company || ''}
-                      onChange={(e) => setEditingJob(prev => ({ ...prev, production_company: e.target.value }))}
-                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
-                    />
-                  </div>
-                </div>
-
-                {/* Project (within the selected client) */}
-                <div className="md:col-span-3 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white flex items-center justify-between">
-                    <span>Project</span>
-                    <button
-                      type="button"
-                      onClick={handleCreateProject}
-                      className="text-accent hover:text-white transition-colors normal-case tracking-normal font-bold"
-                    >
-                      + New
-                    </button>
-                  </label>
-                  <div className="relative">
-                    <FolderKanban className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white pointer-events-none" />
-                    <select
-                      value={editingJob.project_id || ''}
-                      onChange={(e) => setEditingJob(prev => ({ ...prev, project_id: e.target.value || undefined }))}
-                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
-                    >
-                      <option value="">No Project</option>
-                      {(() => {
-                        const cId = resolveClientId(editingJob);
-                        const opts = cId ? projects.filter(p => p.client_id === cId || p.id === editingJob.project_id) : projects;
-                        return opts.map(p => <option key={p.id} value={p.id}>{caps(p.name)}</option>);
-                      })()}
-                    </select>
-                  </div>
                 </div>
 
                 {/* --- section --- */}
@@ -1496,6 +1442,67 @@ export default function Slate({
                   </div>
                 </div>
 
+                {/* Everything below is optional. Collapsed by default so
+                    creating a production is a title, a date and a client —
+                    the rest is there when the job actually needs it. */}
+                <div className="md:col-span-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowJobDetails(v => !v)}
+                    className="w-full flex items-center gap-2 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/40 hover:text-accent transition-colors"
+                  >
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showJobDetails ? '' : '-rotate-90'}`} />
+                    More details
+                    <span className="h-px bg-white/10 flex-1 ml-1" />
+                  </button>
+                </div>
+
+                {showJobDetails && (
+                <div className="md:col-span-6 grid grid-cols-1 md:grid-cols-6 gap-x-3 gap-y-3">
+                {/* Production Company */}
+                <div className="md:col-span-3 space-y-1">
+                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Company <span className="opacity-60 normal-case tracking-normal font-medium">(if a prod co hired you for their client)</span></label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white" />
+                    <input 
+                      type="text"
+                      placeholder="Production co"
+                      value={editingJob.production_company || ''}
+                      onChange={(e) => setEditingJob(prev => ({ ...prev, production_company: e.target.value }))}
+                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Project (within the selected client) */}
+                <div className="md:col-span-3 space-y-1">
+                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white flex items-center justify-between">
+                    <span>Project</span>
+                    <button
+                      type="button"
+                      onClick={handleCreateProject}
+                      className="text-accent hover:text-white transition-colors normal-case tracking-normal font-bold"
+                    >
+                      + New
+                    </button>
+                  </label>
+                  <div className="relative">
+                    <FolderKanban className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white pointer-events-none" />
+                    <select
+                      value={editingJob.project_id || ''}
+                      onChange={(e) => setEditingJob(prev => ({ ...prev, project_id: e.target.value || undefined }))}
+                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
+                    >
+                      <option value="">No Project</option>
+                      {(() => {
+                        const cId = resolveClientId(editingJob);
+                        const opts = cId ? projects.filter(p => p.client_id === cId || p.id === editingJob.project_id) : projects;
+                        return opts.map(p => <option key={p.id} value={p.id}>{caps(p.name)}</option>);
+                      })()}
+                    </select>
+                  </div>
+                </div>
+
                 {/* Additional Logistics overrides */}
                 <div className="space-y-1 md:col-span-6">
                    <div className="flex items-center justify-between mb-0.5">
@@ -1547,11 +1554,6 @@ export default function Slate({
                    <p className="text-[8px] text-white/30 italic mt-0.5">If left blank, logistics will auto-fetch in the Gear Builder based on the Full Address.</p>
                 </div>
 
-                {/* --- section --- */}
-                <div className="md:col-span-6 flex items-center gap-3 mt-2 first:mt-0">
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">Notes & Contact</span>
-                  <div className="h-px bg-white/10 flex-1" />
-                </div>
 
                 {/* Contact Email (linked correspondence) */}
                 <div className="md:col-span-6 space-y-1">
@@ -1585,56 +1587,21 @@ export default function Slate({
                   </div>
                 </div>
 
-                {/* Submit / Cancel Buttons */}
-                <div className="md:col-span-6 flex justify-end gap-2 mt-1.5 border-t border-white/5 pt-1.5">
-                   <button 
-                    type="button"
-                    onClick={closeJobModal}
-                    className="px-4 py-1.5 rounded-lg font-medium text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit"
-                    className="bg-accent text-white px-6 py-1.5 rounded-lg font-medium text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20"
-                  >
-                    {editingJob.id ? 'Save Changes' : 'Create Production'}
-                  </button>
                 </div>
+                )}
+
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* Add Link Modal */}
-      <AnimatePresence>
-        {linkModalJob && (
-          <div 
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setLinkModalJob(null);
-              }
-            }}
-            className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center cursor-pointer"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-neutral-900 border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl my-auto cursor-default"
-            >
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-lg font-semibold tracking-tight text-white">Add Vault Link</h2>
-                  <p className="text-[11px] font-medium opacity-50 text-white mt-1">{linkModalJob.title}</p>
-                </div>
-                <button onClick={() => setLinkModalJob(null)} className="p-2 hover:bg-white/5 rounded-full text-white">
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <form onSubmit={addCustomLink} className="space-y-6">
+      <Modal
+        open={!!linkModalJob}
+        onClose={() => setLinkModalJob(null)}
+        title="Add Vault Link"
+        subtitle={linkModalJob?.title}
+        maxWidth="max-w-md"
+      >
+              <form onSubmit={addCustomLink} className="space-y-5">
                 <div className="space-y-2">
                   <label className="text-[9px] font-black tracking-widest uppercase opacity-40 ml-1 text-white">Link Label</label>
                   <input 
@@ -1657,70 +1624,43 @@ export default function Slate({
                     className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-white"
                   />
                 </div>
-                <div className="flex justify-end gap-3 mt-4">
-                   <button 
+                <div className="flex justify-end gap-2 pt-1">
+                   <button
                     type="button"
                     onClick={() => setLinkModalJob(null)}
-                    className="px-6 py-3 rounded-xl font-semibold text-sm border border-white/10 hover:bg-white/5 transition-all text-white"
+                    className="px-5 py-2.5 rounded-xl font-semibold text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     type="submit"
-                    className="bg-accent text-white px-8 py-3 rounded-xl font-semibold text-sm hover:bg-white hover:text-black transition-all"
+                    className="bg-accent text-white px-6 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all"
                   >
                     Add Link
                   </button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* Manage Crew Modal (Team Builder) */}
-      <AnimatePresence>
-        {manageJobId && (
-          <div 
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setManageJobId(null);
-              }
-            }}
-            className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center cursor-pointer"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-6xl bg-black border border-white/10 rounded-3xl p-4 md:p-8 shadow-2xl my-auto min-h-[80vh] cursor-default"
-            >
-              <TeamBuilder predefinedJobId={manageJobId} onClose={() => setManageJobId(null)} />
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <Modal
+        open={!!manageJobId}
+        onClose={() => setManageJobId(null)}
+        maxWidth="max-w-6xl"
+      >
+        {manageJobId && <TeamBuilder predefinedJobId={manageJobId} onClose={() => setManageJobId(null)} />}
+      </Modal>
 
       {/* Call Sheet export options — pick exactly what goes on the PDF */}
       <AnimatePresence>
         {exportJob && (
-          <div
-            onClick={() => setExportJob(null)}
-            className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center cursor-pointer"
+          <Modal
+            open={!!exportJob}
+            onClose={() => setExportJob(null)}
+            title="Export Call Sheet"
+            maxWidth="max-w-sm"
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm h-fit my-auto bg-neutral-900 border border-white/10 rounded-2xl p-6 shadow-2xl cursor-default"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <h2 className="text-base font-semibold tracking-tight text-white">Export Call Sheet</h2>
-                <button onClick={() => setExportJob(null)} className="p-1.5 text-white/40 hover:text-white transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+            <div>
               <p className="text-[10px] text-white/40 mb-4 truncate">{exportJob.title}</p>
 
               <div className="space-y-1.5 mb-5">
@@ -1766,8 +1706,8 @@ export default function Slate({
               >
                 Export PDF
               </button>
-            </motion.div>
-          </div>
+            </div>
+          </Modal>
         )}
       </AnimatePresence>
     </div>
@@ -1858,72 +1798,54 @@ function JobCard({
             </div>
           )}
         </div>
-        {/* Actions sit at a legible opacity instead of white/10. They were
-            effectively invisible until hover, which on a tablet — where there
-            is no hover — meant invisible full stop. */}
-        <div className="flex gap-0.5 shrink-0">
-          {!isClient && (
-            <button
-              onClick={onBuildGear}
-              className="p-2 text-white/40 hover:text-accent hover:bg-white/5 rounded-lg transition-all"
-              title="Build gear list"
-              aria-label="Build gear list"
-            >
-              <Package className="w-4 h-4" />
-            </button>
-          )}
-          <button
-            onClick={onExportCallSheet}
-            className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-            title="Export call sheet"
-            aria-label="Export call sheet"
-          >
-            <ClipboardList className="w-4 h-4" />
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                await generateMasterBrief(job.id);
-              } catch (err) {
-                console.error(err);
-                toast('Failed to generate Master Production Brief.');
-              }
-            }}
-            className="p-2 text-white/40 hover:text-accent hover:bg-white/5 rounded-lg transition-all"
-            title="Export Master Production Brief (PDF)"
-            aria-label="Export Master Production Brief"
-          >
-            <FileText className="w-4 h-4" />
-          </button>
-          {!isClient && (
-            <>
+        {/* One labelled menu instead of six unlabelled icons. Every action
+            reads as words, so nothing depends on decoding a glyph or on a
+            tooltip that touch devices never show. */}
+        {!isClient && (
+          <DropdownMenu
+            align="right"
+            trigger={({ onClick, ref, ...aria }) => (
               <button
-                onClick={onDuplicate}
-                className="p-2 text-white/40 hover:text-accent hover:bg-accent/5 rounded-lg transition-all"
-                title="Duplicate for next shoot day (copies gear, crew & details)"
-                aria-label="Duplicate for next shoot day"
+                ref={ref}
+                onClick={onClick}
+                {...aria}
+                aria-haspopup="menu"
+                aria-label={`Actions for ${job.title}`}
+                className="p-2 -mr-1 shrink-0 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-all"
               >
-                <CalendarPlus className="w-4 h-4" />
+                <MoreVertical className="w-4 h-4" />
               </button>
-              <button
-                onClick={onSaveAsTemplate}
-                className="p-2 text-white/40 hover:text-accent hover:bg-accent/5 rounded-lg transition-all"
-                title="Save crew as a reusable template"
-                aria-label="Save as template"
-              >
-                <BookmarkPlus className="w-4 h-4" />
-              </button>
-              <button
-                onClick={onDelete}
-                className="p-2 text-white/40 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                title="Delete production"
-                aria-label="Delete production"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </>
-          )}
-        </div>
+            )}
+            items={[
+              { label: 'Edit production', icon: <Settings2 className="w-3.5 h-3.5" />, onSelect: onEdit },
+              { label: 'Crew & schedule', icon: <ChevronRight className="w-3.5 h-3.5" />, onSelect: onManage },
+              { label: 'Build gear list', icon: <Package className="w-3.5 h-3.5" />, onSelect: () => onBuildGear?.() },
+              { label: 'Add vault link', icon: <LinkIcon className="w-3.5 h-3.5" />, onSelect: onAddLink },
+              { label: 'Export call sheet', icon: <ClipboardList className="w-3.5 h-3.5" />, onSelect: onExportCallSheet },
+              {
+                label: 'Export production brief',
+                hint: 'Full PDF: crew, gear, schedule',
+                icon: <FileText className="w-3.5 h-3.5" />,
+                onSelect: async () => {
+                  try {
+                    await generateMasterBrief(job.id);
+                  } catch (err) {
+                    console.error(err);
+                    toast('Failed to generate Master Production Brief.');
+                  }
+                },
+              },
+              {
+                label: 'Duplicate for next day',
+                hint: 'Copies gear, crew & details',
+                icon: <CalendarPlus className="w-3.5 h-3.5" />,
+                onSelect: onDuplicate,
+              },
+              { label: 'Save crew as template', icon: <BookmarkPlus className="w-3.5 h-3.5" />, onSelect: onSaveAsTemplate },
+              { label: 'Delete production', icon: <Trash2 className="w-3.5 h-3.5" />, onSelect: onDelete, danger: true },
+            ]}
+          />
+        )}
       </div>
 
       <div className="flex-1 relative z-10 text-white">
