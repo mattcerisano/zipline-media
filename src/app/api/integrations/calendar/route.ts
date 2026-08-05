@@ -1,13 +1,58 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getValidGoogleToken } from '@/lib/google-auth';
-import { pullGoogleCalendarForUser } from '@/lib/calendar-sync';
+import { pullGoogleCalendarForUser, SLATE_APP_TAG } from '@/lib/calendar-sync';
 import { getAuthedUserId } from '@/lib/api-auth';
+import { STUDIO_TIME_ZONE, parseCallTime, addDays } from '@/lib/date';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+const DEFAULT_SHOOT_HOURS = 8;
+
+/**
+ * Translate a job's stored date/time fields into a Google event's start/end.
+ *
+ * Call times are wall-clock strings with no zone ("8:00 AM"), so they are sent
+ * as a naive dateTime plus an explicit `timeZone` and Google resolves them in
+ * that zone. Building a `Date` here instead would resolve them against the
+ * server clock — UTC on Vercel — which is what put an 8:00 AM call on the
+ * calendar at 4:00 AM Eastern.
+ */
+function buildEventTiming(job: {
+  shoot_date?: string | null;
+  end_date?: string | null;
+  call_time?: string | null;
+}): { start: Record<string, string>; end: Record<string, string> } {
+  const startDate = job.shoot_date || new Date().toISOString().split('T')[0];
+  // An end_date at or before the start is a stale/no-op value, not a span.
+  const lastDate = job.end_date && job.end_date > startDate ? job.end_date : startDate;
+  const call = parseCallTime(job.call_time);
+
+  if (!call) {
+    // All-day event. Google's all-day end date is exclusive, so a single-day
+    // shoot ends the following day — an end equal to the start is rejected.
+    return {
+      start: { date: startDate },
+      end: { date: addDays(lastDate, 1) },
+    };
+  }
+
+  const hhmm = `${String(call.hour).padStart(2, '0')}:${String(call.minute).padStart(2, '0')}:00`;
+  const wrapHour = (call.hour + DEFAULT_SHOOT_HOURS) % 24;
+  // A call late enough that the default day runs past midnight pushes the end
+  // onto the next date rather than ending before it starts.
+  const wrapsMidnight = call.hour + DEFAULT_SHOOT_HOURS >= 24;
+  const endDate = wrapsMidnight ? addDays(lastDate, 1) : lastDate;
+  const endHhmm = `${String(wrapHour).padStart(2, '0')}:${String(call.minute).padStart(2, '0')}:00`;
+
+  return {
+    start: { dateTime: `${startDate}T${hhmm}`, timeZone: STUDIO_TIME_ZONE },
+    end: { dateTime: `${endDate}T${endHhmm}`, timeZone: STUDIO_TIME_ZONE },
+  };
+}
 
 export async function POST(request: Request) {
   try {
@@ -46,46 +91,24 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 });
       }
 
-      const shootDateStr = job.shoot_date;
+      const timing = buildEventTiming(job);
       const eventBody: any = {
         summary: `🎥 ${job.title}`,
         description: `Client: ${job.client_name || 'N/A'}\nSlate ID: ${job.id}\nNotes: ${job.notes_general || 'None'}`,
         location: job.location_address || job.location_name || '',
+        start: timing.start,
+        end: timing.end,
+        // Machine-readable linkage back to Slate. The "Slate ID:" line in the
+        // description is human-facing and breaks the moment someone edits the
+        // description in Google; this survives edits and lets the pull find
+        // Slate's own events without depending on the 🎥 title prefix.
+        extendedProperties: {
+          private: {
+            app: SLATE_APP_TAG,
+            slateJobId: job.id,
+          },
+        },
       };
-
-      if (shootDateStr) {
-        if (job.call_time) {
-          const timeMatch = job.call_time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
-          let hour = 8;
-          let minute = 0;
-          if (timeMatch) {
-            let h = parseInt(timeMatch[1], 10);
-            const m = parseInt(timeMatch[2], 10);
-            const ampm = timeMatch[3];
-            if (ampm && ampm.toUpperCase() === 'PM' && h < 12) h += 12;
-            else if (ampm && ampm.toUpperCase() === 'AM' && h === 12) h = 0;
-            hour = h;
-            minute = m;
-          }
-          
-          // Construct start time locally then convert to ISO format
-          const startDateTime = new Date(`${shootDateStr}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`);
-          const endDateTime = new Date(startDateTime.getTime() + 8 * 60 * 60 * 1000); // 8 hours default
-          
-          eventBody.start = { dateTime: startDateTime.toISOString() };
-          eventBody.end = { dateTime: endDateTime.toISOString() };
-        } else {
-          // All day event: End date must be exclusive (+1 day)
-          const startDate = new Date(shootDateStr);
-          const endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000);
-          eventBody.start = { date: shootDateStr };
-          eventBody.end = { date: endDate.toISOString().split('T')[0] };
-        }
-      } else {
-        const todayStr = new Date().toISOString().split('T')[0];
-        eventBody.start = { date: todayStr };
-        eventBody.end = { date: todayStr };
-      }
 
       let response: Response;
       const googleEventId = job.google_event_id;
@@ -103,7 +126,10 @@ export async function POST(request: Request) {
           }
         );
 
-        if (response.status === 404) {
+        // 404 = the event was deleted outright; 410 = it was cancelled and
+        // Google is holding a tombstone. Neither can be updated in place, so
+        // recreate rather than leaving the job silently unsynced.
+        if (response.status === 404 || response.status === 410) {
           response = await fetch(
             `https://www.googleapis.com/calendar/v3/calendars/primary/events`,
             {
@@ -146,6 +172,32 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({ success: true, message: 'Google Calendar event synced.', googleEventId: newGoogleEventId });
+    }
+
+    // ==========================================
+    // ACTION: DELETE THE GOOGLE EVENT FOR A JOB
+    // ==========================================
+    // Called before the job row is removed, so a production deleted in Slate
+    // stops occupying the team's Google Calendar. Without this the event
+    // outlived the job and the next pull re-imported it as a brand new one.
+    if (action === 'delete') {
+      const { googleEventId } = body;
+      if (!googleEventId || typeof googleEventId !== 'string') {
+        return NextResponse.json({ success: true, message: 'No Google event to remove.' });
+      }
+
+      const res = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}`,
+        { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // 404/410 mean it is already gone — the desired end state either way.
+      if (!res.ok && res.status !== 404 && res.status !== 410) {
+        const errText = await res.text();
+        throw new Error(`Google Calendar delete failed with status ${res.status}: ${errText}`);
+      }
+
+      return NextResponse.json({ success: true, message: 'Google Calendar event removed.' });
     }
 
     // ==========================================

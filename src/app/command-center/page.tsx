@@ -511,6 +511,10 @@ export default function CommandCenterPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  // Subscription URL including the feed secret, fetched server-side so the
+  // token never ships in the bundle. Falls back to the bare path until it
+  // loads — and on deployments that haven't configured a token.
+  const [feedUrl, setFeedUrl] = useState<string>('');
   const [preloadedJob, setPreloadedJob] = useState<any | null>(null);
   const [preselectedJobId, setPreselectedJobId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'staff' | 'client' | null>(null);
@@ -598,6 +602,15 @@ export default function CommandCenterPage() {
       setIsSyncing(false);
     }
   };
+
+  // Resolve the subscription URL (with its secret) once the session is known.
+  useEffect(() => {
+    if (!session?.access_token) return;
+    fetch('/api/calendar/feed-url', { headers: { Authorization: `Bearer ${session.access_token}` } })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => { if (data?.url) setFeedUrl(data.url); })
+      .catch(() => { /* the fallback URL still renders */ });
+  }, [session?.access_token]);
 
   // Silent background pull while the app is open, so nobody has to remember to
   // hit sync — new Google events flow in via Supabase realtime with no reload.
@@ -1385,12 +1398,12 @@ export default function CommandCenterPage() {
                     <input 
                       type="text" 
                       readOnly 
-                      value={typeof window !== 'undefined' ? `${window.location.origin}/api/calendar` : '/api/calendar'}
+                      value={feedUrl || (typeof window !== 'undefined' ? `${window.location.origin}/api/calendar` : '/api/calendar')}
                       className="flex-grow bg-black/50 border border-white/10 px-4 py-3 outline-none text-xs font-bold rounded-xl text-white select-all"
                     />
-                    <button 
+                    <button
                       onClick={() => {
-                        const link = typeof window !== 'undefined' ? `${window.location.origin}/api/calendar` : '/api/calendar';
+                        const link = feedUrl || (typeof window !== 'undefined' ? `${window.location.origin}/api/calendar` : '/api/calendar');
                         navigator.clipboard.writeText(link);
                         setCopiedLink(true);
                         setTimeout(() => setCopiedLink(false), 2000);

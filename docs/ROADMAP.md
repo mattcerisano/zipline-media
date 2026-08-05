@@ -26,6 +26,9 @@ Ranked roughly by on-set impact. Items marked ✅ are done.
 - [x] ✅ **Sync status indicator** — "last synced X min ago / ⚠️ failing" chip on Calendar + Inbox so a broken Google token is visible before someone misses a shoot
 - [x] ✅ **Tighten allow-all RLS** — verified already fixed by 20260706000002 (audit grep hit superseded policies in older migration files); only the intentional public-read on jobs/inventory for the gear-share page remains
 - [x] ✅ **Team-synced preferences** — move `custom_tabs_list`, active tab, scratch notes, saved gear owners from localStorage to org/profile tables (edit-stage defs show the pattern)
+- [x] ✅ **Calendar timezone correctness** — call times are wall-clock in `STUDIO_TIMEZONE`; push sends `{dateTime, timeZone}` and the pull reads Google's own offset, instead of both resolving against the UTC server clock (an 8:00 AM call landed on Google at 4:00 AM)
+- [x] ✅ **Multi-day events render across their span** — Google-imported markers painted only their start day; jobs gained an End Date field in Slate
+- [x] ✅ **Slate auto-populates Google Calendar** — saving a production pushes it, deleting one removes it. Previously only the Calendar tab's inline editor ever pushed
 - [ ] **Offline / stale-cache support** — service worker caching last-viewed call sheets & gear lists for bad-signal locations
 - [x] ✅ **Google sync deletion round-trip** — tombstones so deleted Google events disappear here and in-app marker deletes don't resurrect
 - [ ] **Email round 2** — send attachments, drafts, Sent/Starred/Trash views, undo-send
