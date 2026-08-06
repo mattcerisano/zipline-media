@@ -27,6 +27,7 @@ type EntityKey = 'projects' | 'clients' | 'inventory' | 'jobs';
 
 interface Row {
   id: string;
+  type: EntityKey;
   name: string;
   /** Secondary line: client name, category, whatever identifies the row. */
   detail?: string;
@@ -141,6 +142,9 @@ export default function LibraryWidget() {
   const defaultSortFor = (k: EntityKey) => (k === 'jobs' ? 'date' : 'name');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  /** The record open in the detail pane. Distinct from `selected`, which arms
+   *  rows for deletion — clicking a row to read it must never stage a delete. */
+  const [activeId, setActiveId] = useState<string | null>(null);
   /** Inventory rows with no primary key — listed but not editable. */
   const [unkeyed, setUnkeyed] = useState(0);
 
@@ -188,6 +192,7 @@ export default function LibraryWidget() {
       setRows({
         projects: (projRes.data || []).map((p: any) => ({
           id: p.id,
+          type: 'projects' as const,
           name: p.name || '',
           detail: p.client_id ? clientName.get(p.client_id) || '' : '',
           usage: byProject.get(p.id) || 0,
@@ -198,6 +203,7 @@ export default function LibraryWidget() {
         })),
         clients: (cliRes.data || []).map((c: any) => ({
           id: c.id,
+          type: 'clients' as const,
           name: c.name || '',
           detail: c.email || '',
           usage: byClient.get(c.id) || 0,
@@ -213,6 +219,7 @@ export default function LibraryWidget() {
           .filter((i: any) => !!i.id)
           .map((i: any) => ({
             id: i.id as string,
+            type: 'inventory' as const,
             name: i.name || '',
             detail: [i.category, i.owner].filter(Boolean).join(' · '),
             usage: gearRefs.get(String(i.name || '').trim().toLowerCase()) || 0,
@@ -223,6 +230,7 @@ export default function LibraryWidget() {
           })),
         jobs: (jobs as any[]).map((j: any) => ({
           id: j.id,
+          type: 'jobs' as const,
           name: j.title || '',
           // client_id is the real link; client_name is the free-text fallback
           // for shoots booked before a client record existed.
@@ -260,17 +268,32 @@ export default function LibraryWidget() {
   const sorts = SORTS[entity];
   const activeSort = sorts.find(s => s.key === sortKey) || sorts[0];
 
+  const searching = search.trim().length > 0;
+
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const filtered = q
-      ? current.filter(r =>
-          r.name.toLowerCase().includes(q) || (r.detail || '').toLowerCase().includes(q))
-      : current;
-    return [...filtered].sort(activeSort.compare);
-  }, [current, search, activeSort]);
+    if (!q) return [...current].sort(activeSort.compare);
+    // Search spans every type. "Hudson" should surface the Hudson Theatre
+    // client and the Hudson Gala shoot together rather than asking which tab.
+    const pool = ENTITIES.flatMap(e => rows[e.key]);
+    return pool
+      .filter(r => r.name.toLowerCase().includes(q) || (r.detail || '').toLowerCase().includes(q))
+      .sort((a, b) => a.type.localeCompare(b.type) || byName(a, b));
+  }, [current, rows, search, activeSort]);
 
   /** Rows interleaved with section headings when the sort groups. */
   const sections = useMemo(() => {
+    // Cross-type results group by type, so each hit says what it is.
+    if (searching) {
+      const out: { heading: string | null; items: Row[] }[] = [];
+      for (const row of visible) {
+        const heading = ENTITIES.find(e => e.key === row.type)!.label;
+        const last = out[out.length - 1];
+        if (last && last.heading === heading) last.items.push(row);
+        else out.push({ heading, items: [row] });
+      }
+      return out;
+    }
     if (!activeSort.group) return [{ heading: null as string | null, items: visible }];
     const out: { heading: string | null; items: Row[] }[] = [];
     for (const row of visible) {
@@ -280,7 +303,41 @@ export default function LibraryWidget() {
       else out.push({ heading, items: [row] });
     }
     return out;
-  }, [visible, activeSort]);
+  }, [visible, activeSort, searching]);
+
+  /** The record shown on the right, resolved across every type. */
+  const activeRow = useMemo(
+    () => ENTITIES.flatMap(e => rows[e.key]).find(r => r.id === activeId) || null,
+    [rows, activeId],
+  );
+
+  /** What this record connects to, in the order you'd walk it. */
+  const relatedFor = useCallback((row: Row): Row[] => {
+    if (row.type === 'clients') {
+      return [
+        ...rows.projects.filter(p => p.raw.client_id === row.id),
+        ...rows.jobs.filter(j => j.raw.client_id === row.id),
+      ];
+    }
+    if (row.type === 'projects') {
+      const client = rows.clients.find(c => c.id === row.raw.client_id);
+      return [...(client ? [client] : []), ...rows.jobs.filter(j => j.raw.project_id === row.id)];
+    }
+    if (row.type === 'jobs') {
+      const client = rows.clients.find(c => c.id === row.raw.client_id);
+      const project = rows.projects.find(p => p.id === row.raw.project_id);
+      return [...(client ? [client] : []), ...(project ? [project] : [])];
+    }
+    return [];
+  }, [rows]);
+
+  const openRecord = (row: Row) => {
+    setActiveId(row.id);
+    // Following a link out of the detail pane has to move the list with it, or
+    // the selected record sits in a list that isn't showing it.
+    if (row.type !== entity) { setEntity(row.type); setSortKey(defaultSortFor(row.type)); setSelected(new Set()); }
+    setSearch('');
+  };
 
   const toggle = (id: string) => {
     setSelected(prev => {
@@ -415,19 +472,49 @@ export default function LibraryWidget() {
     }
   };
 
+  /** Fields worth showing per type, in the order they matter on the day. */
+  function detailFields(row: Row): { k: string; v: string; mono?: boolean }[] {
+    const d = row.raw;
+    if (row.type === 'jobs') return [
+      { k: 'Date', v: d.shoot_date ? formatLocalDate(d.shoot_date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }, 'No date') : 'No date', mono: true },
+      { k: 'Status', v: d.job_status || 'Planning' },
+      { k: 'Client', v: row.detail || 'Unassigned' },
+      { k: 'On Google', v: d.google_event_id ? 'Synced' : 'Not synced' },
+    ];
+    if (row.type === 'projects') return [
+      { k: 'Client', v: row.detail || 'Unassigned' },
+      { k: 'Status', v: d.status || 'Active' },
+      { k: 'Shoots', v: String(row.count ?? 0), mono: true },
+    ];
+    if (row.type === 'clients') return [
+      { k: 'Email', v: d.email || '—' },
+      { k: 'Phone', v: d.phone || '—', mono: true },
+      { k: 'Shoots', v: String(row.count ?? 0), mono: true },
+    ];
+    return [
+      { k: 'Category', v: d.category || 'Uncategorised' },
+      { k: 'Owner', v: d.owner || 'Zipline Media' },
+      { k: 'Quantity', v: String(d.qty ?? 0), mono: true },
+      { k: 'Replacement', v: typeof d.replacement === 'number' ? `$${d.replacement.toLocaleString('en-US')}` : '—', mono: true },
+      { k: 'On gear lists', v: String(row.usage ?? 0), mono: true },
+    ];
+  }
+
+  const typeLabel = (k: EntityKey) => ({ jobs: 'Shoot', projects: 'Project', clients: 'Client', inventory: 'Gear item' }[k]);
+
   return (
     <div className="h-full flex flex-col bg-black text-white">
-      {/* Header: entity tabs + search */}
+      {/* Header: type rail + one search across everything */}
       <div className="p-4 border-b border-white/5 space-y-3 shrink-0">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-xs font-black uppercase tracking-[0.2em] text-white/50">Library</h2>
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder={`Search ${meta.label.toLowerCase()}…`}
-              aria-label={`Search ${meta.label}`}
+              placeholder="Search shoots, clients, projects and gear…"
+              aria-label="Search the library"
               className={`${inputClass} pl-9`}
             />
           </div>
@@ -436,7 +523,7 @@ export default function LibraryWidget() {
         <div className="flex gap-1.5 flex-wrap items-center">
           {ENTITIES.map(e => {
             const Icon = e.icon;
-            const active = e.key === entity;
+            const active = e.key === entity && !searching;
             return (
               <button
                 key={e.key}
@@ -455,19 +542,21 @@ export default function LibraryWidget() {
             );
           })}
 
-          <label className="ml-auto flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-white/30">
-            Sort
-            <select
-              value={sortKey}
-              onChange={e => setSortKey(e.target.value)}
-              aria-label={`Sort ${meta.label}`}
-              className="bg-black/40 border border-white/10 rounded-lg py-1.5 px-2 outline-none focus:border-accent text-[10px] font-bold text-white/80 cursor-pointer normal-case tracking-normal"
-            >
-              {sorts.map(s => (
-                <option key={s.key} value={s.key} className="bg-zinc-900">{s.label}</option>
-              ))}
-            </select>
-          </label>
+          {!searching && (
+            <label className="ml-auto flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-white/30">
+              Sort
+              <select
+                value={sortKey}
+                onChange={e => setSortKey(e.target.value)}
+                aria-label={`Sort ${meta.label}`}
+                className="bg-black/40 border border-white/10 rounded-lg py-1.5 px-2 outline-none focus:border-accent text-[10px] font-bold text-white/80 cursor-pointer normal-case tracking-normal"
+              >
+                {sorts.map(s => (
+                  <option key={s.key} value={s.key} className="bg-zinc-900">{s.label}</option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
       </div>
 
@@ -478,7 +567,7 @@ export default function LibraryWidget() {
             type="checkbox"
             checked={allVisibleSelected}
             onChange={toggleAllVisible}
-            disabled={visible.length === 0}
+            disabled={visible.length === 0 || searching}
             className="accent-[var(--accent)]"
           />
           {selected.size > 0 ? `${selected.size} selected` : 'Select all'}
@@ -506,96 +595,163 @@ export default function LibraryWidget() {
         </div>
       </div>
 
-      {/* Rows */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {loading ? (
-          <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 text-accent animate-spin" /></div>
-        ) : loadError ? (
-          <div className="py-20 text-center space-y-2">
-            <AlertCircle className="w-8 h-8 text-red-400/70 mx-auto" />
-            <p className="text-xs text-white/70">{loadError}</p>
-          </div>
-        ) : entity === 'inventory' && unkeyed > 0 && visible.length === 0 ? (
-          <div className="py-20 text-center space-y-2 px-6">
-            <AlertCircle className="w-8 h-8 text-amber-400/70 mx-auto" />
-            <p className="text-[11px] text-white/60 leading-relaxed max-w-sm mx-auto">
-              {unkeyed} gear {unkeyed === 1 ? 'item has' : 'items have'} no id column, so they can&rsquo;t be edited here.
-              The inventory table needs a primary key before the Library can manage it.
-            </p>
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="py-20 text-center space-y-2">
-            <p className="text-[11px] text-white/40">
-              {search
-                ? `Nothing in ${meta.label.toLowerCase()} matches “${search}”.`
-                : `No ${meta.label.toLowerCase()} yet.`}
-            </p>
-            {search && (
-              <button type="button" onClick={() => setSearch('')} className="text-[10px] text-accent hover:underline uppercase tracking-widest font-bold">
-                Clear search
-              </button>
-            )}
-          </div>
-        ) : (
-          <ul className="divide-y divide-white/5">
-            {sections.map(section => (
-              <React.Fragment key={section.heading ?? '__all__'}>
-                {section.heading && (
-                  <li className="px-4 py-1.5 bg-white/[0.04] sticky top-0 z-10 flex items-center justify-between">
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent/80">{section.heading}</span>
-                    <span className="text-[9px] text-white/25">{section.items.length}</span>
-                  </li>
-                )}
-                {section.items.map(row => (
-              <li key={row.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] group">
-                <input
-                  type="checkbox"
-                  checked={selected.has(row.id)}
-                  onChange={() => toggle(row.id)}
-                  aria-label={`Select ${row.name || 'untitled'}`}
-                  className="accent-[var(--accent)] shrink-0"
-                />
+      {/* List | detail. Stacks on narrow screens rather than squeezing both. */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="overflow-y-auto custom-scrollbar lg:border-r border-white/5">
+          {loading ? (
+            <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 text-accent animate-spin" /></div>
+          ) : loadError ? (
+            <div className="py-20 text-center space-y-2">
+              <AlertCircle className="w-8 h-8 text-red-400/70 mx-auto" />
+              <p className="text-xs text-white/70">{loadError}</p>
+            </div>
+          ) : entity === 'inventory' && !searching && unkeyed > 0 && visible.length === 0 ? (
+            <div className="py-20 text-center space-y-2 px-6">
+              <AlertCircle className="w-8 h-8 text-amber-400/70 mx-auto" />
+              <p className="text-[11px] text-white/60 leading-relaxed max-w-sm mx-auto">
+                {unkeyed} gear {unkeyed === 1 ? 'item has' : 'items have'} no id column, so they can&rsquo;t be edited here.
+                The inventory table needs a primary key before the Library can manage it.
+              </p>
+            </div>
+          ) : visible.length === 0 ? (
+            <div className="py-20 text-center space-y-2">
+              <p className="text-[11px] text-white/40">
+                {searching ? `Nothing matches “${search}”.` : `No ${meta.label.toLowerCase()} yet.`}
+              </p>
+              {searching && (
+                <button type="button" onClick={() => setSearch('')} className="text-[10px] text-accent hover:underline uppercase tracking-widest font-bold">
+                  Clear search
+                </button>
+              )}
+            </div>
+          ) : (
+            <ul className="divide-y divide-white/5">
+              {sections.map(section => (
+                <React.Fragment key={section.heading ?? '__all__'}>
+                  {section.heading && (
+                    <li className="px-4 py-1.5 bg-white/[0.04] sticky top-0 z-10 flex items-center justify-between">
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent/80">{section.heading}</span>
+                      <span className="text-[9px] text-white/25">{section.items.length}</span>
+                    </li>
+                  )}
+                  {section.items.map(row => (
+                    <li
+                      key={`${row.type}-${row.id}`}
+                      className={`flex items-center gap-3 px-4 hover:bg-white/[0.03] ${row.id === activeId ? 'bg-accent/10 shadow-[inset_2px_0_0_var(--accent)]' : ''}`}
+                    >
+                      {!searching && (
+                        <input
+                          type="checkbox"
+                          checked={selected.has(row.id)}
+                          onChange={() => toggle(row.id)}
+                          aria-label={`Select ${row.name || 'untitled'}`}
+                          className="accent-[var(--accent)] shrink-0"
+                        />
+                      )}
 
-                <input
-                  defaultValue={row.name}
-                  key={`${row.id}-${row.name}`}
-                  aria-label="Name"
-                  onBlur={e => rename(row, e.target.value)}
-                  className="flex-1 min-w-0 bg-transparent outline-none text-xs text-white/90 rounded px-1.5 py-1 focus:bg-white/10"
-                />
+                      {/* The row reads the record; it no longer edits it. Renaming
+                          moved to the detail pane, where the field is labelled and
+                          the consequences are visible next to it. */}
+                      <button
+                        type="button"
+                        onClick={() => openRecord(row)}
+                        className="flex-1 min-w-0 text-left py-2.5 flex items-center gap-3"
+                      >
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-xs text-white/90 truncate">{row.name || 'Untitled'}</span>
+                          {row.detail && <span className="block text-[10px] text-white/35 truncate">{row.detail}</span>}
+                        </span>
 
-                {row.detail && (
-                  <span className="text-[10px] text-white/35 truncate max-w-[30%] shrink-0">{row.detail}</span>
-                )}
+                        {row.count === undefined && row.trailing && (
+                          <span className="text-[10px] text-white/30 shrink-0 tabular-nums">{row.trailing}</span>
+                        )}
+                        {row.count !== undefined && (
+                          <span className="text-[10px] text-white/25 shrink-0 tabular-nums">
+                            {row.count} {row.countUnit === 'shoot' ? (row.count === 1 ? 'shoot' : 'shoots') : row.countUnit}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </React.Fragment>
+              ))}
+            </ul>
+          )}
+        </div>
 
-                {row.count === undefined && row.trailing && (
-                  <span className="text-[10px] text-white/30 shrink-0 tabular-nums w-24 text-right">{row.trailing}</span>
-                )}
-
-                {row.count !== undefined && (
-                  <span className="text-[10px] text-white/25 shrink-0 tabular-nums w-20 text-right">
-                    {row.count} {row.countUnit === 'shoot'
-                      ? (row.count === 1 ? 'shoot' : 'shoots')
-                      : row.countUnit}
+        {/* Detail — shaped by what kind of record is open. */}
+        <div className="overflow-y-auto custom-scrollbar border-t lg:border-t-0 border-white/5">
+          {!activeRow ? (
+            <div className="h-full flex items-center justify-center p-8">
+              <p className="text-[11px] text-white/25 text-center max-w-[22ch] leading-relaxed">
+                Pick a record to see its details and what it&rsquo;s linked to.
+              </p>
+            </div>
+          ) : (
+            <div className="p-5 space-y-5">
+              <div className="space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">{typeLabel(activeRow.type)}</p>
+                <label className="block space-y-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                    {activeRow.type === 'jobs' ? 'Title' : 'Name'}
                   </span>
-                )}
-              </li>
-                ))}
-              </React.Fragment>
-            ))}
-          </ul>
-        )}
-      </div>
+                  <input
+                    key={`${activeRow.id}-${activeRow.name}`}
+                    defaultValue={activeRow.name}
+                    onBlur={e => rename(activeRow, e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+              </div>
 
-      {meta.destructive ? (
-        <p className="px-4 py-2 text-[9px] text-amber-400/50 border-t border-white/5 shrink-0">
-          Deleting a shoot also deletes its crew, schedule, shot list and budget, and clears it from Google Calendar.
-        </p>
-      ) : meta.unlinkNote ? (
-        <p className="px-4 py-2 text-[9px] text-white/25 border-t border-white/5 shrink-0">
-          Deleting never removes productions — they only lose the link.
-        </p>
-      ) : null}
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                {detailFields(activeRow).map(f => (
+                  <div key={f.k} className="min-w-0">
+                    <dt className="text-[9px] font-black uppercase tracking-widest text-white/30">{f.k}</dt>
+                    <dd className={`text-xs text-white/80 truncate ${f.mono ? 'tabular-nums' : ''}`}>{f.v}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              {/* Consequences sit next to the record, before you act on it —
+                  not inside a confirm dialog after you already decided. */}
+              {activeRow.type === 'inventory' && (activeRow.usage || 0) > 0 && (
+                <p className="flex gap-2 text-[10px] text-amber-300/80 bg-amber-400/5 border border-amber-400/20 rounded-lg p-2.5 leading-relaxed">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                  <span>
+                    {activeRow.usage} saved gear {activeRow.usage === 1 ? 'list references' : 'lists reference'} this by name.
+                    Renaming won&rsquo;t follow — they keep the old name as a custom item.
+                  </span>
+                </p>
+              )}
+              {activeRow.type === 'jobs' && (
+                <p className="flex gap-2 text-[10px] text-amber-300/80 bg-amber-400/5 border border-amber-400/20 rounded-lg p-2.5 leading-relaxed">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                  <span>Deleting this shoot also deletes its crew, schedule, shot list and budget, and clears it from Google Calendar.</span>
+                </p>
+              )}
+
+              {relatedFor(activeRow).length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/30">Related</p>
+                  {relatedFor(activeRow).map(rel => (
+                    <button
+                      key={`${rel.type}-${rel.id}`}
+                      type="button"
+                      onClick={() => openRecord(rel)}
+                      className="w-full flex items-center gap-2.5 bg-white/[0.04] border border-white/5 rounded-lg px-2.5 py-2 text-left hover:border-accent/40 hover:text-accent transition-colors"
+                    >
+                      <span className="text-[8px] font-black uppercase tracking-widest text-white/30 w-14 shrink-0">{typeLabel(rel.type)}</span>
+                      <span className="flex-1 min-w-0 text-[11px] truncate">{rel.name || 'Untitled'}</span>
+                      {rel.trailing && <span className="text-[10px] text-white/25 shrink-0 tabular-nums">{rel.trailing}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
