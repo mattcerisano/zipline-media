@@ -874,7 +874,7 @@ export default function CommandCenterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@zipline.media"
                 required
-                className="w-full bg-black/40 border border-white/10 p-3.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-medium rounded-xl text-white placeholder:opacity-20 placeholder:uppercase placeholder:font-medium"
+                className="w-full bg-black/40 border border-white/10 p-3.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-medium rounded-xl text-white placeholder:opacity-45 placeholder:uppercase placeholder:font-medium"
               />
             </div>
 
@@ -888,7 +888,7 @@ export default function CommandCenterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full bg-black/40 border border-white/10 p-3.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-medium rounded-xl text-white placeholder:opacity-20"
+                className="w-full bg-black/40 border border-white/10 p-3.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-medium rounded-xl text-white placeholder:opacity-45"
               />
             </div>
 
@@ -912,7 +912,7 @@ export default function CommandCenterPage() {
               ) : 'Unlock Command Center'}
             </button>
 
-            <p className="text-center text-[11px] font-medium tracking-wide text-white/25">
+            <p className="text-center text-[11px] font-medium tracking-wide text-white/50">
               Authorized access only · All sessions are logged
             </p>
           </form>
@@ -1599,7 +1599,7 @@ export default function CommandCenterPage() {
                       placeholder="https://trello.com/..."
                       value={newTabUrl}
                       onChange={(e) => setNewTabUrl(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 p-3 outline-none focus:border-accent text-xs font-bold rounded-xl text-white placeholder:opacity-20"
+                      className="w-full bg-black/40 border border-white/10 p-3 outline-none focus:border-accent text-xs font-bold rounded-xl text-white placeholder:opacity-45"
                     />
                   </div>
                 )}
@@ -1823,7 +1823,7 @@ export default function CommandCenterPage() {
                       placeholder="https://trello.com/..."
                       value={editTabUrl}
                       onChange={(e) => setEditTabUrl(e.target.value)}
-                      className="w-full bg-black/40 border border-white/10 p-3 outline-none focus:border-accent text-xs font-bold rounded-xl text-white placeholder:opacity-20"
+                      className="w-full bg-black/40 border border-white/10 p-3 outline-none focus:border-accent text-xs font-bold rounded-xl text-white placeholder:opacity-45"
                     />
                   </div>
                 )}

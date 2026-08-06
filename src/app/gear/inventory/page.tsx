@@ -12,17 +12,20 @@ export default function GearPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // A failed load used to leave the page blank below the header — no spinner,
+  // no message, nothing. This is a public page, so "blank" reads as "broken"
+  // to anyone evaluating the studio.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     const fetchInventory = async () => {
       try {
         const { data, error } = await supabase.from('inventory').select('*');
         if (error) throw error;
-        if (data) {
-          setInventory(data as InventoryItem[]);
-        }
+        setInventory((data || []) as InventoryItem[]);
       } catch (err) {
         console.error('Error fetching inventory:', err);
+        setLoadFailed(true);
       } finally {
         setIsLoading(false);
       }
@@ -95,6 +98,36 @@ export default function GearPage() {
         {isLoading ? (
           <div className="flex justify-center items-center py-32">
             <Loader2 className="w-8 h-8 text-accent animate-spin" />
+          </div>
+        ) : loadFailed ? (
+          <div className="py-32 text-center space-y-3">
+            <p className="text-sm text-white font-bold uppercase tracking-widest">Equipment list unavailable</p>
+            <p className="text-[11px] text-zinc-400 max-w-sm mx-auto leading-relaxed">
+              We couldn&apos;t load the inventory just now. Refresh in a moment, or{' '}
+              <Link href="/#contact" className="text-accent hover:underline">get in touch</Link>{' '}
+              and we&apos;ll send the list over directly.
+            </p>
+          </div>
+        ) : inventory.length === 0 ? (
+          <div className="py-32 text-center">
+            <p className="text-[11px] text-zinc-400 tracking-widest uppercase">
+              The equipment list is being updated — check back shortly.
+            </p>
+          </div>
+        ) : filteredInventory.length === 0 ? (
+          // Searching is the common case for arriving here, and a silent blank
+          // makes it look like the filter broke rather than simply missing.
+          <div className="py-32 text-center space-y-3">
+            <p className="text-[11px] text-zinc-400 tracking-widest uppercase">
+              No gear matches &ldquo;{searchQuery}&rdquo;
+            </p>
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="text-[10px] text-accent hover:underline uppercase tracking-widest font-bold"
+            >
+              Clear filter
+            </button>
           </div>
         ) : (
           <>

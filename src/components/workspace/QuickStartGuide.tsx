@@ -264,7 +264,7 @@ export function QuickStartGuideModal({
             <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-accent to-transparent" />
             
             {/* Close Button */}
-            <button 
+            <button aria-label="Close" title="Close" 
               onClick={onClose}
               className="absolute top-4 right-4 p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-white transition-colors cursor-pointer"
             >

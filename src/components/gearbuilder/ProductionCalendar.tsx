@@ -490,13 +490,13 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
         </h2>
         
         <div className="flex items-center gap-2 bg-black/40 p-1 rounded-lg border border-white/5 w-full md:w-auto justify-between md:justify-start">
-          <button onClick={prevMonth} className="p-2 hover:bg-white/10 rounded-md transition-colors flex-1 md:flex-none flex justify-center">
+          <button aria-label="Previous month" title="Previous month" onClick={prevMonth} className="p-2 hover:bg-white/10 rounded-md transition-colors flex-1 md:flex-none flex justify-center">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button onClick={goToToday} className="px-4 py-1 text-xs font-semibold hover:bg-white/10 rounded-md transition-colors border-x border-white/5 flex-1 md:flex-none text-center">
             Today
           </button>
-          <button onClick={nextMonth} className="p-2 hover:bg-white/10 rounded-md transition-colors flex-1 md:flex-none flex justify-center">
+          <button aria-label="Next month" title="Next month" onClick={nextMonth} className="p-2 hover:bg-white/10 rounded-md transition-colors flex-1 md:flex-none flex justify-center">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>

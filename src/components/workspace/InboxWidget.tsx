@@ -916,7 +916,7 @@ export default function InboxWidget() {
                       <span className="text-[9px] font-medium text-white/20 tracking-wide">
                         Replying via {isLive ? 'Gmail Live API' : 'Simulated Sandbox SMTP'}
                       </span>
-                      <button
+                      <button aria-label="Send" title="Send"
                         type="submit"
                         disabled={isSending || !replyBody.trim()}
                         className="bg-accent px-4 py-2 rounded-lg text-xs font-semibold tracking-wide text-white hover:bg-white hover:text-black transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1012,7 +1012,7 @@ export default function InboxWidget() {
                   <span className="text-[9px] font-medium text-white/20 tracking-wide">
                     Sending as {accountEmail || (isLive ? 'connected account' : 'Sandbox')}
                   </span>
-                  <button
+                  <button aria-label="Send" title="Send"
                     type="submit"
                     disabled={isSending || !composeTo.trim() || !composeBody.trim()}
                     className="bg-accent px-5 py-2 rounded-lg text-xs font-semibold tracking-wide text-white hover:bg-white hover:text-black transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"

@@ -957,7 +957,7 @@ function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: 
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
           </div>
-          <button
+          <button aria-label="Delete" title="Delete"
             onClick={onDelete}
             className="p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-all text-white/40 md:text-current md:opacity-0 md:group-hover:opacity-100"
           >
@@ -1207,7 +1207,7 @@ function ScheduleItem({
           </div>
 
           {/* Delete Button (Mobile) */}
-          <button 
+          <button aria-label="Delete" title="Delete" 
             onClick={onDelete}
             className="md:hidden p-2 hover:bg-red-500/10 text-white/40 hover:text-red-500 rounded-lg transition-all shrink-0"
           >
@@ -1268,7 +1268,7 @@ function ScheduleItem({
         </div>
 
         {/* Delete Button (Desktop) */}
-        <button 
+        <button aria-label="Delete" title="Delete" 
           onClick={onDelete}
           className="hidden md:block p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg transition-all opacity-0 group-hover:opacity-100 shrink-0"
         >
