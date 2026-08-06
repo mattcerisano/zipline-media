@@ -133,6 +133,8 @@ interface WorkspaceLayoutProps {
   onClearPreload: () => void;
   preselectedJobId: string | null;
   onClearPreselectedJobId: () => void;
+  newProductionDate?: string | null;
+  onClearNewProductionDate?: () => void;
   onSwitchTab: (tab: any) => void;
 }
 
@@ -143,6 +145,8 @@ export default function WorkspaceLayout({
   onClearPreload,
   preselectedJobId,
   onClearPreselectedJobId,
+  newProductionDate,
+  onClearNewProductionDate,
   onSwitchTab
 }: WorkspaceLayoutProps) {
   const [layoutRoot, setLayoutRoot] = useState<LayoutNode | null>(null);
@@ -233,6 +237,8 @@ export default function WorkspaceLayout({
           onClearPreload={onClearPreload}
           preselectedJobId={preselectedJobId}
           onClearPreselectedJobId={onClearPreselectedJobId}
+          newProductionDate={newProductionDate}
+          onClearNewProductionDate={onClearNewProductionDate}
           onSwitchTab={onSwitchTab}
         />
       </div>
@@ -404,6 +410,8 @@ function WorkspacePanel({
   onClearPreload,
   preselectedJobId,
   onClearPreselectedJobId,
+  newProductionDate,
+  onClearNewProductionDate,
   onSwitchTab
 }: { 
   node: LayoutNode & { type: 'panel' }; 
@@ -683,6 +691,8 @@ function WorkspacePanel({
           onClearPreload={onClearPreload}
           preselectedJobId={preselectedJobId}
           onClearPreselectedJobId={onClearPreselectedJobId}
+          newProductionDate={newProductionDate}
+          onClearNewProductionDate={onClearNewProductionDate}
           onSwitchTab={onSwitchTab}
         />
       </div>
@@ -856,6 +866,8 @@ function WidgetMount({
   onClearPreload,
   preselectedJobId,
   onClearPreselectedJobId,
+  newProductionDate,
+  onClearNewProductionDate,
   onSwitchTab
 }: { 
   type: string;
@@ -888,7 +900,12 @@ function WidgetMount({
     case 'calendar':
       return (
         <div className="p-4 md:p-6 bg-neutral-900/10 h-full overflow-y-auto">
-          <ProductionCalendar editable enableQuickEvents onSelectJob={(job) => onSwitchTab({ selectCalendarJob: job.id })} />
+          <ProductionCalendar
+            editable
+            enableQuickEvents
+            onSelectJob={(job) => onSwitchTab({ selectCalendarJob: job.id })}
+            onNewProduction={(date) => onSwitchTab({ newProductionDate: date })}
+          />
         </div>
       );
     case 'slate':
@@ -898,6 +915,8 @@ function WidgetMount({
           onBuildGear={(job: any) => onSwitchTab({ gearJob: job })}
           preselectedJobId={boundJobId || preselectedJobId}
           onClearPreselectedJobId={onClearPreselectedJobId}
+          newProductionDate={newProductionDate}
+          onClearNewProductionDate={onClearNewProductionDate}
         />
       );
     case 'edits':

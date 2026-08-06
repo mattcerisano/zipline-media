@@ -517,6 +517,9 @@ export default function CommandCenterPage() {
   const [feedUrl, setFeedUrl] = useState<string>('');
   const [preloadedJob, setPreloadedJob] = useState<any | null>(null);
   const [preselectedJobId, setPreselectedJobId] = useState<string | null>(null);
+  // Set when a date is picked in Calendar → "New production". Slate opens its
+  // production form with this as the shoot date, then clears it.
+  const [newProductionDate, setNewProductionDate] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'staff' | 'client' | null>(null);
 
   // Google Calendar Integration States
@@ -1308,6 +1311,8 @@ export default function CommandCenterPage() {
                   onClearPreload={() => setPreloadedJob(null)}
                   preselectedJobId={preselectedJobId}
                   onClearPreselectedJobId={() => setPreselectedJobId(null)}
+                  newProductionDate={newProductionDate}
+                  onClearNewProductionDate={() => setNewProductionDate(null)}
                   onSwitchTab={(target) => {
                     if (typeof target === 'string') {
                       setActiveTab(target);
@@ -1315,6 +1320,11 @@ export default function CommandCenterPage() {
                     } else if (target && typeof target === 'object') {
                       if (target.selectCalendarJob) {
                         setPreselectedJobId(target.selectCalendarJob);
+                        setActiveTab('slate');
+                        localStorage.setItem('studio_active_tab', 'slate');
+                      }
+                      if (target.newProductionDate) {
+                        setNewProductionDate(target.newProductionDate);
                         setActiveTab('slate');
                         localStorage.setItem('studio_active_tab', 'slate');
                       }

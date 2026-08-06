@@ -48,7 +48,7 @@ import { generateMasterBrief } from '@/lib/pdf-generator';
 import { fetchGearCategoryMap, groupManifestByCategory, buildGearTableBody } from '@/lib/gear-manifest';
 import { getBranding, hexToRgb } from '@/lib/branding';
 import { sanitizeUrl } from '@/lib/sanitize';
-import { formatLocalDate } from '@/lib/date';
+import { formatLocalDate, todayLocalISO } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
 import { caps, currency } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
@@ -82,12 +82,17 @@ export default function Slate({
   userRole, 
   onBuildGear,
   preselectedJobId,
-  onClearPreselectedJobId
+  onClearPreselectedJobId,
+  newProductionDate,
+  onClearNewProductionDate
 }: { 
   userRole?: string, 
   onBuildGear?: (job: Job) => void,
   preselectedJobId?: string | null,
-  onClearPreselectedJobId?: () => void
+  onClearPreselectedJobId?: () => void,
+  /** Shoot date handed over by the Calendar tab's "New production" action. */
+  newProductionDate?: string | null,
+  onClearNewProductionDate?: () => void
 } = {}) {
   const isClient = userRole === 'client';
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -144,14 +149,16 @@ export default function Slate({
     setIsJobModalOpen(false);
   };
 
-  const openNewJobModal = () => {
+  const openNewJobModal = (shootDate?: string) => {
     const blank: Partial<Job> = {
       title: '',
       client_name: '',
       production_company: '',
       job_status: 'Planning',
       type: 'production',
-      shoot_date: new Date().toISOString().split('T')[0],
+      // toISOString() here gave the UTC day, so an evening west of UTC
+      // pre-filled tomorrow's date on a form that says "today".
+      shoot_date: shootDate || todayLocalISO(),
       // Call time defaults to TBD rather than inventing an 8:00 AM call
       // nobody chose — which also pushed a wrong time to Google Calendar.
       // An empty call time syncs as an all-day event until it's set.
@@ -326,6 +333,16 @@ export default function Slate({
       }
     }
   }, [preselectedJobId, jobs, onClearPreselectedJobId]);
+
+  // Arrived from Calendar → "New production" on a specific day. Same handoff as
+  // preselectedJobId above, but for a shoot that doesn't exist yet: open the
+  // full form with that date already set, then clear so closing it stays closed.
+  useEffect(() => {
+    if (!newProductionDate) return;
+    openNewJobModal(newProductionDate);
+    onClearNewProductionDate?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newProductionDate]);
 
   const fetchJobs = async () => {
     setIsLoading(true);
@@ -1174,7 +1191,7 @@ export default function Slate({
 
         {!isClient && (
           <button 
-            onClick={openNewJobModal}
+            onClick={() => openNewJobModal()}
             className="bg-accent text-white px-8 py-4 rounded-xl font-semibold tracking-tight text-sm hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center gap-3 w-full lg:w-auto justify-center"
           >
             <Plus className="w-4 h-4" /> New Production

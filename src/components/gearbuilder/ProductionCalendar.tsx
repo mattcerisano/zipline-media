@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Job, CalendarEvent, CalendarEventPreset } from './types';
 import { supabase } from '@/lib/supabase';
+import { todayLocalISO } from '@/lib/date';
 import { useRealtime } from '@/lib/useRealtime';
 import { pushJobToGoogleCalendar, pushEventToGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
 import { Modal } from '@/components/workspace/Overlay';
@@ -68,9 +69,15 @@ interface ProductionCalendarProps {
   editable?: boolean;
   /** When true, clicking a day opens a preset quick-add (Timeout / Book to Shoot / etc.) backed by calendar_events. */
   enableQuickEvents?: boolean;
+  /**
+   * Start a full production on this date. The quick-add presets only create
+   * markers; this is the escape hatch to Slate's production form for a real
+   * shoot. Omit it and the menu item isn't offered.
+   */
+  onNewProduction?: (date: string) => void;
 }
 
-export default function ProductionCalendar({ onSelectDate, onSelectJob, onDeleteJob, onSelectRange, selectionMode = 'single', editable = false, enableQuickEvents = false }: ProductionCalendarProps) {
+export default function ProductionCalendar({ onSelectDate, onSelectJob, onDeleteJob, onSelectRange, selectionMode = 'single', editable = false, enableQuickEvents = false, onNewProduction }: ProductionCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [jobs, setJobs] = useState<Job[]>([]);
   const [rangeStart, setRangeStart] = useState<string | null>(null);
@@ -328,10 +335,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
 
   // Local parts, not toISOString — the UTC form marks the wrong cell as today
   // for most of the evening anywhere west of UTC.
-  const todayStr = (() => {
-    const n = new Date();
-    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-  })();
+  const todayStr = todayLocalISO();
 
   /** Every visible cell, padded to whole weeks with real dates on both sides.
    *  Padding used to be `{day: null, date: null}`, which meant a span crossing
@@ -659,6 +663,27 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                         <span className="text-[10px] font-semibold text-white/80">{pr.label}</span>
                       </button>
                     ))}
+
+                    {/* The four above are markers — a coloured block and a note.
+                        A real shoot needs client, call time, crew, location, so
+                        it hands off to Slate's full form with the date already
+                        set, rather than growing a second production form here. */}
+                    {onNewProduction && (
+                      <>
+                        <div className="h-px bg-white/10 my-1" />
+                        <button
+                          onClick={() => { setQuickAddDate(null); onNewProduction(c.date); }}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/10 text-left transition-colors"
+                        >
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: PRODUCTION_COLOR }}
+                          />
+                          <span className="text-[10px] font-semibold text-white/80">New production</span>
+                          <span className="ml-auto text-[9px] text-white/30">Full details</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 ) : null
               ))}
