@@ -187,10 +187,18 @@ export default function Slate({
   };
 
   const handlePlaceSelected = useCallback((place: any) => {
-    setEditingJob(prev => ({ 
-      ...prev, 
-      location_address: place.formatted_address || '',
-      location_name: place.name || prev.location_name || ''
+    if (!place) return;
+    const address: string = place.formatted_address || '';
+    const name: string = place.name || '';
+    // For a venue ("Hudson Theatre") Google returns a name distinct from the
+    // address. For a plain street address it returns the street line as the
+    // name, which would just repeat what's already in the address field.
+    const isVenue = !!name && !address.startsWith(name);
+    setEditingJob(prev => ({
+      ...prev,
+      location_address: address || prev.location_address || '',
+      // Never overwrite a name the user typed themselves.
+      location_name: prev.location_name || (isVenue ? name : ''),
     }));
   }, []);
 
@@ -1567,6 +1575,12 @@ export default function Slate({
                     <Autocomplete
                       key={editingJob.id || 'new-address'}
                       apiKey={GOOGLE_MAPS_API_KEY}
+                      // The library's default field list omits `name`, so
+                      // place.name came back undefined and Location Name never
+                      // auto-filled. Everything else here is that default.
+                      options={{
+                        fields: ['address_components', 'geometry.location', 'place_id', 'formatted_address', 'name'],
+                      }}
                       onPlaceSelected={handlePlaceSelected}
                       defaultValue={editingJob.location_address || ''}
                       placeholder="Street, City, State, Zip"
@@ -1574,6 +1588,14 @@ export default function Slate({
                       onBlur={handleAddressBlur}
                     />
                   </div>
+                  {/* Without a key the widget silently degrades to a plain text
+                      box — no dropdown, no error — which reads as "autocomplete
+                      is broken" rather than "it was never switched on". */}
+                  {!GOOGLE_MAPS_API_KEY && (
+                    <p className="text-[9px] text-amber-400/70 ml-1 leading-relaxed">
+                      Address autocomplete is off — NEXT_PUBLIC_GOOGLE_MAPS_API_KEY isn&rsquo;t set on the server. Type the address manually for now.
+                    </p>
+                  )}
                 </div>
 
                 {/* Everything below is optional. Collapsed by default so
@@ -1594,9 +1616,9 @@ export default function Slate({
                 {showJobDetails && (
                 <div className="md:col-span-6 grid grid-cols-1 md:grid-cols-6 gap-x-3 gap-y-3">
                 {/* Production Company */}
-                <div className="md:col-span-3 space-y-1">
+                <div className="md:col-span-3 flex flex-col gap-1">
                   <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Company <span className="opacity-60 normal-case tracking-normal font-medium">(if a prod co hired you for their client)</span></label>
-                  <div className="relative">
+                  <div className="relative mt-auto">
                     <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white" />
                     <input 
                       type="text"
@@ -1609,7 +1631,7 @@ export default function Slate({
                 </div>
 
                 {/* Project (within the selected client) */}
-                <div className="md:col-span-3 space-y-1">
+                <div className="md:col-span-3 flex flex-col gap-1">
                   <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white flex items-center justify-between">
                     <span>Project</span>
                     <button
@@ -1620,7 +1642,7 @@ export default function Slate({
                       + New
                     </button>
                   </label>
-                  <div className="relative">
+                  <div className="relative mt-auto">
                     <FolderKanban className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white pointer-events-none" />
                     <select
                       value={editingJob.project_id || ''}
