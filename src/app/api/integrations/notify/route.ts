@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isSameOrigin } from '@/lib/api-guard';
+import { getAuthedUserId } from '@/lib/api-auth';
 
 // Service-role client so the route can read org channel/event config and
 // dispatch regardless of which user triggered the event.
@@ -67,6 +68,16 @@ async function dispatch(channel: Channel, text: string): Promise<{ platform: Pla
 }
 
 export async function POST(request: Request) {
+  // Every branch below dispatches to the studio's webhooks with the service
+  // role. Only the direct-webhook test path was guarded, and only by an origin
+  // check — so an anonymous POST carrying {message} broadcast whatever it liked
+  // into the team's Discord. Sign-in is required for all of it; the origin
+  // check stays on the direct-webhook branch as a second layer.
+  const userId = await getAuthedUserId(request);
+  if (!userId) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => ({} as any));
   const { event_key, variables = {}, test, channel_id, message, platform, webhook_url } = body;
 

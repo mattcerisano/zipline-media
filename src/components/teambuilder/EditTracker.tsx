@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
+import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
 import { Job, Contact, EditLabel, JobLink, Client, Project } from '@/components/gearbuilder/types';
 import { sanitizeUrl } from '@/lib/sanitize';
@@ -1356,12 +1357,8 @@ function CardDetailModal({
     if (added.length > 0) {
       const excerpt = notes.trim().length > 160 ? `${notes.trim().slice(0, 160)}…` : notes.trim();
       const names = added.map(c => `**${c.name}**`).join(', ');
-      fetch('/api/integrations/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `💬 ${names} mentioned on "${job.title}" (Edit Tracker):\n${excerpt}`,
-        }),
+      postNotify({
+        message: `💬 ${names} mentioned on "${job.title}" (Edit Tracker):\n${excerpt}`,
       }).catch(err => console.error('Mention notification failed:', err));
     }
 
