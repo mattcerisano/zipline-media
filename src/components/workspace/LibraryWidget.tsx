@@ -30,8 +30,56 @@ interface Row {
   detail?: string;
   /** How many productions point at this row. Undefined when not applicable. */
   usage?: number;
+  /** Right-hand number and its unit — shoots for projects/clients, qty for gear. */
+  count?: number;
+  countUnit?: string;
+  /** Bucket a category sort groups by. */
+  group?: string;
   raw: Record<string, any>;
 }
+
+/**
+ * Sort options per entity.
+ *
+ * `group: true` turns the list into sections headed by the sort value — the
+ * point of sorting a 250-item gear catalog by category is to see the lenses
+ * together, which a flat ordered list makes you infer from adjacency.
+ */
+interface SortOption {
+  key: string;
+  label: string;
+  compare: (a: Row, b: Row) => number;
+  group?: boolean;
+}
+
+const byName = (a: Row, b: Row) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+/** Blank sorts last: an uncategorised item is noise at the top of a list. */
+const byText = (get: (r: Row) => string) => (a: Row, b: Row) => {
+  const x = get(a).trim(), y = get(b).trim();
+  if (!x && !y) return byName(a, b);
+  if (!x) return 1;
+  if (!y) return -1;
+  return x.localeCompare(y, undefined, { sensitivity: 'base' }) || byName(a, b);
+};
+const byCount = (a: Row, b: Row) => (b.count ?? -1) - (a.count ?? -1) || byName(a, b);
+
+const SORTS: Record<EntityKey, SortOption[]> = {
+  projects: [
+    { key: 'name', label: 'Name', compare: byName },
+    { key: 'client', label: 'Client', compare: byText(r => r.detail || ''), group: true },
+    { key: 'usage', label: 'Most shoots', compare: byCount },
+  ],
+  clients: [
+    { key: 'name', label: 'Name', compare: byName },
+    { key: 'usage', label: 'Most shoots', compare: byCount },
+  ],
+  inventory: [
+    { key: 'name', label: 'Name', compare: byName },
+    { key: 'category', label: 'Category', compare: byText(r => r.group || ''), group: true },
+    { key: 'owner', label: 'Owner', compare: byText(r => String(r.raw.owner || '')), group: true },
+    { key: 'qty', label: 'Quantity', compare: byCount },
+  ],
+};
 
 const ENTITIES: {
   key: EntityKey;
@@ -57,6 +105,7 @@ export default function LibraryWidget() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState('name');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   /** Inventory rows with no primary key — listed but not editable. */
@@ -71,7 +120,7 @@ export default function LibraryWidget() {
         supabase.from('projects').select('*').order('name'),
         supabase.from('clients').select('*').order('name'),
         supabase.from('inventory').select('*').order('name'),
-        supabase.from('jobs').select('id, client_id, project_id'),
+        supabase.from('jobs').select('id, client_id, project_id, gear_manifest'),
       ]);
 
       if (projRes.error) throw projRes.error;
@@ -86,6 +135,19 @@ export default function LibraryWidget() {
         if (j.client_id) byClient.set(j.client_id, (byClient.get(j.client_id) || 0) + 1);
       }
 
+      // Gear lists key items by NAME, not id (see Rentals: manifest[item.name]),
+      // so renaming or deleting a catalog item silently orphans it in every
+      // saved manifest. Count the references so both actions can say so.
+      const gearRefs = new Map<string, number>();
+      for (const j of jobs as any[]) {
+        const manifest = (j.gear_manifest || {}) as Record<string, number>;
+        for (const [itemName, qty] of Object.entries(manifest)) {
+          if (!qty) continue;
+          const k = itemName.trim().toLowerCase();
+          gearRefs.set(k, (gearRefs.get(k) || 0) + 1);
+        }
+      }
+
       const clientName = new Map((cliRes.data || []).map((c: any) => [c.id, c.name]));
       const unkeyedInventory = (invRes.data || []).filter((i: any) => !i.id).length;
       setUnkeyed(unkeyedInventory);
@@ -96,6 +158,9 @@ export default function LibraryWidget() {
           name: p.name || '',
           detail: p.client_id ? clientName.get(p.client_id) || '' : '',
           usage: byProject.get(p.id) || 0,
+          count: byProject.get(p.id) || 0,
+          countUnit: 'shoot',
+          group: p.client_id ? clientName.get(p.client_id) || '' : '',
           raw: p,
         })),
         clients: (cliRes.data || []).map((c: any) => ({
@@ -103,6 +168,8 @@ export default function LibraryWidget() {
           name: c.name || '',
           detail: c.email || '',
           usage: byClient.get(c.id) || 0,
+          count: byClient.get(c.id) || 0,
+          countUnit: 'shoot',
           raw: c,
         })),
         // The inventory table predates the migrations and was created by hand,
@@ -115,6 +182,10 @@ export default function LibraryWidget() {
             id: i.id as string,
             name: i.name || '',
             detail: [i.category, i.owner].filter(Boolean).join(' · '),
+            usage: gearRefs.get(String(i.name || '').trim().toLowerCase()) || 0,
+            count: typeof i.qty === 'number' ? i.qty : undefined,
+            countUnit: 'in kit',
+            group: i.category || '',
             raw: i,
           })),
       });
@@ -135,18 +206,38 @@ export default function LibraryWidget() {
     setEntity(key);
     setSelected(new Set());
     setSearch('');
+    // Sort keys are per-entity — "category" means nothing on the client list,
+    // and a stale key would fall through to no sort at all.
+    setSortKey('name');
   };
 
   const meta = ENTITIES.find(e => e.key === entity)!;
   const current = rows[entity];
 
+  const sorts = SORTS[entity];
+  const activeSort = sorts.find(s => s.key === sortKey) || sorts[0];
+
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return current;
-    return current.filter(r =>
-      r.name.toLowerCase().includes(q) || (r.detail || '').toLowerCase().includes(q)
-    );
-  }, [current, search]);
+    const filtered = q
+      ? current.filter(r =>
+          r.name.toLowerCase().includes(q) || (r.detail || '').toLowerCase().includes(q))
+      : current;
+    return [...filtered].sort(activeSort.compare);
+  }, [current, search, activeSort]);
+
+  /** Rows interleaved with section headings when the sort groups. */
+  const sections = useMemo(() => {
+    if (!activeSort.group) return [{ heading: null as string | null, items: visible }];
+    const out: { heading: string | null; items: Row[] }[] = [];
+    for (const row of visible) {
+      const heading = (activeSort.key === 'owner' ? String(row.raw.owner || '') : row.group || '').trim() || 'Uncategorised';
+      const last = out[out.length - 1];
+      if (last && last.heading === heading) last.items.push(row);
+      else out.push({ heading, items: [row] });
+    }
+    return out;
+  }, [visible, activeSort]);
 
   const toggle = (id: string) => {
     setSelected(prev => {
@@ -198,6 +289,18 @@ export default function LibraryWidget() {
   const rename = async (row: Row, value: string) => {
     const next = value.trim();
     if (!next || next === row.name) return;
+
+    // Saved gear lists point at catalog items by name, so a rename doesn't
+    // follow — the old name becomes a one-off custom item on every list using
+    // it. Worth a question when it would actually happen.
+    if (entity === 'inventory' && (row.usage || 0) > 0) {
+      const ok = await confirmAction({
+        title: 'Rename this gear item?',
+        message: `${row.usage} saved gear ${row.usage === 1 ? 'list references' : 'lists reference'} “${row.name}” by name. They won't follow the rename — the old name stays on them as a custom item.`,
+        confirmLabel: 'Rename anyway',
+      });
+      if (!ok) { void load(); return; }
+    }
     setRows(prev => ({ ...prev, [entity]: prev[entity].map(r => (r.id === row.id ? { ...r, name: next } : r)) }));
     const { error } = await supabase.from(entity).update({ [meta.nameField]: next }).eq('id', row.id);
     if (error) {
@@ -215,9 +318,11 @@ export default function LibraryWidget() {
 
     const ok = await confirmAction({
       title: `Delete ${ids.length} ${ids.length === 1 ? meta.label.replace(/s$/, '') : meta.label}?`.toLowerCase(),
-      message: linked > 0
-        ? `${linked} production${linked === 1 ? '' : 's'} reference ${ids.length === 1 ? 'this' : 'these'}. ${meta.unlinkNote || ''}`
-        : 'Nothing references these. This cannot be undone.',
+      message: linked === 0
+        ? 'Nothing references these. This cannot be undone.'
+        : entity === 'inventory'
+          ? `${linked} saved gear ${linked === 1 ? 'list references' : 'lists reference'} ${ids.length === 1 ? 'this item' : 'these items'} by name. Those lists keep the item as a one-off custom entry; only the catalog entry goes.`
+          : `${linked} production${linked === 1 ? '' : 's'} reference ${ids.length === 1 ? 'this' : 'these'}. ${meta.unlinkNote || ''}`,
       confirmLabel: 'Delete',
       danger: true,
     });
@@ -255,7 +360,7 @@ export default function LibraryWidget() {
           </div>
         </div>
 
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap items-center">
           {ENTITIES.map(e => {
             const Icon = e.icon;
             const active = e.key === entity;
@@ -276,6 +381,20 @@ export default function LibraryWidget() {
               </button>
             );
           })}
+
+          <label className="ml-auto flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-white/30">
+            Sort
+            <select
+              value={sortKey}
+              onChange={e => setSortKey(e.target.value)}
+              aria-label={`Sort ${meta.label}`}
+              className="bg-black/40 border border-white/10 rounded-lg py-1.5 px-2 outline-none focus:border-accent text-[10px] font-bold text-white/80 cursor-pointer normal-case tracking-normal"
+            >
+              {sorts.map(s => (
+                <option key={s.key} value={s.key} className="bg-zinc-900">{s.label}</option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 
@@ -346,7 +465,15 @@ export default function LibraryWidget() {
           </div>
         ) : (
           <ul className="divide-y divide-white/5">
-            {visible.map(row => (
+            {sections.map(section => (
+              <React.Fragment key={section.heading ?? '__all__'}>
+                {section.heading && (
+                  <li className="px-4 py-1.5 bg-white/[0.04] sticky top-0 z-10 flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent/80">{section.heading}</span>
+                    <span className="text-[9px] text-white/25">{section.items.length}</span>
+                  </li>
+                )}
+                {section.items.map(row => (
               <li key={row.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] group">
                 <input
                   type="checkbox"
@@ -368,12 +495,16 @@ export default function LibraryWidget() {
                   <span className="text-[10px] text-white/35 truncate max-w-[30%] shrink-0">{row.detail}</span>
                 )}
 
-                {row.usage !== undefined && (
+                {row.count !== undefined && (
                   <span className="text-[10px] text-white/25 shrink-0 tabular-nums w-20 text-right">
-                    {row.usage} {row.usage === 1 ? 'shoot' : 'shoots'}
+                    {row.count} {row.countUnit === 'shoot'
+                      ? (row.count === 1 ? 'shoot' : 'shoots')
+                      : row.countUnit}
                   </span>
                 )}
               </li>
+                ))}
+              </React.Fragment>
             ))}
           </ul>
         )}
