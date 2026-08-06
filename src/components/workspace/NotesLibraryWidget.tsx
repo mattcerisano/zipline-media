@@ -34,7 +34,19 @@ interface Note {
   updated_at: string;
 }
 
-interface Option { id: string; name: string }
+interface Option { id: string; name: string; client_id?: string | null }
+
+/**
+ * Narrow a production list to one client.
+ *
+ * `keepId` is always included even when it doesn't match: a <select> whose
+ * current value isn't among its options renders blank, so filtering a list
+ * without this would silently wipe the assignment already on a note.
+ */
+function productionsFor(jobs: Option[], clientId?: string | null, keepId?: string | null): Option[] {
+  if (!clientId) return jobs;
+  return jobs.filter(j => j.client_id === clientId || (keepId && j.id === keepId));
+}
 
 const AUTOSAVE_MS = 900;
 
@@ -79,10 +91,10 @@ export default function NotesLibraryWidget() {
     });
     const loadRefs = async () => {
       const [jobsRes, clientsRes] = await Promise.all([
-        supabase.from('jobs').select('id, title, job_status').neq('job_status', 'Cancelled').order('shoot_date', { ascending: false }).limit(300),
+        supabase.from('jobs').select('id, title, job_status, client_id').neq('job_status', 'Cancelled').order('shoot_date', { ascending: false }).limit(300),
         supabase.from('clients').select('id, name').order('name').limit(300),
       ]);
-      setJobs(((jobsRes.data as any[]) || []).map(j => ({ id: j.id, name: j.title })));
+      setJobs(((jobsRes.data as any[]) || []).map(j => ({ id: j.id, name: j.title, client_id: j.client_id })));
       setClients(((clientsRes.data as any[]) || []).map(c => ({ id: c.id, name: c.name })));
     };
     loadRefs();
@@ -232,13 +244,27 @@ export default function NotesLibraryWidget() {
             </button>
           </div>
           <div className="flex gap-1.5">
-            <select value={clientFilter} onChange={(e) => setClientFilter(e.target.value)} className={selectClass}>
+            <select
+              value={clientFilter}
+              onChange={(e) => {
+                const next = e.target.value;
+                setClientFilter(next);
+                // Drop a production filter belonging to a different client —
+                // the pair would match nothing and look like an empty library.
+                if (next !== 'All' && jobFilter !== 'All') {
+                  const job = jobs.find(j => j.id === jobFilter);
+                  if (job && job.client_id !== next) setJobFilter('All');
+                }
+              }}
+              className={selectClass}
+            >
               <option value="All">All Clients</option>
               {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <select value={jobFilter} onChange={(e) => setJobFilter(e.target.value)} className={selectClass}>
               <option value="All">All Productions</option>
-              {jobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
+              {productionsFor(jobs, clientFilter === 'All' ? null : clientFilter, jobFilter === 'All' ? null : jobFilter)
+                .map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
             </select>
           </div>
         </div>
@@ -316,7 +342,15 @@ export default function NotesLibraryWidget() {
             <div className="flex flex-wrap gap-1.5 px-3 py-2 border-b border-white/5">
               <select
                 value={active.client_id || ''}
-                onChange={(e) => patchActive({ client_id: e.target.value || null })}
+                onChange={(e) => {
+                  const clientId = e.target.value || null;
+                  // A production belonging to someone else can't survive the
+                  // change, or the note would claim one client and point at
+                  // another's shoot.
+                  const job = jobs.find(j => j.id === active.job_id);
+                  const keepJob = !clientId || !job || job.client_id === clientId;
+                  patchActive(keepJob ? { client_id: clientId } : { client_id: clientId, job_id: null });
+                }}
                 className={selectClass}
               >
                 <option value="">No client</option>
@@ -324,11 +358,22 @@ export default function NotesLibraryWidget() {
               </select>
               <select
                 value={active.job_id || ''}
-                onChange={(e) => patchActive({ job_id: e.target.value || null })}
+                onChange={(e) => {
+                  const jobId = e.target.value || null;
+                  // Picking a production for an unassigned note fills the
+                  // client in from it, rather than asking for it twice.
+                  const job = jobs.find(j => j.id === jobId);
+                  patchActive(
+                    jobId && !active.client_id && job?.client_id
+                      ? { job_id: jobId, client_id: job.client_id }
+                      : { job_id: jobId },
+                  );
+                }}
                 className={selectClass}
               >
                 <option value="">No production</option>
-                {jobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
+                {productionsFor(jobs, active.client_id, active.job_id)
+                  .map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
               </select>
               <input
                 value={active.tags || ''}
