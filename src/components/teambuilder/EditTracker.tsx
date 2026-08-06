@@ -1195,7 +1195,17 @@ function CardDetailModal({
     
     let active = true;
     setIsLoadingVideo(true);
-    fetch(`/api/integrations/video?url=${encodeURIComponent(job.review_link)}`)
+    // The route runs on the studio's Vimeo/Frame.io tokens, so it requires a
+    // signed-in caller. Without the bearer token it answers 401 and the view
+    // falls back to simulated stats below.
+    supabase.auth.getSession()
+      .then(({ data: { session } }) =>
+        fetch(`/api/integrations/video?url=${encodeURIComponent(job.review_link!)}`, {
+          headers: session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : {},
+        })
+      )
       .then(res => {
         if (!res.ok) throw new Error('API failed');
         return res.json();

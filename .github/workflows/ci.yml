@@ -1,0 +1,51 @@
+name: CI
+
+# Runs the three checks that were previously only ever run by hand before a
+# merge: types, lint, and a real production build. A build break reaching main
+# takes the Command Center down until someone notices, so this gates the PR
+# instead of relying on anyone remembering.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A new push to a PR makes the in-flight run pointless — cancel it rather than
+# queueing behind work nobody is waiting on.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci` installs exactly what package-lock.json pins, so CI can never
+      # pass against a dependency tree that differs from the committed one.
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint
+
+      # The build needs NEXT_PUBLIC_* vars present at compile time. These are
+      # deliberately fake: the build only has to typecheck and bundle, and no
+      # real credential should ever exist in a CI log. Nothing here connects.
+      - name: Build
+        run: npx next build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key

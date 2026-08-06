@@ -200,7 +200,11 @@ export default function DashboardOverview({
       }
   }, []);
 
+  // Load the counts once on mount. The rule traces setState through
+  // fetchStats, but this is a data fetch synchronising with an external system
+  // — the case effects exist for — not a render-triggered state cascade.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStats();
   }, [fetchStats]);
 

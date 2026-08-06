@@ -102,6 +102,10 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
       })();
     }
 
+    // Mirror the embedding model's load state, which lives in the
+    // semantic-search module rather than in React. Reading an external store on
+    // open is what the rule's own guidance calls the legitimate case.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSemStatus(getSemanticStatus());
     ensureModel((pct) => setModelPct(pct)).then(() => setSemStatus(getSemanticStatus()));
   }, [open, corpus]);

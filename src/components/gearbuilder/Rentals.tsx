@@ -854,8 +854,18 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   };
 
   const shareGearList = () => {
-    if (!selectedJobId) return;
-    const url = typeof window !== 'undefined' ? `${window.location.origin}/share/gear/${selectedJobId}` : '';
+    if (!selectedJobId || typeof window === 'undefined') return;
+
+    // The link carries the job's share token. Without it the page can't read
+    // anything — the job id on its own stopped granting access when the
+    // anonymous read on `jobs` was removed.
+    const token = jobs.find(j => j.id === selectedJobId)?.share_token;
+    if (!token) {
+      toast('Save this job first — it needs a share token before it can be shared.');
+      return;
+    }
+
+    const url = `${window.location.origin}/share/gear/${selectedJobId}?t=${token}`;
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);

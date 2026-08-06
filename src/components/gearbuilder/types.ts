@@ -228,6 +228,12 @@ export interface Job {
   weather_summary?: string;
   gear_list_url?: string;
   gear_manifest?: Record<string, number>;
+  /**
+   * Credential for the public gear-share link. Anyone holding it can read and
+   * edit this job's gear manifest through /api/share/gear, so it belongs in a
+   * share URL and nowhere else — never render it on a page.
+   */
+  share_token?: string;
   quote_url?: string;
   estimate_url?: string;
   notes_general?: string;

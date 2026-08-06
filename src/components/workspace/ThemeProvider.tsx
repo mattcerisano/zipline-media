@@ -85,6 +85,10 @@ export default function ThemeProvider({
     } catch {
       /* localStorage unavailable — fall back to system */
     }
+    // localStorage can't be read during render without a hydration mismatch,
+    // so the stored preference necessarily lands here. useLayoutEffect keeps it
+    // before paint, which is the whole point — no flash of the wrong theme.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setThemeState(stored);
     apply(stored);
     // Re-skin to the cached brand accent (set the last time branding loaded)
