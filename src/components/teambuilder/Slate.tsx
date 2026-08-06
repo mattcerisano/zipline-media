@@ -1895,7 +1895,7 @@ function JobCard({
         {isClient ? (
           <h3 className="text-lg font-semibold tracking-tight mb-1 line-clamp-2">{job.title}</h3>
         ) : (
-          <button
+          <button aria-label="Edit" title="Edit"
             onClick={onEdit}
             className="text-left w-full mb-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >

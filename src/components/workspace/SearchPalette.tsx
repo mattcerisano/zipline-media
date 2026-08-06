@@ -190,7 +190,7 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
                 placeholder="Search productions, contacts, clients, or features…"
                 className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-white/25"
               />
-              <button onClick={onClose} className="p-1 text-white/30 hover:text-white transition-colors">
+              <button aria-label="Close" title="Close" onClick={onClose} className="p-1 text-white/30 hover:text-white transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>

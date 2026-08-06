@@ -923,7 +923,7 @@ function ColumnsEditorModal({
       >
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-base font-semibold tracking-tight text-white">Board Columns</h3>
-          <button onClick={onClose} className="p-1.5 text-white/40 hover:text-white transition-colors">
+          <button aria-label="Close" title="Close" onClick={onClose} className="p-1.5 text-white/40 hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -1404,7 +1404,7 @@ function CardDetailModal({
         exit={{ opacity: 0, scale: 0.95 }}
         className="w-full max-w-3xl bg-neutral-900 border border-white/10 rounded-2xl shadow-2xl relative min-h-[600px] my-auto flex flex-col cursor-default"
       >
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors">
+        <button aria-label="Close" title="Close" onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors">
           <X className="w-5 h-5" />
         </button>
 

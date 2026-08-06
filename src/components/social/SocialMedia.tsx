@@ -325,7 +325,7 @@ function RolloutTracker({ clients }: { clients: Client[] }) {
           {campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <button onClick={addCampaign} className="px-3 py-2 bg-accent/15 border border-accent/40 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Campaign</button>
-        {active && <button onClick={deleteCampaign} className="px-3 py-2 bg-white/5 border border-white/10 text-red-400/70 hover:text-red-400 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>}
+        {active && <button aria-label="Delete campaign" title="Delete campaign" onClick={deleteCampaign} className="px-3 py-2 bg-white/5 border border-white/10 text-red-400/70 hover:text-red-400 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>}
       </div>
 
       {!active ? (
@@ -560,7 +560,7 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
       <div className="w-full max-w-lg bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5 border-b border-white/5 pb-3">
           <h2 className="text-lg font-black uppercase tracking-tighter text-white">{title}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-white/60 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
+          <button aria-label="Close" title="Close" onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-white/60 hover:text-white cursor-pointer"><X className="w-5 h-5" /></button>
         </div>
         {children}
       </div>

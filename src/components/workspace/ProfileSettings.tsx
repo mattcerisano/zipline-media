@@ -216,7 +216,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
           {/* Header */}
           <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-white/10 bg-zinc-950">
             <h3 className="text-sm font-black uppercase tracking-widest text-white">Settings</h3>
-            <button onClick={onClose} className="p-1.5 text-white/40 hover:text-white transition-colors">
+            <button aria-label="Close" title="Close" onClick={onClose} className="p-1.5 text-white/40 hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
