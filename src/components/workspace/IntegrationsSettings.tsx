@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Save, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { postNotify } from '@/lib/notify';
 import type { NotificationChannel, NotificationEvent, NotificationPlatform } from '@/components/gearbuilder/types';
 
 // Display metadata for the three supported platforms.
@@ -173,11 +174,7 @@ export default function IntegrationsSettings({ isAdmin, onMessage }: Props) {
     try {
       // Test the URL that's currently in the box — no save required, and the
       // server dispatches to it directly so a failure reports the real reason.
-      const res = await fetch('/api/integrations/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ test: true, platform, webhook_url: channel.webhook_url.trim() }),
-      });
+      const res = await postNotify({ test: true, platform, webhook_url: channel.webhook_url.trim() });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setTestResult((r) => ({ ...r, [platform]: 'ok' }));

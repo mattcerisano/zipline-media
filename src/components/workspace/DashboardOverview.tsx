@@ -14,6 +14,7 @@ import {
   Check
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
 
 export interface DashboardOverviewProps {
@@ -216,12 +217,8 @@ export default function DashboardOverview({
     setIsSending(true);
     setSendResult(null);
     try {
-      const res = await fetch('/api/integrations/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `🛠️ **Studio OS System Alert Test**\n${discordMsg}`
-        })
+      const res = await postNotify({
+        message: `🛠️ **Studio OS System Alert Test**\n${discordMsg}`
       });
       if (res.ok) {
         setSendResult('success');

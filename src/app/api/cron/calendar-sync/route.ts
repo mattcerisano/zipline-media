@@ -13,8 +13,20 @@ export async function GET(request: Request) {
   // When CRON_SECRET is set in the environment, Vercel sends it as a bearer
   // token on cron invocations — require it so outsiders can't burn API quota.
   const secret = process.env.CRON_SECRET;
-  if (secret && request.headers.get('authorization') !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (secret) {
+    if (request.headers.get('authorization') !== `Bearer ${secret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  } else {
+    // Unset means this endpoint is open: anyone can trigger a full Google
+    // Calendar sync for every connected account, on repeat. No data comes back
+    // to them, but it burns the studio's Google API quota and hammers the
+    // database. Loud in the logs so it doesn't stay unset, matching how
+    // /api/calendar flags a missing CALENDAR_FEED_TOKEN.
+    console.warn(
+      'CRON_SECRET is not set: /api/cron/calendar-sync can be triggered by anyone. ' +
+      'Set it in the environment to restrict the endpoint to Vercel Cron.'
+    );
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

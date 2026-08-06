@@ -38,6 +38,7 @@ import { AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { supabase } from '@/lib/supabase';
+import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
 import { Job, STATUSES, JobLink, Client, Project } from '@/components/gearbuilder/types';
 import Autocomplete from 'react-google-autocomplete';
@@ -366,21 +367,17 @@ export default function Slate({
   // Fails silently — a webhook hiccup must never block saving a job.
   const sendNotification = async (eventKey: string, job: Partial<Job>, oldStatus?: string) => {
     try {
-      await fetch('/api/integrations/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_key: eventKey,
-          variables: {
-            title: job.title || '',
-            client: job.client_name || job.production_company || 'Internal',
-            production_company: job.production_company || '',
-            shoot_date: job.shoot_date || '',
-            location: job.location_name || '',
-            old_status: oldStatus || '',
-            new_status: job.job_status || '',
-          },
-        }),
+      await postNotify({
+        event_key: eventKey,
+        variables: {
+          title: job.title || '',
+          client: job.client_name || job.production_company || 'Internal',
+          production_company: job.production_company || '',
+          shoot_date: job.shoot_date || '',
+          location: job.location_name || '',
+          old_status: oldStatus || '',
+          new_status: job.job_status || '',
+        },
       });
     } catch (notifyErr) {
       console.error('Failed to send team notification:', notifyErr);
