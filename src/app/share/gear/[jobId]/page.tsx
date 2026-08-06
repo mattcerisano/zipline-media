@@ -97,7 +97,22 @@ export default function ShareGearPage() {
 
     const fetchData = async () => {
       setIsLoading(true);
+      // Clear the previous attempt's message. useSearchParams can be empty on
+      // the first client render, so this effect legitimately runs once without
+      // a token and again with one — without this, the first run's error stuck
+      // to the screen even after the retry succeeded.
+      setLoadError(null);
       try {
+        // A link with no ?t= at all was made by a build that predates share
+        // tokens. Saying so is far more useful than "invalid", which sends
+        // people looking for a problem with the job rather than the link.
+        if (!shareToken) {
+          setLoadError(
+            'This link is missing its access code. Re-copy it from Gear → Share and send the new one.'
+          );
+          return;
+        }
+
         // Reads go through the API so the share token can be checked
         // server-side. The browser has no direct read on jobs or inventory any
         // more, and the response carries only title, date, and manifest.
@@ -106,10 +121,14 @@ export default function ShareGearPage() {
         );
         const payload = await res.json().catch(() => ({}));
         if (!res.ok || !payload.success) {
+          // Distinct wording per failure, so the screen names the cause instead
+          // of collapsing three different problems into one dead end.
           setLoadError(
             res.status === 404
-              ? 'This share link is no longer valid. Ask for a fresh link from the Gear tab.'
-              : 'Could not load this gear list.'
+              ? 'This share link is no longer valid — the job may have been deleted, or the link replaced by a newer one.'
+              : res.status === 403
+                ? 'The server rejected this request. Open the link directly rather than through a preview or redirect.'
+                : `Could not load this gear list (error ${res.status}).`
           );
           return;
         }
