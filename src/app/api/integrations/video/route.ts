@@ -1,6 +1,25 @@
 import { NextResponse } from 'next/server';
+import { getAuthedUserId } from '@/lib/api-auth';
+import { withinRateLimit } from '@/lib/api-guard';
+
+// Review-link metadata for the Creative/Edit views: given a Vimeo or Frame.io
+// URL, return the video's details and comments using the studio's own API
+// tokens.
+//
+// Those tokens are the reason this needs a gate. Unauthenticated, the route is
+// a free proxy that lets anyone read any video our tokens can reach, just by
+// passing a different `url`. Sign-in required, plus the shared throttle so a
+// signed-in client can't burn the Vimeo rate limit for everyone.
 
 export async function GET(request: Request) {
+  const userId = await getAuthedUserId(request);
+  if (!userId) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+  if (!withinRateLimit(request)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   const { searchParams } = new URL(request.url);
   const videoUrl = searchParams.get('url');
 

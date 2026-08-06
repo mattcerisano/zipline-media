@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { 
   Search, 
   Plus, 
@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
-import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/Feedback';
 
 // Define structures matching the main catalog
@@ -64,6 +63,10 @@ const ALL_CATEGORIES = [
 export default function ShareGearPage() {
   const params = useParams();
   const jobId = params?.jobId as string;
+  // The share link's credential. Without it the API answers 404 — the job's
+  // id alone no longer grants anything.
+  const searchParams = useSearchParams();
+  const shareToken = searchParams?.get('t') || '';
 
   const [job, setJob] = useState<Job | null>(null);
   const [catalog, setCatalog] = useState<InventoryItem[]>([]);
@@ -82,6 +85,7 @@ export default function ShareGearPage() {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'Synced' | 'Saving' | 'Error'>('Synced');
 
   // Track database-saved manifest to prevent redundant API triggers
@@ -94,24 +98,32 @@ export default function ShareGearPage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [jobRes, catalogRes] = await Promise.all([
-          supabase.from('jobs').select('*').eq('id', jobId).single(),
-          supabase.from('inventory').select('*').order('name')
-        ]);
+        // Reads go through the API so the share token can be checked
+        // server-side. The browser has no direct read on jobs or inventory any
+        // more, and the response carries only title, date, and manifest.
+        const res = await fetch(
+          `/api/share/gear?jobId=${encodeURIComponent(jobId)}&token=${encodeURIComponent(shareToken)}`
+        );
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok || !payload.success) {
+          setLoadError(
+            res.status === 404
+              ? 'This share link is no longer valid. Ask for a fresh link from the Gear tab.'
+              : 'Could not load this gear list.'
+          );
+          return;
+        }
 
-        if (jobRes.error) throw jobRes.error;
-        if (catalogRes.error) throw catalogRes.error;
-
-        const jobData = jobRes.data as Job;
+        const jobData = payload.job as Job;
         setJob(jobData);
-        setCatalog(catalogRes.data as InventoryItem[]);
+        setCatalog(payload.catalog as InventoryItem[]);
 
         const initialManifest = (jobData.gear_manifest || {}) as Record<string, number>;
         setManifest(initialManifest);
         lastSavedManifestRef.current = JSON.stringify(initialManifest);
 
         // Auto-recreate missing custom items from the manifest in customGear
-        const dbItems = catalogRes.data as InventoryItem[];
+        const dbItems = payload.catalog as InventoryItem[];
         const missingKeys = Object.keys(initialManifest).filter(
           name => !dbItems.some(i => i.name === name)
         );
@@ -129,43 +141,57 @@ export default function ShareGearPage() {
 
       } catch (err) {
         console.error('[Share Gear] Error fetching data:', err);
+        setLoadError('Could not load this gear list.');
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [jobId]);
+  }, [jobId, shareToken]);
 
-  // Supabase Real-Time Listener to sync edits from other collaborators
+  // Pick up edits made by other collaborators.
+  //
+  // This was a Supabase realtime subscription, which worked only because the
+  // browser had an anonymous read on jobs. Realtime enforces RLS, so with that
+  // policy gone an unauthenticated visitor can no longer subscribe. Polling the
+  // token-checked API is the equivalent that survives the lock-down; on a page
+  // where two people occasionally edit the same list, 15s is unnoticeable.
   useEffect(() => {
-    if (!jobId) return;
+    if (!jobId || !shareToken) return;
 
-    const channel = supabase
-      .channel(`public:jobs:id=eq.${jobId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `id=eq.${jobId}` },
-        (payload) => {
-          if (payload.new && payload.new.gear_manifest) {
-            const newManifest = payload.new.gear_manifest as Record<string, number>;
-            const newManifestStr = JSON.stringify(newManifest);
-            
-            // Only update if changes came from another collaborator
-            if (newManifestStr !== JSON.stringify(manifest)) {
-              setManifest(newManifest);
-              lastSavedManifestRef.current = newManifestStr;
-              setSaveStatus('Synced');
-            }
-          }
+    const POLL_MS = 15_000;
+    let cancelled = false;
+
+    const poll = async () => {
+      // Don't clobber edits the user is mid-way through making: if there are
+      // unsaved local changes, the save effect below is about to win anyway.
+      if (saveStatus !== 'Synced') return;
+      try {
+        const res = await fetch(
+          `/api/share/gear?jobId=${encodeURIComponent(jobId)}&token=${encodeURIComponent(shareToken)}`
+        );
+        if (!res.ok || cancelled) return;
+        const payload = await res.json().catch(() => ({}));
+        if (!payload.success || cancelled) return;
+
+        const remote = (payload.job?.gear_manifest || {}) as Record<string, number>;
+        const remoteStr = JSON.stringify(remote);
+        if (remoteStr !== lastSavedManifestRef.current) {
+          setManifest(remote);
+          lastSavedManifestRef.current = remoteStr;
         }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+      } catch {
+        // Offline or a blip — the next tick retries.
+      }
     };
-  }, [jobId, manifest]);
+
+    const timer = setInterval(poll, POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [jobId, shareToken, saveStatus]);
 
   // Debounced API updates to Supabase
   useEffect(() => {
@@ -181,7 +207,7 @@ export default function ShareGearPage() {
         const res = await fetch('/api/share/gear', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId, gear_manifest: manifest })
+          body: JSON.stringify({ jobId, token: shareToken, gear_manifest: manifest })
         });
         const data = await res.json();
         if (data.success) {
@@ -410,7 +436,10 @@ export default function ShareGearPage() {
         <div className="text-center space-y-4 max-w-md bg-zinc-950/80 border border-white/10 p-10 rounded-2xl">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
           <h2 className="text-xl font-black uppercase tracking-tighter">Shared Link Invalid</h2>
-          <p className="text-xs text-white/50 leading-relaxed">This gear list URL is expired, deleted, or incorrect. Please contact the administrator for a fresh collaboration link.</p>
+          <p className="text-xs text-white/50 leading-relaxed">
+            {loadError ||
+              'This gear list URL is expired, deleted, or incorrect. Please contact the administrator for a fresh collaboration link.'}
+          </p>
         </div>
       </div>
     );

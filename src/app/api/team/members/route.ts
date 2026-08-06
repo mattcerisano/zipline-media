@@ -127,14 +127,16 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'You cannot remove your own account.' }, { status: 400 });
   }
 
-  // Remove the login first, then the role row. Google tokens cascade via the
-  // explicit delete so no orphaned OAuth grants stick around.
+  // Remove the login first, then the role row. OAuth grants are deleted
+  // explicitly so a removed teammate leaves no usable token behind — every
+  // provider table has to be listed here, so add to this list when one is added.
   const { error: authErr } = await gate.admin.auth.admin.deleteUser(userId);
   if (authErr && !authErr.message?.includes('not found')) {
     return NextResponse.json({ error: 'Failed to delete the account.' }, { status: 500 });
   }
   await gate.admin.from('user_roles').delete().eq('id', userId);
   await gate.admin.from('google_tokens').delete().eq('id', userId);
+  await gate.admin.from('quickbooks_tokens').delete().eq('id', userId);
 
   return NextResponse.json({ success: true });
 }

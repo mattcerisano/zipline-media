@@ -1023,7 +1023,11 @@ function TodoItem({
 }) {
   const [localTask, setLocalTask] = useState(todo.task);
 
+  // Reset the local edit buffer when the row is pointed at a different todo.
+  // Intentional prop→state sync: the input is uncontrolled between edits so
+  // typing doesn't round-trip through the parent on every keystroke.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalTask(todo.task);
   }, [todo.task]);
 
