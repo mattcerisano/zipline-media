@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Trash2, Search, Loader2, FolderKanban, Building2, Package, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Search, Loader2, FolderKanban, Building2, Package, Clapperboard, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
 import { useRealtime } from '@/lib/useRealtime';
+import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
+import { formatLocalDate } from '@/lib/date';
 
 /**
  * Library — the reference data behind everything else.
@@ -21,7 +23,7 @@ import { useRealtime } from '@/lib/useRealtime';
  * because "safe" is not the same as "expected".
  */
 
-type EntityKey = 'projects' | 'clients' | 'inventory';
+type EntityKey = 'projects' | 'clients' | 'inventory' | 'jobs';
 
 interface Row {
   id: string;
@@ -35,6 +37,8 @@ interface Row {
   countUnit?: string;
   /** Bucket a category sort groups by. */
   group?: string;
+  /** Right-aligned text for rows that have no meaningful count (a shoot date). */
+  trailing?: string;
   raw: Record<string, any>;
 }
 
@@ -63,6 +67,15 @@ const byText = (get: (r: Row) => string) => (a: Row, b: Row) => {
 };
 const byCount = (a: Row, b: Row) => (b.count ?? -1) - (a.count ?? -1) || byName(a, b);
 
+/** Newest shoot first; undated last rather than pretending to be oldest. */
+const byShootDate = (a: Row, b: Row) => {
+  const x = String(a.raw.shoot_date || ''), y = String(b.raw.shoot_date || '');
+  if (!x && !y) return byName(a, b);
+  if (!x) return 1;
+  if (!y) return -1;
+  return y.localeCompare(x);
+};
+
 const SORTS: Record<EntityKey, SortOption[]> = {
   projects: [
     { key: 'name', label: 'Name', compare: byName },
@@ -72,6 +85,16 @@ const SORTS: Record<EntityKey, SortOption[]> = {
   clients: [
     { key: 'name', label: 'Name', compare: byName },
     { key: 'usage', label: 'Most shoots', compare: byCount },
+  ],
+  jobs: [
+    { key: 'date', label: 'Date (newest)', compare: byShootDate },
+    { key: 'client', label: 'Client', compare: byText(r => r.detail || ''), group: true },
+    { key: 'status', label: 'Status', group: true, compare: (a, b) => {
+      const ai = STATUS_ORDER.indexOf(String(a.raw.job_status || ''));
+      const bi = STATUS_ORDER.indexOf(String(b.raw.job_status || ''));
+      return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi) || byShootDate(a, b);
+    } },
+    { key: 'name', label: 'Title', compare: byName },
   ],
   inventory: [
     { key: 'name', label: 'Name', compare: byName },
@@ -90,22 +113,32 @@ const ENTITIES: {
   addLabel: string;
   /** Shown under the confirm when rows are removed. */
   unlinkNote?: string;
+  /**
+   * True when deleting destroys child records rather than unlinking them.
+   * Shoots cascade into schedule, shot list, to-dos and budget items; the other
+   * tables are all ON DELETE SET NULL. The copy has to tell the truth per tab.
+   */
+  destructive?: boolean;
 }[] = [
   { key: 'projects', label: 'Projects', icon: FolderKanban, nameField: 'name', addLabel: 'Add project', unlinkNote: 'Productions in these projects stay — they just lose the project tag.' },
   { key: 'clients', label: 'Clients', icon: Building2, nameField: 'name', addLabel: 'Add client', unlinkNote: 'Productions for these clients stay — they just lose the client link.' },
   { key: 'inventory', label: 'Inventory', icon: Package, nameField: 'name', addLabel: 'Add gear item' },
+  { key: 'jobs', label: 'Shoots', icon: Clapperboard, nameField: 'title', addLabel: 'Add shoot', destructive: true },
 ];
+
+const STATUS_ORDER = ['Booked', 'Planning', 'Hold', 'Wrapped', 'Cancelled'];
 
 const inputClass =
   'w-full bg-black/40 border border-white/10 rounded-lg py-2 px-3 outline-none focus:border-accent text-xs text-white placeholder:text-white/25';
 
 export default function LibraryWidget() {
   const [entity, setEntity] = useState<EntityKey>('projects');
-  const [rows, setRows] = useState<Record<EntityKey, Row[]>>({ projects: [], clients: [], inventory: [] });
+  const [rows, setRows] = useState<Record<EntityKey, Row[]>>({ projects: [], clients: [], inventory: [], jobs: [] });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState('name');
+  const defaultSortFor = (k: EntityKey) => (k === 'jobs' ? 'date' : 'name');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   /** Inventory rows with no primary key — listed but not editable. */
@@ -120,7 +153,7 @@ export default function LibraryWidget() {
         supabase.from('projects').select('*').order('name'),
         supabase.from('clients').select('*').order('name'),
         supabase.from('inventory').select('*').order('name'),
-        supabase.from('jobs').select('id, client_id, project_id, gear_manifest'),
+        supabase.from('jobs').select('id, title, shoot_date, job_status, client_name, client_id, project_id, google_event_id, gear_manifest'),
       ]);
 
       if (projRes.error) throw projRes.error;
@@ -188,6 +221,16 @@ export default function LibraryWidget() {
             group: i.category || '',
             raw: i,
           })),
+        jobs: (jobs as any[]).map((j: any) => ({
+          id: j.id,
+          name: j.title || '',
+          // client_id is the real link; client_name is the free-text fallback
+          // for shoots booked before a client record existed.
+          detail: (j.client_id ? clientName.get(j.client_id) : '') || j.client_name || '',
+          group: (j.client_id ? clientName.get(j.client_id) : '') || j.client_name || '',
+          trailing: j.shoot_date ? formatLocalDate(j.shoot_date, { month: 'short', day: 'numeric', year: 'numeric' }, '') : 'No date',
+          raw: j,
+        })),
       });
     } catch (err: any) {
       console.error('Library load failed:', err);
@@ -208,7 +251,7 @@ export default function LibraryWidget() {
     setSearch('');
     // Sort keys are per-entity — "category" means nothing on the client list,
     // and a stale key would fall through to no sort at all.
-    setSortKey('name');
+    setSortKey(defaultSortFor(key));
   };
 
   const meta = ENTITIES.find(e => e.key === entity)!;
@@ -276,6 +319,9 @@ export default function LibraryWidget() {
       // inventory.qty is NOT NULL in the catalog the Gear Builder reads, so a
       // bare {name} insert would be rejected.
       if (entity === 'inventory') { payload.category = 'Specialty'; payload.qty = 1; payload.replacement = 0; }
+      // jobs has no `name` column — the title is the display field, and a new
+      // shoot starts in Planning like one created from Slate.
+      if (entity === 'jobs') { delete payload.name; payload.title = name.trim(); payload.job_status = 'Planning'; payload.type = 'production'; }
       const { error } = await supabase.from(entity).insert([payload]);
       if (error) throw error;
       await load();
@@ -306,6 +352,14 @@ export default function LibraryWidget() {
     if (error) {
       toast(`Rename failed: ${error.message}`);
       void load();
+      return;
+    }
+
+    // The shoot's title is the Google event's summary. Without this push the
+    // calendar keeps the old name and the two quietly disagree.
+    if (entity === 'jobs' && row.raw.google_event_id) {
+      const res = await pushJobToGoogleCalendar(row.id);
+      if (!res.ok) toast(`Renamed here, but Google Calendar still shows the old title. ${res.message}`);
     }
   };
 
@@ -318,7 +372,10 @@ export default function LibraryWidget() {
 
     const ok = await confirmAction({
       title: `Delete ${ids.length} ${ids.length === 1 ? meta.label.replace(/s$/, '') : meta.label}?`.toLowerCase(),
-      message: linked === 0
+      message: meta.destructive
+        // Shoots are the one tab where delete destroys rather than unlinks.
+        ? `Crew, schedule, shot list, to-dos and budget items go with ${ids.length === 1 ? 'it' : 'them'} permanently, and ${ids.length === 1 ? 'the shoot is' : 'the shoots are'} removed from Google Calendar. This cannot be undone.`
+        : linked === 0
         ? 'Nothing references these. This cannot be undone.'
         : entity === 'inventory'
           ? `${linked} saved gear ${linked === 1 ? 'list references' : 'lists reference'} ${ids.length === 1 ? 'this item' : 'these items'} by name. Those lists keep the item as a one-off custom entry; only the catalog entry goes.`
@@ -330,6 +387,22 @@ export default function LibraryWidget() {
 
     setBusy(true);
     try {
+      if (entity === 'jobs') {
+        // Google has to go first: once the row is deleted its google_event_id
+        // goes with it, and the orphaned event is re-imported as a new job on
+        // the next sync. Same order Slate's own delete uses.
+        const withEvents = picked.filter(r => r.raw.google_event_id);
+        const results = await Promise.all(
+          withEvents.map(r => removeJobFromGoogleCalendar(r.raw.google_event_id)),
+        );
+        const failed = results.filter(r => !r.ok).length;
+        if (failed > 0) {
+          toast(`${failed} Google Calendar ${failed === 1 ? 'event' : 'events'} could not be removed — delete cancelled so they don't come back on the next sync.`);
+          setBusy(false);
+          return;
+        }
+      }
+
       const { error } = await supabase.from(entity).delete().in('id', ids);
       if (error) throw error;
       setSelected(new Set());
@@ -495,6 +568,10 @@ export default function LibraryWidget() {
                   <span className="text-[10px] text-white/35 truncate max-w-[30%] shrink-0">{row.detail}</span>
                 )}
 
+                {row.count === undefined && row.trailing && (
+                  <span className="text-[10px] text-white/30 shrink-0 tabular-nums w-24 text-right">{row.trailing}</span>
+                )}
+
                 {row.count !== undefined && (
                   <span className="text-[10px] text-white/25 shrink-0 tabular-nums w-20 text-right">
                     {row.count} {row.countUnit === 'shoot'
@@ -510,11 +587,15 @@ export default function LibraryWidget() {
         )}
       </div>
 
-      {meta.unlinkNote && (
+      {meta.destructive ? (
+        <p className="px-4 py-2 text-[9px] text-amber-400/50 border-t border-white/5 shrink-0">
+          Deleting a shoot also deletes its crew, schedule, shot list and budget, and clears it from Google Calendar.
+        </p>
+      ) : meta.unlinkNote ? (
         <p className="px-4 py-2 text-[9px] text-white/25 border-t border-white/5 shrink-0">
           Deleting never removes productions — they only lose the link.
         </p>
-      )}
+      ) : null}
     </div>
   );
 }
