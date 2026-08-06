@@ -15,6 +15,9 @@
 
 DROP POLICY IF EXISTS "Allow read access to everyone" ON public.user_roles;
 DROP POLICY IF EXISTS "Allow read access to authenticated users" ON public.user_roles;
+-- Drop our own policy too, so running this file a second time is a no-op
+-- rather than a "policy already exists" error.
+DROP POLICY IF EXISTS "Authenticated read" ON public.user_roles;
 
 CREATE POLICY "Authenticated read"
   ON public.user_roles FOR SELECT
