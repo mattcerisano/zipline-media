@@ -30,6 +30,7 @@ import {
   Mail,
   Share2,
   Plug,
+  Library,
   DollarSign,
   ListTodo,
   UserCheck
@@ -51,6 +52,7 @@ import { QuickStartWidget } from './QuickStartGuide';
 import InboxWidget from '@/components/workspace/InboxWidget';
 import Vault from '@/components/workspace/Vault';
 import IntegrationsHub from '@/components/workspace/IntegrationsHub';
+import LibraryWidget from '@/components/workspace/LibraryWidget';
 import BudgetWidget from '@/components/workspace/BudgetWidget';
 import TasksWidget from '@/components/workspace/TasksWidget';
 import MyWorkWidget from '@/components/workspace/MyWorkWidget';
@@ -84,6 +86,7 @@ const WIDGET_ICONS: Record<string, any> = {
   inbox: Mail,
   vault: Lock,
   integrations: Plug,
+  library: Library,
   budget: DollarSign,
   tasks: ListTodo,
   mywork: UserCheck,
@@ -106,6 +109,7 @@ const WIDGET_LABELS: Record<string, string> = {
   inbox: 'Studio Inbox',
   vault: 'Vault',
   integrations: 'Integrations',
+  library: 'Library',
   budget: 'Budget Tracker',
   tasks: 'Task List',
   mywork: 'My Work',
@@ -123,7 +127,8 @@ const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
   rolodex: { type: 'panel', id: 'rolodex-root', activeTab: 'rolodex', tabs: ['rolodex'] },
   inbox: { type: 'panel', id: 'inbox-root', activeTab: 'inbox', tabs: ['inbox'] },
   vault: { type: 'panel', id: 'vault-root', activeTab: 'vault', tabs: ['vault'] },
-  integrations: { type: 'panel', id: 'integrations-root', activeTab: 'integrations', tabs: ['integrations'] }
+  integrations: { type: 'panel', id: 'integrations-root', activeTab: 'integrations', tabs: ['integrations'] },
+  library: { type: 'panel', id: 'library-root', activeTab: 'library', tabs: ['library'] }
 };
 
 interface WorkspaceLayoutProps {
@@ -945,6 +950,8 @@ function WidgetMount({
       return <QuickStartWidget />;
     case 'inbox':
       return <InboxWidget />;
+    case 'library':
+      return <LibraryWidget />;
     case 'integrations':
       return <IntegrationsHub />;
     case 'budget':

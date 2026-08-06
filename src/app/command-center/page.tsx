@@ -185,6 +185,7 @@ const DEFAULT_TABS: CustomTab[] = [
   { id: 'inbox', label: 'Inbox', iconName: 'Mail', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'rolodex', label: 'Rolodex', iconName: 'Users', type: 'system', isDefault: true, allowedRoles: ['admin'] },
   { id: 'vault', label: 'Vault', iconName: 'Lock', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
+  { id: 'library', label: 'Library', iconName: 'Library', type: 'system', isDefault: true, allowedRoles: ['admin'] },
   { id: 'integrations', label: 'Integrations', iconName: 'Plug', type: 'system', isDefault: true, allowedRoles: ['admin'] }
 ];
 

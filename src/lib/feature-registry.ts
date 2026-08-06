@@ -67,6 +67,7 @@ export const APP_FEATURES: AppFeature[] = [
   { id: 'dash-notes', title: 'Notes Library', description: 'Shared production notes, searchable and reusable across jobs.', keywords: 'notes library snippets shared knowledge write', tab: 'dashboard' },
 
   // ---- Integrations ----
+  { id: 'lib-browse', title: 'Library — Projects, Clients & Gear', description: 'Browse, search, rename and delete projects, clients and inventory in one place.', keywords: 'library database browser projects clients inventory gear catalog manage rename delete clean up bulk', tab: 'library' },
   { id: 'int-google', title: 'Connect Google Account', description: 'Link Google for Calendar sync, the Drive browser, and the Gmail inbox.', keywords: 'connect google account oauth link integration calendar drive gmail setup', tab: 'integrations' },
   { id: 'int-drive', title: 'Google Drive Browser', description: 'Browse the connected account\'s Drive files from inside the app.', keywords: 'google drive files browser documents folders', tab: 'integrations' },
   { id: 'int-webhooks', title: 'Discord / Webhook Notifications', description: 'Announce bookings and status changes to your team channels automatically.', keywords: 'discord webhook notifications announce channel alerts slack', tab: 'integrations' },
