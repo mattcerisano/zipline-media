@@ -4,6 +4,15 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, AlertCircle, AlertTriangle } from 'lucide-react';
 
+// Layering: these sit above everything, including the portalled modals in
+// components/workspace/Overlay.tsx (z-9000). Feedback is almost always a
+// response to an action taken *inside* something else — saving in a modal,
+// confirming a delete from a dropdown — so anything it can't cover, it can't
+// be seen through. At z-400 the "New project" prompt opened underneath the
+// production modal and only appeared once that modal closed, which read as the
+// button doing nothing; every toast raised from inside a modal was invisible
+// for the same reason. Keep this above the Overlay tier.
+//
 // App-wide replacement for window.alert / window.confirm. Browser dialogs
 // block the page and look broken on phones; these render as toasts and a
 // styled confirm modal instead. Imperative API so deep components can call
@@ -138,7 +147,7 @@ export default function FeedbackHost() {
   return (
     <>
       {/* Toast stack */}
-      <div className="fixed bottom-6 inset-x-0 z-[400] flex flex-col items-center gap-2 px-4 pointer-events-none">
+      <div className="fixed bottom-6 inset-x-0 z-[9500] flex flex-col items-center gap-2 px-4 pointer-events-none">
         <AnimatePresence>
           {toasts.map(t => (
             <motion.div
@@ -163,7 +172,7 @@ export default function FeedbackHost() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[9500] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
             onClick={() => settlePrompt(null)}
           >
             <motion.form
@@ -221,7 +230,7 @@ export default function FeedbackHost() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[400] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[9500] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
             onClick={() => settle(false)}
           >
             <motion.div
