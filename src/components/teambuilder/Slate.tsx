@@ -18,6 +18,7 @@ import {
   ChevronDown,
   MoreVertical,
   Receipt,
+  Film,
   ClipboardList,
   CalendarPlus,
   BookmarkPlus,
@@ -47,12 +48,19 @@ import { generateMasterBrief } from '@/lib/pdf-generator';
 import { fetchGearCategoryMap, groupManifestByCategory, buildGearTableBody } from '@/lib/gear-manifest';
 import { getBranding, hexToRgb } from '@/lib/branding';
 import { sanitizeUrl } from '@/lib/sanitize';
-import { formatLocalDate } from '@/lib/date';
+import { formatLocalDate, todayLocalISO } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
 import { caps, currency } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
 import { Modal, DropdownMenu } from '@/components/workspace/Overlay';
 import type { BillingSummary } from '@/app/api/integrations/quickbooks/route';
+import {
+  type Deliverable,
+  DELIVERABLE_FORMATS,
+  nextDeliverableStatus,
+  deliverableStatusLabel,
+  deliverableStatusTone,
+} from '@/lib/deliverables';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -74,12 +82,17 @@ export default function Slate({
   userRole, 
   onBuildGear,
   preselectedJobId,
-  onClearPreselectedJobId
+  onClearPreselectedJobId,
+  newProductionDate,
+  onClearNewProductionDate
 }: { 
   userRole?: string, 
   onBuildGear?: (job: Job) => void,
   preselectedJobId?: string | null,
-  onClearPreselectedJobId?: () => void
+  onClearPreselectedJobId?: () => void,
+  /** Shoot date handed over by the Calendar tab's "New production" action. */
+  newProductionDate?: string | null,
+  onClearNewProductionDate?: () => void
 } = {}) {
   const isClient = userRole === 'client';
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -136,14 +149,16 @@ export default function Slate({
     setIsJobModalOpen(false);
   };
 
-  const openNewJobModal = () => {
+  const openNewJobModal = (shootDate?: string) => {
     const blank: Partial<Job> = {
       title: '',
       client_name: '',
       production_company: '',
       job_status: 'Planning',
       type: 'production',
-      shoot_date: new Date().toISOString().split('T')[0],
+      // toISOString() here gave the UTC day, so an evening west of UTC
+      // pre-filled tomorrow's date on a form that says "today".
+      shoot_date: shootDate || todayLocalISO(),
       // Call time defaults to TBD rather than inventing an 8:00 AM call
       // nobody chose — which also pushed a wrong time to Google Calendar.
       // An empty call time syncs as an all-day event until it's set.
@@ -318,6 +333,16 @@ export default function Slate({
       }
     }
   }, [preselectedJobId, jobs, onClearPreselectedJobId]);
+
+  // Arrived from Calendar → "New production" on a specific day. Same handoff as
+  // preselectedJobId above, but for a shoot that doesn't exist yet: open the
+  // full form with that date already set, then clear so closing it stays closed.
+  useEffect(() => {
+    if (!newProductionDate) return;
+    openNewJobModal(newProductionDate);
+    onClearNewProductionDate?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newProductionDate]);
 
   const fetchJobs = async () => {
     setIsLoading(true);
@@ -878,6 +903,61 @@ export default function Slate({
     return () => { cancelled = true; };
   }, [clientIdsOnBoard.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Deliverables pinned to each production. One query for the whole board, the
+  // same shape as billing above — a card should never fetch for itself.
+  const [deliverables, setDeliverables] = useState<Record<string, Deliverable[]>>({});
+
+  const loadDeliverables = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) { setDeliverables({}); return; }
+    const { data, error } = await supabase
+      .from('social_deliverables')
+      .select('*')
+      .in('job_id', ids)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
+    if (error) { console.error('Failed to load deliverables:', error); return; }
+    const byJob: Record<string, Deliverable[]> = {};
+    for (const row of (data || []) as Deliverable[]) {
+      if (!row.job_id) continue;
+      (byJob[row.job_id] ||= []).push(row);
+    }
+    setDeliverables(byJob);
+  }, []);
+
+  const jobIdsOnBoard = useMemo(() => jobs.map(j => j.id), [jobs]);
+
+  useEffect(() => {
+    void loadDeliverables(jobIdsOnBoard);
+  }, [jobIdsOnBoard.join(','), loadDeliverables]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A new row starts blank and inherits the job's client, so it also lands in
+  // the Social tab's list under the right name instead of an orphaned dash.
+  const addDeliverable = async (job: Job) => {
+    const { data, error } = await supabase
+      .from('social_deliverables')
+      .insert([{ job_id: job.id, client_id: job.client_id || null, label: '', format: '16:9', status: 'todo' }])
+      .select()
+      .single();
+    if (error || !data) { toast('Could not add the deliverable.'); return; }
+    setDeliverables(prev => ({ ...prev, [job.id]: [...(prev[job.id] || []), data as Deliverable] }));
+  };
+
+  const patchDeliverable = async (jobId: string, id: string, patch: Partial<Deliverable>) => {
+    setDeliverables(prev => ({
+      ...prev,
+      [jobId]: (prev[jobId] || []).map(d => (d.id === id ? { ...d, ...patch } : d)),
+    }));
+    const { error } = await supabase.from('social_deliverables').update(patch).eq('id', id);
+    if (error) { toast('Could not save that change.'); void loadDeliverables(jobIdsOnBoard); }
+  };
+
+  const removeDeliverable = async (jobId: string, id: string) => {
+    const prior = deliverables[jobId] || [];
+    setDeliverables(prev => ({ ...prev, [jobId]: prior.filter(d => d.id !== id) }));
+    const { error } = await supabase.from('social_deliverables').delete().eq('id', id);
+    if (error) { toast('Could not remove that deliverable.'); setDeliverables(prev => ({ ...prev, [jobId]: prior })); }
+  };
+
 
   const filteredJobs = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -1111,7 +1191,7 @@ export default function Slate({
 
         {!isClient && (
           <button 
-            onClick={openNewJobModal}
+            onClick={() => openNewJobModal()}
             className="bg-accent text-white px-8 py-4 rounded-xl font-semibold tracking-tight text-sm hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center gap-3 w-full lg:w-auto justify-center"
           >
             <Plus className="w-4 h-4" /> New Production
@@ -1166,6 +1246,10 @@ export default function Slate({
                           onRefreshWeather={() => handleRefreshWeather(job)}
                           onStatusChange={(status) => updateJobStatus(job, status)}
                   billing={job.client_id ? billing[job.client_id] : undefined}
+                  deliverables={deliverables[job.id]}
+                  onAddDeliverable={() => addDeliverable(job)}
+                  onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
+                  onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
                         />
                       ))}
                     </div>
@@ -1206,6 +1290,10 @@ export default function Slate({
                   onStatusChange={(status) => updateJobStatus(job, status)}
                   billing={job.client_id ? billing[job.client_id] : undefined}
                   projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
+                  deliverables={deliverables[job.id]}
+                  onAddDeliverable={() => addDeliverable(job)}
+                  onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
+                  onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
                 />
               ))}
             </div>
@@ -1237,6 +1325,10 @@ export default function Slate({
                 onRefreshWeather={() => handleRefreshWeather(job)}
                 onStatusChange={(status) => updateJobStatus(job, status)}
                 billing={job.client_id ? billing[job.client_id] : undefined}
+                deliverables={deliverables[job.id]}
+                onAddDeliverable={() => addDeliverable(job)}
+                onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
+                onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
                 projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
               />
             ))}
@@ -1273,6 +1365,10 @@ export default function Slate({
                 onRefreshWeather={() => handleRefreshWeather(job)}
                 onStatusChange={(status) => updateJobStatus(job, status)}
                 billing={job.client_id ? billing[job.client_id] : undefined}
+                deliverables={deliverables[job.id]}
+                onAddDeliverable={() => addDeliverable(job)}
+                onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
+                onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
                 projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
               />
             ))}
@@ -1767,7 +1863,11 @@ function JobCard({
   onRefreshWeather,
   onStatusChange,
   billing,
-  projectName
+  projectName,
+  deliverables = [],
+  onAddDeliverable,
+  onPatchDeliverable,
+  onRemoveDeliverable
 }: {
   job: Job,
   isClient: boolean,
@@ -1783,7 +1883,11 @@ function JobCard({
   onRefreshWeather?: () => void,
   onStatusChange?: (status: Job['job_status']) => void,
   billing?: BillingSummary,
-  projectName?: string
+  projectName?: string,
+  deliverables?: Deliverable[],
+  onAddDeliverable?: () => void,
+  onPatchDeliverable?: (id: string, patch: Partial<Deliverable>) => void,
+  onRemoveDeliverable?: (id: string) => void
 }) {
   const shootDate = formatLocalDate(job.shoot_date, { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -1861,6 +1965,12 @@ function JobCard({
               { label: 'Crew & schedule', icon: <ChevronRight className="w-3.5 h-3.5" />, onSelect: onManage },
               { label: 'Build gear list', icon: <Package className="w-3.5 h-3.5" />, onSelect: () => onBuildGear?.() },
               { label: 'Add vault link', icon: <LinkIcon className="w-3.5 h-3.5" />, onSelect: onAddLink },
+              {
+                label: 'Add deliverable',
+                hint: 'Cutdown, version or platform cut',
+                icon: <Film className="w-3.5 h-3.5" />,
+                onSelect: () => onAddDeliverable?.(),
+              },
               { label: 'Export call sheet', icon: <ClipboardList className="w-3.5 h-3.5" />, onSelect: onExportCallSheet },
               {
                 label: 'Export production brief',
@@ -1895,7 +2005,7 @@ function JobCard({
         {isClient ? (
           <h3 className="text-lg font-semibold tracking-tight mb-1 line-clamp-2">{job.title}</h3>
         ) : (
-          <button aria-label="Edit" title="Edit"
+          <button
             onClick={onEdit}
             className="text-left w-full mb-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
@@ -1950,6 +2060,89 @@ function JobCard({
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-1">Notes</p>
               <p className="text-xs text-white/80 line-clamp-3 leading-relaxed">{job.notes_general}</p>
            </div>
+        )}
+
+        {/* Deliverables pinned to this production. Like the billing block, it
+            only appears once there's something in it — an empty shell on all
+            30 cards would be noise. "Add deliverable" lives in the card menu,
+            which is how an empty card gets its first one. */}
+        {deliverables.length > 0 && (
+          <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 flex items-center gap-1.5">
+                <Film className="w-3 h-3" /> Deliverables
+              </p>
+              <span className="text-[10px] text-white/30">
+                {deliverables.filter(d => d.status === 'delivered').length}/{deliverables.length} delivered
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              {deliverables.map(d => (
+                <div key={d.id} className="flex items-center gap-2 group/deliv">
+                  {isClient ? (
+                    <span className="flex-1 text-[11px] text-white/80 truncate">{d.label || 'Untitled'}</span>
+                  ) : (
+                    <input
+                      defaultValue={d.label || ''}
+                      placeholder="e.g. 60s hero cut"
+                      aria-label="Deliverable name"
+                      onBlur={e => {
+                        const value = e.target.value;
+                        if (value !== (d.label || '')) onPatchDeliverable?.(d.id, { label: value });
+                      }}
+                      className="flex-1 min-w-0 bg-transparent outline-none text-[11px] text-white/80 rounded px-1 py-0.5 focus:bg-white/10 placeholder:text-white/25"
+                    />
+                  )}
+
+                  {!isClient && (
+                    <select
+                      value={d.format || '16:9'}
+                      aria-label="Aspect ratio"
+                      onChange={e => onPatchDeliverable?.(d.id, { format: e.target.value })}
+                      className="bg-transparent outline-none text-[10px] text-white/45 cursor-pointer shrink-0 hover:text-white/70"
+                    >
+                      {DELIVERABLE_FORMATS.map(f => (
+                        <option key={f} value={f} className="bg-zinc-900">{f}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={isClient}
+                    onClick={() => onPatchDeliverable?.(d.id, { status: nextDeliverableStatus(d.status) })}
+                    title={isClient ? undefined : 'Change status'}
+                    className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-widest shrink-0 transition-colors ${deliverableStatusTone(d.status)} ${isClient ? '' : 'cursor-pointer'}`}
+                  >
+                    {deliverableStatusLabel(d.status)}
+                  </button>
+
+                  {!isClient && (
+                    <button
+                      type="button"
+                      aria-label={`Remove ${d.label || 'deliverable'}`}
+                      title="Remove"
+                      onClick={() => onRemoveDeliverable?.(d.id)}
+                      className="shrink-0 text-white/20 hover:text-red-400 transition-colors opacity-100 md:opacity-0 md:group-hover/deliv:opacity-100"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {!isClient && (
+              <button
+                type="button"
+                onClick={() => onAddDeliverable?.()}
+                className="mt-2 text-[10px] font-bold uppercase tracking-widest text-accent hover:text-white transition-colors"
+              >
+                + Deliverable
+              </button>
+            )}
+          </div>
         )}
 
         {/* QuickBooks, read-only. Only rendered once the client has actually

@@ -154,3 +154,14 @@ export function wallClockFromGoogleDateTime(
   if (!m) return null;
   return { date: m[1], hour: Number(m[2]), minute: Number(m[3]) };
 }
+
+/**
+ * Today as "YYYY-MM-DD" in the viewer's own timezone.
+ *
+ * Built from local parts rather than `toISOString().split('T')[0]`, which
+ * returns the UTC day: anywhere west of UTC that reads as tomorrow for the
+ * whole evening, so a form defaulting to "today" pre-fills the wrong date.
+ */
+export function todayLocalISO(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
