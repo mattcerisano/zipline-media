@@ -6,6 +6,12 @@ import {
   ChevronLeft, ChevronRight, ExternalLink, Quote,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import {
+  DELIVERABLE_FORMATS,
+  nextDeliverableStatus,
+  deliverableStatusLabel,
+  deliverableStatusTone,
+} from '@/lib/deliverables';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { confirmAction } from '@/components/Feedback';
 
@@ -23,8 +29,6 @@ const PLATFORMS = [
 const platform = (k?: string) => PLATFORMS.find((p) => p.key === k) || PLATFORMS[5];
 
 const POST_STATUS = ['idea', 'draft', 'scheduled', 'posted'];
-const DELIV_STATUS = ['todo', 'in_progress', 'delivered'];
-const FORMATS = ['9:16', '1:1', '16:9', '4:5', '2.39:1'];
 const PHASES = [
   { key: 'teaser', label: 'Teaser / Pre' },
   { key: 'release', label: 'Release Day' },
@@ -412,8 +416,6 @@ function Deliverables({ clients }: { clients: Client[] }) {
   };
   const patch = async (id: string, p: Partial<Deliv>) => { setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...p } : r))); await supabase.from('social_deliverables').update(p).eq('id', id); };
   const del = async (id: string) => { setRows((rs) => rs.filter((r) => r.id !== id)); await supabase.from('social_deliverables').delete().eq('id', id); };
-  const cycleStatus = (s?: string) => DELIV_STATUS[(DELIV_STATUS.indexOf(s || 'todo') + 1) % DELIV_STATUS.length];
-  const statusColor = (s?: string) => (s === 'delivered' ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10' : s === 'in_progress' ? 'text-amber-400 border-amber-500/40 bg-amber-500/10' : 'text-white/40 border-white/15 bg-white/5');
 
   return (
     <div>
@@ -439,10 +441,10 @@ function Deliverables({ clients }: { clients: Client[] }) {
                       {clients.map((c) => <option key={c.id} value={c.id} className="bg-zinc-900">{c.name}</option>)}
                     </select>
                   </td>
-                  <td className="px-2 py-1"><select className="bg-transparent outline-none text-[11px] text-white/70 cursor-pointer" value={r.format} onChange={(e) => patch(r.id, { format: e.target.value })}>{FORMATS.map((f) => <option key={f} value={f} className="bg-zinc-900">{f}</option>)}</select></td>
+                  <td className="px-2 py-1"><select className="bg-transparent outline-none text-[11px] text-white/70 cursor-pointer" value={r.format} onChange={(e) => patch(r.id, { format: e.target.value })}>{DELIVERABLE_FORMATS.map((f) => <option key={f} value={f} className="bg-zinc-900">{f}</option>)}</select></td>
                   <td className="px-2 py-1 min-w-[80px]"><input className="w-16 bg-transparent outline-none text-[11px] text-white/70 px-1 focus:bg-accent/5" value={r.duration || ''} placeholder="30s" onChange={(e) => setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, duration: e.target.value } : x)))} onBlur={(e) => patch(r.id, { duration: e.target.value })} /></td>
                   <td className="px-2 py-1"><select className="bg-transparent outline-none text-[11px] text-white/70 cursor-pointer" value={r.platform} onChange={(e) => patch(r.id, { platform: e.target.value })}>{PLATFORMS.map((p) => <option key={p.key} value={p.key} className="bg-zinc-900">{p.label}</option>)}</select></td>
-                  <td className="px-2 py-1"><button onClick={() => patch(r.id, { status: cycleStatus(r.status) })} className={`px-2 py-1 rounded border text-[8px] font-black uppercase tracking-widest cursor-pointer ${statusColor(r.status)}`}>{(r.status || 'todo').replace('_', ' ')}</button></td>
+                  <td className="px-2 py-1"><button onClick={() => patch(r.id, { status: nextDeliverableStatus(r.status) })} className={`px-2 py-1 rounded border text-[8px] font-black uppercase tracking-widest cursor-pointer ${deliverableStatusTone(r.status)}`}>{deliverableStatusLabel(r.status)}</button></td>
                   <td className="px-2 py-1 text-right"><button onClick={() => del(r.id)} className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button></td>
                 </tr>
               ))}
