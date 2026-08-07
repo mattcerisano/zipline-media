@@ -103,3 +103,61 @@ needs no verification review.
 
 Usage is a short classification per suggestion at low effort — well under a
 cent each. Set a spend limit under **Billing → Limits** if you want a hard cap.
+
+---
+
+# Running it locally (no Vercel build)
+
+Vercel rebuilds on every push, which is roughly a minute before you can look at
+a change. A local dev server updates the moment a file is saved, and can be
+opened on your phone over the same wifi.
+
+## One-time
+
+```bash
+cd ~/Documents/zipline-media
+git pull
+npm install
+npx vercel link              # pick the zipline-media project
+npx vercel env pull .env.local
+```
+
+`vercel env pull` writes every environment variable from the deployed project
+into `.env.local`. Nothing is typed by hand and no secret goes through a chat
+window. `.env.local` is gitignored.
+
+## Every time
+
+```bash
+npm run dev          # just the Mac  → http://localhost:3000
+npm run dev:phone    # phone too
+```
+
+`dev:phone` binds every network interface instead of only localhost, which is
+what makes the Mac reachable from another device. Next prints both URLs on
+start:
+
+```
+- Local:   http://localhost:3000
+- Network: http://192.168.1.42:3000   ← open this one on the phone
+```
+
+Both devices have to be on the same wifi. Stop the server with Ctrl-C.
+
+## What to know before editing anything
+
+**This runs against the live database.** `vercel env pull` brings down the
+production Supabase credentials, so a job you delete locally is deleted for
+real, and saving a production pushes a real event to the studio's Google
+Calendar. There is no separate staging database. Read freely; think before you
+write.
+
+**Connecting a new integration won't work locally.** Google and QuickBooks only
+accept the redirect URIs registered for them, which point at zipline.media.
+Accounts already connected keep working — those refresh server-side and don't
+need the redirect — so calendar sync and the inbox behave normally. It is only
+the initial *Connect* button that fails.
+
+**Blank screens mean a missing key, not broken code.** Without
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` the app renders
+but nothing loads. Re-run `npx vercel env pull .env.local` if that happens.
