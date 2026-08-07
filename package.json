@@ -11,7 +11,8 @@
     "electron:dev": "concurrently \"next dev\" \"wait-on tcp:3000 && electron .\"",
     "dist": "electron-builder",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "dev:phone": "next dev -H 0.0.0.0"
   },
   "build": {
     "appId": "com.ziplinemedia.app",
