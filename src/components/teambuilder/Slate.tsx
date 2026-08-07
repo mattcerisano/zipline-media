@@ -19,6 +19,7 @@ import {
   MoreVertical,
   Receipt,
   Film,
+  Users,
   ClipboardList,
   CalendarPlus,
   BookmarkPlus,
@@ -41,7 +42,7 @@ import autoTable from 'jspdf-autotable';
 import { supabase } from '@/lib/supabase';
 import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
-import { Job, STATUSES, JobLink, Client, Project } from '@/components/gearbuilder/types';
+import { Job, STATUSES, JobLink, Client, Project, JobRole } from '@/components/gearbuilder/types';
 import Autocomplete from 'react-google-autocomplete';
 import TeamBuilder from '@/components/teambuilder/TeamBuilder';
 import { generateMasterBrief } from '@/lib/pdf-generator';
@@ -960,6 +961,31 @@ export default function Slate({
     void loadDeliverables(jobIdsOnBoard);
   }, [jobIdsOnBoard.join(','), loadDeliverables]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Crew per production, so a card can say who's on it without opening the
+  // crew manager. One query for the board, same as billing and deliverables.
+  const [crew, setCrew] = useState<Record<string, JobRole[]>>({});
+
+  useEffect(() => {
+    if (jobIdsOnBoard.length === 0) { setCrew({}); return; }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('job_roles')
+        .select('*, contact:contacts(id, name)')
+        .in('job_id', jobIdsOnBoard)
+        .order('sort_order', { ascending: true, nullsFirst: false });
+      if (cancelled) return;
+      if (error) { console.error('Failed to load crew:', error); return; }
+      const byJob: Record<string, JobRole[]> = {};
+      for (const row of (data || []) as JobRole[]) {
+        if (!row.job_id) continue;
+        (byJob[row.job_id] ||= []).push(row);
+      }
+      setCrew(byJob);
+    })();
+    return () => { cancelled = true; };
+  }, [jobIdsOnBoard.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // A new row starts blank and inherits the job's client, so it also lands in
   // the Social tab's list under the right name instead of an orphaned dash.
   const addDeliverable = async (job: Job) => {
@@ -1276,6 +1302,7 @@ export default function Slate({
                           onRefreshWeather={() => handleRefreshWeather(job)}
                           onStatusChange={(status) => updateJobStatus(job, status)}
                   billing={job.client_id ? billing[job.client_id] : undefined}
+                  crew={crew[job.id]}
                   deliverables={deliverables[job.id]}
                   onAddDeliverable={() => addDeliverable(job)}
                   onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
@@ -1320,6 +1347,7 @@ export default function Slate({
                   onStatusChange={(status) => updateJobStatus(job, status)}
                   billing={job.client_id ? billing[job.client_id] : undefined}
                   projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
+                  crew={crew[job.id]}
                   deliverables={deliverables[job.id]}
                   onAddDeliverable={() => addDeliverable(job)}
                   onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
@@ -1355,7 +1383,8 @@ export default function Slate({
                 onRefreshWeather={() => handleRefreshWeather(job)}
                 onStatusChange={(status) => updateJobStatus(job, status)}
                 billing={job.client_id ? billing[job.client_id] : undefined}
-                deliverables={deliverables[job.id]}
+                crew={crew[job.id]}
+                  deliverables={deliverables[job.id]}
                 onAddDeliverable={() => addDeliverable(job)}
                 onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
                 onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
@@ -1395,7 +1424,8 @@ export default function Slate({
                 onRefreshWeather={() => handleRefreshWeather(job)}
                 onStatusChange={(status) => updateJobStatus(job, status)}
                 billing={job.client_id ? billing[job.client_id] : undefined}
-                deliverables={deliverables[job.id]}
+                crew={crew[job.id]}
+                  deliverables={deliverables[job.id]}
                 onAddDeliverable={() => addDeliverable(job)}
                 onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
                 onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
@@ -1922,6 +1952,7 @@ function JobCard({
   onStatusChange,
   billing,
   projectName,
+  crew = [],
   deliverables = [],
   onAddDeliverable,
   onPatchDeliverable,
@@ -1942,6 +1973,7 @@ function JobCard({
   onStatusChange?: (status: Job['job_status']) => void,
   billing?: BillingSummary,
   projectName?: string,
+  crew?: JobRole[],
   deliverables?: Deliverable[],
   onAddDeliverable?: () => void,
   onPatchDeliverable?: (id: string, patch: Partial<Deliverable>) => void,
@@ -2118,6 +2150,44 @@ function JobCard({
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-1">Notes</p>
               <p className="text-xs text-white/80 line-clamp-3 leading-relaxed">{job.notes_general}</p>
            </div>
+        )}
+
+        {/* Who's on it. Capped, because a 20-person call sheet is a document,
+            not a card — the count and the menu lead to the full crew list. */}
+        {crew.length > 0 && (
+          <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 flex items-center gap-1.5">
+                <Users className="w-3 h-3" /> Crew
+              </p>
+              <span className="text-[10px] text-white/30">{crew.length}</span>
+            </div>
+
+            <div className="space-y-1">
+              {crew.slice(0, 4).map(r => {
+                const who = r.contact?.name || r.name || '';
+                return (
+                  <div key={r.id} className="flex items-baseline gap-2 text-[11px] min-w-0">
+                    <span className="text-white/45 shrink-0 max-w-[45%] truncate">{r.position || 'Crew'}</span>
+                    <span className={`flex-1 min-w-0 truncate ${who ? 'text-white/85' : 'text-white/30 italic'}`}>
+                      {who || 'Unassigned'}
+                    </span>
+                    {r.call_time && <span className="text-[10px] text-white/30 shrink-0 tabular-nums">{r.call_time}</span>}
+                  </div>
+                );
+              })}
+            </div>
+
+            {!isClient && (
+              <button
+                type="button"
+                onClick={onManage}
+                className="mt-2 text-[10px] font-bold uppercase tracking-widest text-accent hover:text-white transition-colors"
+              >
+                {crew.length > 4 ? `+${crew.length - 4} more · Manage crew` : 'Manage crew'}
+              </button>
+            )}
+          </div>
         )}
 
         {/* Deliverables pinned to this production. Like the billing block, it
