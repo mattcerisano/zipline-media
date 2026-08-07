@@ -13,6 +13,7 @@ import { useRealtime } from '@/lib/useRealtime';
 import { pushJobToGoogleCalendar, pushEventToGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
 import { Modal } from '@/components/workspace/Overlay';
 import { toast } from '@/components/Feedback';
+import { trackAction } from '@/lib/usage';
 
 // Quick-add presets for the Calendar tab. Lightweight markers, not productions.
 //
@@ -182,6 +183,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
    * afterwards, if at all. The preset now seeds a form instead.
    */
   const openNewEvent = (date: string, preset: CalendarEventPreset) => {
+    trackAction('calendar', 'quick_marker');
     setQuickAddDate(null);
     setEventError(null);
     setEventDraft({ preset, event_date: date, title: presetOf(preset).label, end_date: '', notes: '' });

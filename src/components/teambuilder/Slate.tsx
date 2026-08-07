@@ -53,6 +53,7 @@ import { formatLocalDate, todayLocalISO } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
 import { caps, currency } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
+import { trackAction } from '@/lib/usage';
 import { Modal, DropdownMenu } from '@/components/workspace/Overlay';
 import type { BillingSummary } from '@/app/api/integrations/quickbooks/route';
 import {
@@ -161,6 +162,9 @@ export default function Slate({
   };
 
   const openNewJobModal = (shootDate?: string) => {
+    // Distinguish the two entry points: whether the calendar hand-off actually
+    // gets used is the reason it was built.
+    trackAction('slate', shootDate ? 'new_production_from_calendar' : 'new_production');
     const blank: Partial<Job> = {
       title: '',
       client_name: '',

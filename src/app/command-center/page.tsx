@@ -38,6 +38,7 @@ function timeAgo(iso: string | null): string {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { supabase } from '@/lib/supabase';
+import { trackView, trackAction } from '@/lib/usage';
 import { getBranding } from '@/lib/branding';
 import { applyAccent } from '@/lib/brand-theme';
 import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
@@ -186,6 +187,7 @@ const DEFAULT_TABS: CustomTab[] = [
   { id: 'rolodex', label: 'Rolodex', iconName: 'Users', type: 'system', isDefault: true, allowedRoles: ['admin'] },
   { id: 'vault', label: 'Vault', iconName: 'Lock', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'library', label: 'Library', iconName: 'Library', type: 'system', isDefault: true, allowedRoles: ['admin'] },
+  { id: 'usage', label: 'Usage', iconName: 'Activity', type: 'system', isDefault: true, allowedRoles: ['admin'] },
   { id: 'integrations', label: 'Integrations', iconName: 'Plug', type: 'system', isDefault: true, allowedRoles: ['admin'] }
 ];
 
@@ -470,6 +472,13 @@ export default function CommandCenterPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [isCalendarSyncOpen, setIsCalendarSyncOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Which surfaces get opened. One line here covers every tab, rather than a
+  // call scattered through each widget. Repeats inside ten seconds collapse,
+  // so flicking through tabs doesn't drown the totals.
+  useEffect(() => {
+    if (activeTab) trackView(activeTab);
+  }, [activeTab]);
 
   // Swipe in from the left screen edge to open the sidebar on touch devices
   // (and swipe left while it's open to dismiss) — faster than the hamburger.
@@ -1206,7 +1215,7 @@ export default function CommandCenterPage() {
              <div className="flex items-center gap-0.5 p-0.5 bg-white/[0.03] border border-white/10 rounded-lg shrink-0">
                 {/* Smart Search (Cmd/Ctrl+K) */}
                 <button
-                   onClick={() => setIsSearchOpen(true)}
+                   onClick={() => { trackAction('header', 'search_palette'); setIsSearchOpen(true); }}
                    className="p-2 rounded-md text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
                    title="Smart search (⌘K) — search productions, contacts & clients by meaning"
                    aria-label="Smart search"
