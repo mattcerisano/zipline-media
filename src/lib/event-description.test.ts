@@ -25,6 +25,17 @@ describe('buildJobDescription', () => {
     expect(buildJobDescription({ shoot_date: '2026-08-10', call_time: '8:00 AM' })).toContain('Call 8:00 AM');
   });
 
+  it('shows the wrap time next to the call when one is booked', () => {
+    const out = buildJobDescription({ shoot_date: '2026-08-10', call_time: '8:00 AM', wrap_time: '6:00 PM' });
+    expect(out).toContain('Call 8:00 AM · Wrap 6:00 PM');
+  });
+
+  it('does not dangle a separator when only the call time is known', () => {
+    const out = buildJobDescription({ shoot_date: '2026-08-10', call_time: '8:00 AM' });
+    expect(out).toContain('Call 8:00 AM');
+    expect(out).not.toContain('·');
+  });
+
   it('renders a multi-day shoot as a range, and a single day as one date', () => {
     const range = buildJobDescription({ shoot_date: '2026-08-10', end_date: '2026-08-12' });
     expect(range).toMatch(/Aug 10, 2026 — .*Aug 12, 2026/);

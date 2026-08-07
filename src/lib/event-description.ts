@@ -29,6 +29,7 @@ export interface JobLike {
   shoot_date?: string | null;
   end_date?: string | null;
   call_time?: string | null;
+  wrap_time?: string | null;
   job_status?: string | null;
   location_name?: string | null;
   location_address?: string | null;
@@ -92,7 +93,10 @@ export function buildJobDescription(job: JobLike, crew: CrewRow[] = []): string 
     // "Call time TBD" answers a question the date asked. With no date at all
     // there's no question, and a WHEN heading saying only "TBD" is worse than
     // no heading.
-    when ? (job.call_time ? `Call ${job.call_time}` : 'Call time TBD') : null,
+    when ? join([
+      job.call_time ? `Call ${job.call_time}` : 'Call time TBD',
+      job.wrap_time && `Wrap ${job.wrap_time}`,
+    ]) : null,
     // Worth saying out loud: a shoot still in Planning reads very differently
     // from a confirmed one, and "Confirmed" is the boring default.
     job.job_status && job.job_status !== 'Confirmed' ? `Status — ${job.job_status}` : null,

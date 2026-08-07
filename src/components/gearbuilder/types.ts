@@ -218,6 +218,12 @@ export interface Job {
   due_date?: string;
   end_date?: string;
   call_time?: string;
+  /**
+   * Wall-clock end of the shooting day, e.g. "6:00 PM". Empty means unknown,
+   * and the calendar falls back to an eight-hour estimate. A wrap at or before
+   * the call is read as running past midnight.
+   */
+  wrap_time?: string;
   location_name?: string;
   location_address?: string;
   nearest_hospital_name?: string;

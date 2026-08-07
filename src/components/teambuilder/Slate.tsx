@@ -65,6 +65,16 @@ import {
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+/** Every half hour as "7:30 AM". Shared by the call and wrap pickers so the
+ *  two can't drift into offering different times. */
+const TIME_OPTIONS: string[] = Array.from({ length: 48 }, (_, i) => {
+  const hour = Math.floor(i / 2);
+  const min = i % 2 === 0 ? '00' : '30';
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  return `${displayHour}:${min} ${ampm}`;
+});
+
 const weatherCodeToText = (code: number) => {
   const map: Record<number, string> = {
     0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
@@ -1564,41 +1574,49 @@ export default function Slate({
                 </div>
 
                 {/* Call Time */}
-                <div className="md:col-span-2 space-y-1">
+                <div className="md:col-span-1 space-y-1">
                   <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Call Time</label>
                   <div className="relative">
                     <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white pointer-events-none z-10" />
-                    <select 
+                    <select
                       value={editingJob.call_time || ''}
                       onChange={(e) => setEditingJob(prev => ({ ...prev, call_time: e.target.value }))}
                       className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
                     >
                       <option value="">TBD</option>
-                      {Array.from({ length: 48 }).map((_, i) => {
-                        const hour = Math.floor(i / 2);
-                        const min = i % 2 === 0 ? '00' : '30';
-                        const ampm = hour >= 12 ? 'PM' : 'AM';
-                        const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-                        const timeStr = `${displayHour}:${min} ${ampm}`;
-                        return (
-                          <option key={timeStr} value={timeStr}>
-                            {timeStr}
-                          </option>
-                        );
-                      })}
-                      {editingJob.call_time && !Array.from({ length: 48 }).some((_, i) => {
-                        const hour = Math.floor(i / 2);
-                        const min = i % 2 === 0 ? '00' : '30';
-                        const ampm = hour >= 12 ? 'PM' : 'AM';
-                        const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-                        return `${displayHour}:${min} ${ampm}` === editingJob.call_time;
-                      }) && (
-                        <option value={editingJob.call_time}>
-                          {editingJob.call_time}
-                        </option>
+                      {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                      {/* A time saved before this list existed, or typed by an
+                          import, must stay selectable or saving would wipe it. */}
+                      {editingJob.call_time && !TIME_OPTIONS.includes(editingJob.call_time) && (
+                        <option value={editingJob.call_time}>{editingJob.call_time}</option>
                       )}
                     </select>
                   </div>
+                </div>
+
+                {/* Wrap Time */}
+                <div className="md:col-span-1 space-y-1">
+                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Wrap Time</label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white pointer-events-none z-10" />
+                    <select
+                      value={editingJob.wrap_time || ''}
+                      onChange={(e) => setEditingJob(prev => ({ ...prev, wrap_time: e.target.value }))}
+                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white appearance-none cursor-pointer"
+                    >
+                      <option value="">TBD</option>
+                      {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                      {editingJob.wrap_time && !TIME_OPTIONS.includes(editingJob.wrap_time) && (
+                        <option value={editingJob.wrap_time}>{editingJob.wrap_time}</option>
+                      )}
+                    </select>
+                  </div>
+                  {/* A wrap at or before the call is a night shoot, not a
+                      mistake — say so rather than validating it away. */}
+                  {editingJob.call_time && editingJob.wrap_time &&
+                    TIME_OPTIONS.indexOf(editingJob.wrap_time) <= TIME_OPTIONS.indexOf(editingJob.call_time) && (
+                    <p className="text-[9px] text-white/35 ml-1">Runs past midnight into the next day.</p>
+                  )}
                 </div>
 
                 {/* --- section --- */}
@@ -2114,7 +2132,11 @@ function JobCard({
         <div className="space-y-3 mb-6">
           <div className="flex items-center gap-3 text-[11px] font-bold text-white/40">
             <Calendar className="w-4 h-4 text-accent/50 shrink-0" />
-            <span className="tracking-tight">{shootDate} {job.call_time && `• ${job.call_time}`}</span>
+            <span className="tracking-tight">
+              {shootDate}
+              {job.call_time && ` • ${job.call_time}`}
+              {job.call_time && job.wrap_time && ` – ${job.wrap_time}`}
+            </span>
           </div>
           {(job.location_name || job.location_address) && (
             <div className="flex items-start gap-3 text-[11px] font-bold text-white/40">
