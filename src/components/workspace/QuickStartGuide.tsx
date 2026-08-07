@@ -18,7 +18,10 @@ import {
   Link, 
   Sparkles,
   Calendar,
-  Plus
+  Plus,
+  Library,
+  Film,
+  Clapperboard
 } from 'lucide-react';
 
 // --- INTERACTIVE TOUR STEPS ---
@@ -121,7 +124,7 @@ export function QuickStartGuideModal({
               <Briefcase className="w-4 h-4 text-accent mt-0.5 shrink-0" />
               <div>
                 <h5 className="text-[10px] font-black uppercase text-white">Production Slate</h5>
-                <p className="text-[11px] text-white/60">Manage job status, budgets, crew rosters, and export beautiful PDF call sheets.</p>
+                <p className="text-[11px] text-white/60">Every card shows its crew, its deliverables and its billing at a glance. Manage status and budgets, and export PDF call sheets.</p>
               </div>
             </div>
             <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
@@ -143,6 +146,13 @@ export function QuickStartGuideModal({
               <div>
                 <h5 className="text-[10px] font-black uppercase text-white">Rolodex CRM</h5>
                 <p className="text-[11px] text-white/60">A directory of clients, crew members, talent, and vendors with day rates and contact info.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
+              <Library className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+              <div>
+                <h5 className="text-[10px] font-black uppercase text-white">Library</h5>
+                <p className="text-[11px] text-white/60">One place to browse, rename and tidy everything the rest of the app refers to: shoots, projects, clients and the gear catalogue.</p>
               </div>
             </div>
           </div>
@@ -180,14 +190,16 @@ export function QuickStartGuideModal({
       subtitle: "Two-way synchronization",
       icon: Calendar,
       content: (
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[350px] overflow-y-auto no-scrollbar pr-1">
           <p className="text-sm text-white/70 leading-relaxed">
-            Studio OS features a live ICS subscription feed and Google Calendar OAuth integration.
+            The calendar works in both directions: shoots booked here appear on Google, and events
+            added in Google appear here.
           </p>
+
           <div className="bg-black/40 border border-white/5 p-4 rounded-xl space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-[10px] font-black uppercase text-accent">How Sync Works:</h4>
-              <button 
+              <h4 className="text-[10px] font-black uppercase text-accent">Sync</h4>
+              <button
                 onClick={onOpenCalendarSync}
                 className="px-3 py-1 bg-accent/20 hover:bg-accent border border-accent/30 rounded-lg text-[9px] font-black uppercase text-white transition-colors cursor-pointer"
               >
@@ -195,10 +207,94 @@ export function QuickStartGuideModal({
               </button>
             </div>
             <ul className="text-xs text-white/60 space-y-2 list-disc list-inside">
-              <li>Copy the live Webcal link to subscribe in Apple/Google Calendar.</li>
-              <li>Authenticate via Google OAuth to push shifts automatically.</li>
-              <li>Any Google Calendar event prefixed with <span className="text-white font-bold">🎥</span> automatically imports back into your Slate.</li>
+              <li>Connect Google once and saving a production pushes it automatically — with the crew, call time, location and safety details written into the event, so the calendar entry works as a pocket call sheet.</li>
+              <li>Colours match Google&rsquo;s own palette, so a Hold looks the same in both places. Productions are tangerine.</li>
+              <li>Subscribe any calendar app to the feed link for a read-only copy.</li>
             </ul>
+          </div>
+
+          <div className="bg-black/40 border border-white/5 p-4 rounded-xl space-y-3">
+            <h4 className="text-[10px] font-black uppercase text-accent">Clicking a day</h4>
+            <ul className="text-xs text-white/60 space-y-2 list-disc list-inside">
+              <li><span className="text-white font-semibold">Hold, Out of Office, Booked, Meeting</span> — quick markers. A colour and a note, nothing more.</li>
+              <li><span className="text-white font-semibold">New production</span> — opens the full Slate form with that date already filled in, for a real shoot that needs a client, crew and a location.</li>
+            </ul>
+          </div>
+
+          <div className="bg-black/40 border border-white/5 p-4 rounded-xl space-y-2">
+            <h4 className="text-[10px] font-black uppercase text-accent">On a phone</h4>
+            <p className="text-xs text-white/60">
+              The calendar opens as an agenda — a running list of what&rsquo;s coming, with full titles
+              and call times. Switch to the month grid with the toggle at the top when you want to
+              spot a free week.
+            </p>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "What a Production Card Carries",
+      subtitle: "Crew, deliverables and billing at a glance",
+      icon: Clapperboard,
+      content: (
+        <div className="space-y-4 max-h-[350px] overflow-y-auto no-scrollbar pr-1">
+          <p className="text-sm text-white/70 leading-relaxed">
+            Each card on the Slate board shows the three things you usually open a job to check.
+            A block only appears once it has something in it, so an empty shoot stays a title and a date.
+          </p>
+          <div className="space-y-2.5">
+            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
+              <Users className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+              <div>
+                <h5 className="text-[10px] font-black uppercase text-white">Crew</h5>
+                <p className="text-[11px] text-white/60">Who&rsquo;s on it, their position and their call time. Roles you haven&rsquo;t filled yet read <span className="italic">Unassigned</span> rather than hiding — that&rsquo;s the thing still to book.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
+              <Film className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+              <div>
+                <h5 className="text-[10px] font-black uppercase text-white">Deliverables</h5>
+                <p className="text-[11px] text-white/60">Every cutdown the shoot owes. Tap the chip to move one from to&nbsp;do to in&nbsp;progress to delivered. Add them from the card menu; they also show in the Social tab.</p>
+              </div>
+            </div>
+            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
+              <Plus className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+              <div>
+                <h5 className="text-[10px] font-black uppercase text-white">Billing</h5>
+                <p className="text-[11px] text-white/60">Invoiced and quoted totals, read straight from QuickBooks once it&rsquo;s connected. Read-only — nothing here writes to your books.</p>
+              </div>
+            </div>
+          </div>
+          <p className="text-[11px] text-white/45 leading-relaxed">
+            The menu on each card holds the rest: crew &amp; schedule, gear list, call sheet and
+            production brief exports, duplicating a shoot for the next day, and deleting it.
+          </p>
+        </div>
+      )
+    },
+    {
+      title: "The Library",
+      subtitle: "Everything the rest of the app refers to",
+      icon: Library,
+      content: (
+        <div className="space-y-4 max-h-[350px] overflow-y-auto no-scrollbar pr-1">
+          <p className="text-sm text-white/70 leading-relaxed">
+            Shoots, projects, clients and the gear catalogue in one place — for when you want to
+            tidy up, rename something, or add a lot at once.
+          </p>
+          <ul className="text-xs text-white/60 space-y-2 list-disc list-inside">
+            <li>Search across all four at once. Looking for &ldquo;Hudson&rdquo; finds the client and the shoot together.</li>
+            <li>Pick a record to see its details and what it&rsquo;s linked to — a client walks to its projects, and those to their shoots.</li>
+            <li>Sort gear by category, owner or quantity; sort shoots by date, client or status.</li>
+            <li>Tick several rows to remove them together.</li>
+          </ul>
+          <div className="bg-amber-400/5 border border-amber-400/20 p-3 rounded-xl space-y-1.5">
+            <h4 className="text-[10px] font-black uppercase text-amber-300/90">Before you delete</h4>
+            <p className="text-[11px] text-white/60 leading-relaxed">
+              Removing a client or project <span className="text-white">unlinks</span> its shoots — they stay.
+              Deleting a <span className="text-white">shoot</span> is different: its crew, schedule, shot list
+              and budget go with it, and it&rsquo;s cleared from Google Calendar. The confirmation always says which.
+            </p>
           </div>
         </div>
       )
