@@ -1062,7 +1062,7 @@ export default function CommandCenterPage() {
                                     </button>
                                     <button
                                       onClick={(e) => resetWorkspaceForTab(tab.id, e)}
-                                      className="absolute right-9 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-orange-400 transition-opacity z-30 cursor-pointer"
+                                      className="absolute right-9 top-1/2 -translate-y-1/2 max-md:opacity-50 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-orange-400 transition-opacity z-30 cursor-pointer"
                                       title="Reset panels to default view"
                                     >
                                       <RotateCcw className="w-3.5 h-3.5" />
@@ -1075,7 +1075,7 @@ export default function CommandCenterPage() {
                                     always exist in the DOM, so hide it with classes, not unmount. */}
                                 <div
                                   {...provided.dragHandleProps}
-                                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white hover:text-accent transition-opacity cursor-grab active:cursor-grabbing ${(!isSidebarOpen && !isMobile) ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-40 hover:opacity-100'}`}
+                                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white hover:text-accent transition-opacity cursor-grab active:cursor-grabbing ${(!isSidebarOpen && !isMobile) ? 'opacity-0 pointer-events-none' : 'max-md:opacity-40 opacity-0 group-hover:opacity-40 hover:opacity-100'}`}
                                   title="Drag to reorder"
                                   onClick={(e) => e.stopPropagation()}
                                 >

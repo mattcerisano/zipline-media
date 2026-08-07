@@ -482,7 +482,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               onChange={(e) => {
                 if (e.target.value) updateJobEditStatus(e.target.value, firstStageId);
               }}
-              className="bg-accent/10 border border-accent/30 text-accent px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-semibold tracking-tight rounded-xl cursor-pointer appearance-none min-w-[180px]"
+              className="bg-accent/10 border border-accent/30 text-accent px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-semibold tracking-tight rounded-xl cursor-pointer appearance-none w-full sm:w-auto sm:min-w-[180px]"
               title="Pull a Slate production onto the post-production board"
             >
               <option value="">+ Add Production to Board</option>
@@ -493,11 +493,11 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               ))}
             </select>
           )}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
             <select
               value={clientFilter}
               onChange={(e) => { setClientFilter(e.target.value); setProjectFilter('All'); }}
-              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-medium tracking-tight rounded-xl cursor-pointer appearance-none text-white min-w-[120px]"
+              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-medium tracking-tight rounded-xl cursor-pointer appearance-none text-white flex-1 min-w-0 sm:flex-none sm:min-w-[120px]"
             >
               <option value="All">All Clients</option>
               {uniqueClients.map(c => <option key={c as string} value={c as string}>{caps(c as string)}</option>)}
@@ -506,7 +506,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
               disabled={projectsForFilter.length === 0}
-              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-medium tracking-tight rounded-xl cursor-pointer appearance-none text-white min-w-[120px] disabled:opacity-30"
+              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-medium tracking-tight rounded-xl cursor-pointer appearance-none text-white flex-1 min-w-0 sm:flex-none sm:min-w-[120px] disabled:opacity-30"
             >
               <option value="All">All Projects</option>
               {projectsForFilter.map(p => <option key={p.id} value={p.id}>{caps(p.name)}</option>)}

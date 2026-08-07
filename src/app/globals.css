@@ -367,3 +367,48 @@ button, a, [role="button"], input[type="checkbox"], select {
 .studio-os li {
   overflow-wrap: break-word;
 }
+
+/* ============================================================
+   Google Places autocomplete dropdown
+   ============================================================
+
+   Google appends `.pac-container` to <body> with its own z-index of 1000.
+   The production form is a portalled modal at z-9000, so the suggestions
+   rendered *behind* it — you typed an address, the list appeared, and the
+   modal covered it. Same failure as the toasts before they were raised.
+
+   9200 puts it above the modal and still below the Feedback layer at 9500,
+   so a toast is never obscured by a dropdown.
+
+   It also arrives as an unstyled white box, which is jarring against a dark
+   form and was the first thing anyone noticed about it. */
+.pac-container {
+  z-index: 9200 !important;
+  background: #18191d;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  margin-top: 4px;
+  font-family: inherit;
+  overflow: hidden;
+}
+/* Google's own attribution row; hiding it violates their terms. */
+.pac-container:after {
+  background-color: #18191d;
+  opacity: 0.5;
+}
+.pac-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}
+.pac-item:first-child { border-top: 0; }
+.pac-item:hover,
+.pac-item-selected {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+.pac-item-query { color: #fff; font-size: 13px; }
+.pac-matched { color: var(--accent); }
+.pac-icon { filter: invert(1) opacity(0.45); }

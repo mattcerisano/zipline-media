@@ -584,11 +584,11 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
               type="button"
               onClick={() => setMobileView(v)}
               aria-pressed={mobileView === v}
-              className={`flex-1 py-1.5 rounded-md text-xs font-semibold capitalize transition-colors ${
+              className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-colors ${
                 mobileView === v ? 'bg-accent/20 text-accent' : 'text-white/50 hover:text-white'
               }`}
             >
-              {v}
+              {v === 'agenda' ? 'Agenda' : 'Month'}
             </button>
           ))}
         </div>
