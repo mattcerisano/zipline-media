@@ -504,7 +504,10 @@ function WorkspacePanel({
     // panel instead of centering it in the viewport.
     <div className="panel-rise flex-1 bg-zinc-950/60 border border-white/10 rounded-2xl flex flex-col overflow-hidden min-h-0 min-w-0 shadow-xl m-1 group relative">
       {/* Panel Header */}
-      <div className="h-10 bg-black/40 border-b border-white/5 px-3 flex items-center justify-between shrink-0 select-none relative z-40">
+      {/* Desktop only. This strip is the split-panel chrome — tabs, add-tab,
+          split controls — and a phone can't split anything, so it renders one
+          tab, a plus, and ~110px of dead height above every screen. */}
+      <div className="hidden md:h-10 md:flex bg-black/40 border-b border-white/5 px-3 items-center justify-between shrink-0 select-none relative z-40">
         
         <div className="flex items-center gap-1.5 flex-grow min-w-0 h-full">
           {/* Tabs Bar */}

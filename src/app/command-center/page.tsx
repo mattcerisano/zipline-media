@@ -1155,7 +1155,7 @@ export default function CommandCenterPage() {
       <main className="flex-1 overflow-y-auto relative custom-scrollbar flex flex-col z-10">
         {/* z-45 is not a Tailwind scale value, so this compiled to no z-index
             at all and the header's paint order was left to chance. */}
-        <header className="sticky top-0 z-30 bg-black/40 backdrop-blur-xl border-b border-white/5 p-4 md:p-6 flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-30 bg-black/90 md:bg-black/40 backdrop-blur-xl border-b border-white/5 p-3 md:p-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {isMobile && (
               <button
@@ -1166,7 +1166,7 @@ export default function CommandCenterPage() {
               </button>
             )}
             <div>
-              <h2 className="text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-accent/80 mb-1 truncate max-w-[200px] sm:max-w-none">
+              <h2 className="hidden sm:block text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-accent/80 mb-1 truncate max-w-[200px] sm:max-w-none">
                 {activeTabObj ? (
                   activeTabObj.type === 'system' ? (
                     activeTabObj.id === 'dashboard' ? 'Studio Overview' :

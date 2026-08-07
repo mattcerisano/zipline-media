@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Job, CalendarEvent, CalendarEventPreset } from './types';
 import { supabase } from '@/lib/supabase';
-import { todayLocalISO } from '@/lib/date';
+import { todayLocalISO, formatLocalDate } from '@/lib/date';
 import { useRealtime } from '@/lib/useRealtime';
 import { pushJobToGoogleCalendar, pushEventToGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
 import { Modal } from '@/components/workspace/Overlay';
@@ -83,6 +83,13 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  /**
+   * Phones land on the agenda. A month grid needs roughly 100px per column to
+   * fit an event label; at 390px each cell is ~55px, which rendered every
+   * entry as "Th…", "HO…", "PA…". The grid is still the better way to spot a
+   * free week, so it stays a tap away rather than going.
+   */
+  const [mobileView, setMobileView] = useState<'agenda' | 'month'>('agenda');
 
   // Quick calendar markers (gated by enableQuickEvents)
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -474,6 +481,68 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     setSelectedDate(today.toISOString().split('T')[0]);
   };
 
+  /**
+   * Everything on the calendar as one chronological list, from today forward.
+   * Multi-day entries appear once on their start date and say where they run
+   * to, rather than repeating on each day they cover.
+   */
+  const agendaDays = useMemo(() => {
+    if (!isMobile) return [];
+    const today = todayLocalISO();
+
+    type Item = {
+      key: string; date: string; title: string; meta: string;
+      color: string; when: string; job?: Job; event?: CalendarEvent;
+    };
+    const items: Item[] = [];
+
+    for (const job of jobs) {
+      if (!job.shoot_date || job.shoot_date < today) continue;
+      const runsTo = job.end_date && job.end_date > job.shoot_date ? job.end_date : '';
+      items.push({
+        key: `j-${job.id}`,
+        date: job.shoot_date,
+        title: job.title || 'Untitled production',
+        meta: [job.client_name, job.location_name, runsTo && `runs to ${formatLocalDate(runsTo, { month: 'short', day: 'numeric' }, '')}`]
+          .filter(Boolean).join(' · '),
+        color: PRODUCTION_COLOR,
+        when: job.call_time || 'All day',
+        job,
+      });
+    }
+
+    if (enableQuickEvents) {
+      for (const ev of events) {
+        if (!ev.event_date || ev.event_date < today) continue;
+        const runsTo = ev.end_date && ev.end_date > ev.event_date ? ev.end_date : '';
+        items.push({
+          key: `e-${ev.id}`,
+          date: ev.event_date,
+          title: ev.title || presetOf(ev.preset).label,
+          meta: [ev.notes, runsTo && `runs to ${formatLocalDate(runsTo, { month: 'short', day: 'numeric' }, '')}`]
+            .filter(Boolean).join(' · '),
+          color: presetOf(ev.preset).color,
+          when: 'All day',
+          event: ev,
+        });
+      }
+    }
+
+    items.sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
+
+    const days: { date: string; label: string; items: Item[] }[] = [];
+    for (const it of items) {
+      const last = days[days.length - 1];
+      if (last && last.date === it.date) last.items.push(it);
+      else days.push({
+        date: it.date,
+        label: formatLocalDate(it.date, { weekday: 'long', month: 'short', day: 'numeric' }, it.date),
+        items: [it],
+      });
+    }
+    return days;
+  }, [isMobile, jobs, events, enableQuickEvents]);
+
   const getStatusColor = (job: Job) => {
     if (job.type === 'rental') return 'bg-purple-500';
     switch (job.job_status) {
@@ -506,7 +575,66 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
         </div>
       </div>
 
+      {/* Agenda / Month, phones only. Desktop always gets the grid. */}
+      {isMobile && (
+        <div className="flex gap-1 mb-4 bg-black/40 p-1 rounded-lg border border-white/5">
+          {(['agenda', 'month'] as const).map(v => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setMobileView(v)}
+              aria-pressed={mobileView === v}
+              className={`flex-1 py-1.5 rounded-md text-xs font-semibold capitalize transition-colors ${
+                mobileView === v ? 'bg-accent/20 text-accent' : 'text-white/50 hover:text-white'
+              }`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Agenda — a phone can show a full title, which the grid cannot. */}
+      {isMobile && mobileView === 'agenda' && (
+        agendaDays.length === 0 ? (
+          <p className="py-16 text-center text-[11px] text-white/35">
+            Nothing scheduled from today onwards.
+          </p>
+        ) : (
+          <div className="-mx-4 md:mx-0">
+            {agendaDays.map(day => (
+              <div key={day.date}>
+                <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-1.5 bg-neutral-900 border-y border-white/5">
+                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-accent/80">{day.label}</span>
+                  <span className="text-[10px] text-white/25">{day.items.length}</span>
+                </div>
+                {day.items.map(it => (
+                  <button
+                    key={it.key}
+                    type="button"
+                    onClick={() => {
+                      if (it.event) openEditEvent(it.event);
+                      else if (it.job) { if (editable) openEditor(it.job); else onSelectJob?.(it.job); }
+                    }}
+                    className="w-full flex items-start gap-3 px-4 py-3 border-b border-white/5 text-left hover:bg-white/[0.03] transition-colors"
+                  >
+                    <span className="w-1 self-stretch rounded-full shrink-0" style={{ backgroundColor: it.color }} />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[13px] font-medium text-white truncate">{it.title}</span>
+                      {it.meta && <span className="block text-[11px] text-white/45 truncate">{it.meta}</span>}
+                    </span>
+                    <span className="text-[10px] text-white/35 shrink-0 tabular-nums pt-0.5">{it.when}</span>
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
       {/* Weekdays Header */}
+      {(!isMobile || mobileView === 'month') && (
+      <>
       <div className="grid grid-cols-7 mb-2 border-b border-white/5 pb-2">
         {(isMobile 
           ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] 
@@ -691,6 +819,8 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
           );
         })}
       </div>
+      </>
+      )}
 
       {/* Selected Day Details Drawer (Visible on Mobile only) */}
       <AnimatePresence>

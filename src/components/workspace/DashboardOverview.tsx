@@ -275,7 +275,7 @@ export default function DashboardOverview({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-4">
       {showStats && (
         <>
       {widgets.stat_booked && (
@@ -481,21 +481,21 @@ function StatCard({
   isLoading 
 }: StatCardProps) {
   return (
-    <div className="bg-zinc-950/40 backdrop-blur-md border border-white/10 p-4 rounded-2xl hover:border-accent/30 hover:shadow-[0_0_30px_rgba(0,119,255,0.1)] hover:-translate-y-0.5 transition-all duration-300 group relative overflow-hidden">
+    <div className="bg-zinc-950/40 backdrop-blur-md border border-white/10 p-2.5 md:p-4 rounded-xl md:rounded-2xl hover:border-accent/30 hover:shadow-[0_0_30px_rgba(0,119,255,0.1)] hover:-translate-y-0.5 transition-all duration-300 group relative overflow-hidden">
       {/* Top gradient line */}
       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:via-accent/40 transition-all duration-300" />
 
-      <div className="flex items-center justify-between mb-2.5">
-        <div className="w-9 h-9 bg-white/5 rounded-xl flex items-center justify-center group-hover:bg-accent/10 transition-colors">
+      <div className="flex items-center justify-between mb-1.5 md:mb-2.5">
+        <div className="hidden md:flex w-9 h-9 bg-white/5 rounded-xl items-center justify-center group-hover:bg-accent/10 transition-colors">
           <Icon className="w-4.5 h-4.5 text-white/40 group-hover:text-accent transition-colors" />
         </div>
         {isLoading ? (
           <div className="h-5 w-20 bg-white/5 rounded animate-pulse" />
         ) : (
-          <span className="text-[10px] font-medium text-green-400 tracking-wide bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/15">{trend}</span>
+          <span className="hidden md:inline text-[10px] font-medium text-green-400 tracking-wide bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/15">{trend}</span>
         )}
       </div>
-      <h3 className="text-[11px] font-medium text-white/40 uppercase tracking-[0.12em] mb-0.5">{title}</h3>
+      <h3 className="text-[9px] md:text-[11px] font-medium text-white/40 uppercase tracking-[0.12em] mb-0.5 truncate">{title}</h3>
       {isLoading ? (
         <div className="h-8 w-24 bg-white/10 rounded animate-pulse mt-1" />
       ) : (
