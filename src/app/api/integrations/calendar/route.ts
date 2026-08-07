@@ -58,6 +58,7 @@ function buildEventTiming(job: {
   shoot_date?: string | null;
   end_date?: string | null;
   call_time?: string | null;
+  wrap_time?: string | null;
 }): { start: Record<string, string>; end: Record<string, string> } {
   const startDate = job.shoot_date || new Date().toISOString().split('T')[0];
   // An end_date at or before the start is a stale/no-op value, not a span.
@@ -74,12 +75,28 @@ function buildEventTiming(job: {
   }
 
   const hhmm = `${String(call.hour).padStart(2, '0')}:${String(call.minute).padStart(2, '0')}:00`;
-  const wrapHour = (call.hour + DEFAULT_SHOOT_HOURS) % 24;
-  // A call late enough that the default day runs past midnight pushes the end
-  // onto the next date rather than ending before it starts.
-  const wrapsMidnight = call.hour + DEFAULT_SHOOT_HOURS >= 24;
-  const endDate = wrapsMidnight ? addDays(lastDate, 1) : lastDate;
-  const endHhmm = `${String(wrapHour).padStart(2, '0')}:${String(call.minute).padStart(2, '0')}:00`;
+
+  // A real wrap time beats the eight-hour estimate. Without one, every shoot
+  // claimed the same length on the calendar — a half-day looked full and a
+  // fourteen-hour day looked short to anyone checking availability.
+  const wrap = parseCallTime(job.wrap_time);
+  let endHhmm: string;
+  let endDate: string;
+
+  if (wrap) {
+    // A wrap at or before the call is a night shoot running past midnight,
+    // not bad data — roll the end onto the following day so it can't end
+    // before it starts.
+    const crossesMidnight =
+      wrap.hour * 60 + wrap.minute <= call.hour * 60 + call.minute;
+    endDate = crossesMidnight ? addDays(lastDate, 1) : lastDate;
+    endHhmm = `${String(wrap.hour).padStart(2, '0')}:${String(wrap.minute).padStart(2, '0')}:00`;
+  } else {
+    const wrapHour = (call.hour + DEFAULT_SHOOT_HOURS) % 24;
+    const wrapsMidnight = call.hour + DEFAULT_SHOOT_HOURS >= 24;
+    endDate = wrapsMidnight ? addDays(lastDate, 1) : lastDate;
+    endHhmm = `${String(wrapHour).padStart(2, '0')}:${String(call.minute).padStart(2, '0')}:00`;
+  }
 
   return {
     start: { dateTime: `${startDate}T${hhmm}`, timeZone: STUDIO_TIME_ZONE },

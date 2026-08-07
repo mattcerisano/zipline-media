@@ -106,9 +106,23 @@ export async function GET(request: Request) {
       // the server clock — UTC on Vercel — is what shifted an 8:00 AM call to
       // 4:00 AM for anyone subscribed from Eastern time.
       const start = zonedWallClockToDate(shootDate, call, STUDIO_TIME_ZONE);
-      const end = zonedWallClockToDate(lastDate, call, STUDIO_TIME_ZONE);
-      if (!start || !end) continue;
-      const endInstant = new Date(end.getTime() + DEFAULT_SHOOT_HOURS * 60 * 60 * 1000);
+      if (!start) continue;
+
+      // Use the booked wrap when there is one; the eight-hour default only
+      // stands in for shoots nobody has scheduled an end for yet.
+      const wrap = parseCallTime(job.wrap_time);
+      let endInstant: Date;
+      if (wrap) {
+        const crossesMidnight = wrap.hour * 60 + wrap.minute <= call.hour * 60 + call.minute;
+        const wrapDate = crossesMidnight ? addDays(lastDate, 1) : lastDate;
+        const resolved = zonedWallClockToDate(wrapDate, wrap, STUDIO_TIME_ZONE);
+        if (!resolved) continue;
+        endInstant = resolved;
+      } else {
+        const end = zonedWallClockToDate(lastDate, call, STUDIO_TIME_ZONE);
+        if (!end) continue;
+        endInstant = new Date(end.getTime() + DEFAULT_SHOOT_HOURS * 60 * 60 * 1000);
+      }
 
       // Emitted as UTC so every subscriber, in any timezone, sees the same
       // moment rendered in their own local time.
