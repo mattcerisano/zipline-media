@@ -202,6 +202,28 @@ export default function Slate({
     }));
   }, []);
 
+  /**
+   * A venue picked by name. Fills the address too — that's the point of
+   * searching by name — but never overwrites an address already typed, since
+   * a shoot can be at a suite or a loading dock the place listing won't know.
+   */
+  const handleVenueSelected = useCallback((place: any) => {
+    if (!place) return;
+    const name: string = place.name || '';
+    const address: string = place.formatted_address || '';
+    setEditingJob(prev => ({
+      ...prev,
+      location_name: name || prev.location_name || '',
+      location_address: prev.location_address?.trim() ? prev.location_address : address,
+    }));
+  }, []);
+
+  /** Free-typed venue names have to survive: not every location is on Google. */
+  const handleVenueBlur = useCallback((e: any) => {
+    const val = e.target.value;
+    setEditingJob(prev => ({ ...prev, location_name: val }));
+  }, []);
+
   const handleAddressBlur = useCallback((e: any) => {
     const val = e.target.value;
     setEditingJob(prev => ({ ...prev, location_address: val }));
@@ -1555,16 +1577,30 @@ export default function Slate({
                   <div className="h-px bg-white/10 flex-1" />
                 </div>
 
-                {/* Location Name */}
+                {/* Location Name — searches places by name and fills the
+                    address from the pick. Free text still works: a location
+                    that isn't on Google ("Matt's garage") saves on blur. */}
                 <div className="md:col-span-2 space-y-1">
                   <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Location Name</label>
-                  <input 
-                    type="text"
-                    placeholder="e.g. Hudson Theatre"
-                    value={editingJob.location_name || ''}
-                    onChange={(e) => setEditingJob(prev => ({ ...prev, location_name: e.target.value }))}
-                    className="w-full bg-black/50 border border-white/10 py-2.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
-                  />
+                  <div className="relative flex">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white z-10" />
+                    <Autocomplete
+                      key={`name-${editingJob.id || 'new'}-${editingJob.location_name || ''}`}
+                      apiKey={GOOGLE_MAPS_API_KEY}
+                      // `establishment` biases to venues rather than street
+                      // addresses — searching by name means searching for a
+                      // place, and the address field covers the other case.
+                      options={{
+                        types: ['establishment'],
+                        fields: ['name', 'formatted_address', 'geometry.location', 'place_id'],
+                      }}
+                      onPlaceSelected={handleVenueSelected}
+                      defaultValue={editingJob.location_name || ''}
+                      placeholder="e.g. Hudson Theatre"
+                      className="w-full bg-black/50 border border-white/10 py-2.5 pl-9 pr-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
+                      onBlur={handleVenueBlur}
+                    />
+                  </div>
                 </div>
 
                 {/* Full Address */}
@@ -1573,7 +1609,7 @@ export default function Slate({
                   <div className="relative flex">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white z-10" />
                     <Autocomplete
-                      key={editingJob.id || 'new-address'}
+                      key={`addr-${editingJob.id || 'new'}-${editingJob.location_address || ''}`}
                       apiKey={GOOGLE_MAPS_API_KEY}
                       // The library's default field list omits `name`, so
                       // place.name came back undefined and Location Name never
