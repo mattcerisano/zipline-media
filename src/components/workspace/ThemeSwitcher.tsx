@@ -32,7 +32,7 @@ export default function ThemeSwitcher() {
           >
             <Icon className={`w-5 h-5 ${active ? 'text-accent' : ''}`} />
             <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-            <span className="text-[8px] font-bold uppercase tracking-wider text-white/30">{hint}</span>
+            <span className="text-[11px] md:text-[8px] font-bold uppercase tracking-wider text-white/30">{hint}</span>
           </button>
         );
       })}

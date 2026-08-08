@@ -746,7 +746,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                   className="relative z-10 mx-0.5 mb-0.5 px-1.5 py-[3px] rounded text-left overflow-hidden hover:brightness-110 transition-all"
                   title={b.job ? `${b.label}${b.time ? ` · ${b.time}` : ''}` : b.label}
                 >
-                  <span className="block text-[9px] md:text-[10px] font-semibold text-white truncate leading-tight drop-shadow-sm">
+                  <span className="block text-[11px] md:text-[9px] md:text-[10px] font-semibold text-white truncate leading-tight drop-shadow-sm">
                     {b.continuesLeft && '‹ '}
                     {b.job && '🎥 '}
                     {b.label}
@@ -763,7 +763,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                     key={`o-${c.date}`}
                     onClick={(e) => { e.stopPropagation(); setSelectedDate(c.date); onSelectDate?.(c.date); }}
                     style={{ gridColumn: ci + 1, gridRow: laneCount + 2 }}
-                    className="relative z-10 mx-0.5 mb-0.5 px-1.5 text-left text-[9px] font-semibold text-white/50 hover:text-white transition-colors self-start"
+                    className="relative z-10 mx-0.5 mb-0.5 px-1.5 text-left text-[11px] md:text-[9px] font-semibold text-white/50 hover:text-white transition-colors self-start"
                   >
                     +{week.overflow[c.date]} more
                   </button>
@@ -810,7 +810,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                             style={{ backgroundColor: PRODUCTION_COLOR }}
                           />
                           <span className="text-[10px] font-semibold text-white/80">New production</span>
-                          <span className="ml-auto text-[9px] text-white/30">Full details</span>
+                          <span className="ml-auto text-[11px] md:text-[9px] text-white/30">Full details</span>
                         </button>
                       </>
                     )}
@@ -841,7 +841,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                   day: 'numeric',
                 })}
               </h3>
-              <span className="text-[9px] font-semibold opacity-40 text-white">
+              <span className="text-[11px] md:text-[9px] font-semibold opacity-40 text-white">
                 {selectedDateJobs.length} {selectedDateJobs.length === 1 ? 'Job' : 'Jobs'}
               </span>
             </div>
@@ -857,7 +857,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
                     >
                       <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-                      <span className="text-[9px] font-semibold text-white/80">{p.label}</span>
+                      <span className="text-[11px] md:text-[9px] font-semibold text-white/80">{p.label}</span>
                     </button>
                   ))}
                 </div>
@@ -903,7 +903,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                           </span>
                         )}
                       </div>
-                      <p className="text-[9px] font-semibold text-white/40 truncate pl-4">
+                      <p className="text-[11px] md:text-[9px] font-semibold text-white/40 truncate pl-4">
                         {job.client_name || 'No Client'} {job.location_name ? `• ${job.location_name}` : ''}
                       </p>
                     </div>
@@ -941,7 +941,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
         <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/50">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: presetOf('google').color }} /> From Google
         </span>
-        <span className="text-[9px] text-white/25 ml-auto hidden md:block">Colours match your Google Calendar</span>
+        <span className="text-[11px] md:text-[9px] text-white/25 ml-auto hidden md:block">Colours match your Google Calendar</span>
       </div>
 
       {/* Calendar event form — create and edit share one sheet. Portalled, so
@@ -990,7 +990,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
             className="space-y-4"
           >
             <div className="space-y-1.5">
-              <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Event Name</label>
+              <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Event Name</label>
               <input
                 autoFocus
                 value={eventDraft.title || ''}
@@ -1001,7 +1001,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Type</label>
+              <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Type</label>
               <div className="grid grid-cols-2 gap-2">
                 {QUICK_ADD_PRESETS.map(p => {
                   const active = eventDraft.preset === p.key;
@@ -1032,7 +1032,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Starts</label>
+                <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Starts</label>
                 <input
                   type="date"
                   value={eventDraft.event_date || ''}
@@ -1041,7 +1041,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">
+                <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">
                   Ends <span className="opacity-50 normal-case tracking-normal font-medium">(optional)</span>
                 </label>
                 <input
@@ -1053,12 +1053,12 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                 />
               </div>
             </div>
-            <p className="text-[9px] text-white/30 -mt-1 ml-1">
+            <p className="text-[11px] md:text-[9px] text-white/30 -mt-1 ml-1">
               Leave the end date blank for a single day. A range paints across every day it covers.
             </p>
 
             <div className="space-y-1.5">
-              <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Notes</label>
+              <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Notes</label>
               <textarea
                 rows={3}
                 value={eventDraft.notes || ''}

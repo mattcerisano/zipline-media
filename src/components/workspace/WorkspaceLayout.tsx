@@ -591,7 +591,7 @@ function WorkspacePanel({
                         <button
                           key={job.id}
                           onClick={() => handleAddJobTab(job.id)}
-                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2 text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
+                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
                         >
                           <span className="truncate max-w-[150px]">{job.title}</span>
                           {job.client_name && (
@@ -600,7 +600,7 @@ function WorkspacePanel({
                         </button>
                       ))}
                       {jobs.length === 0 && (
-                        <p className="text-[8px] text-white/30 px-2.5 py-3 uppercase tracking-widest text-center">No Active Jobs Found</p>
+                        <p className="text-[11px] md:text-[8px] text-white/30 px-2.5 py-3 uppercase tracking-widest text-center">No Active Jobs Found</p>
                       )}
                     </div>
                     
@@ -617,7 +617,7 @@ function WorkspacePanel({
                               <button
                                 key={key}
                                 onClick={() => handleAddTab(key)}
-                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[8px] font-bold text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[11px] md:text-[8px] font-bold text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
                               >
                                 <Icon className="w-3.5 h-3.5 text-accent" />
                                 <span>{WIDGET_LABELS[key]}</span>
@@ -626,7 +626,7 @@ function WorkspacePanel({
                           })}
                           <button
                             onClick={() => handleAddTab('embed_' + Date.now())}
-                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[8px] font-bold text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[11px] md:text-[8px] font-bold text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
                           >
                             <Link className="w-3.5 h-3.5 text-accent" />
                             <span>Web Embed</span>
@@ -644,7 +644,7 @@ function WorkspacePanel({
                         <button
                           key={key}
                           onClick={() => handleAddTab(key)}
-                          className="w-full flex items-center gap-2 px-2.5 py-2 text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
+                          className="w-full flex items-center gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
                         >
                           <Icon className="w-3.5 h-3.5 text-accent" />
                           <span>{WIDGET_LABELS[key]}</span>
@@ -653,7 +653,7 @@ function WorkspacePanel({
                     })}
                     <button
                       onClick={() => handleAddTab('embed_' + Date.now())}
-                      className="w-full flex items-center gap-2 px-2.5 py-2 text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider border-t border-white/5"
+                      className="w-full flex items-center gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider border-t border-white/5"
                     >
                       <Link className="w-3.5 h-3.5 text-accent" />
                       <span>Web Embed</span>
@@ -763,12 +763,12 @@ function EmbedWidget({
         </div>
         <div className="text-center">
           <h4 className="text-[10px] font-black uppercase tracking-wider text-white">Embed External Tool</h4>
-          <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-1">Embed Trello, Vimeo, Figma, Frame.io or any page</p>
+          <p className="text-[11px] md:text-[8px] font-bold text-white/30 uppercase tracking-widest mt-1">Embed Trello, Vimeo, Figma, Frame.io or any page</p>
         </div>
 
         <div className="w-full max-w-xs space-y-3">
           <div>
-            <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Widget Label</label>
+            <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Widget Label</label>
             <input 
               type="text" 
               placeholder="E.G. FIGMA BOARD"
@@ -778,7 +778,7 @@ function EmbedWidget({
             />
           </div>
           <div>
-            <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Tool URL</label>
+            <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Tool URL</label>
             <input 
               type="text" 
               placeholder="https://trello.com/b/..."
@@ -791,25 +791,25 @@ function EmbedWidget({
           <div className="flex gap-1.5 flex-wrap justify-center py-1">
             <button 
               onClick={() => handlePreset('https://trello.com', 'Trello')}
-              className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-bold uppercase tracking-wider text-white/60 hover:text-white"
+              className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] md:text-[8px] font-bold uppercase tracking-wider text-white/60 hover:text-white"
             >
               Trello
             </button>
             <button 
               onClick={() => handlePreset('https://figma.com', 'Figma')}
-              className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-bold uppercase tracking-wider text-white/60 hover:text-white"
+              className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] md:text-[8px] font-bold uppercase tracking-wider text-white/60 hover:text-white"
             >
               Figma
             </button>
             <button 
               onClick={() => handlePreset('https://vimeo.com', 'Vimeo')}
-              className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-bold uppercase tracking-wider text-white/60 hover:text-white"
+              className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] md:text-[8px] font-bold uppercase tracking-wider text-white/60 hover:text-white"
             >
               Vimeo
             </button>
             <button 
               onClick={() => handlePreset('https://frame.io', 'Frame.io')}
-              className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-bold uppercase tracking-wider text-white/60 hover:text-white"
+              className="px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] md:text-[8px] font-bold uppercase tracking-wider text-white/60 hover:text-white"
             >
               Frame.io
             </button>
@@ -819,7 +819,7 @@ function EmbedWidget({
             {currentUrl && (
               <button 
                 onClick={() => setIsEditing(false)}
-                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-all"
+                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-all"
               >
                 Cancel
               </button>
@@ -827,7 +827,7 @@ function EmbedWidget({
             <button 
               onClick={handleSave}
               disabled={!urlInput.trim()}
-              className="flex-grow py-2.5 bg-accent hover:bg-white hover:text-black text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-grow py-2.5 bg-accent hover:bg-white hover:text-black text-white text-[11px] md:text-[9px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Save Embed
             </button>
@@ -843,7 +843,7 @@ function EmbedWidget({
       <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover/embed:opacity-100 transition-opacity z-30">
         <button 
           onClick={() => setIsEditing(true)}
-          className="px-2 py-1 bg-black/85 hover:bg-black border border-white/10 hover:border-white/20 rounded-lg text-white/60 hover:text-white text-[8px] font-black uppercase tracking-widest flex items-center gap-1 transition-all cursor-pointer"
+          className="px-2 py-1 bg-black/85 hover:bg-black border border-white/10 hover:border-white/20 rounded-lg text-white/60 hover:text-white text-[11px] md:text-[8px] font-black uppercase tracking-widest flex items-center gap-1 transition-all cursor-pointer"
           title="Configure Embed"
         >
           Configure
@@ -1075,7 +1075,7 @@ function ScriptWidget() {
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setIsPlaying(!isPlaying)}
-              className="px-4 py-2 bg-accent hover:bg-accent/80 text-white rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all"
+              className="px-4 py-2 bg-accent hover:bg-accent/80 text-white rounded-lg text-[11px] md:text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all"
             >
               {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
               {isPlaying ? 'Pause' : 'Scroll'}
@@ -1085,19 +1085,19 @@ function ScriptWidget() {
                 if (scrollRef.current) scrollRef.current.scrollTop = 0;
                 setIsPlaying(false);
               }}
-              className="px-3 py-2 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+              className="px-3 py-2 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white rounded-lg text-[11px] md:text-[9px] font-black uppercase tracking-widest transition-all"
             >
               Reset
             </button>
             <button 
               onClick={() => setIsFlipped(!isFlipped)}
-              className={`px-3 py-2 border rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${isFlipped ? 'bg-accent/20 border-accent/20 text-accent' : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-white'}`}
+              className={`px-3 py-2 border rounded-lg text-[11px] md:text-[9px] font-black uppercase tracking-widest transition-all ${isFlipped ? 'bg-accent/20 border-accent/20 text-accent' : 'bg-white/5 border-white/5 text-white/60 hover:bg-white/10 hover:text-white'}`}
             >
               Flip/Mirror
             </button>
           </div>
 
-          <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-white/40">
+          <div className="flex items-center gap-4 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40">
             <div className="flex items-center gap-2">
               <span>Speed: {scrollSpeed}x</span>
               <input 
@@ -1164,7 +1164,7 @@ function ScriptWidget() {
         </div>
         <button 
           onClick={() => setIsTeleprompter(true)}
-          className="px-4 py-1.5 bg-accent hover:bg-white hover:text-black text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-1 shadow-lg shadow-accent/15"
+          className="px-4 py-1.5 bg-accent hover:bg-white hover:text-black text-white text-[11px] md:text-[9px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-1 shadow-lg shadow-accent/15"
         >
           <Play className="w-3 h-3 fill-current" /> Teleprompter Mode
         </button>
@@ -1283,12 +1283,12 @@ function ClockWidget() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
         <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col justify-center items-center text-center">
-          <p className="text-[8px] font-black uppercase tracking-widest text-white/40">Local Time</p>
+          <p className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40">Local Time</p>
           <p className="text-2xl font-black tracking-tight text-accent mt-2 font-mono">{localTime}</p>
         </div>
 
         <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col justify-center items-center text-center relative group/countdown">
-          <p className="text-[8px] font-black uppercase tracking-widest text-white/40">Target Countdown</p>
+          <p className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40">Target Countdown</p>
           <p className="text-xl font-black tracking-tight text-white mt-2 font-mono">{countdownString}</p>
           
           <div className="mt-2 flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-lg px-2 py-1 focus-within:border-accent/40">
@@ -1297,40 +1297,40 @@ function ClockWidget() {
               type="time" 
               value={countdownTarget}
               onChange={(e) => setCountdownTarget(e.target.value)}
-              className="bg-transparent border-0 p-0 text-[9px] font-black text-white outline-none w-16 cursor-pointer"
+              className="bg-transparent border-0 p-0 text-[11px] md:text-[9px] font-black text-white outline-none w-16 cursor-pointer"
             />
           </div>
         </div>
 
         <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col justify-center items-center text-center">
-          <p className="text-[8px] font-black uppercase tracking-widest text-white/40">Set Stopwatch</p>
+          <p className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40">Set Stopwatch</p>
           <p className="text-xl font-black tracking-tight text-white mt-1.5 font-mono">{formatStopwatch(stopwatchTime)}</p>
           
           <div className="flex gap-2 mt-3">
             <button 
               onClick={() => setStopwatchRunning(!stopwatchRunning)}
-              className={`px-3 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${stopwatchRunning ? 'bg-amber-500/20 text-amber-500 border border-amber-500/20' : 'bg-accent text-white shadow-md shadow-accent/15'}`}
+              className={`px-3 py-1.5 text-[11px] md:text-[8px] font-black uppercase tracking-widest rounded-lg transition-all ${stopwatchRunning ? 'bg-amber-500/20 text-amber-500 border border-amber-500/20' : 'bg-accent text-white shadow-md shadow-accent/15'}`}
             >
               {stopwatchRunning ? 'Pause' : 'Start'}
             </button>
             {stopwatchRunning && (
               <button 
                 onClick={handleLap}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/80 border border-white/5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/80 border border-white/5 rounded-lg text-[11px] md:text-[8px] font-black uppercase tracking-widest transition-all"
               >
                 Lap
               </button>
             )}
             <button 
               onClick={handleResetStopwatch}
-              className="px-2 py-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-lg text-[8px] font-black uppercase tracking-widest transition-all"
+              className="px-2 py-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-lg text-[11px] md:text-[8px] font-black uppercase tracking-widest transition-all"
             >
               Reset
             </button>
           </div>
 
           {laps.length > 0 && (
-            <div className="mt-3 w-full max-h-16 overflow-y-auto border-t border-white/5 pt-2 text-[8px] font-mono text-white/40 space-y-0.5 text-left uppercase">
+            <div className="mt-3 w-full max-h-16 overflow-y-auto border-t border-white/5 pt-2 text-[11px] md:text-[8px] font-mono text-white/40 space-y-0.5 text-left uppercase">
               {laps.slice().reverse().map((lap, i) => (
                 <div key={i} className="flex justify-between">
                   <span>Lap {laps.length - i}</span>

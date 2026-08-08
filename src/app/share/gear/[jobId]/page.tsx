@@ -478,7 +478,7 @@ export default function ShareGearPage() {
             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Gear Collaboration Feed</span>
             <div className="flex items-center gap-2 px-2.5 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full">
               <div className={`w-1.5 h-1.5 bg-green-500 rounded-full ${saveStatus === 'Saving' ? 'animate-ping' : ''}`} />
-              <span className="text-[8px] font-black uppercase tracking-widest text-green-400">
+              <span className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-green-400">
                 {saveStatus === 'Saving' ? 'Syncing...' : saveStatus === 'Error' ? 'Sync Failed' : 'Live Sync'}
               </span>
             </div>
@@ -550,7 +550,7 @@ export default function ShareGearPage() {
                 >
                   <div className="flex-1 min-w-0 pr-4">
                     <p className={`text-xs font-bold uppercase ${currentCount > 0 ? 'text-accent' : 'text-white'}`}>{item.name}</p>
-                    <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mt-1">
+                    <p className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30 mt-1">
                       {item.category} • Qty: {item.qty} {item.owner ? `• ${item.owner}` : ''}
                     </p>
                   </div>
@@ -576,7 +576,7 @@ export default function ShareGearPage() {
                     ) : (
                       <button 
                         onClick={() => updateQty(item.name, 1)}
-                        className="py-2 px-4 bg-white/5 border border-white/10 text-white hover:bg-accent hover:border-accent hover:text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition-all"
+                        className="py-2 px-4 bg-white/5 border border-white/10 text-white hover:bg-accent hover:border-accent hover:text-white text-[11px] md:text-[9px] font-black uppercase tracking-widest rounded-lg transition-all"
                       >
                         Add
                       </button>
@@ -614,7 +614,7 @@ export default function ShareGearPage() {
                 </h3>
                 {Object.entries(manifestByOwner[owner]).map(([cat, items]) => (
                   <div key={cat} className="space-y-2">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-accent/60 pl-2">{cat}</p>
+                    <p className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-accent/60 pl-2">{cat}</p>
                     <div className="space-y-1.5">
                       {items.map(item => {
                         const inv = allInventory.find(i => i.name === item.name);
@@ -622,7 +622,7 @@ export default function ShareGearPage() {
                           <div key={item.name} className="flex items-center justify-between p-3 bg-black/45 border border-white/5 rounded-xl group transition-all">
                             <div className="flex-1 min-w-0 pr-4">
                               <p className="text-xs font-bold uppercase text-white/95 truncate">{item.name}</p>
-                              <p className="text-[8px] font-black uppercase tracking-widest text-white/30 mt-0.5">
+                              <p className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30 mt-0.5">
                                 Qty: {item.count} {inv?.replacement ? `• $${(inv.replacement * item.count).toLocaleString()}` : ''}
                               </p>
                             </div>
@@ -653,7 +653,7 @@ export default function ShareGearPage() {
               <div className="py-24 text-center opacity-25 border border-dashed border-white/10 rounded-2xl h-full flex flex-col justify-center items-center">
                 <Package className="w-12 h-12 mb-3 text-accent animate-bounce" />
                 <p className="text-xs font-bold uppercase tracking-widest">Manifest is empty.</p>
-                <p className="text-[9px] font-bold uppercase tracking-widest mt-1 opacity-55">Select gear from catalog to add.</p>
+                <p className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest mt-1 opacity-55">Select gear from catalog to add.</p>
               </div>
             )}
           </div>
@@ -693,13 +693,13 @@ export default function ShareGearPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-black uppercase tracking-tighter text-white">Add Custom Item</h3>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/30">Collaborator Custom Gear Builder</p>
+                  <p className="text-[11px] md:text-[9px] font-bold uppercase tracking-[0.3em] text-white/30">Collaborator Custom Gear Builder</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Item Name</label>
+                  <label className="text-[11px] md:text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Item Name</label>
                   <input 
                     type="text" 
                     value={customName}
@@ -711,7 +711,7 @@ export default function ShareGearPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Category</label>
+                    <label className="text-[11px] md:text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Category</label>
                     <select
                       value={customCategory}
                       onChange={(e) => setCustomCategory(e.target.value)}
@@ -723,7 +723,7 @@ export default function ShareGearPage() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Owner / Source</label>
+                    <label className="text-[11px] md:text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Owner / Source</label>
                     <input 
                       type="text" 
                       value={customOwner}
@@ -736,7 +736,7 @@ export default function ShareGearPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Max Quantity Available</label>
+                    <label className="text-[11px] md:text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Max Quantity Available</label>
                     <input 
                       type="number" 
                       min={1}
@@ -746,7 +746,7 @@ export default function ShareGearPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Replacement Value ($)</label>
+                    <label className="text-[11px] md:text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Replacement Value ($)</label>
                     <input 
                       type="number" 
                       min={0}

@@ -26,7 +26,7 @@ const EVENT_META: { key: string; label: string }[] = [
 const PLACEHOLDERS = '{title} · {client} · {production_company} · {shoot_date} · {location} · {old_status} · {new_status}';
 
 const inputClass = 'w-full bg-black/50 border border-white/10 py-2.5 px-3 rounded-lg outline-none focus:border-accent text-sm text-white transition-colors';
-const labelClass = 'block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5';
+const labelClass = 'block text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5';
 
 interface Props {
   isAdmin: boolean;
@@ -220,7 +220,7 @@ export default function IntegrationsSettings({ isAdmin, onMessage }: Props) {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] font-black uppercase tracking-widest text-white">{label}</span>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/40">
+                    <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40">
                       {channel.enabled ? 'On' : 'Off'}
                     </span>
                     <input
@@ -240,11 +240,11 @@ export default function IntegrationsSettings({ isAdmin, onMessage }: Props) {
                   onChange={(e) => updateChannel(platform, { webhook_url: e.target.value })}
                 />
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-[9px] text-white/30 tracking-wide">{hint}</span>
+                  <span className="text-[11px] md:text-[9px] text-white/30 tracking-wide">{hint}</span>
                   <button
                     onClick={() => sendTest(platform)}
                     disabled={testing === platform || !channel.webhook_url}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors disabled:opacity-40"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors disabled:opacity-40"
                   >
                     {testing === platform ? (
                       <Loader2 className="w-3 h-3 animate-spin" />
@@ -270,7 +270,7 @@ export default function IntegrationsSettings({ isAdmin, onMessage }: Props) {
         <p className="text-[10px] text-white/40 mb-1 leading-relaxed">
           Toggle which events notify the team and customize the message. Placeholders:
         </p>
-        <p className="text-[9px] text-white/30 mb-3 font-mono break-words">{PLACEHOLDERS}</p>
+        <p className="text-[11px] md:text-[9px] text-white/30 mb-3 font-mono break-words">{PLACEHOLDERS}</p>
         <div className="space-y-3">
           {EVENT_META.map(({ key, label }) => {
             const ev = events.find((e) => e.event_key === key) || { id: '', event_key: key, enabled: false };

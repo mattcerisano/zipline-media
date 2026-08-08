@@ -245,7 +245,7 @@ export default function IntegrationsHub() {
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] font-bold text-white">{label}</p>
-                <p className="text-[9px] text-white/35 leading-snug mt-0.5">{desc}</p>
+                <p className="text-[11px] md:text-[9px] text-white/35 leading-snug mt-0.5">{desc}</p>
               </div>
             </div>
           ))}
@@ -306,7 +306,7 @@ export default function IntegrationsHub() {
           <div className="min-w-0">
             <h3 className="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
               <Receipt className="w-4 h-4 text-accent" /> QuickBooks
-              <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40">
+              <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40">
                 Read-only
               </span>
             </h3>
@@ -317,7 +317,7 @@ export default function IntegrationsHub() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {qb?.environment === 'sandbox' && qb?.connected && (
-              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
+              <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
                 Sandbox
               </span>
             )}
@@ -389,9 +389,9 @@ export default function IntegrationsHub() {
             <p className="text-[10px] text-white/40 mt-1 leading-relaxed">
               Subscribe from Google Calendar or Apple Calendar (&ldquo;Add calendar → From URL&rdquo;) and every booked shoot appears automatically — no account connection required.
             </p>
-            <p className="text-[9px] text-white/25 font-mono mt-2 break-all">{feedUrl}</p>
+            <p className="text-[11px] md:text-[9px] text-white/25 font-mono mt-2 break-all">{feedUrl}</p>
             {feed && !feed.secured && (
-              <p className="text-[9px] font-bold text-amber-400/90 mt-2 leading-relaxed">
+              <p className="text-[11px] md:text-[9px] font-bold text-amber-400/90 mt-2 leading-relaxed">
                 This feed is readable by anyone who knows the URL — including job titles, clients, and notes.
                 Set <span className="font-mono">CALENDAR_FEED_TOKEN</span> in the environment to lock it to a secret link.
               </p>

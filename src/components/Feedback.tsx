@@ -190,7 +190,7 @@ export default function FeedbackHost() {
                 )}
                 <div className="space-y-1.5">
                   {promptReq.label && (
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">{promptReq.label}</label>
+                    <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">{promptReq.label}</label>
                   )}
                   <input
                     autoFocus

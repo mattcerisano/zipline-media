@@ -41,7 +41,7 @@ export default function GearBuilderPage() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Password</label>
+              <label className="text-[11px] md:text-[9px] font-bold tracking-[0.3em] uppercase opacity-40 ml-1">Password</label>
               <input 
                 type="password" 
                 value={passwordInput}

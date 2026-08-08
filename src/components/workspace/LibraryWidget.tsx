@@ -543,7 +543,7 @@ export default function LibraryWidget() {
           })}
 
           {!searching && (
-            <label className="ml-auto flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-white/30">
+            <label className="ml-auto flex items-center gap-1.5 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/30">
               Sort
               <select
                 value={sortKey}
@@ -630,8 +630,8 @@ export default function LibraryWidget() {
                 <React.Fragment key={section.heading ?? '__all__'}>
                   {section.heading && (
                     <li className="px-4 py-1.5 bg-white/[0.04] sticky top-0 z-10 flex items-center justify-between">
-                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent/80">{section.heading}</span>
-                      <span className="text-[9px] text-white/25">{section.items.length}</span>
+                      <span className="text-[11px] md:text-[9px] font-black uppercase tracking-[0.2em] text-accent/80">{section.heading}</span>
+                      <span className="text-[11px] md:text-[9px] text-white/25">{section.items.length}</span>
                     </li>
                   )}
                   {section.items.map(row => (
@@ -690,9 +690,9 @@ export default function LibraryWidget() {
           ) : (
             <div className="p-5 space-y-5">
               <div className="space-y-2">
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">{typeLabel(activeRow.type)}</p>
+                <p className="text-[11px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/30">{typeLabel(activeRow.type)}</p>
                 <label className="block space-y-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                  <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/30">
                     {activeRow.type === 'jobs' ? 'Title' : 'Name'}
                   </span>
                   <input
@@ -707,7 +707,7 @@ export default function LibraryWidget() {
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
                 {detailFields(activeRow).map(f => (
                   <div key={f.k} className="min-w-0">
-                    <dt className="text-[9px] font-black uppercase tracking-widest text-white/30">{f.k}</dt>
+                    <dt className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/30">{f.k}</dt>
                     <dd className={`text-xs text-white/80 truncate ${f.mono ? 'tabular-nums' : ''}`}>{f.v}</dd>
                   </div>
                 ))}
@@ -733,7 +733,7 @@ export default function LibraryWidget() {
 
               {relatedFor(activeRow).length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/30">Related</p>
+                  <p className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/30">Related</p>
                   {relatedFor(activeRow).map(rel => (
                     <button
                       key={`${rel.type}-${rel.id}`}
@@ -741,7 +741,7 @@ export default function LibraryWidget() {
                       onClick={() => openRecord(rel)}
                       className="w-full flex items-center gap-2.5 bg-white/[0.04] border border-white/5 rounded-lg px-2.5 py-2 text-left hover:border-accent/40 hover:text-accent transition-colors"
                     >
-                      <span className="text-[8px] font-black uppercase tracking-widest text-white/30 w-14 shrink-0">{typeLabel(rel.type)}</span>
+                      <span className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30 w-14 shrink-0">{typeLabel(rel.type)}</span>
                       <span className="flex-1 min-w-0 text-[11px] truncate">{rel.name || 'Untitled'}</span>
                       {rel.trailing && <span className="text-[10px] text-white/25 shrink-0 tabular-nums">{rel.trailing}</span>}
                     </button>

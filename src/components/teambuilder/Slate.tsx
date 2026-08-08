@@ -1479,7 +1479,7 @@ export default function Slate({
               <form id="slate-job-form" onSubmit={handleSaveJob} className="grid grid-cols-1 md:grid-cols-6 gap-x-3 gap-y-3">
                 {/* Production Title (the individual shoot) */}
                 <div className="md:col-span-6 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Title</label>
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Title</label>
                   <input
                     required
                     autoFocus
@@ -1493,7 +1493,7 @@ export default function Slate({
 
                 {/* Client Name */}
                 <div className="md:col-span-3 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Client Name <span className="opacity-60 normal-case tracking-normal font-medium">(who you bill)</span></label>
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Client Name <span className="opacity-60 normal-case tracking-normal font-medium">(who you bill)</span></label>
                   <input
                     type="text"
                     placeholder="Client name"
@@ -1520,7 +1520,7 @@ export default function Slate({
                     const details = match ? [match.email, match.phone, match.address].filter(Boolean).join('  ·  ') : '';
                     if (!details) return null;
                     return (
-                      <p className="text-[8px] font-medium text-accent/70 ml-1 mt-0.5 flex items-center gap-1 normal-case tracking-normal">
+                      <p className="text-[11px] md:text-[8px] font-medium text-accent/70 ml-1 mt-0.5 flex items-center gap-1 normal-case tracking-normal">
                         <Building2 className="w-2.5 h-2.5 shrink-0" /> Pulled from Rolodex: {details}
                       </p>
                     );
@@ -1529,13 +1529,13 @@ export default function Slate({
 
                 {/* --- section --- */}
                 <div className="md:col-span-6 flex items-center gap-3 mt-2 first:mt-0">
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">Schedule</span>
+                  <span className="text-[11px] md:text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">Schedule</span>
                   <div className="h-px bg-white/10 flex-1" />
                 </div>
 
                 {/* Job Status */}
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Job Status</label>
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Job Status</label>
                   <div className="relative">
                     <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white" />
                     <select 
@@ -1550,7 +1550,7 @@ export default function Slate({
 
                 {/* Shoot Date */}
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Shoot Date</label>
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Shoot Date</label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white pointer-events-none" />
                     <input 
@@ -1564,7 +1564,7 @@ export default function Slate({
 
                 {/* End Date — multi-day shoots. Blank means a single day. */}
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">End Date <span className="opacity-50 normal-case tracking-normal">(multi-day)</span></label>
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">End Date <span className="opacity-50 normal-case tracking-normal">(multi-day)</span></label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white pointer-events-none" />
                     <input
@@ -1579,7 +1579,7 @@ export default function Slate({
 
                 {/* Call Time */}
                 <div className="md:col-span-1 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Call Time</label>
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Call Time</label>
                   <div className="relative">
                     <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white pointer-events-none z-10" />
                     <select
@@ -1600,7 +1600,7 @@ export default function Slate({
 
                 {/* Wrap Time */}
                 <div className="md:col-span-1 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Wrap Time</label>
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Wrap Time</label>
                   <div className="relative">
                     <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white pointer-events-none z-10" />
                     <select
@@ -1619,13 +1619,13 @@ export default function Slate({
                       mistake — say so rather than validating it away. */}
                   {editingJob.call_time && editingJob.wrap_time &&
                     TIME_OPTIONS.indexOf(editingJob.wrap_time) <= TIME_OPTIONS.indexOf(editingJob.call_time) && (
-                    <p className="text-[9px] text-white/35 ml-1">Runs past midnight into the next day.</p>
+                    <p className="text-[11px] md:text-[9px] text-white/35 ml-1">Runs past midnight into the next day.</p>
                   )}
                 </div>
 
                 {/* --- section --- */}
                 <div className="md:col-span-6 flex items-center gap-3 mt-2 first:mt-0">
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">Location</span>
+                  <span className="text-[11px] md:text-[9px] font-black uppercase tracking-[0.2em] text-accent whitespace-nowrap">Location</span>
                   <div className="h-px bg-white/10 flex-1" />
                 </div>
 
@@ -1633,7 +1633,7 @@ export default function Slate({
                     address from the pick. Free text still works: a location
                     that isn't on Google ("Matt's garage") saves on blur. */}
                 <div className="md:col-span-2 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Location Name</label>
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Location Name</label>
                   <div className="relative flex">
                     <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white z-10" />
                     <Autocomplete
@@ -1657,7 +1657,7 @@ export default function Slate({
 
                 {/* Full Address */}
                 <div className="md:col-span-4 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Full Address</label>
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Full Address</label>
                   <div className="relative flex">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white z-10" />
                     <Autocomplete
@@ -1680,7 +1680,7 @@ export default function Slate({
                       box — no dropdown, no error — which reads as "autocomplete
                       is broken" rather than "it was never switched on". */}
                   {!GOOGLE_MAPS_API_KEY && (
-                    <p className="text-[9px] text-amber-400/70 ml-1 leading-relaxed">
+                    <p className="text-[11px] md:text-[9px] text-amber-400/70 ml-1 leading-relaxed">
                       Address autocomplete is off — NEXT_PUBLIC_GOOGLE_MAPS_API_KEY isn&rsquo;t set on the server. Type the address manually for now.
                     </p>
                   )}
@@ -1705,7 +1705,7 @@ export default function Slate({
                 <div className="md:col-span-6 grid grid-cols-1 md:grid-cols-6 gap-x-3 gap-y-3">
                 {/* Production Company */}
                 <div className="md:col-span-3 flex flex-col gap-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Company <span className="opacity-60 normal-case tracking-normal font-medium">(if a prod co hired you for their client)</span></label>
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Production Company <span className="opacity-60 normal-case tracking-normal font-medium">(if a prod co hired you for their client)</span></label>
                   <div className="relative mt-auto">
                     <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white" />
                     <input 
@@ -1720,7 +1720,7 @@ export default function Slate({
 
                 {/* Project (within the selected client) */}
                 <div className="md:col-span-3 flex flex-col gap-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white flex items-center justify-between">
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white flex items-center justify-between">
                     <span>Project</span>
                     <button
                       type="button"
@@ -1750,13 +1750,13 @@ export default function Slate({
                 {/* Additional Logistics overrides */}
                 <div className="space-y-1 md:col-span-6">
                    <div className="flex items-center justify-between mb-0.5">
-                     <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-accent">Logistics Overrides (Optional)</h3>
+                     <h3 className="text-[11px] md:text-[9px] font-black uppercase tracking-[0.2em] text-accent">Logistics Overrides (Optional)</h3>
                      {editingJob.location_address && (
                        <button
                          type="button"
                          onClick={handleAutoFillLogistics}
                          disabled={isAutoFillingLogistics}
-                         className="px-2 py-0.5 bg-accent/20 border border-accent/30 text-accent hover:bg-accent hover:text-white rounded-md text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                         className="px-2 py-0.5 bg-accent/20 border border-accent/30 text-accent hover:bg-accent hover:text-white rounded-md text-[11px] md:text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
                        >
                          {isAutoFillingLogistics ? (
                            <>
@@ -1795,13 +1795,13 @@ export default function Slate({
                         className="w-full bg-black/50 border border-white/10 p-2.5 rounded-lg outline-none focus:border-accent font-bold text-xs text-white"
                       />
                    </div>
-                   <p className="text-[8px] text-white/30 italic mt-0.5">If left blank, logistics will auto-fetch in the Gear Builder based on the Full Address.</p>
+                   <p className="text-[11px] md:text-[8px] text-white/30 italic mt-0.5">If left blank, logistics will auto-fetch in the Gear Builder based on the Full Address.</p>
                 </div>
 
 
                 {/* Contact Email (linked correspondence) */}
                 <div className="md:col-span-6 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white flex items-center gap-2">
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white flex items-center gap-2">
                     <Mail className="w-3 h-3" /> Contact Email
                     {editingJob.email_thread_subject && (
                       <span className="text-accent normal-case tracking-normal font-bold truncate">· linked: {editingJob.email_thread_subject}</span>
@@ -1818,7 +1818,7 @@ export default function Slate({
 
                 {/* General Notes */}
                 <div className="md:col-span-6 space-y-1">
-                  <label className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">General Notes</label>
+                  <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">General Notes</label>
                   <div className="relative">
                     <FileText className="absolute left-3 top-2 w-3.5 h-3.5 opacity-40 text-white" />
                     <textarea
@@ -1847,7 +1847,7 @@ export default function Slate({
       >
               <form onSubmit={addCustomLink} className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black tracking-widest uppercase opacity-40 ml-1 text-white">Link Label</label>
+                  <label className="text-[11px] md:text-[9px] font-black tracking-widest uppercase opacity-40 ml-1 text-white">Link Label</label>
                   <input 
                     required
                     type="text"
@@ -1858,7 +1858,7 @@ export default function Slate({
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black tracking-widest uppercase opacity-40 ml-1 text-white">URL</label>
+                  <label className="text-[11px] md:text-[9px] font-black tracking-widest uppercase opacity-40 ml-1 text-white">URL</label>
                   <input 
                     required
                     type="url"
@@ -1932,13 +1932,13 @@ export default function Slate({
                       />
                       <span className="flex-1">
                         <span className="block text-xs font-bold text-white">{opt.label}</span>
-                        <span className="block text-[9px] text-white/35">{opt.hint}</span>
+                        <span className="block text-[11px] md:text-[9px] text-white/35">{opt.hint}</span>
                       </span>
                     </label>
                   );
                 })}
               </div>
-              <p className="text-[9px] text-white/25 mb-4">Rates and fees are never included on exported call sheets.</p>
+              <p className="text-[11px] md:text-[9px] text-white/25 mb-4">Rates and fees are never included on exported call sheets.</p>
 
               <button
                 onClick={() => {
@@ -2267,7 +2267,7 @@ function JobCard({
                     disabled={isClient}
                     onClick={() => onPatchDeliverable?.(d.id, { status: nextDeliverableStatus(d.status) })}
                     title={isClient ? undefined : 'Change status'}
-                    className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-widest shrink-0 transition-colors ${deliverableStatusTone(d.status)} ${isClient ? '' : 'cursor-pointer'}`}
+                    className={`px-2 py-0.5 rounded border text-[11px] md:text-[9px] font-black uppercase tracking-widest shrink-0 transition-colors ${deliverableStatusTone(d.status)} ${isClient ? '' : 'cursor-pointer'}`}
                   >
                     {deliverableStatusLabel(d.status)}
                   </button>
@@ -2309,15 +2309,15 @@ function JobCard({
                 <Receipt className="w-3 h-3" /> Billing
               </p>
               {billing.overdue > 0 ? (
-                <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/25">
+                <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/25">
                   {currency(billing.overdue)} overdue
                 </span>
               ) : billing.outstanding > 0 ? (
-                <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">
                   {currency(billing.outstanding)} open
                 </span>
               ) : billing.invoiced > 0 ? (
-                <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-green-500/15 text-green-300 border border-green-500/25">
+                <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-green-500/15 text-green-300 border border-green-500/25">
                   Paid in full
                 </span>
               ) : null}

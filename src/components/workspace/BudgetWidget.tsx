@@ -172,15 +172,15 @@ export default function BudgetWidget() {
         </select>
         <div className="flex items-center gap-4 text-right">
           <div>
-            <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Estimated</p>
+            <p className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30">Estimated</p>
             <p className="text-sm font-bold text-white">{money(totals.estimated)}</p>
           </div>
           <div>
-            <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Actual</p>
+            <p className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30">Actual</p>
             <p className="text-sm font-bold text-white">{money(totals.actual)}</p>
           </div>
           <div>
-            <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Variance</p>
+            <p className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30">Variance</p>
             <p className={`text-sm font-bold ${totals.variance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {money(totals.variance)}
             </p>
@@ -213,8 +213,8 @@ export default function BudgetWidget() {
               {byCategory.map(([cat, rows]) => (
                 <div key={cat}>
                   <div className="flex items-center justify-between px-1 mb-1.5">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-white/40">{cat}</p>
-                    <p className="text-[9px] font-bold text-white/30">
+                    <p className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40">{cat}</p>
+                    <p className="text-[11px] md:text-[9px] font-bold text-white/30">
                       {money(rows.reduce((s, r) => s + (Number(r.actual) || 0), 0))} spent
                     </p>
                   </div>
@@ -254,7 +254,7 @@ export default function BudgetWidget() {
                   </div>
                 </div>
               ))}
-              <div className="grid grid-cols-[1fr_90px_90px_28px] gap-2 px-3 text-[8px] font-black uppercase tracking-widest text-white/25">
+              <div className="grid grid-cols-[1fr_90px_90px_28px] gap-2 px-3 text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/25">
                 <span>Description</span><span className="text-right">Est.</span><span className="text-right">Actual</span><span />
               </div>
             </div>

@@ -1138,7 +1138,7 @@ export default function Rolodex() {
                   }`}
                 >
                   <Phone className="w-5 h-5" />
-                  <span className="text-[9px] font-semibold tracking-tight">Call</span>
+                  <span className="text-[11px] md:text-[9px] font-semibold tracking-tight">Call</span>
                 </a>
                 <a 
                   href={selectedContact.phone ? `sms:${selectedContact.phone}` : undefined}
@@ -1150,14 +1150,14 @@ export default function Rolodex() {
                   }`}
                 >
                   <MessageSquare className="w-5 h-5" />
-                  <span className="text-[9px] font-semibold tracking-tight">Message</span>
+                  <span className="text-[11px] md:text-[9px] font-semibold tracking-tight">Message</span>
                 </a>
                 <a 
                   href={`mailto:${selectedContact.email}`}
                   className="flex flex-col items-center gap-1.5 py-3 rounded-2xl border bg-accent/10 border-accent/20 text-accent hover:bg-accent/20 transition-all cursor-pointer"
                 >
                   <Mail className="w-5 h-5" />
-                  <span className="text-[9px] font-semibold tracking-tight">Email</span>
+                  <span className="text-[11px] md:text-[9px] font-semibold tracking-tight">Email</span>
                 </a>
               </div>
 
@@ -1175,7 +1175,7 @@ export default function Rolodex() {
                       <Phone className="w-4 h-4 text-green-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Phone</p>
+                      <p className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Phone</p>
                       <p className="text-sm font-bold text-white truncate">{selectedContact.phone || 'Not set'}</p>
                     </div>
                     {selectedContact.phone && (
@@ -1194,7 +1194,7 @@ export default function Rolodex() {
                       <Mail className="w-4 h-4 text-accent" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Email</p>
+                      <p className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Email</p>
                       <p className="text-sm font-bold text-white truncate">{selectedContact.email}</p>
                     </div>
                     <div className="text-white/20 group-hover:text-white/60 transition-colors">
@@ -1209,7 +1209,7 @@ export default function Rolodex() {
                         <MapPin className="w-4 h-4 text-purple-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Location</p>
+                        <p className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Location</p>
                         <p className="text-sm font-bold text-white">
                           {[selectedContact.location_city, selectedContact.location_state, selectedContact.location_country].filter(Boolean).join(', ')}
                         </p>
@@ -1226,7 +1226,7 @@ export default function Rolodex() {
                         <Briefcase className="w-4 h-4 text-accent" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Primary Role</p>
+                        <p className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Primary Role</p>
                         <p className="text-sm font-semibold text-white">{selectedContact.primary_role}</p>
                       </div>
                     </div>
@@ -1238,7 +1238,7 @@ export default function Rolodex() {
                         <Tag className="w-4 h-4 text-orange-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30 mb-2">Tags</p>
+                        <p className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/30 mb-2">Tags</p>
                         <div className="flex flex-wrap gap-1.5">
                           {selectedContact.tags.split(',').map(tag => (
                             <span key={tag} className="px-2.5 py-1 bg-white/5 rounded-lg text-[10px] font-semibold text-white/60 border border-white/5">
@@ -1256,7 +1256,7 @@ export default function Rolodex() {
                   <div className="bg-white/[0.03] rounded-2xl border border-white/5 p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <FileText className="w-3.5 h-3.5 text-white/30" />
-                      <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Notes</p>
+                      <p className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/30">Notes</p>
                     </div>
                     <p className="text-xs text-white/70 leading-relaxed whitespace-pre-wrap">{selectedContact.notes_general}</p>
                   </div>
@@ -1267,7 +1267,7 @@ export default function Rolodex() {
                   <div className="flex items-center justify-between p-4 border-b border-white/5">
                     <div className="flex items-center gap-2">
                       <History className="w-3.5 h-3.5 text-accent" />
-                      <p className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/40">Work History</p>
+                      <p className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/40">Work History</p>
                     </div>
                     <span className="text-[10px] font-semibold tracking-tight text-accent">
                       {contactDetailHistory.length} Jobs
@@ -1282,17 +1282,17 @@ export default function Rolodex() {
                       <div className="divide-y divide-white/5">
                         {contactDetailHistory.map((entry, i) => (
                           <div key={i} className="flex items-center gap-3 p-3 hover:bg-white/[0.02] transition-colors">
-                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold tracking-wide shrink-0 ${
+                            <span className={`px-1.5 py-0.5 rounded text-[11px] md:text-[8px] font-semibold tracking-wide shrink-0 ${
                               entry.type === 'On-Set' ? 'bg-blue-500/15 text-blue-400' : 'bg-purple-500/15 text-purple-400'
                             }`}>
                               {entry.type}
                             </span>
                             <div className="flex-1 min-w-0">
                               <p className="text-[11px] font-semibold tracking-tight text-white truncate">{entry.job_title}</p>
-                              <p className="text-[9px] font-semibold text-white/30">{entry.position}</p>
+                              <p className="text-[11px] md:text-[9px] font-semibold text-white/30">{entry.position}</p>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-[9px] font-bold text-white/30">{entry.shoot_date || 'TBD'}</p>
+                              <p className="text-[11px] md:text-[9px] font-bold text-white/30">{entry.shoot_date || 'TBD'}</p>
                               {entry.rate && (
                                 <p className="text-[10px] font-black text-green-400">${entry.rate}</p>
                               )}
@@ -1480,12 +1480,12 @@ export default function Rolodex() {
                           <div key={i} className="p-3 hover:bg-white/[0.02] transition-colors">
                             <div className="flex items-center justify-between mb-1">
                               <p className="text-[11px] font-semibold text-white">{entry.job_title}</p>
-                              <p className="text-[9px] font-medium text-white/30">{entry.shoot_date || 'TBD'}</p>
+                              <p className="text-[11px] md:text-[9px] font-medium text-white/30">{entry.shoot_date || 'TBD'}</p>
                             </div>
                             {entry.crew.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1.5">
                                 {entry.crew.map((c, j) => (
-                                  <span key={j} className="text-[9px] bg-white/5 border border-white/5 px-1.5 py-0.5 rounded text-white/50 font-medium">
+                                  <span key={j} className="text-[11px] md:text-[9px] bg-white/5 border border-white/5 px-1.5 py-0.5 rounded text-white/50 font-medium">
                                     {c.name} • {c.position}
                                   </span>
                                 ))}
@@ -1564,7 +1564,7 @@ export default function Rolodex() {
                       <div className="flex justify-between items-start mb-4">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-semibold ${entry.type === 'On-Set' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                            <span className={`px-2 py-0.5 rounded text-[11px] md:text-[9px] font-semibold ${entry.type === 'On-Set' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
                               {entry.type}
                             </span>
                             <p className="text-sm font-semibold group-hover:text-accent transition-colors">{entry.job_title}</p>
@@ -1633,7 +1633,7 @@ export default function Rolodex() {
 
               <div className="mb-6">
                 <h2 className="text-xl font-black uppercase tracking-tighter text-white">Import Contacts</h2>
-                <p className="text-[9px] font-bold uppercase tracking-widest opacity-40 text-white mt-1">Select your preferred method to import crew</p>
+                <p className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 text-white mt-1">Select your preferred method to import crew</p>
               </div>
 
               <div className="space-y-4">
@@ -1673,7 +1673,7 @@ export default function Rolodex() {
                         setIsImportOptionsOpen(false);
                         document.getElementById('import-contacts-input')?.click();
                       }}
-                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer border border-white/10"
+                      className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[11px] md:text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer border border-white/10"
                     >
                       Choose File
                     </button>
@@ -1745,7 +1745,7 @@ export default function Rolodex() {
               <div className="overflow-x-auto border border-white/5 rounded-xl mb-6 max-h-[45vh] custom-scrollbar">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-white/10 bg-white/5 uppercase tracking-wider text-[9px] font-black opacity-60">
+                    <tr className="border-b border-white/10 bg-white/5 uppercase tracking-wider text-[11px] md:text-[9px] font-black opacity-60">
                       <th className="p-4 w-12 text-center">
                         <input 
                           type="checkbox"
@@ -1872,7 +1872,7 @@ export default function Rolodex() {
                 <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
                   Total Contacts Found: <span className="text-white font-black">{parsedContacts.length}</span> | Selected: <span className="text-accent font-black">{selectedImportIdxs.length}</span>
                 </span>
-                <span className="text-[9px] font-bold text-yellow-500 uppercase tracking-widest animate-pulse">
+                <span className="text-[11px] md:text-[9px] font-bold text-yellow-500 uppercase tracking-widest animate-pulse">
                   ⚠️ Verify highlighted fields before importing
                 </span>
               </div>
@@ -1935,7 +1935,7 @@ export default function Rolodex() {
                     <tr>
                       <th className="px-3 py-2 w-10"></th>
                       {['Client / Company', 'Email', 'Phone', 'Bill-to Address'].map(h => (
-                        <th key={h} className="px-3 py-2 text-[8px] font-black uppercase tracking-widest text-white/40">{h}</th>
+                        <th key={h} className="px-3 py-2 text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40">{h}</th>
                       ))}
                     </tr>
                   </thead>

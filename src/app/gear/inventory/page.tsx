@@ -138,7 +138,7 @@ export default function GearPage() {
                   <button
                     key={category}
                     onClick={() => scrollToCategory(category.replace(/\s+/g, '-'))}
-                    className="px-3 py-1.5 rounded-full border border-white/10 text-[9px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+                    className="px-3 py-1.5 rounded-full border border-white/10 text-[11px] md:text-[9px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all"
                   >
                     {category}
                   </button>
@@ -189,7 +189,7 @@ export default function GearPage() {
                                     className="object-contain p-1"
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-[8px] text-zinc-700 font-mono">NO IMG</div>
+                                  <div className="w-full h-full flex items-center justify-center text-[11px] md:text-[8px] text-zinc-700 font-mono">NO IMG</div>
                                 )}
                               </motion.div>
                             </td>

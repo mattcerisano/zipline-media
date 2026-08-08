@@ -557,7 +557,7 @@ function Social() {
              
              {/* Text overlay on hover */}
              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 z-20">
-               <span className="text-[9px] font-black uppercase tracking-wider text-accent mb-1">View Clip</span>
+               <span className="text-[11px] md:text-[9px] font-black uppercase tracking-wider text-accent mb-1">View Clip</span>
                <h3 className="text-white text-[10px] md:text-xs font-black uppercase tracking-tight leading-tight line-clamp-2">
                  {clip.title}
                </h3>

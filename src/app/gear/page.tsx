@@ -64,7 +64,7 @@ export default function EquipmentPage() {
             </div>
 
             <nav className="flex flex-col gap-1">
-              <span className="text-[8px] font-bold tracking-[0.3em] uppercase opacity-30 mb-4 px-2">Categories</span>
+              <span className="text-[11px] md:text-[8px] font-bold tracking-[0.3em] uppercase opacity-30 mb-4 px-2">Categories</span>
               {categories.map((cat) => (
                 <button
                   key={cat}

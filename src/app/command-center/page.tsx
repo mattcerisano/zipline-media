@@ -127,7 +127,7 @@ function IconPickerGrid({ selected, onSelect }: { selected: string; onSelect: (n
             <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-36 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
               <div className="bg-zinc-900 border border-white/10 rounded-lg px-2.5 py-1.5 shadow-xl text-center">
                 <div className="text-[10px] font-black uppercase tracking-wider text-white leading-tight">{ico.label}</div>
-                <div className="text-[9px] font-medium text-white/50 leading-snug mt-0.5">{ico.desc}</div>
+                <div className="text-[11px] md:text-[9px] font-medium text-white/50 leading-snug mt-0.5">{ico.desc}</div>
               </div>
               <div className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-zinc-900 border-r border-b border-white/10 rotate-45"></div>
             </div>
@@ -1175,7 +1175,7 @@ export default function CommandCenterPage() {
               </button>
             )}
             <div>
-              <h2 className="hidden sm:block text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-accent/80 mb-1 truncate max-w-[200px] sm:max-w-none">
+              <h2 className="hidden sm:block text-[11px] md:text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-accent/80 mb-1 truncate max-w-[200px] sm:max-w-none">
                 {activeTabObj ? (
                   activeTabObj.type === 'system' ? (
                     activeTabObj.id === 'dashboard' ? 'Studio Overview' :
@@ -1243,12 +1243,12 @@ export default function CommandCenterPage() {
                     title={`Google sync failing${googleSyncInfo.at ? ` since ${timeAgo(googleSyncInfo.at)}` : ''}: ${googleSyncInfo.error || 'unknown error'}`}
                   >
                     <AlertTriangle className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">Sync failing</span>
+                    <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest hidden sm:inline">Sync failing</span>
                   </button>
                 )}
                 {isGoogleConnected && googleSyncInfo.ok === true && googleSyncInfo.at && (
                   <span
-                    className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest text-white/30 select-none"
+                    className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/30 select-none"
                     title={`Google Calendar last synced ${new Date(googleSyncInfo.at).toLocaleString()}`}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
@@ -1415,7 +1415,7 @@ export default function CommandCenterPage() {
                 </p>
 
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">ICS Subscription Link</label>
+                  <label className="text-[11px] md:text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">ICS Subscription Link</label>
                   <div className="flex gap-2">
                     <input 
                       type="text" 
@@ -1453,7 +1453,7 @@ export default function CommandCenterPage() {
                 <div className="space-y-3 bg-black/40 border border-white/5 p-4 rounded-xl text-left">
                   <div className="flex items-center justify-between">
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-accent">Two-Way Google Sync</h4>
-                    <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-full border ${
+                    <span className={`px-2 py-0.5 text-[11px] md:text-[8px] font-black uppercase tracking-widest rounded-full border ${
                       isGoogleConnected === null ? 'bg-white/5 border-white/10 text-white/40' :
                       isGoogleConnected ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'
                     }`}>
@@ -1511,7 +1511,7 @@ export default function CommandCenterPage() {
                         </p>
                       </div>
                     ) : (
-                      <p className="mt-3 text-[9px] font-bold uppercase tracking-widest text-white/30 text-center">
+                      <p className="mt-3 text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/30 text-center">
                         Last synced {timeAgo(googleSyncInfo.at)} · auto-syncs every 10 minutes
                       </p>
                     )
@@ -1559,7 +1559,7 @@ export default function CommandCenterPage() {
 
               <div className="space-y-4 text-xs">
                 <div>
-                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Tab Label</label>
+                  <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Tab Label</label>
                   <input
                     type="text"
                     placeholder="E.G. CLIENT BOARD"
@@ -1570,7 +1570,7 @@ export default function CommandCenterPage() {
                 </div>
 
                 <div>
-                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Tab Type</label>
+                  <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Tab Type</label>
                   <div className="grid grid-cols-3 gap-2">
                     <button
                       type="button"
@@ -1613,7 +1613,7 @@ export default function CommandCenterPage() {
 
                 {newTabType === 'embed' && (
                   <div>
-                    <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Embed URL</label>
+                    <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Embed URL</label>
                     <input 
                       type="text" 
                       placeholder="https://trello.com/..."
@@ -1625,7 +1625,7 @@ export default function CommandCenterPage() {
                 )}
 
                 <div>
-                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Select Icon</label>
+                  <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Select Icon</label>
                   <IconPickerGrid
                     selected={newTabIcon}
                     onSelect={(name) => {
@@ -1648,7 +1648,7 @@ export default function CommandCenterPage() {
 
                 {newTabType === 'workspace' && (
                   <div>
-                    <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">This workspace opens with</label>
+                    <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">This workspace opens with</label>
                     {/* Compact summary: the tools this tab will contain, picked
                         automatically from the icon. "Change" reveals the full
                         list without making the modal taller by default. */}
@@ -1656,7 +1656,7 @@ export default function CommandCenterPage() {
                       {(newTabTools.length > 0 ? newTabTools : ['notes']).map(id => {
                         const tool = STARTER_TOOLS.find(t => t.id === id);
                         return (
-                          <span key={id} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent/15 border border-accent/30 text-[9px] font-black uppercase tracking-wider text-white">
+                          <span key={id} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent/15 border border-accent/30 text-[11px] md:text-[9px] font-black uppercase tracking-wider text-white">
                             {tool?.label || id}
                           </span>
                         );
@@ -1664,12 +1664,12 @@ export default function CommandCenterPage() {
                       <button
                         type="button"
                         onClick={() => setShowToolPicker(v => !v)}
-                        className="px-2.5 py-1.5 rounded-lg border border-white/10 text-[9px] font-black uppercase tracking-wider text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+                        className="px-2.5 py-1.5 rounded-lg border border-white/10 text-[11px] md:text-[9px] font-black uppercase tracking-wider text-white/50 hover:text-white hover:bg-white/5 transition-colors"
                       >
                         {showToolPicker ? 'Done' : 'Change'}
                       </button>
                     </div>
-                    <p className="text-[9px] text-white/30 mt-1.5 leading-relaxed">
+                    <p className="text-[11px] md:text-[9px] text-white/30 mt-1.5 leading-relaxed">
                       These are the panels inside your new tab — picked to match the icon. You can add or split panels any time later.
                     </p>
                     {showToolPicker && (
@@ -1694,7 +1694,7 @@ export default function CommandCenterPage() {
                                 }}
                                 className="rounded border-white/10 text-accent focus:ring-accent bg-black"
                               />
-                              <span className="text-[9px] font-black uppercase tracking-wider">{tool.label}</span>
+                              <span className="text-[11px] md:text-[9px] font-black uppercase tracking-wider">{tool.label}</span>
                             </label>
                           );
                         })}
@@ -1704,7 +1704,7 @@ export default function CommandCenterPage() {
                 )}
 
                 <div>
-                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Role Visibility</label>
+                  <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Role Visibility</label>
                   <div className="flex gap-4 bg-black/40 border border-white/5 p-3 rounded-xl">
                     {['admin', 'staff', 'client'].map((role) => {
                       const isChecked = newTabRoles.includes(role as any);
@@ -1781,7 +1781,7 @@ export default function CommandCenterPage() {
 
               <div className="space-y-4 text-xs">
                 <div>
-                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Tab Label</label>
+                  <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Tab Label</label>
                   <input 
                     type="text" 
                     placeholder="E.G. CLIENT BOARD"
@@ -1793,7 +1793,7 @@ export default function CommandCenterPage() {
 
                 {!selectedTabToEdit.isDefault && (
                   <div>
-                    <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Tab Type</label>
+                    <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Tab Type</label>
                     <div className="grid grid-cols-3 gap-2">
                       <button
                         type="button"
@@ -1837,7 +1837,7 @@ export default function CommandCenterPage() {
 
                 {!selectedTabToEdit.isDefault && editTabType === 'embed' && (
                   <div>
-                    <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Embed URL</label>
+                    <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-1">Embed URL</label>
                     <input 
                       type="text" 
                       placeholder="https://trello.com/..."
@@ -1849,12 +1849,12 @@ export default function CommandCenterPage() {
                 )}
 
                 <div>
-                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Select Icon</label>
+                  <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Select Icon</label>
                   <IconPickerGrid selected={editTabIcon} onSelect={setEditTabIcon} />
                 </div>
 
                 <div>
-                  <label className="text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Role Visibility</label>
+                  <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Role Visibility</label>
                   <div className="flex gap-4 bg-black/40 border border-white/5 p-3 rounded-xl">
                     {['admin', 'staff', 'client'].map((role) => {
                       const isChecked = editTabRoles.includes(role as any);

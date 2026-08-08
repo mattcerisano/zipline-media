@@ -790,7 +790,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                   className="w-full text-left p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all group"
                 >
                   <p className="text-[10px] font-black uppercase tracking-tight group-hover:text-accent transition-colors text-white">{contact.name}</p>
-                  <p className="text-[8px] font-bold uppercase tracking-widest opacity-40 text-white">{contact.primary_role || 'No Role Set'}</p>
+                  <p className="text-[11px] md:text-[8px] font-bold uppercase tracking-widest opacity-40 text-white">{contact.primary_role || 'No Role Set'}</p>
                 </button>
               ))}
             </div>
@@ -899,7 +899,7 @@ function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: 
       <div className="p-4 flex items-center justify-between gap-4 text-white">
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-[8px] font-bold uppercase tracking-[0.2em] opacity-30">Position</label>
+            <label className="text-[11px] md:text-[8px] font-bold uppercase tracking-[0.2em] opacity-30">Position</label>
             <input 
               type="text"
               value={localRole.position}
@@ -911,7 +911,7 @@ function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: 
           </div>
           
           <div className="space-y-1">
-            <label className="text-[8px] font-bold uppercase tracking-[0.2em] opacity-30">Assigned To</label>
+            <label className="text-[11px] md:text-[8px] font-bold uppercase tracking-[0.2em] opacity-30">Assigned To</label>
             <div className="flex items-center gap-2">
               <select
                 value={localRole.contact_id || ''}
@@ -975,7 +975,7 @@ function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: 
               onChange={(e) => handleChange('call_time', e.target.value)}
               onBlur={handleSave}
               placeholder="CALL TIME"
-              className="bg-transparent border-none p-0 focus:ring-0 text-[9px] font-bold uppercase tracking-widest w-full text-white"
+              className="bg-transparent border-none p-0 focus:ring-0 text-[11px] md:text-[9px] font-bold uppercase tracking-widest w-full text-white"
             />
          </div>
          
@@ -987,7 +987,7 @@ function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: 
               onChange={(e) => handleChange('notes', e.target.value)}
               onBlur={handleSave}
               placeholder="ROLE NOTES"
-              className="bg-transparent border-none p-0 focus:ring-0 text-[9px] font-bold uppercase tracking-widest w-full text-white"
+              className="bg-transparent border-none p-0 focus:ring-0 text-[11px] md:text-[9px] font-bold uppercase tracking-widest w-full text-white"
             />
          </div>
 
@@ -1002,7 +1002,7 @@ function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: 
                 }}
                 className="w-3 h-3 bg-black border-white/10 rounded focus:ring-accent"
               />
-              <span className="text-[8px] font-black uppercase tracking-widest opacity-40 group-hover:opacity-100 text-white">OT</span>
+              <span className="text-[11px] md:text-[8px] font-black uppercase tracking-widest opacity-40 group-hover:opacity-100 text-white">OT</span>
             </label>
          </div>
       </div>
@@ -1128,7 +1128,7 @@ function ScheduleItem({
           
           {/* Start Time Select */}
           <div className="relative flex-1 md:w-full flex items-center bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-white/20 focus-within:border-accent/50 focus-within:bg-black/30 transition-all px-2.5 py-1.5 group/select">
-            <span className="text-[8px] font-black uppercase tracking-widest text-accent select-none mr-1.5">START:</span>
+            <span className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-accent select-none mr-1.5">START:</span>
             <select
               value={localSchedule.start_time || ''}
               onChange={(e) => {
@@ -1168,7 +1168,7 @@ function ScheduleItem({
 
           {/* End Time Select */}
           <div className="relative flex-1 md:w-full flex items-center bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-white/20 focus-within:border-accent/50 focus-within:bg-black/30 transition-all px-2.5 py-1.5 group/select opacity-85 hover:opacity-100">
-            <span className="text-[8px] font-black uppercase tracking-widest text-white/40 select-none mr-1.5">END:</span>
+            <span className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 select-none mr-1.5">END:</span>
             <select
               value={localSchedule.end_time || ''}
               onChange={(e) => {
