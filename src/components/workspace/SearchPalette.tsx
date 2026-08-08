@@ -222,7 +222,7 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
                         <p className="text-sm font-semibold text-white truncate">{hit.title}</p>
                         <p className="text-[10px] text-white/40 truncate">{hit.subtitle}</p>
                       </div>
-                      <span className="text-[8px] font-black uppercase tracking-widest text-white/25 shrink-0">{typeLabel[hit.type]}</span>
+                      <span className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/25 shrink-0">{typeLabel[hit.type]}</span>
                     </button>
                   );
                 })
@@ -231,8 +231,8 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
 
             {/* Status footer */}
             <div className="flex items-center justify-between px-4 py-2 border-t border-white/5 bg-black/30">
-              <span className="text-[9px] text-white/25 tracking-wide">↑↓ navigate · Enter to open · Esc to close</span>
-              <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest">
+              <span className="text-[11px] md:text-[9px] text-white/25 tracking-wide">↑↓ navigate · Enter to open · Esc to close</span>
+              <span className="flex items-center gap-1.5 text-[11px] md:text-[9px] font-bold uppercase tracking-widest">
                 {semStatus === 'ready' ? (
                   <><Sparkles className="w-3 h-3 text-accent" /><span className="text-accent">Smart search on</span></>
                 ) : semStatus === 'loading' ? (

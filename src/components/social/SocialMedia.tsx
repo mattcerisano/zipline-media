@@ -39,7 +39,7 @@ type Client = { id: string; name: string };
 
 const inputCls =
   'w-full bg-black/50 border border-white/10 py-2 px-3 rounded-lg outline-none focus:border-accent text-xs text-white placeholder:text-white/25';
-const labelCls = 'text-[9px] font-black uppercase tracking-widest text-white/40 mb-1 block';
+const labelCls = 'text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40 mb-1 block';
 
 /* ================================================================== */
 /* Main                                                                */
@@ -143,7 +143,7 @@ function ContentCalendar({ clients }: { clients: Client[] }) {
         <div className="flex items-center gap-3">
           <div className="hidden md:flex items-center gap-2">
             {PLATFORMS.slice(0, 5).map((p) => (
-              <span key={p.key} className="flex items-center gap-1 text-[8px] font-bold uppercase text-white/40"><span className={`w-2 h-2 rounded-full ${p.dot}`} />{p.label}</span>
+              <span key={p.key} className="flex items-center gap-1 text-[11px] md:text-[8px] font-bold uppercase text-white/40"><span className={`w-2 h-2 rounded-full ${p.dot}`} />{p.label}</span>
             ))}
           </div>
           <button onClick={() => newPost()} className="px-3 py-2 bg-accent/15 border border-accent/40 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Post</button>
@@ -152,7 +152,7 @@ function ContentCalendar({ clients }: { clients: Client[] }) {
 
       <div className="grid grid-cols-7 gap-1.5">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-          <div key={d} className="text-center text-[8px] font-black uppercase tracking-widest text-white/30 py-1">{d}</div>
+          <div key={d} className="text-center text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30 py-1">{d}</div>
         ))}
         {cells.map((day, i) => (
           <div
@@ -162,7 +162,7 @@ function ContentCalendar({ clients }: { clients: Client[] }) {
           >
             {day && (
               <>
-                <div className="text-[9px] font-bold text-white/40 mb-1">{day}</div>
+                <div className="text-[11px] md:text-[9px] font-bold text-white/40 mb-1">{day}</div>
                 <div className="space-y-1">
                   {postsForDay(day).map((p) => {
                     const pl = platform(p.platform);
@@ -174,7 +174,7 @@ function ContentCalendar({ clients }: { clients: Client[] }) {
                       >
                         <div className="flex items-center gap-1">
                           <span className={`w-1.5 h-1.5 rounded-full ${pl.dot} shrink-0`} />
-                          <span className="text-[9px] font-bold truncate text-white/80">{p.title || p.caption || '(untitled)'}</span>
+                          <span className="text-[11px] md:text-[9px] font-bold truncate text-white/80">{p.title || p.caption || '(untitled)'}</span>
                         </div>
                         <span className={`text-[7px] font-black uppercase tracking-wider ${p.status === 'posted' ? 'text-emerald-400' : 'text-white/30'}`}>{p.status}</span>
                       </button>
@@ -380,12 +380,12 @@ function RolloutTracker({ clients }: { clients: Client[] }) {
                           <button onClick={() => delTask(t.id)} className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                         <div className="flex items-center gap-2 mt-1.5 pl-6">
-                          <input className="bg-transparent border-b border-white/10 outline-none text-[9px] text-white/50 w-20 focus:border-accent" value={t.owner || ''} placeholder="owner" onChange={(e) => setTasks((ts) => ts.map((x) => (x.id === t.id ? { ...x, owner: e.target.value } : x)))} onBlur={(e) => patchTask(t.id, { owner: e.target.value })} />
-                          <input type="date" className="bg-transparent outline-none text-[9px] text-white/50 focus:text-white" value={t.due_date || ''} onChange={(e) => patchTask(t.id, { due_date: e.target.value || null })} />
+                          <input className="bg-transparent border-b border-white/10 outline-none text-[11px] md:text-[9px] text-white/50 w-20 focus:border-accent" value={t.owner || ''} placeholder="owner" onChange={(e) => setTasks((ts) => ts.map((x) => (x.id === t.id ? { ...x, owner: e.target.value } : x)))} onBlur={(e) => patchTask(t.id, { owner: e.target.value })} />
+                          <input type="date" className="bg-transparent outline-none text-[11px] md:text-[9px] text-white/50 focus:text-white" value={t.due_date || ''} onChange={(e) => patchTask(t.id, { due_date: e.target.value || null })} />
                         </div>
                       </div>
                     ))}
-                    {phaseTasks.length === 0 && <p className="text-[9px] text-white/20 text-center py-3 uppercase tracking-widest font-bold">No tasks</p>}
+                    {phaseTasks.length === 0 && <p className="text-[11px] md:text-[9px] text-white/20 text-center py-3 uppercase tracking-widest font-bold">No tasks</p>}
                   </div>
                 </div>
               );
@@ -429,7 +429,7 @@ function Deliverables({ clients }: { clients: Client[] }) {
         <div className="overflow-x-auto custom-scrollbar border border-white/10 rounded-2xl">
           <table className="w-full text-left">
             <thead className="bg-white/[0.03]">
-              <tr>{['Label', 'Client', 'Format', 'Duration', 'Platform', 'Status', ''].map((h) => <th key={h} className="px-3 py-2 text-[8px] font-black uppercase tracking-widest text-white/40">{h}</th>)}</tr>
+              <tr>{['Label', 'Client', 'Format', 'Duration', 'Platform', 'Status', ''].map((h) => <th key={h} className="px-3 py-2 text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40">{h}</th>)}</tr>
             </thead>
             <tbody>
               {rows.map((r) => (
@@ -444,7 +444,7 @@ function Deliverables({ clients }: { clients: Client[] }) {
                   <td className="px-2 py-1"><select className="bg-transparent outline-none text-[11px] text-white/70 cursor-pointer" value={r.format} onChange={(e) => patch(r.id, { format: e.target.value })}>{DELIVERABLE_FORMATS.map((f) => <option key={f} value={f} className="bg-zinc-900">{f}</option>)}</select></td>
                   <td className="px-2 py-1 min-w-[80px]"><input className="w-16 bg-transparent outline-none text-[11px] text-white/70 px-1 focus:bg-accent/5" value={r.duration || ''} placeholder="30s" onChange={(e) => setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, duration: e.target.value } : x)))} onBlur={(e) => patch(r.id, { duration: e.target.value })} /></td>
                   <td className="px-2 py-1"><select className="bg-transparent outline-none text-[11px] text-white/70 cursor-pointer" value={r.platform} onChange={(e) => patch(r.id, { platform: e.target.value })}>{PLATFORMS.map((p) => <option key={p.key} value={p.key} className="bg-zinc-900">{p.label}</option>)}</select></td>
-                  <td className="px-2 py-1"><button onClick={() => patch(r.id, { status: nextDeliverableStatus(r.status) })} className={`px-2 py-1 rounded border text-[8px] font-black uppercase tracking-widest cursor-pointer ${deliverableStatusTone(r.status)}`}>{deliverableStatusLabel(r.status)}</button></td>
+                  <td className="px-2 py-1"><button onClick={() => patch(r.id, { status: nextDeliverableStatus(r.status) })} className={`px-2 py-1 rounded border text-[11px] md:text-[8px] font-black uppercase tracking-widest cursor-pointer ${deliverableStatusTone(r.status)}`}>{deliverableStatusLabel(r.status)}</button></td>
                   <td className="px-2 py-1 text-right"><button onClick={() => del(r.id)} className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button></td>
                 </tr>
               ))}
@@ -504,7 +504,7 @@ function LinkHub({ clients }: { clients: Client[] }) {
                 {l.url && sanitizeUrl(l.url) && <a href={sanitizeUrl(l.url)} target="_blank" rel="noopener noreferrer" className="p-1.5 text-white/40 hover:text-accent cursor-pointer"><ExternalLink className="w-3.5 h-3.5" /></a>}
                 <button onClick={() => copy(l.id, l.url || '')} className="p-1.5 text-white/40 hover:text-accent cursor-pointer">{copied === l.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}</button>
               </div>
-              {clientName(l.client_id) && <span className="text-[8px] font-bold uppercase tracking-widest text-white/30 mt-1 block">{clientName(l.client_id)}</span>}
+              {clientName(l.client_id) && <span className="text-[11px] md:text-[8px] font-bold uppercase tracking-widest text-white/30 mt-1 block">{clientName(l.client_id)}</span>}
             </div>
           ))}
         </div>
@@ -540,7 +540,7 @@ function LinkHub({ clients }: { clients: Client[] }) {
 /* ------------------------------------------------------------------ */
 function ClientSelect({ value, clients, onChange }: { value?: string | null; clients: Client[]; onChange: (v: string | null) => void }) {
   return (
-    <select className="bg-black/40 border border-white/10 rounded px-1.5 py-1 text-[9px] text-white/60 outline-none cursor-pointer max-w-[110px]" value={value || ''} onChange={(e) => onChange(e.target.value || null)}>
+    <select className="bg-black/40 border border-white/10 rounded px-1.5 py-1 text-[11px] md:text-[9px] text-white/60 outline-none cursor-pointer max-w-[110px]" value={value || ''} onChange={(e) => onChange(e.target.value || null)}>
       <option value="" className="bg-zinc-900">No client</option>
       {clients.map((c) => <option key={c.id} value={c.id} className="bg-zinc-900">{c.name}</option>)}
     </select>

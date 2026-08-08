@@ -215,7 +215,7 @@ export default function Vault() {
   };
 
   const inputClass = 'w-full bg-black/50 border border-white/10 py-2.5 px-3 rounded-lg outline-none focus:border-accent text-sm text-white transition-colors';
-  const labelClass = 'block text-[9px] font-semibold uppercase tracking-wider text-white/40 mb-1.5';
+  const labelClass = 'block text-[11px] md:text-[9px] font-semibold uppercase tracking-wider text-white/40 mb-1.5';
 
   // ---------------- Lock / Setup screens ----------------
   if (hasVault === null) {
@@ -292,7 +292,7 @@ export default function Vault() {
           </div>
           <div>
             <h2 className="text-sm font-semibold tracking-wide text-white">Vault</h2>
-            <p className="text-[9px] font-medium text-white/40">End-to-end encrypted · {items.length} items</p>
+            <p className="text-[11px] md:text-[9px] font-medium text-white/40">End-to-end encrypted · {items.length} items</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -339,7 +339,7 @@ export default function Vault() {
                   <Icon className="w-3.5 h-3.5 text-accent" />
                   <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/70">{cat.label}</h3>
                   <div className="h-px bg-white/5 flex-1" />
-                  <span className="text-[9px] font-semibold opacity-30 uppercase tracking-wider text-white">{catItems.length}</span>
+                  <span className="text-[11px] md:text-[9px] font-semibold opacity-30 uppercase tracking-wider text-white">{catItems.length}</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {catItems.map(item => (
@@ -347,7 +347,7 @@ export default function Vault() {
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-white truncate">{item.name}</p>
-                          {item.username && <p className="text-[9px] font-medium text-white/40 truncate mt-0.5">{item.username}</p>}
+                          {item.username && <p className="text-[11px] md:text-[9px] font-medium text-white/40 truncate mt-0.5">{item.username}</p>}
                         </div>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => openEditItem(item)} className="p-1 text-white/40 hover:text-accent" title="Edit"><FileText className="w-3.5 h-3.5" /></button>
@@ -369,13 +369,13 @@ export default function Vault() {
 
                       <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2">
                         {item.url && (
-                          <a href={item.url.startsWith('http') ? item.url : `https://${item.url}`} target="_blank" rel="noreferrer" className="text-[9px] font-medium text-accent hover:underline truncate max-w-full">{item.url}</a>
+                          <a href={item.url.startsWith('http') ? item.url : `https://${item.url}`} target="_blank" rel="noreferrer" className="text-[11px] md:text-[9px] font-medium text-accent hover:underline truncate max-w-full">{item.url}</a>
                         )}
                         {item.expires_at && (
-                          <span className="text-[9px] font-medium text-white/40 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {item.expires_at}</span>
+                          <span className="text-[11px] md:text-[9px] font-medium text-white/40 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {item.expires_at}</span>
                         )}
                         {item.file_path && (
-                          <button onClick={() => downloadFile(item)} className="text-[9px] font-medium text-white/50 hover:text-accent flex items-center gap-1">
+                          <button onClick={() => downloadFile(item)} className="text-[11px] md:text-[9px] font-medium text-white/50 hover:text-accent flex items-center gap-1">
                             <Download className="w-3 h-3" /> {item.file_name || 'File'}
                           </button>
                         )}

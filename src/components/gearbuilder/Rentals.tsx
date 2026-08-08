@@ -1842,7 +1842,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                           
                           <div className="flex flex-wrap gap-1 mb-3 max-h-16 overflow-y-auto pr-1 py-0.5 border-t border-b border-white/5">
                             {Object.entries(template.items).map(([name, qty]) => (
-                              <span key={name} className="text-[9px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-white/70 font-semibold">
+                              <span key={name} className="text-[11px] md:text-[9px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded text-white/70 font-semibold">
                                 {qty}x {name}
                               </span>
                             ))}

@@ -291,10 +291,10 @@ export default function NotesLibraryWidget() {
                 <p className="text-[10px] text-white/35 truncate mt-0.5">{note.body.replace(/\s+/g, ' ').slice(0, 80) || 'Empty note'}</p>
                 <div className="flex items-center gap-2 mt-1">
                   {nameOf(clients, note.client_id) && (
-                    <span className="text-[8px] font-black uppercase tracking-wider text-accent/70 truncate max-w-[45%]">{nameOf(clients, note.client_id)}</span>
+                    <span className="text-[11px] md:text-[8px] font-black uppercase tracking-wider text-accent/70 truncate max-w-[45%]">{nameOf(clients, note.client_id)}</span>
                   )}
                   {nameOf(jobs, note.job_id) && (
-                    <span className="text-[8px] font-black uppercase tracking-wider text-white/30 truncate max-w-[45%]">{nameOf(jobs, note.job_id)}</span>
+                    <span className="text-[11px] md:text-[8px] font-black uppercase tracking-wider text-white/30 truncate max-w-[45%]">{nameOf(jobs, note.job_id)}</span>
                   )}
                 </div>
               </button>
@@ -327,7 +327,7 @@ export default function NotesLibraryWidget() {
                 placeholder="Note title"
                 className="flex-1 min-w-0 bg-transparent text-base font-bold text-white outline-none border-b border-transparent focus:border-accent/40 transition-colors"
               />
-              <span className="shrink-0 text-[9px] font-bold uppercase tracking-widest text-white/25 w-14 text-right">
+              <span className="shrink-0 text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/25 w-14 text-right">
                 {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? <span className="text-green-400 inline-flex items-center gap-1"><Check className="w-3 h-3" /> Saved</span> : ''}
               </span>
               <button onClick={() => togglePin(active)} title={active.pinned ? 'Unpin' : 'Pin to top'} className="p-2 text-white/30 hover:text-accent transition-colors shrink-0">

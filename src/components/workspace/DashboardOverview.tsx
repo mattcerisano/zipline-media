@@ -249,7 +249,7 @@ export default function DashboardOverview({
             <div className="absolute right-0 top-11 z-40 w-64 max-h-[70vh] overflow-y-auto bg-zinc-950 border border-white/10 rounded-xl shadow-2xl p-2">
               {DASHBOARD_ITEMS.map(group => (
                 <div key={group.group}>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-white/30 px-2 pt-2 pb-1">{group.group}</p>
+                  <p className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30 px-2 pt-2 pb-1">{group.group}</p>
                   {group.items.map(w => (
                     <button
                       key={w.id}
@@ -365,7 +365,7 @@ export default function DashboardOverview({
               </div>
               <div>
                 <h4 className="text-sm font-semibold tracking-tight text-white">Team Alert Gateway</h4>
-                <p className="text-[9px] font-medium uppercase tracking-[0.15em] text-white/35">Discord · Slack · Teams</p>
+                <p className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.15em] text-white/35">Discord · Slack · Teams</p>
               </div>
             </div>
 
@@ -495,7 +495,7 @@ function StatCard({
           <span className="hidden md:inline text-[10px] font-medium text-green-400 tracking-wide bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/15">{trend}</span>
         )}
       </div>
-      <h3 className="text-[9px] md:text-[11px] font-medium text-white/40 uppercase tracking-[0.12em] mb-0.5 truncate">{title}</h3>
+      <h3 className="text-[11px] md:text-[9px] md:text-[11px] font-medium text-white/40 uppercase tracking-[0.12em] mb-0.5 truncate">{title}</h3>
       {isLoading ? (
         <div className="h-8 w-24 bg-white/10 rounded animate-pulse mt-1" />
       ) : (

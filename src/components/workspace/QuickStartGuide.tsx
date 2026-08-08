@@ -201,7 +201,7 @@ export function QuickStartGuideModal({
               <h4 className="text-[10px] font-black uppercase text-accent">Sync</h4>
               <button
                 onClick={onOpenCalendarSync}
-                className="px-3 py-1 bg-accent/20 hover:bg-accent border border-accent/30 rounded-lg text-[9px] font-black uppercase text-white transition-colors cursor-pointer"
+                className="px-3 py-1 bg-accent/20 hover:bg-accent border border-accent/30 rounded-lg text-[11px] md:text-[9px] font-black uppercase text-white transition-colors cursor-pointer"
               >
                 Configure Now
               </button>
@@ -376,7 +376,7 @@ export function QuickStartGuideModal({
                 <h3 className="text-base font-black uppercase tracking-tighter text-white truncate">
                   {steps[currentStep].title}
                 </h3>
-                <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mt-0.5 truncate">
+                <p className="text-[11px] md:text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mt-0.5 truncate">
                   {steps[currentStep].subtitle}
                 </p>
               </div>
@@ -415,7 +415,7 @@ export function QuickStartGuideModal({
                 {currentStep > 0 && (
                   <button
                     onClick={handleBack}
-                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white rounded-xl text-[11px] md:text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" /> Back
                   </button>
@@ -423,7 +423,7 @@ export function QuickStartGuideModal({
                 
                 <button
                   onClick={handleNext}
-                  className="px-5 py-2.5 bg-accent hover:bg-white hover:text-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-accent/15"
+                  className="px-5 py-2.5 bg-accent hover:bg-white hover:text-black text-white rounded-xl text-[11px] md:text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-accent/15"
                 >
                   {currentStep === steps.length - 1 ? 'Finish Tour' : 'Next'} <ChevronRight className="w-3.5 h-3.5" />
                 </button>
@@ -468,13 +468,13 @@ export function QuickStartWidget() {
         {/* Integration cheatsheet */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white/5 border border-white/5 p-4 rounded-xl space-y-2">
-            <h5 className="text-[9px] font-black uppercase text-accent tracking-widest">Calendar Webcal</h5>
+            <h5 className="text-[11px] md:text-[9px] font-black uppercase text-accent tracking-widest">Calendar Webcal</h5>
             <p className="text-[11px] leading-relaxed text-white/60">
               Click the Calendar Sync button in the header to copy the ICS subscription URL to keep your devices synced.
             </p>
           </div>
           <div className="bg-white/5 border border-white/5 p-4 rounded-xl space-y-2">
-            <h5 className="text-[9px] font-black uppercase text-accent tracking-widest">Google Two-Way Sync</h5>
+            <h5 className="text-[11px] md:text-[9px] font-black uppercase text-accent tracking-widest">Google Two-Way Sync</h5>
             <p className="text-[11px] leading-relaxed text-white/60">
               Connect your account, then events created on Google Calendar prefixed with <span className="text-white font-bold">🎥</span> automatically sync back to your Production Slate.
             </p>
@@ -487,19 +487,19 @@ export function QuickStartWidget() {
           <div className="space-y-2 text-white/60">
             <div className="flex justify-between border-b border-white/5 py-1 text-[11px]">
               <span className="font-bold">Reset Split View</span>
-              <span className="bg-white/10 px-2 py-0.5 rounded text-[8px] font-bold text-white">Reset View Button</span>
+              <span className="bg-white/10 px-2 py-0.5 rounded text-[11px] md:text-[8px] font-bold text-white">Reset View Button</span>
             </div>
             <div className="flex justify-between border-b border-white/5 py-1 text-[11px]">
               <span className="font-bold">Add Web Embed Tab</span>
-              <span className="bg-white/10 px-2 py-0.5 rounded text-[8px] font-bold text-white">Plus Icon &gt; Web Embed</span>
+              <span className="bg-white/10 px-2 py-0.5 rounded text-[11px] md:text-[8px] font-bold text-white">Plus Icon &gt; Web Embed</span>
             </div>
             <div className="flex justify-between border-b border-white/5 py-1 text-[11px]">
               <span className="font-bold">Link Gear builder from Slate</span>
-              <span className="bg-white/10 px-2 py-0.5 rounded text-[8px] font-bold text-white">Slate &gt; Click &quot;Build Gear&quot;</span>
+              <span className="bg-white/10 px-2 py-0.5 rounded text-[11px] md:text-[8px] font-bold text-white">Slate &gt; Click &quot;Build Gear&quot;</span>
             </div>
             <div className="flex justify-between py-1 text-[11px]">
               <span className="font-bold">CRM Contacts database</span>
-              <span className="bg-white/10 px-2 py-0.5 rounded text-[8px] font-bold text-white">Rolodex Panel</span>
+              <span className="bg-white/10 px-2 py-0.5 rounded text-[11px] md:text-[8px] font-bold text-white">Rolodex Panel</span>
             </div>
           </div>
         </div>

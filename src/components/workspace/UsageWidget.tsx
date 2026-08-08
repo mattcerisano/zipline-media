@@ -206,7 +206,7 @@ export default function UsageWidget() {
               ].map(s => (
                 <div key={s.k} className="bg-white/5 border border-white/5 rounded-xl p-3">
                   <div className="text-lg font-semibold tabular-nums">{s.v}</div>
-                  <div className="text-[9px] font-black uppercase tracking-widest text-white/35 flex items-center gap-1">
+                  <div className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/35 flex items-center gap-1">
                     {s.icon && <s.icon className="w-3 h-3" />}{s.k}
                   </div>
                 </div>
@@ -215,7 +215,7 @@ export default function UsageWidget() {
 
             {/* Per day */}
             <section className="space-y-2">
-              <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Per day</h3>
+              <h3 className="text-[11px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Per day</h3>
               <div className="flex items-end gap-1 h-20">
                 {stats.days.map(d => (
                   <div key={d.date} className="flex-1 flex flex-col justify-end items-center gap-1 group" title={`${formatLocalDate(d.date, { month: 'short', day: 'numeric' }, d.date)} · ${d.count}`}>
@@ -231,7 +231,7 @@ export default function UsageWidget() {
 
             {/* Surfaces */}
             <section className="space-y-2">
-              <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Most opened</h3>
+              <h3 className="text-[11px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Most opened</h3>
               {stats.surfaces.length === 0 ? (
                 <p className="text-[11px] text-white/30">No surface views recorded.</p>
               ) : stats.surfaces.map(([surface, n]) => (
@@ -250,7 +250,7 @@ export default function UsageWidget() {
             {/* Actions */}
             {stats.actions.length > 0 && (
               <section className="space-y-2">
-                <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Actions taken</h3>
+                <h3 className="text-[11px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/35">Actions taken</h3>
                 {stats.actions.map(([label, n]) => (
                   <div key={label} className="space-y-1">
                     <div className="flex justify-between text-[11px]">
@@ -267,7 +267,7 @@ export default function UsageWidget() {
 
             {/* Who */}
             <section className="space-y-2">
-              <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35">By person</h3>
+              <h3 className="text-[11px] md:text-[9px] font-black uppercase tracking-[0.2em] text-white/35">By person</h3>
               {stats.people.map(([id, n]) => (
                 <div key={id} className="flex justify-between text-[11px] py-1 border-b border-white/5">
                   <span className="text-white/70 truncate">{names[id] || 'Unknown account'}</span>

@@ -194,7 +194,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
   };
 
   const inputClass = 'w-full bg-black/50 border border-white/10 py-2.5 px-3 rounded-lg outline-none focus:border-accent text-sm text-white transition-colors';
-  const labelClass = 'block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5';
+  const labelClass = 'block text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5';
 
   return (
     <AnimatePresence>
@@ -355,7 +355,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                         {uploadingLogo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                         {uploadingLogo ? 'Uploading…' : 'Upload Logo'}
                       </button>
-                      <p className="text-[8px] text-white/30 mt-1 uppercase tracking-widest">PNG with transparency works best</p>
+                      <p className="text-[11px] md:text-[8px] text-white/30 mt-1 uppercase tracking-widest">PNG with transparency works best</p>
                     </div>
                   </div>
 
@@ -397,12 +397,12 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                         className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:border-accent/50 transition-colors"
                       >
                         <span className="w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: suggestedColor }} />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-white/70">
+                        <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/70">
                           Use color from logo · {suggestedColor}
                         </span>
                       </button>
                     )}
-                    <p className="text-[8px] text-white/30 mt-1 uppercase tracking-widest">Themes the whole app, plus headers & accents in exported call sheets and manifests</p>
+                    <p className="text-[11px] md:text-[8px] text-white/30 mt-1 uppercase tracking-widest">Themes the whole app, plus headers & accents in exported call sheets and manifests</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -435,7 +435,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                     >
                       <RotateCcw className="w-3.5 h-3.5" /> Reset Branding to Defaults
                     </button>
-                    <p className="text-[8px] text-white/25 mt-1.5 uppercase tracking-widest">Clears logo & restores default name, tagline and color — takes effect when you save</p>
+                    <p className="text-[11px] md:text-[8px] text-white/25 mt-1.5 uppercase tracking-widest">Clears logo & restores default name, tagline and color — takes effect when you save</p>
                   </div>
                 </>
               )}

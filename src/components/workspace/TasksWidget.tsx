@@ -179,10 +179,10 @@ export default function TasksWidget() {
                 <p className="text-xs text-white truncate">{todo.task}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   {jobTitle(todo.job_id) && (
-                    <span className="text-[9px] font-bold text-accent/70 truncate">{jobTitle(todo.job_id)}</span>
+                    <span className="text-[11px] md:text-[9px] font-bold text-accent/70 truncate">{jobTitle(todo.job_id)}</span>
                   )}
                   {todo.due_date && (
-                    <span className="flex items-center gap-1 text-[9px] text-white/30">
+                    <span className="flex items-center gap-1 text-[11px] md:text-[9px] text-white/30">
                       <Calendar className="w-2.5 h-2.5" /> {formatLocalDate(todo.due_date, { month: 'short', day: 'numeric' })}
                     </span>
                   )}
@@ -199,7 +199,7 @@ export default function TasksWidget() {
             <>
               <button
                 onClick={() => setShowDone(v => !v)}
-                className="w-full text-left px-1 pt-2 text-[9px] font-black uppercase tracking-widest text-white/25 hover:text-white/50 transition-colors"
+                className="w-full text-left px-1 pt-2 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/25 hover:text-white/50 transition-colors"
               >
                 {showDone ? 'Hide' : 'Show'} {done.length} completed
               </button>

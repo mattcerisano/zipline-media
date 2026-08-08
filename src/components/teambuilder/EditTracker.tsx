@@ -837,7 +837,7 @@ function TimelineView({
                     </div>
                   )}
                   {stage && (
-                    <span className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${stage.bg} ${stage.colorClass}`}>
+                    <span className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] md:text-[9px] font-black uppercase tracking-widest ${stage.bg} ${stage.colorClass}`}>
                       <stage.icon className="w-3 h-3" /> {stage.label}
                     </span>
                   )}
@@ -956,7 +956,7 @@ function ColumnsEditorModal({
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
-              <span className="text-[9px] text-white/25 w-12 text-right shrink-0">
+              <span className="text-[11px] md:text-[9px] text-white/25 w-12 text-right shrink-0">
                 {(cardCounts[d.id] || 0)} card{(cardCounts[d.id] || 0) === 1 ? '' : 's'}
               </span>
               <button onClick={() => remove(i)} className="p-1.5 text-white/15 hover:text-red-400 transition-colors shrink-0">
@@ -1064,7 +1064,7 @@ function CardFront({ job, isDragging }: { job: Job, isDragging: boolean }) {
 
         {/* Editor Avatar */}
         {job.editor && (
-          <div className="w-6 h-6 rounded-full bg-accent text-white flex items-center justify-center text-[9px] font-black shadow-sm" title={`Assigned to: ${job.editor.name}`}>
+          <div className="w-6 h-6 rounded-full bg-accent text-white flex items-center justify-center text-[11px] md:text-[9px] font-black shadow-sm" title={`Assigned to: ${job.editor.name}`}>
             {job.editor.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
           </div>
         )}
@@ -1587,7 +1587,7 @@ function CardDetailModal({
                   {isEditingLinks && (
                     <div className="bg-black/45 border border-white/10 p-4 rounded-xl space-y-4 mb-6">
                       <div className="space-y-1.5">
-                        <label className="text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white">Vimeo / Frame.io Review Link</label>
+                        <label className="text-[11px] md:text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white">Vimeo / Frame.io Review Link</label>
                         <input 
                           type="text" 
                           value={tempReviewLink}
@@ -1597,7 +1597,7 @@ function CardDetailModal({
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white">Google Drive Folder URL</label>
+                        <label className="text-[11px] md:text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white">Google Drive Folder URL</label>
                         <input 
                           type="text" 
                           value={tempDriveUrl}
@@ -1607,7 +1607,7 @@ function CardDetailModal({
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white">Discord Webhook / Channel URL</label>
+                        <label className="text-[11px] md:text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white">Discord Webhook / Channel URL</label>
                         <input 
                           type="text" 
                           value={tempDiscordUrl}
@@ -1619,7 +1619,7 @@ function CardDetailModal({
 
                       {/* Custom Links List & Add New */}
                       <div className="border-t border-white/5 pt-4 space-y-3">
-                        <label className="text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white block">Custom Links</label>
+                        <label className="text-[11px] md:text-[9px] font-medium tracking-[0.12em] uppercase opacity-40 text-white block">Custom Links</label>
                         
                         {/* Existing Custom Links */}
                         {tempCustomLinks.length > 0 && (
@@ -1738,7 +1738,7 @@ function CardDetailModal({
                         <PlayCircle className="w-4 h-4 text-accent" />
                         <span className="text-xs font-semibold tracking-tight text-white">{embedDetails.type} Review Monitor</span>
                       </div>
-                      <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-500 text-[8px] font-semibold tracking-wide rounded-full">
+                      <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-500 text-[11px] md:text-[8px] font-semibold tracking-wide rounded-full">
                         Live Embed
                       </span>
                     </div>
@@ -1756,28 +1756,28 @@ function CardDetailModal({
                     <div className="bg-black/30 p-3 rounded-lg border border-white/5">
                       <div className="grid grid-cols-3 gap-4 border-b border-white/5 pb-3 mb-3">
                         <div>
-                          <p className="text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Resolution</p>
+                          <p className="text-[11px] md:text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Resolution</p>
                           <p className="text-xs font-black text-white mt-0.5">{videoStats?.resolution || '4K UHD (2160p)'}</p>
                         </div>
                         <div>
-                          <p className="text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Completion Rate</p>
+                          <p className="text-[11px] md:text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Completion Rate</p>
                           <p className="text-xs font-black text-green-400 mt-0.5">{videoStats?.completionRate || '88.5%'}</p>
                         </div>
                         <div>
-                          <p className="text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Total Views</p>
+                          <p className="text-[11px] md:text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Total Views</p>
                           <p className="text-xs font-black text-white mt-0.5">{videoStats?.views ?? (142 + comments.length * 3)}</p>
                         </div>
                       </div>
 
                       {/* Comments stream */}
                       <div className="space-y-3">
-                        <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-accent mb-2">Review Feed ({comments.length})</p>
+                        <p className="text-[11px] md:text-[8px] font-semibold uppercase tracking-[0.12em] text-accent mb-2">Review Feed ({comments.length})</p>
                         <div className="space-y-2.5 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
                           {comments.map((c) => (
                             <div key={c.id} className="text-xs border-l-2 border-accent pl-2.5 py-0.5 bg-white/5 rounded-r p-1.5">
                               <div className="flex items-center justify-between text-[10px] font-medium text-white/60 mb-0.5">
-                                <span>{c.author} <span className="text-[8px] opacity-40 font-normal">({c.role})</span></span>
-                                <span className="text-[8px] text-accent font-black">{c.timecode}</span>
+                                <span>{c.author} <span className="text-[11px] md:text-[8px] opacity-40 font-normal">({c.role})</span></span>
+                                <span className="text-[11px] md:text-[8px] text-accent font-black">{c.timecode}</span>
                               </div>
                               <p className="text-white/80 leading-normal">{c.text}</p>
                             </div>
@@ -1845,11 +1845,11 @@ function CardDetailModal({
                       </div>
                       <div className="flex items-center gap-2">
                         {isLiveDrive ? (
-                          <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-500 text-[8px] font-semibold tracking-wide rounded-full">
+                          <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 text-green-500 text-[11px] md:text-[8px] font-semibold tracking-wide rounded-full">
                             Live Sync
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 bg-white/5 border border-white/10 text-white/40 text-[8px] font-semibold tracking-wide rounded-full">
+                          <span className="px-2 py-0.5 bg-white/5 border border-white/10 text-white/40 text-[11px] md:text-[8px] font-semibold tracking-wide rounded-full">
                             Simulated Vault
                           </span>
                         )}
@@ -1936,7 +1936,7 @@ function CardDetailModal({
                                 </div>
                                 <div className="min-w-0">
                                   <p className="text-[11px] font-bold text-white truncate leading-tight">{file.name}</p>
-                                  <p className="text-[8px] text-white/40 font-medium mt-0.5">{file.size} • {file.date}</p>
+                                  <p className="text-[11px] md:text-[8px] text-white/40 font-medium mt-0.5">{file.size} • {file.date}</p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">

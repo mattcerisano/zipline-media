@@ -101,7 +101,7 @@ export default function ContactSuggest({ contact, onApply }: {
             <p className="text-[10px] font-black uppercase tracking-widest text-accent flex items-center gap-1.5">
               <Sparkles className="w-3 h-3" /> Suggestion
             </p>
-            <span className={`text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${CONFIDENCE_TONE[suggestion.confidence]}`}>
+            <span className={`text-[11px] md:text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${CONFIDENCE_TONE[suggestion.confidence]}`}>
               {suggestion.confidence} confidence
             </span>
           </div>
@@ -152,7 +152,7 @@ export default function ContactSuggest({ contact, onApply }: {
             >
               <X className="w-3 h-3" /> Dismiss
             </button>
-            <p className="text-[9px] text-white/30 ml-auto">Nothing is saved until you hit Save Contact.</p>
+            <p className="text-[11px] md:text-[9px] text-white/30 ml-auto">Nothing is saved until you hit Save Contact.</p>
           </div>
         </div>
       )}

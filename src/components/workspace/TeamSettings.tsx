@@ -126,7 +126,7 @@ export default function TeamSettings({ session, onMessage }: Props) {
   };
 
   const inputClass = 'w-full bg-black/50 border border-white/10 py-2.5 px-3 rounded-lg outline-none focus:border-accent text-sm text-white transition-colors';
-  const labelClass = 'block text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5';
+  const labelClass = 'block text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5';
 
   if (loading) {
     return (
@@ -153,8 +153,8 @@ export default function TeamSettings({ session, onMessage }: Props) {
             return (
               <div key={m.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-white truncate">{m.email}{isSelf && <span className="text-accent/70 font-black uppercase text-[9px] ml-2">You</span>}</p>
-                  <p className="text-[9px] text-white/30">{ROLE_HINTS[m.role] || ''}</p>
+                  <p className="text-xs font-bold text-white truncate">{m.email}{isSelf && <span className="text-accent/70 font-black uppercase text-[11px] md:text-[9px] ml-2">You</span>}</p>
+                  <p className="text-[11px] md:text-[9px] text-white/30">{ROLE_HINTS[m.role] || ''}</p>
                 </div>
                 <select
                   value={m.role}
@@ -220,12 +220,12 @@ export default function TeamSettings({ session, onMessage }: Props) {
           <button
             type="button"
             onClick={generatePassword}
-            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-colors"
+            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-colors"
           >
             Generate
           </button>
         </div>
-        <p className="text-[9px] text-white/30 mt-2 leading-relaxed">
+        <p className="text-[11px] md:text-[9px] text-white/30 mt-2 leading-relaxed">
           Share this password with them directly — they sign in immediately and should keep it safe. Accounts are internal-only; nothing here is exposed to clients unless you give a client role on purpose.
         </p>
         <div className="flex justify-end mt-3">

@@ -155,11 +155,11 @@ export default function MyWorkWidget() {
               <div key={c.id} className="flex items-center gap-3 bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-white truncate">{c.title}</p>
-                  <p className="text-[9px] text-white/35 truncate">{c.client_name || 'Internal'}</p>
+                  <p className="text-[11px] md:text-[9px] text-white/35 truncate">{c.client_name || 'Internal'}</p>
                 </div>
-                <span className="shrink-0 text-[9px] font-black uppercase tracking-widest text-accent bg-accent/10 px-2 py-1 rounded-full">{c.edit_status}</span>
+                <span className="shrink-0 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-accent bg-accent/10 px-2 py-1 rounded-full">{c.edit_status}</span>
                 {c.due_date && (
-                  <span className="shrink-0 text-[9px] font-bold text-white/40">{formatLocalDate(c.due_date, { month: 'short', day: 'numeric' })}</span>
+                  <span className="shrink-0 text-[11px] md:text-[9px] font-bold text-white/40">{formatLocalDate(c.due_date, { month: 'short', day: 'numeric' })}</span>
                 )}
               </div>
             ))}
@@ -178,13 +178,13 @@ export default function MyWorkWidget() {
               <div key={`${c.jobId}-${i}`} className="flex items-center gap-3 bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-white truncate">{c.title}</p>
-                  <p className="text-[9px] text-white/35 truncate">{c.position}{c.location_name ? ` · ${c.location_name}` : ''}</p>
+                  <p className="text-[11px] md:text-[9px] text-white/35 truncate">{c.position}{c.location_name ? ` · ${c.location_name}` : ''}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="flex items-center gap-1 text-[10px] font-bold text-white/60 justify-end">
                     <Calendar className="w-3 h-3 text-white/30" /> {formatLocalDate(c.shoot_date, { month: 'short', day: 'numeric' })}
                   </p>
-                  {c.call_time && <p className="text-[9px] text-accent font-bold mt-0.5">Call {c.call_time}</p>}
+                  {c.call_time && <p className="text-[11px] md:text-[9px] text-accent font-bold mt-0.5">Call {c.call_time}</p>}
                 </div>
               </div>
             ))}
@@ -208,8 +208,8 @@ export default function MyWorkWidget() {
                   className="w-4 h-4 rounded border-white/20 text-accent focus:ring-accent bg-black cursor-pointer shrink-0"
                 />
                 <span className="flex-1 min-w-0 text-xs text-white/80 truncate">{t.task}</span>
-                {t.job_title && <span className="text-[9px] font-bold text-accent/60 truncate max-w-[110px] shrink-0">{t.job_title}</span>}
-                {t.due_date && <span className="text-[9px] text-white/30 shrink-0">{formatLocalDate(t.due_date, { month: 'short', day: 'numeric' })}</span>}
+                {t.job_title && <span className="text-[11px] md:text-[9px] font-bold text-accent/60 truncate max-w-[110px] shrink-0">{t.job_title}</span>}
+                {t.due_date && <span className="text-[11px] md:text-[9px] text-white/30 shrink-0">{formatLocalDate(t.due_date, { month: 'short', day: 'numeric' })}</span>}
               </label>
             ))}
           </div>

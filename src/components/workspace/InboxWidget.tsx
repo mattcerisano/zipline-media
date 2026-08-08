@@ -508,10 +508,10 @@ export default function InboxWidget() {
         <div className="bg-gradient-to-r from-yellow-500/10 via-amber-500/5 to-transparent border-b border-yellow-500/20 px-6 py-2.5 flex items-center justify-between gap-4 select-none">
           <div className="flex items-center gap-2.5">
             <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-yellow-500 flex items-center gap-1">
+            <span className="text-[11px] md:text-[9px] font-semibold uppercase tracking-wider text-yellow-500 flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5" /> Offline Sandbox mode
             </span>
-            <span className="text-[8px] font-semibold text-white/40 uppercase tracking-wide hidden sm:inline">— showing simulated studio inbox feeds</span>
+            <span className="text-[11px] md:text-[8px] font-semibold text-white/40 uppercase tracking-wide hidden sm:inline">— showing simulated studio inbox feeds</span>
           </div>
           <button 
             onClick={() => {
@@ -519,7 +519,7 @@ export default function InboxWidget() {
               const syncBtn = document.querySelector('button[title="Reconnect Account"]') || document.querySelector('button.bg-gradient-to-r.from-accent\\/20');
               if (syncBtn) (syncBtn as any).click();
             }}
-            className="px-2.5 py-1 bg-yellow-500/15 hover:bg-yellow-500/35 border border-yellow-500/30 rounded-lg text-[8px] font-semibold uppercase tracking-wider text-yellow-400 hover:text-white transition-all cursor-pointer"
+            className="px-2.5 py-1 bg-yellow-500/15 hover:bg-yellow-500/35 border border-yellow-500/30 rounded-lg text-[11px] md:text-[8px] font-semibold uppercase tracking-wider text-yellow-400 hover:text-white transition-all cursor-pointer"
           >
             Connect Gmail Account
           </button>
@@ -541,7 +541,7 @@ export default function InboxWidget() {
                 <button
                   key={c.key}
                   onClick={() => setCategory(c.key)}
-                  className={`px-2.5 py-1.5 rounded-lg text-[9px] font-semibold uppercase tracking-wider transition-all ${
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] md:text-[9px] font-semibold uppercase tracking-wider transition-all ${
                     category === c.key
                       ? 'bg-accent/15 text-accent border border-accent/30'
                       : 'text-white/40 border border-transparent hover:text-white hover:bg-white/5'
@@ -553,11 +553,11 @@ export default function InboxWidget() {
               {/* Freshness: quiet timestamp normally, loud when refresh breaks */}
               <span className="ml-auto pr-1">
                 {refreshFailed ? (
-                  <span className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-red-400" title="The last refresh could not reach Gmail — retrying automatically.">
+                  <span className="flex items-center gap-1 text-[11px] md:text-[8px] font-bold uppercase tracking-wider text-red-400" title="The last refresh could not reach Gmail — retrying automatically.">
                     <AlertCircle className="w-3 h-3" /> Refresh failed
                   </span>
                 ) : lastRefreshAt ? (
-                  <span className="text-[8px] font-semibold uppercase tracking-wider text-white/20 select-none" title="Refreshes automatically every 60 seconds">
+                  <span className="text-[11px] md:text-[8px] font-semibold uppercase tracking-wider text-white/20 select-none" title="Refreshes automatically every 60 seconds">
                     Updated {lastRefreshAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                   </span>
                 ) : null}
@@ -639,7 +639,7 @@ export default function InboxWidget() {
                       >
                         <Star className={`w-3.5 h-3.5 ${t.starred ? 'fill-amber-400' : ''}`} />
                       </button>
-                      <span className="text-[9px] font-medium text-white/30 tracking-wide whitespace-nowrap pt-0.5 shrink-0">
+                      <span className="text-[11px] md:text-[9px] font-medium text-white/30 tracking-wide whitespace-nowrap pt-0.5 shrink-0">
                         {t.lastMessageDate}
                       </span>
                     </div>
@@ -732,7 +732,7 @@ export default function InboxWidget() {
                   <h3 className="text-sm font-semibold tracking-wide text-white truncate max-w-md">
                     {currentThread.subject}
                   </h3>
-                  <p className="text-[9px] font-semibold uppercase tracking-wider text-accent mt-0.5">
+                  <p className="text-[11px] md:text-[9px] font-semibold uppercase tracking-wider text-accent mt-0.5">
                     {currentThread.messages?.length} {currentThread.messages?.length === 1 ? 'Message' : 'Messages'} in thread
                   </p>
                   </div>
@@ -778,7 +778,7 @@ export default function InboxWidget() {
                   })()}
                   <button
                     onClick={handleLinkToSlate}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-semibold tracking-wide text-white/60 hover:text-white transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] md:text-[9px] font-semibold tracking-wide text-white/60 hover:text-white transition-colors cursor-pointer"
                     title="Link Email Conversation to active Slate"
                   >
                     <Briefcase className="w-3.5 h-3.5 text-accent" />
@@ -786,7 +786,7 @@ export default function InboxWidget() {
                   </button>
                   <button 
                     onClick={handleConvertToTask}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-semibold tracking-wide text-white/60 hover:text-white transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] md:text-[9px] font-semibold tracking-wide text-white/60 hover:text-white transition-colors cursor-pointer"
                     title="Convert email instructions into a Crew/Gear Task"
                   >
                     <Package className="w-3.5 h-3.5 text-accent" />
@@ -823,10 +823,10 @@ export default function InboxWidget() {
                         </div>
                         <div>
                           <p className="text-xs font-semibold tracking-wide text-white">{msg.from}</p>
-                          <p className="text-[9px] font-medium text-white/30 tracking-wide mt-0.5">To: {msg.to}</p>
+                          <p className="text-[11px] md:text-[9px] font-medium text-white/30 tracking-wide mt-0.5">To: {msg.to}</p>
                         </div>
                       </div>
-                      <span className="text-[9px] font-medium text-white/30 tracking-wide flex items-center gap-1.5">
+                      <span className="text-[11px] md:text-[9px] font-medium text-white/30 tracking-wide flex items-center gap-1.5">
                         <Clock className="w-3 h-3 text-white/20" /> {msg.date}
                       </span>
                     </div>
@@ -855,7 +855,7 @@ export default function InboxWidget() {
                               {att.filename}
                             </span>
                             {att.size > 0 && (
-                              <span className="text-[9px] font-medium text-white/30 shrink-0">{formatBytes(att.size)}</span>
+                              <span className="text-[11px] md:text-[9px] font-medium text-white/30 shrink-0">{formatBytes(att.size)}</span>
                             )}
                           </button>
                         ))}
@@ -875,7 +875,7 @@ export default function InboxWidget() {
                       <button
                         type="button"
                         onClick={() => setShowTemplates(!showTemplates)}
-                        className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-semibold tracking-wide text-accent hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] md:text-[9px] font-semibold tracking-wide text-accent hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <Sparkles className="w-3 h-3 text-accent animate-pulse" />
                         Reply Templates
@@ -888,7 +888,7 @@ export default function InboxWidget() {
                             exit={{ opacity: 0, scale: 0.95, y: -10 }}
                             className="absolute right-0 bottom-full mb-2 w-64 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl p-2 space-y-1 text-left"
                           >
-                            <p className="text-[8px] font-semibold tracking-wider uppercase text-white/30 px-2 py-1.5 border-b border-white/5 mb-1">Select Template</p>
+                            <p className="text-[11px] md:text-[8px] font-semibold tracking-wider uppercase text-white/30 px-2 py-1.5 border-b border-white/5 mb-1">Select Template</p>
                             {REPLY_TEMPLATES.map((tmpl, idx) => (
                               <button
                                 key={idx}
@@ -913,7 +913,7 @@ export default function InboxWidget() {
                     />
 
                     <div className="bg-black/30 border-t border-white/5 px-4 py-2 flex items-center justify-between select-none">
-                      <span className="text-[9px] font-medium text-white/20 tracking-wide">
+                      <span className="text-[11px] md:text-[9px] font-medium text-white/20 tracking-wide">
                         Replying via {isLive ? 'Gmail Live API' : 'Simulated Sandbox SMTP'}
                       </span>
                       <button aria-label="Send" title="Send"
@@ -942,7 +942,7 @@ export default function InboxWidget() {
                 <Mail className="w-7 h-7 text-white/30 group-hover:scale-115 transition-transform" />
               </div>
               <h4 className="text-sm font-semibold tracking-wide text-white">No Conversation Selected</h4>
-              <p className="text-[9px] font-medium text-white/30 tracking-wide mt-1 max-w-[240px] leading-relaxed">
+              <p className="text-[11px] md:text-[9px] font-medium text-white/30 tracking-wide mt-1 max-w-[240px] leading-relaxed">
                 Select an email thread from the sidebar list to view its message timeline and compose replies.
               </p>
             </div>
@@ -1009,7 +1009,7 @@ export default function InboxWidget() {
                   />
                 </div>
                 <div className="bg-black/40 border-t border-white/5 px-5 py-3 flex items-center justify-between select-none">
-                  <span className="text-[9px] font-medium text-white/20 tracking-wide">
+                  <span className="text-[11px] md:text-[9px] font-medium text-white/20 tracking-wide">
                     Sending as {accountEmail || (isLive ? 'connected account' : 'Sandbox')}
                   </span>
                   <button aria-label="Send" title="Send"
@@ -1077,7 +1077,7 @@ export default function InboxWidget() {
                     >
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-white truncate">{j.title}</p>
-                        <p className="text-[9px] font-medium text-white/40 truncate">{j.client_name || 'No Client'}</p>
+                        <p className="text-[11px] md:text-[9px] font-medium text-white/40 truncate">{j.client_name || 'No Client'}</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-accent transition-colors shrink-0" />
                     </button>

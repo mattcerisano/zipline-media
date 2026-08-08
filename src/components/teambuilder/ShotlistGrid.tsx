@@ -230,7 +230,7 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
                 >
                   {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
-                <span className="text-[9px] font-black uppercase tracking-widest text-accent/70 shrink-0">Setup</span>
+                <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-accent/70 shrink-0">Setup</span>
                 <div className="w-12 shrink-0 border border-white/10 rounded">
                   <Cell value={scene.setup_number} onCommit={(v) => patchScene(scene.id, { setup_number: v })} placeholder="#" className="text-center font-black text-accent" />
                 </div>
@@ -244,7 +244,7 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
                   <Cell value={scene.description} onCommit={(v) => patchScene(scene.id, { description: v })} placeholder="DESCRIPTION" />
                 </div>
                 <div className="flex items-center gap-1 shrink-0 border border-white/10 rounded px-1">
-                  <span className="text-[8px] font-black uppercase text-white/30 pl-1">Est.</span>
+                  <span className="text-[11px] md:text-[8px] font-black uppercase text-white/30 pl-1">Est.</span>
                   <div className="w-14">
                     <Cell value={scene.est_minutes} onCommit={(v) => patchScene(scene.id, { est_minutes: v })} placeholder="45 min" className="text-center" />
                   </div>
@@ -265,12 +265,12 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
                   <thead>
                     <tr className="bg-black/30">
                       <th className="w-8" />
-                      <th className="px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 text-center w-12">Pri</th>
+                      <th className="px-2 py-1.5 text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 text-center w-12">Pri</th>
                       {COLS.map((c) => (
-                        <th key={c.key as string} className={`px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 ${c.w}`}>{c.label}</th>
+                        <th key={c.key as string} className={`px-2 py-1.5 text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 ${c.w}`}>{c.label}</th>
                       ))}
-                      <th className="px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 min-w-[120px]">Animation</th>
-                      <th className="px-2 py-1.5 text-[8px] font-black uppercase tracking-widest text-white/40 text-center w-14">Img</th>
+                      <th className="px-2 py-1.5 text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 min-w-[120px]">Animation</th>
+                      <th className="px-2 py-1.5 text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 text-center w-14">Img</th>
                       <th className="w-8" />
                     </tr>
                   </thead>
@@ -305,7 +305,7 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
                             <Cell value={shot.animation_link} onCommit={(v) => patchShot(shot.id, { animation_link: v })} placeholder="https://…" className="text-[10px] text-accent/80" />
                           </div>
                           {shot.animation_link && sanitizeUrl(shot.animation_link) && (
-                            <a href={sanitizeUrl(shot.animation_link)} target="_blank" rel="noopener noreferrer" className="text-[8px] text-accent/60 hover:text-accent underline px-2">open ↗</a>
+                            <a href={sanitizeUrl(shot.animation_link)} target="_blank" rel="noopener noreferrer" className="text-[11px] md:text-[8px] text-accent/60 hover:text-accent underline px-2">open ↗</a>
                           )}
                         </td>
                         {/* Optional thumbnail */}
@@ -318,7 +318,7 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
                               const url = prompt('Storyboard image URL (optional):', shot.image_url || '');
                               if (url !== null) patchShot(shot.id, { image_url: url });
                             }}
-                            className="text-[8px] text-white/30 hover:text-accent flex items-center gap-0.5 mx-auto mt-0.5 cursor-pointer"
+                            className="text-[11px] md:text-[8px] text-white/30 hover:text-accent flex items-center gap-0.5 mx-auto mt-0.5 cursor-pointer"
                           >
                             <ImageIcon className="w-3 h-3" /> {shot.image_url ? 'edit' : 'add'}
                           </button>
@@ -335,11 +335,11 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
 
                 {/* Scene footer: add row + scene notes */}
                 <div className="flex items-stretch gap-3 px-3 py-2 border-t border-white/10 bg-black/20">
-                  <button onClick={() => addShot(scene.id)} className="px-3 py-1.5 bg-white/5 hover:bg-accent/15 border border-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest text-white/70 hover:text-accent flex items-center gap-1.5 cursor-pointer shrink-0">
+                  <button onClick={() => addShot(scene.id)} className="px-3 py-1.5 bg-white/5 hover:bg-accent/15 border border-white/10 rounded-lg text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/70 hover:text-accent flex items-center gap-1.5 cursor-pointer shrink-0">
                     <Plus className="w-3 h-3" /> Add Shot
                   </button>
                   <div className="flex-1 flex items-center gap-2 border border-white/10 rounded-lg">
-                    <span className="text-[8px] font-black uppercase tracking-widest text-white/30 pl-2 shrink-0">Scene Notes</span>
+                    <span className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30 pl-2 shrink-0">Scene Notes</span>
                     <Cell value={scene.notes} onCommit={(v) => patchScene(scene.id, { notes: v })} placeholder="Notes for this scene…" />
                   </div>
                 </div>

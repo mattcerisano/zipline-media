@@ -286,7 +286,7 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
                 <Palette className="w-5 h-5 animate-pulse" />
               </span>
               <div>
-                <label className="text-[9px] font-medium uppercase tracking-[0.12em] opacity-40 block text-accent mb-0.5">Creative Board Project</label>
+                <label className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] opacity-40 block text-accent mb-0.5">Creative Board Project</label>
                 <span className="font-semibold tracking-tight text-lg text-white">
                   {jobs.find(j => j.id === selectedJobIdProp)?.title || 'Loading Project...'}
                 </span>
@@ -313,7 +313,7 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
                           {job.title}
                         </span>
                         {job.job_status && (
-                          <span className={`text-[9px] font-semibold tracking-tight px-1.5 py-0.5 rounded-full border shrink-0
+                          <span className={`text-[11px] md:text-[9px] font-semibold tracking-tight px-1.5 py-0.5 rounded-full border shrink-0
                             ${job.job_status === 'Booked' ? 'bg-green-500/10 border-green-500/20 text-green-500' :
                               job.job_status === 'Hold' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
                               'bg-blue-500/10 border-blue-500/20 text-blue-500'}`}
@@ -365,7 +365,7 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
              
              {/* Core Concept & Theme */}
              <div className="space-y-1.5">
-                <label className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/40 block ml-0.5">1. Core Concept & Theme</label>
+                <label className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/40 block ml-0.5">1. Core Concept & Theme</label>
                 <textarea 
                   value={briefConcept}
                   onChange={(e) => setBriefConcept(e.target.value)}
@@ -376,7 +376,7 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
 
               {/* Lighting & Color Direction */}
               <div className="space-y-1.5">
-                <label className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/40 block ml-0.5">2. Lighting & Color Direction</label>
+                <label className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/40 block ml-0.5">2. Lighting & Color Direction</label>
                 <textarea 
                   value={briefLighting}
                   onChange={(e) => setBriefLighting(e.target.value)}
@@ -387,7 +387,7 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
 
               {/* Camera & Movement Style */}
               <div className="space-y-1.5">
-                <label className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/40 block ml-0.5">3. Camera & Movement Style</label>
+                <label className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/40 block ml-0.5">3. Camera & Movement Style</label>
                 <textarea 
                   value={briefCamera}
                   onChange={(e) => setBriefCamera(e.target.value)}
@@ -398,7 +398,7 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
 
               {/* Audio & Soundscape Vibe */}
               <div className="space-y-1.5">
-                <label className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/40 block ml-0.5">4. Audio & Soundscape Vibe</label>
+                <label className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/40 block ml-0.5">4. Audio & Soundscape Vibe</label>
                 <textarea 
                   value={briefAudio}
                   onChange={(e) => setBriefAudio(e.target.value)}
