@@ -54,6 +54,7 @@ import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/cale
 import { caps, currency } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
 import { trackAction } from '@/lib/usage';
+import { FilterSheet } from '@/components/workspace/FilterSheet';
 import { Modal, DropdownMenu } from '@/components/workspace/Overlay';
 import type { BillingSummary } from '@/app/api/integrations/quickbooks/route';
 import {
@@ -1194,8 +1195,8 @@ export default function Slate({
     <div className="space-y-8 p-4 md:p-6">
       {/* Filters & Actions Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-neutral-900/40 p-6 rounded-2xl border border-white/10">
-        <div className="flex flex-col md:flex-row items-center gap-4 flex-1 w-full max-w-4xl">
-          <div className="relative flex-1 w-full">
+        <div className="flex flex-row flex-wrap md:flex-nowrap items-center gap-3 md:gap-4 flex-1 w-full max-w-4xl">
+          <div className="relative flex-1 min-w-[160px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
             <input 
               type="text"
@@ -1206,7 +1207,14 @@ export default function Slate({
             />
           </div>
           
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <FilterSheet
+            activeCount={
+              (statusFilter !== 'All' ? 1 : 0) +
+              (clientFilter !== 'All' ? 1 : 0) +
+              (projectFilter !== 'All' ? 1 : 0) +
+              (groupByProject ? 1 : 0)
+            }
+          >
             <Filter className="w-4 h-4 text-white/20 hidden md:block" />
             <select
               value={statusFilter}
@@ -1256,7 +1264,7 @@ export default function Slate({
             >
               {groupByProject ? 'Grouped' : 'Group'}
             </button>
-          </div>
+          </FilterSheet>
         </div>
 
         {!isClient && (

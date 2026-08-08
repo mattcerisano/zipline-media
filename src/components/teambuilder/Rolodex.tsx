@@ -36,6 +36,7 @@ import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { Contact, Client } from '@/components/gearbuilder/types';
 import { toast, confirmAction } from '@/components/Feedback';
+import { FilterSheet } from '@/components/workspace/FilterSheet';
 import ContactSuggest from '@/components/workspace/ContactSuggest';
 
 const STANDARD_ROLES = [
@@ -825,9 +826,24 @@ export default function Rolodex() {
       </div>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 w-full">
+        <div className="flex flex-row flex-wrap sm:flex-nowrap items-center gap-3 flex-1 w-full">
+          {/* Search leads — it's what the toolbar is for. The two filters sit
+              behind a chip on a phone and inline from md up. */}
+          <div className="relative flex-1 min-w-[160px]">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+            <input
+              type="text"
+              placeholder={`Search ${activeView === 'crew' ? 'contractors' : 'clients'}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-neutral-900/40 border border-white/10 p-4 pl-12 rounded-2xl outline-none focus:border-accent transition-all text-xs font-semibold text-white"
+            />
+          </div>
+
           {activeView === 'crew' && (
-            <>
+            <FilterSheet
+              activeCount={(showFavoritesOnly ? 1 : 0) + (selectedRoleFilter ? 1 : 0)}
+            >
               {/* Favorites Toggle */}
               <button
                 onClick={() => setShowFavoritesOnly(prev => !prev)}
@@ -853,20 +869,8 @@ export default function Rolodex() {
                   <option key={role} value={role} className="bg-neutral-950 text-white">{role}</option>
                 ))}
               </select>
-            </>
+            </FilterSheet>
           )}
-
-          {/* Search Bar */}
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-            <input 
-              type="text"
-              placeholder={`Search ${activeView === 'crew' ? 'contractors' : 'clients'}...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-neutral-900/40 border border-white/10 p-4 pl-12 rounded-2xl outline-none focus:border-accent transition-all text-xs font-semibold text-white"
-            />
-          </div>
         </div>
         {activeView === 'crew' && (
           <>
