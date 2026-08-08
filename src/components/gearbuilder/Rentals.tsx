@@ -39,6 +39,7 @@ import { STORAGE_KEY_CLIENTS, STORAGE_KEY_JOBS, Client, Job, GearTemplate, Conta
 import ProductionCalendar from './ProductionCalendar';
 import { supabase } from '@/lib/supabase';
 import { getBranding } from '@/lib/branding';
+import { fitImageBox } from '@/lib/pdf-image';
 import { useRealtime } from '@/lib/useRealtime';
 import { caps } from '@/lib/format';
 import { toast, confirmAction } from '@/components/Feedback';
@@ -937,7 +938,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     // --- HEADER ---
     // Logo (Left)
     if (logoData) {
-        doc.addImage(logoData, 'PNG', margin, 20, 120, 30);
+        // Fit inside the 120x30 slot rather than stretching to it — a square
+        // logo drawn straight into this box came out four times too wide.
+        // Left-aligned so it lines up with the margin the rest of the page uses.
+        const logo = fitImageBox(doc, logoData, margin, 20, 120, 30, 'left');
+        doc.addImage(logoData, 'PNG', logo.x, logo.y, logo.w, logo.h);
     } else {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(20);

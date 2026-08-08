@@ -5,6 +5,7 @@ import { Job, JobShot, JobSchedule, JobRole, JobLink } from '@/components/gearbu
 import { getBranding, hexToRgb } from '@/lib/branding';
 import { caps } from '@/lib/format';
 import { fetchGearCategoryMap, groupManifestByCategory, buildGearTableBody } from '@/lib/gear-manifest';
+import { fitImageBox } from '@/lib/pdf-image';
 
 // Neutral text colors (not brand-specific)
 const TEXT_DARK = '#111111';
@@ -137,9 +138,11 @@ export async function generateMasterBrief(jobId: string): Promise<void> {
       // Right Header: logo image if available, otherwise the company name text
       if (brandLogo) {
         try {
-          const logoH = 26;
-          const logoW = 78; // fits typical landscape logos; jsPDF scales to box
-          doc.addImage(brandLogo, 'PNG', pageWidth - margin - logoW, 22, logoW, logoH, undefined, 'FAST');
+          // 78x26 is the slot; the logo is fitted inside it instead of stretched
+          // to fill it, since jsPDF's addImage distorts to whatever w/h it gets.
+          // Right-aligned to match the text fallback below.
+          const logo = fitImageBox(doc, brandLogo, pageWidth - margin - 78, 22, 78, 26, 'right');
+          doc.addImage(brandLogo, 'PNG', logo.x, logo.y, logo.w, logo.h, undefined, 'FAST');
         } catch {
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(10);
@@ -554,7 +557,11 @@ export async function generateMasterBrief(jobId: string): Promise<void> {
             try {
               // Guess format based on URL or use JPEG
               const format = shot.image_url.toLowerCase().includes('.png') ? 'PNG' : 'JPEG';
-              doc.addImage(base64, format, imgX, imgY, imgW, imgH);
+              // Reference frames are whatever shape the photographer shot them;
+              // stretching a portrait still to this landscape slot distorted the
+              // exact framing the shot list exists to communicate.
+              const fit = fitImageBox(doc, base64, imgX, imgY, imgW, imgH);
+              doc.addImage(base64, format, fit.x, fit.y, fit.w, fit.h);
             } catch (err) {
               console.warn("Failed to render loaded base64 in pdf:", err);
               doc.setDrawColor(200, 200, 200);
