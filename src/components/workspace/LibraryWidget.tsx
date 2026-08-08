@@ -148,6 +148,60 @@ export default function LibraryWidget() {
   /** Inventory rows with no primary key — listed but not editable. */
   const [unkeyed, setUnkeyed] = useState(0);
 
+  /**
+   * QuickBooks customers, for linking a client by hand.
+   *
+   * Matching is otherwise by display name alone, and it fails silently: a
+   * client called "Acme Films" and a customer called "Acme Films LLC" simply
+   * show no billing, which is indistinguishable from a client who owes
+   * nothing. This is the manual override for that.
+   */
+  const [qbCustomers, setQbCustomers] = useState<{ id: string; name: string }[] | null>(null);
+  const [qbNote, setQbNote] = useState<string | null>(null);
+  const [qbBusy, setQbBusy] = useState(false);
+
+  useEffect(() => {
+    // Only when the Clients tab is actually open — nobody else needs the
+    // round trip, and QuickBooks may not be connected at all.
+    if (entity !== 'clients' || qbCustomers !== null) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const res = await fetch('/api/integrations/quickbooks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'customers' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!data.connected) {
+          setQbCustomers([]);
+          setQbNote(data.message || 'QuickBooks isn’t connected.');
+          return;
+        }
+        setQbCustomers(data.customers || []);
+      } catch {
+        if (!cancelled) { setQbCustomers([]); setQbNote('Could not reach QuickBooks.'); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [entity, qbCustomers]);
+
+  /** Pin a client to a QuickBooks customer, or clear the link. */
+  const linkQuickBooks = async (clientId: string, customerId: string | null) => {
+    setQbBusy(true);
+    const { error } = await supabase
+      .from('clients')
+      .update({ quickbooks_customer_id: customerId })
+      .eq('id', clientId);
+    setQbBusy(false);
+    if (error) { toast(`Could not save the link: ${error.message}`); return; }
+    toast(customerId ? 'Linked to QuickBooks.' : 'QuickBooks link cleared.');
+    void load();
+  };
+
   const load = useCallback(async () => {
     setLoadError(null);
     try {
@@ -486,11 +540,17 @@ export default function LibraryWidget() {
       { k: 'Status', v: d.status || 'Active' },
       { k: 'Shoots', v: String(row.count ?? 0), mono: true },
     ];
-    if (row.type === 'clients') return [
-      { k: 'Email', v: d.email || '—' },
-      { k: 'Phone', v: d.phone || '—', mono: true },
-      { k: 'Shoots', v: String(row.count ?? 0), mono: true },
-    ];
+    if (row.type === 'clients') {
+      const linked = d.quickbooks_customer_id
+        ? (qbCustomers?.find(c => c.id === d.quickbooks_customer_id)?.name || 'Linked (name unavailable)')
+        : 'Not linked';
+      return [
+        { k: 'Email', v: d.email || '—' },
+        { k: 'Phone', v: d.phone || '—', mono: true },
+        { k: 'Shoots', v: String(row.count ?? 0), mono: true },
+        { k: 'QuickBooks', v: linked },
+      ];
+    }
     return [
       { k: 'Category', v: d.category || 'Uncategorised' },
       { k: 'Owner', v: d.owner || 'Zipline Media' },
@@ -715,6 +775,39 @@ export default function LibraryWidget() {
 
               {/* Consequences sit next to the record, before you act on it —
                   not inside a confirm dialog after you already decided. */}
+              {/* QuickBooks link. Auto-matching is by display name only and
+                  fails silently — an unmatched client looks exactly like one
+                  with no invoices. This is where you say which is which. */}
+              {activeRow.type === 'clients' && qbCustomers !== null && (
+                qbCustomers.length === 0 ? (
+                  <p className="text-[10px] text-white/30 leading-relaxed">
+                    {qbNote || 'No QuickBooks customers found.'}
+                  </p>
+                ) : (
+                  <label className="block space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                      QuickBooks customer
+                    </span>
+                    <select
+                      value={activeRow.raw.quickbooks_customer_id || ''}
+                      disabled={qbBusy}
+                      onChange={e => linkQuickBooks(activeRow.id, e.target.value || null)}
+                      className={`${inputClass} cursor-pointer disabled:opacity-50`}
+                    >
+                      <option value="">Not linked</option>
+                      {qbCustomers.map(c => (
+                        <option key={c.id} value={c.id} className="bg-zinc-900">{c.name}</option>
+                      ))}
+                    </select>
+                    <span className="block text-[9px] text-white/25 leading-relaxed">
+                      {activeRow.raw.quickbooks_customer_id
+                        ? 'Invoiced and quoted totals for this client come from here.'
+                        : 'Names are matched automatically when they’re identical. Pick one here when they aren’t.'}
+                    </span>
+                  </label>
+                )
+              )}
+
               {activeRow.type === 'inventory' && (activeRow.usage || 0) > 0 && (
                 <p className="flex gap-2 text-[10px] text-amber-300/80 bg-amber-400/5 border border-amber-400/20 rounded-lg p-2.5 leading-relaxed">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
