@@ -655,7 +655,7 @@ export default function InboxWidget() {
                     </p>
 
                     <div className="flex items-center gap-2 mt-1 pl-1">
-                      <span className={`px-2 py-0.5 rounded-full text-[7px] font-semibold uppercase tracking-widest border border-${t.labelColor}/20 bg-${t.labelColor}/10 text-${t.labelColor}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] md:text-[7px] font-semibold uppercase tracking-widest border border-${t.labelColor}/20 bg-${t.labelColor}/10 text-${t.labelColor}`}>
                         {t.label}
                       </span>
                       {t.hasAttachments && (

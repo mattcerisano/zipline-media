@@ -1581,8 +1581,8 @@ export default function CommandCenterPage() {
                           : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
                       }`}
                     >
-                      <div className="font-black text-[10px] uppercase tracking-wider">Workspace</div>
-                      <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">Studio Tool Panels</div>
+                      <div className="font-black text-[13px] md:text-[10px] uppercase tracking-wider">Workspace</div>
+                      <div className="text-[11px] md:text-[7px] text-white/30 uppercase mt-0.5 font-bold">Studio Tool Panels</div>
                     </button>
                     <button
                       type="button"
@@ -1593,8 +1593,8 @@ export default function CommandCenterPage() {
                           : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
                       }`}
                     >
-                      <div className="font-black text-[10px] uppercase tracking-wider">Embed</div>
-                      <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">External Website</div>
+                      <div className="font-black text-[13px] md:text-[10px] uppercase tracking-wider">Embed</div>
+                      <div className="text-[11px] md:text-[7px] text-white/30 uppercase mt-0.5 font-bold">External Website</div>
                     </button>
                     <button
                       type="button"
@@ -1605,8 +1605,8 @@ export default function CommandCenterPage() {
                           : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
                       }`}
                     >
-                      <div className="font-black text-[10px] uppercase tracking-wider">Notepad</div>
-                      <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">Markdown Page</div>
+                      <div className="font-black text-[13px] md:text-[10px] uppercase tracking-wider">Notepad</div>
+                      <div className="text-[11px] md:text-[7px] text-white/30 uppercase mt-0.5 font-bold">Markdown Page</div>
                     </button>
                   </div>
                 </div>
@@ -1804,8 +1804,8 @@ export default function CommandCenterPage() {
                             : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
                         }`}
                       >
-                        <div className="font-black text-[10px] uppercase tracking-wider">Grid</div>
-                        <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">Premiere Splits</div>
+                        <div className="font-black text-[13px] md:text-[10px] uppercase tracking-wider">Grid</div>
+                        <div className="text-[11px] md:text-[7px] text-white/30 uppercase mt-0.5 font-bold">Premiere Splits</div>
                       </button>
                       <button
                         type="button"
@@ -1816,8 +1816,8 @@ export default function CommandCenterPage() {
                             : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
                         }`}
                       >
-                        <div className="font-black text-[10px] uppercase tracking-wider">Embed</div>
-                        <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">iFrame Web Tool</div>
+                        <div className="font-black text-[13px] md:text-[10px] uppercase tracking-wider">Embed</div>
+                        <div className="text-[11px] md:text-[7px] text-white/30 uppercase mt-0.5 font-bold">iFrame Web Tool</div>
                       </button>
                       <button
                         type="button"
@@ -1828,8 +1828,8 @@ export default function CommandCenterPage() {
                             : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
                         }`}
                       >
-                        <div className="font-black text-[10px] uppercase tracking-wider">Notepad</div>
-                        <div className="text-[7px] text-white/30 uppercase mt-0.5 font-bold">Markdown Page</div>
+                        <div className="font-black text-[13px] md:text-[10px] uppercase tracking-wider">Notepad</div>
+                        <div className="text-[11px] md:text-[7px] text-white/30 uppercase mt-0.5 font-bold">Markdown Page</div>
                       </button>
                     </div>
                   </div>
