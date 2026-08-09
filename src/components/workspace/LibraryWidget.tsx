@@ -785,7 +785,7 @@ export default function LibraryWidget() {
                   </p>
                 ) : (
                   <label className="block space-y-1">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                    <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/30">
                       QuickBooks customer
                     </span>
                     <select
@@ -799,7 +799,7 @@ export default function LibraryWidget() {
                         <option key={c.id} value={c.id} className="bg-zinc-900">{c.name}</option>
                       ))}
                     </select>
-                    <span className="block text-[9px] text-white/25 leading-relaxed">
+                    <span className="block text-[11px] md:text-[9px] text-white/25 leading-relaxed">
                       {activeRow.raw.quickbooks_customer_id
                         ? 'Invoiced and quoted totals for this client come from here.'
                         : 'Names are matched automatically when they’re identical. Pick one here when they aren’t.'}

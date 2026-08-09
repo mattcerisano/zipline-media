@@ -1653,7 +1653,7 @@ export default function Rolodex() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-black uppercase tracking-wider text-white">Direct iPhone / Device Picker</span>
-                      <span className="text-[7px] font-black uppercase tracking-widest text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded">Instant</span>
+                      <span className="text-[11px] md:text-[7px] font-black uppercase tracking-widest text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded">Instant</span>
                     </div>
                     <p className="text-[10px] text-white/50 mt-1 leading-relaxed">
                       Select contacts directly from your native iOS, iPadOS, or Android contacts list using your mobile web browser.

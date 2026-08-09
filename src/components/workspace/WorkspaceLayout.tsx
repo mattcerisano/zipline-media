@@ -585,7 +585,7 @@ function WorkspacePanel({
               <div className="absolute left-0 top-full mt-1.5 w-56 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl p-1.5 z-50 max-h-[350px] overflow-y-auto custom-scrollbar">
                 {['gear', 'creative', 'slate', 'edits'].includes(activeTab) ? (
                   <>
-                    <p className="text-[7px] font-black tracking-widest uppercase text-white/30 px-2.5 py-1.5 border-b border-white/5 mb-1">Select Job For Tab</p>
+                    <p className="text-[11px] md:text-[7px] font-black tracking-widest uppercase text-white/30 px-2.5 py-1.5 border-b border-white/5 mb-1">Select Job For Tab</p>
                     <div className="max-h-[200px] overflow-y-auto no-scrollbar space-y-0.5">
                       {jobs.map(job => (
                         <button
@@ -593,9 +593,12 @@ function WorkspacePanel({
                           onClick={() => handleAddJobTab(job.id)}
                           className="w-full flex items-center justify-between gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
                         >
-                          <span className="truncate max-w-[150px]">{job.title}</span>
+                          {/* Proportional rather than fixed pixel caps: 150px +
+                              50px was tuned for 7px text and overflows the 224px
+                              menu once the labels are legible. */}
+                          <span className="flex-1 min-w-0 truncate">{job.title}</span>
                           {job.client_name && (
-                            <span className="text-[7px] opacity-40 truncate max-w-[50px]">{job.client_name}</span>
+                            <span className="text-[11px] md:text-[7px] opacity-40 truncate shrink-0 max-w-[45%]">{job.client_name}</span>
                           )}
                         </button>
                       ))}
@@ -606,7 +609,7 @@ function WorkspacePanel({
                     
                     <div className="border-t border-white/5 mt-1.5 pt-1.5">
                       <details className="group/details">
-                        <summary className="list-none flex items-center justify-between px-2.5 py-1 text-[7px] font-black tracking-widest uppercase text-white/40 cursor-pointer hover:text-white select-none">
+                        <summary className="list-none flex items-center justify-between px-2.5 py-1 text-[11px] md:text-[7px] font-black tracking-widest uppercase text-white/40 cursor-pointer hover:text-white select-none">
                           <span>Other Widgets</span>
                           <ChevronDown className="w-2.5 h-2.5 transition-transform group-open/details:rotate-180" />
                         </summary>
@@ -637,7 +640,7 @@ function WorkspacePanel({
                   </>
                 ) : (
                   <>
-                    <p className="text-[7px] font-black tracking-widest uppercase text-white/30 px-2.5 py-1.5 border-b border-white/5 mb-1">Select Panel View</p>
+                    <p className="text-[11px] md:text-[7px] font-black tracking-widest uppercase text-white/30 px-2.5 py-1.5 border-b border-white/5 mb-1">Select Panel View</p>
                     {Object.keys(WIDGET_LABELS).map(key => {
                       const Icon = WIDGET_ICONS[key] || Layout;
                       return (
@@ -1292,7 +1295,7 @@ function ClockWidget() {
           <p className="text-xl font-black tracking-tight text-white mt-2 font-mono">{countdownString}</p>
           
           <div className="mt-2 flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-lg px-2 py-1 focus-within:border-accent/40">
-            <span className="text-[7px] font-black tracking-wider text-white/30">SET TARGET:</span>
+            <span className="text-[11px] md:text-[7px] font-black tracking-wider text-white/30">SET TARGET:</span>
             <input 
               type="time" 
               value={countdownTarget}

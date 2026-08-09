@@ -176,7 +176,7 @@ function ContentCalendar({ clients }: { clients: Client[] }) {
                           <span className={`w-1.5 h-1.5 rounded-full ${pl.dot} shrink-0`} />
                           <span className="text-[11px] md:text-[9px] font-bold truncate text-white/80">{p.title || p.caption || '(untitled)'}</span>
                         </div>
-                        <span className={`text-[7px] font-black uppercase tracking-wider ${p.status === 'posted' ? 'text-emerald-400' : 'text-white/30'}`}>{p.status}</span>
+                        <span className={`text-[11px] md:text-[7px] font-black uppercase tracking-wider ${p.status === 'posted' ? 'text-emerald-400' : 'text-white/30'}`}>{p.status}</span>
                       </button>
                     );
                   })}
