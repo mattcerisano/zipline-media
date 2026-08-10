@@ -33,6 +33,7 @@ import { caps } from '@/lib/format';
 import { formatLocalDate } from '@/lib/date';
 import { Contact, Job, JobRole, DEPARTMENTS, JobTemplate, JobSchedule, JobTodo } from '@/components/gearbuilder/types';
 import { toast, confirmAction } from '@/components/Feedback';
+import { CONTROL_H, CONTROL_GAP, TAB_STRIP_TEXT } from '@/lib/controls';
 
 // Helper function to sort schedule items chronologically
 const sortSchedules = (schedules: JobSchedule[]) => {
@@ -530,7 +531,10 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
     <div className="space-y-8">
       {/* Job Selector & Actions */}
       <div className="flex flex-col md:flex-row items-end gap-6 bg-neutral-900/40 p-6 rounded-2xl border border-white/10">
-        <div className="flex-1 space-y-2">
+        {/* min-w-0 so a long job title wraps instead of pushing the action
+            buttons past the right edge — flex items refuse to shrink below
+            their content without it. */}
+        <div className="flex-1 min-w-0 space-y-2">
           {!predefinedJobId ? (
             <>
               <label className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-40 ml-1">Active Job</label>
@@ -548,16 +552,20 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
             </>
           ) : (
             <div className="pt-2">
-              <label className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-40 ml-1">Managing Job:</label>
-              <h2 className="text-2xl font-black uppercase tracking-tighter text-white mt-1">{selectedJob?.title}</h2>
+              {/* The overline carried ml-1, so it sat 4px right of the title it
+                  labels — close enough to read as a mistake rather than a
+                  hierarchy. Flush left now, as a block, with real space beneath
+                  it instead of the 4px that glued it to the title. */}
+              <span className="block text-[10px] font-bold uppercase tracking-[0.3em] opacity-40">Managing Job:</span>
+              <h2 className="text-2xl font-black uppercase tracking-tighter text-white mt-2 leading-tight">{selectedJob?.title}</h2>
             </div>
           )}
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className={`flex flex-wrap ${CONTROL_GAP} w-full md:w-auto shrink-0`}>
           {activeTab === 'crew' && (
             <button 
               onClick={() => setIsTemplateModalOpen(true)}
-              className="flex-1 md:flex-none bg-white/5 text-white px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all border border-white/10 flex items-center justify-center gap-2"
+              className={`flex-1 md:flex-none whitespace-nowrap ${CONTROL_H} px-4 md:px-5 bg-white/5 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-colors border border-white/10 flex items-center justify-center gap-2`}
             >
               <LayoutTemplate className="w-4 h-4" /> Templates
             </button>
@@ -565,21 +573,21 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
           {activeTab === 'preprod' && jobTodos.length === 0 && (
             <button 
               onClick={handleLoadPresets}
-              className="flex-1 md:flex-none bg-white/5 text-white px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all border border-white/10 flex items-center justify-center gap-2"
+              className={`flex-1 md:flex-none whitespace-nowrap ${CONTROL_H} px-4 md:px-5 bg-white/5 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-colors border border-white/10 flex items-center justify-center gap-2`}
             >
               <LayoutTemplate className="w-4 h-4" /> Load Presets
             </button>
           )}
           <button 
             onClick={activeTab === 'crew' ? addRole : activeTab === 'schedule' ? addScheduleItem : addTodoItem}
-            className="flex-1 md:flex-none bg-accent text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-3"
+            className={`flex-1 md:flex-none whitespace-nowrap ${CONTROL_H} px-4 md:px-6 bg-accent text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-colors shadow-lg shadow-accent/20 flex items-center justify-center gap-2`}
           >
             <Plus className="w-4 h-4" /> {activeTab === 'crew' ? 'Add Role' : activeTab === 'schedule' ? 'Add Item' : 'Add Task'}
           </button>
           {onClose && (
             <button 
               onClick={onClose}
-              className="flex-1 md:flex-none bg-white/5 text-white p-4 rounded-xl hover:bg-red-500/20 hover:text-red-500 transition-all flex items-center justify-center border border-white/10"
+              className={`shrink-0 ${CONTROL_H} w-11 bg-white/5 text-white rounded-xl hover:bg-red-500/20 hover:text-red-500 transition-colors flex items-center justify-center border border-white/10`}
               title="Close"
             >
               <X className="w-5 h-5" />
@@ -591,25 +599,34 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content Area */}
         <div className={`${activeTab === 'preprod' ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-4`}>
-          <div className="flex flex-wrap items-center gap-4 mb-4 border-b border-white/10 pb-2">
-            <button 
-              onClick={() => setActiveTab('crew')}
-              className={`flex items-center gap-2 pb-2 text-lg font-black uppercase tracking-tighter transition-colors border-b-2 ${activeTab === 'crew' ? 'text-accent border-accent' : 'text-white/40 border-transparent hover:text-white'}`}
-            >
-              <Users className="w-5 h-5" /> Crew Manifest
-            </button>
-            <button 
-              onClick={() => setActiveTab('schedule')}
-              className={`flex items-center gap-2 pb-2 text-lg font-black uppercase tracking-tighter transition-colors border-b-2 ${activeTab === 'schedule' ? 'text-accent border-accent' : 'text-white/40 border-transparent hover:text-white'}`}
-            >
-              <Clock className="w-5 h-5" /> Schedule Builder
-            </button>
-            <button 
-              onClick={() => setActiveTab('preprod')}
-              className={`flex items-center gap-2 pb-2 text-lg font-black uppercase tracking-tighter transition-colors border-b-2 ${activeTab === 'preprod' ? 'text-accent border-accent' : 'text-white/40 border-transparent hover:text-white'}`}
-            >
-              <ClipboardList className="w-5 h-5" /> Prep Checklist
-            </button>
+          {/* A real tab strip. The container carried its own pb-2 on top of each
+              button's pb-2 + border-b-2, so the active indicator floated 8px
+              above the rule it was meant to sit on. Each tab now ends exactly on
+              that rule (-mb-px).
+
+              It scrolls rather than wraps. Wrapping is what put "Prep Checklist"
+              on a second line, and in a wrapped strip only the last row can
+              touch the border — every tab above it leaves its underline
+              stranded mid-strip (measured at 49px on a phone). Scrolling keeps
+              one row at every width, so the indicator always means the same
+              thing. Same no-scrollbar pattern the gear and archive filter rows
+              already use. */}
+          <div className={`flex flex-nowrap overflow-x-auto no-scrollbar items-end gap-x-7 mb-4 border-b border-white/10 ${TAB_STRIP_TEXT}`}>
+            {([
+              { id: 'crew', label: 'Crew Manifest', Icon: Users },
+              { id: 'schedule', label: 'Schedule Builder', Icon: Clock },
+              { id: 'preprod', label: 'Prep Checklist', Icon: ClipboardList },
+            ] as const).map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center gap-2 pb-3 -mb-px border-b-2 whitespace-nowrap shrink-0 transition-colors ${
+                  activeTab === id ? 'text-accent border-accent' : 'text-white/40 border-transparent hover:text-white'
+                }`}
+              >
+                <Icon className="w-5 h-5 shrink-0" /> {label}
+              </button>
+            ))}
           </div>
           
           <div className="space-y-3">

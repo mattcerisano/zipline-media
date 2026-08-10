@@ -46,6 +46,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { toast, confirmAction } from '@/components/Feedback';
+import { CONTROL_H, CONTROL_SELECT, CONTROL_BUTTON, CONTROL_GAP, TOOLBAR_CARD } from '@/lib/controls';
 
 // Columns are customizable: definitions are { id, label, color } where color
 // is a token from STAGE_COLORS. Custom definitions live org-wide in
@@ -432,23 +433,38 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
 
   return (
     <div className="space-y-6 h-full flex flex-col p-4 md:p-6">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-neutral-900/40 p-6 rounded-2xl border border-white/10 shrink-0 gap-4">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-white">Post-Production Pipeline</h2>
-          <p className="text-[12px] font-medium tracking-tight opacity-50 text-white mt-1">Trello-style edit tracking</p>
+      {/* The title block had no shrink-0, so once the controls filled the row it
+          was squeezed into a narrow column and "Post-Production Pipeline" broke
+          across three lines. It now holds its width, and the controls below all
+          share one height and one gap instead of five of each. */}
+      <div className={`flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-5 ${TOOLBAR_CARD} shrink-0`}>
+        {/* Active Edits lives here rather than at the end of the control row.
+            It is a readout, not a control, and trailing ten controls it was the
+            one item that kept getting stranded alone on a wrapped second line.
+            Beside the title it also fills the gap that made this header read as
+            two disconnected halves. */}
+        <div className="flex items-center gap-4 shrink-0">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-white">Post-Production Pipeline</h2>
+            <p className="text-[12px] font-medium tracking-tight opacity-50 text-white mt-1">Trello-style edit tracking</p>
+          </div>
+          <div className={`${CONTROL_H} hidden md:inline-flex items-center gap-2 px-4 bg-white/5 rounded-xl border border-white/5`}>
+            <span className="text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 text-white">Active Edits</span>
+            <span className="text-sm font-semibold text-white tabular-nums">{filteredJobs.filter(j => j.edit_status !== 'Wrapped').length}</span>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-0.5 p-0.5 bg-black/50 border border-white/10 rounded-xl">
+        <div className={`flex flex-wrap items-center ${CONTROL_GAP}`}>
+          <div className={`flex items-center gap-1 p-1 bg-black/50 border border-white/10 rounded-xl ${CONTROL_H}`}>
             <button
               onClick={() => setViewMode('board')}
-              className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${viewMode === 'board' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+              className={`h-full px-3.5 text-[13px] font-medium tracking-tight rounded-lg transition-colors ${viewMode === 'board' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
               title="Kanban board grouped by stage"
             >
               Board
             </button>
             <button
               onClick={() => setViewMode('timeline')}
-              className={`px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${viewMode === 'timeline' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+              className={`h-full px-3.5 text-[13px] font-medium tracking-tight rounded-lg transition-colors ${viewMode === 'timeline' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
               title="Agenda view grouped by due date"
             >
               Timeline
@@ -457,7 +473,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
           {!isClient && myEmail && (
             <button
               onClick={() => setMyCardsOnly(v => !v)}
-              className={`flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold tracking-tight rounded-xl border transition-colors ${
+              className={`inline-flex items-center justify-center gap-2 border ${CONTROL_H} rounded-xl px-4 text-[13px] font-medium tracking-tight transition-colors ${
                 myCardsOnly
                   ? 'bg-accent/15 border-accent/40 text-accent'
                   : 'bg-black/50 border-white/10 text-white/60 hover:text-white hover:border-white/25'
@@ -470,7 +486,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
           {!isClient && (
             <button
               onClick={() => setIsColumnsModalOpen(true)}
-              className="flex items-center gap-1.5 bg-black/50 border border-white/10 px-4 py-2 text-[12px] font-medium tracking-tight rounded-xl text-white/60 hover:text-white hover:border-white/25 transition-colors"
+              className={`${CONTROL_BUTTON} hover:border-white/25`}
               title="Rename, recolor, add, or remove board columns"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" /> Columns
@@ -482,7 +498,9 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               onChange={(e) => {
                 if (e.target.value) updateJobEditStatus(e.target.value, firstStageId);
               }}
-              className="bg-accent/10 border border-accent/30 text-accent px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-semibold tracking-tight rounded-xl cursor-pointer appearance-none w-full sm:w-auto sm:min-w-[180px]"
+              /* Was unbounded inside a wrapping row, so it stretched to fill
+                 whatever space was left and dwarfed everything beside it. */
+              className={`${CONTROL_H} rounded-xl border border-accent/30 bg-accent/10 text-accent px-4 text-[13px] font-medium tracking-tight outline-none focus:border-accent transition-colors cursor-pointer appearance-none w-full sm:w-auto sm:min-w-[210px] sm:max-w-[240px]`}
               title="Pull a Slate production onto the post-production board"
             >
               <option value="">+ Add Production to Board</option>
@@ -493,11 +511,11 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               ))}
             </select>
           )}
-          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+          <div className={`flex items-center flex-wrap w-full sm:w-auto ${CONTROL_GAP}`}>
             <select
               value={clientFilter}
               onChange={(e) => { setClientFilter(e.target.value); setProjectFilter('All'); }}
-              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-medium tracking-tight rounded-xl cursor-pointer appearance-none text-white flex-1 min-w-0 sm:flex-none sm:min-w-[120px]"
+              className={`${CONTROL_SELECT} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px]`}
             >
               <option value="All">All Clients</option>
               {uniqueClients.map(c => <option key={c as string} value={c as string}>{caps(c as string)}</option>)}
@@ -506,7 +524,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
               disabled={projectsForFilter.length === 0}
-              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-medium tracking-tight rounded-xl cursor-pointer appearance-none text-white flex-1 min-w-0 sm:flex-none sm:min-w-[120px] disabled:opacity-30"
+              className={`${CONTROL_SELECT} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px] disabled:opacity-30`}
             >
               <option value="All">All Projects</option>
               {projectsForFilter.map(p => <option key={p.id} value={p.id}>{caps(p.name)}</option>)}
@@ -514,15 +532,11 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
             <select
               value={yearFilter}
               onChange={(e) => setYearFilter(e.target.value)}
-              className="bg-black/50 border border-white/10 px-4 py-2 outline-none focus:border-accent transition-colors text-[12px] font-medium tracking-tight rounded-xl cursor-pointer appearance-none text-white"
+              className={`${CONTROL_SELECT} min-w-[110px]`}
             >
               <option value="All">All Years</option>
               {uniqueYears.map(y => <option key={y as string} value={y as string}>{y}</option>)}
             </select>
-          </div>
-          <div className="px-4 py-2 bg-white/5 rounded-xl border border-white/5 hidden md:block">
-             <p className="text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 text-white">Active Edits</p>
-             <p className="text-sm font-semibold text-white">{filteredJobs.filter(j => j.edit_status !== 'Wrapped').length}</p>
           </div>
         </div>
       </div>
