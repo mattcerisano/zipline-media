@@ -100,7 +100,7 @@ export default function Navbar() {
             <Link 
               href="/#home" 
               onClick={(e) => { setIsOpen(false); handleNav(e, '/#home'); }} 
-              className="block hover:opacity-80 transition-opacity"
+              className="flex items-center min-h-11 hover:opacity-80 transition-opacity"
             >
               <Image 
                 src="/Zipline Logo FULL Blue.png" 

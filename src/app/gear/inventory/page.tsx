@@ -72,7 +72,7 @@ export default function GearPage() {
           <div className="space-y-4">
             <Link 
               href="/" 
-              className="inline-flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase opacity-40 hover:opacity-100 transition-opacity mb-4"
+              className="inline-flex items-center min-h-11 gap-2 text-[10px] font-bold tracking-widest uppercase opacity-40 hover:opacity-100 transition-opacity mb-1"
             >
               ← Back to site
             </Link>

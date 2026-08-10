@@ -24,25 +24,30 @@ export default function Footer() {
         </div>
 
         {/* Socials & Contact */}
-        <div className="flex flex-col gap-4 md:gap-6">
+        {/* Tap targets, not just glyphs. The icons below are 20px artwork; as
+            bare links that was also the whole touchable area, less than half
+            the 44px both Apple and Android ask for. Each is now a 44px box with
+            the icon centred in it, and the surrounding gaps are pulled in by
+            the same amount so nothing moves visually. */}
+        <div className="flex flex-col gap-1 md:gap-3">
 
-          <a href="mailto:contact@zipline.media" className="text-sm font-bold tracking-[0.1em] text-white hover:text-[var(--accent)] transition-colors">
+          <a href="mailto:contact@zipline.media" className="inline-flex items-center min-h-11 text-sm font-bold tracking-[0.1em] text-white hover:text-[var(--accent)] transition-colors">
 
             CONTACT@ZIPLINE.MEDIA
 
           </a>
 
-          
 
-          <div className="flex gap-6">
 
-            <a href="https://www.instagram.com/zipline.media" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors">
+          <div className="flex gap-1 -ml-3">
+
+            <a href="https://www.instagram.com/zipline.media" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-11 h-11 text-white/60 hover:text-white transition-colors">
 
               <Instagram className="w-5 h-5" />
 
             </a>
 
-            <a href="https://vimeo.com/zipline" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors">
+            <a href="https://vimeo.com/zipline" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-11 h-11 text-white/60 hover:text-white transition-colors">
 
               <svg 
 
@@ -74,7 +79,7 @@ export default function Footer() {
 
             </a>
 
-            <a href="https://www.linkedin.com/company/zipline-productions" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors">
+            <a href="https://www.linkedin.com/company/zipline-productions" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-11 h-11 text-white/60 hover:text-white transition-colors">
 
               <Linkedin className="w-5 h-5" />
 
