@@ -42,7 +42,10 @@ export default function EquipmentPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-none"
+            /* Stepped down at the small and medium stops: "EQUIPMENT" in the
+               real LuloClean is wide enough that 48px overran a phone and 96px
+               overran a tablet. Full size returns at lg, where there's room. */
+            className="text-4xl md:text-6xl lg:text-8xl font-black uppercase tracking-tighter leading-none"
           >
             Equipment
           </motion.h1>

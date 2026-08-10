@@ -776,10 +776,16 @@ function AgencyManifesto() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-[5.2vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.1] mb-8 font-sans"
+            className="text-[7vw] md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-[1.15] mb-8 font-sans"
           >
-            <span className="block whitespace-nowrap">We obsess over the details</span>
-            <span className="text-accent block whitespace-nowrap">so you don&apos;t have to.</span>
+            {/* Wrapping, not nowrap. 5.2vw with whitespace-nowrap was sized to
+                fit this line in the synthesized bold the browser produced while
+                LuloClean-Bold.otf was 404ing; the real face is far wider, and no
+                size that fits 25 characters on one phone-width line is legible
+                as a headline. Each clause stays its own block, so the two-part
+                structure and the accent second line survive the wrap. */}
+            <span className="block">We obsess over the details</span>
+            <span className="text-accent block">so you don&apos;t have to.</span>
           </motion.h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm md:text-base opacity-70 leading-relaxed font-medium">
