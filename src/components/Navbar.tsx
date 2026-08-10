@@ -100,7 +100,11 @@ export default function Navbar() {
             <Link 
               href="/#home" 
               onClick={(e) => { setIsOpen(false); handleNav(e, '/#home'); }} 
-              className="flex items-center min-h-11 hover:opacity-80 transition-opacity"
+              /* min-h-11 keeps the logo a 44px thumb target; -my-2 stops that
+                 height from growing the bar itself. Without it the mobile nav
+                 went from 63px to 77px and overlapped the pt-16 every page
+                 uses to clear it, hiding the top of the first line of content. */
+              className="flex items-center min-h-11 -my-2 hover:opacity-80 transition-opacity"
             >
               <Image 
                 src="/Zipline Logo FULL Blue.png" 

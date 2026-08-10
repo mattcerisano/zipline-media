@@ -337,21 +337,12 @@ export default function ArchiveClient() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
-    <main className="min-h-screen bg-black text-white px-4 md:px-8 lg:px-12 pt-16 md:pt-24 overflow-x-hidden">
-      {/* Mobile Logo */}
-      <div className="md:hidden flex justify-center mb-6">
-        <Link href="/" className="flex items-center min-h-11">
-          <Image 
-            src="/Zipline Logo FULL Blue.png" 
-            alt="ZIPLINE" 
-            width={180}
-            height={50}
-            className="w-32 h-auto object-contain"
-            priority
-          />
-        </Link>
-      </div>
-
+    /* pt-20, not pt-16: the fixed navbar is 73px tall on a phone, so 64px of
+       top padding left the first line of content tucked under it. */
+    <main className="min-h-screen bg-black text-white px-4 md:px-8 lg:px-12 pt-20 md:pt-24 overflow-x-hidden">
+      {/* No page-level logo here: the sticky navbar already shows one directly
+          above it on every breakpoint, so this was a second Zipline mark within
+          about 100px of the first. */}
       <div className="max-w-7xl mx-auto">
         <header className="mb-6 md:mb-12 flex flex-col gap-4 md:gap-8">
           <Link 
