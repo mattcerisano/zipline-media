@@ -54,6 +54,7 @@ import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/cale
 import { caps, currency } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
 import { trackAction } from '@/lib/usage';
+import { CONTROL_FIELD, CONTROL_SELECT, CONTROL_CTA, CONTROL_GAP, TOOLBAR_CARD, controlToggle } from '@/lib/controls';
 import { FilterSheet } from '@/components/workspace/FilterSheet';
 import { Modal, DropdownMenu } from '@/components/workspace/Overlay';
 import type { BillingSummary } from '@/app/api/integrations/quickbooks/route';
@@ -1194,16 +1195,21 @@ export default function Slate({
   return (
     <div className="space-y-8 p-4 md:p-6">
       {/* Filters & Actions Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-neutral-900/40 p-6 rounded-2xl border border-white/10">
-        <div className="flex flex-row flex-wrap md:flex-nowrap items-center gap-3 md:gap-4 flex-1 w-full max-w-4xl">
-          <div className="relative flex-1 min-w-[160px]">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-            <input 
+      {/* The filter group used to be capped at max-w-4xl while the CTA sat hard
+          right, so the controls were squeezed into two-thirds of the row and
+          "Group" wrapped underneath — with empty space beside it. The cap is
+          gone: the group takes the width actually available, wraps only when it
+          genuinely runs out, and every child is the same height. */}
+      <div className={`flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 lg:gap-6 ${TOOLBAR_CARD}`}>
+        <div className={`flex flex-wrap items-center ${CONTROL_GAP} flex-1 w-full min-w-0`}>
+          <div className="relative flex-1 min-w-[200px] lg:max-w-xs">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 pointer-events-none" />
+            <input
               type="text"
               placeholder="Search jobs or clients…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-black/50 border border-white/10 p-3 pl-12 rounded-xl outline-none focus:border-accent transition-all text-[13px] font-medium tracking-tight text-white"
+              className={`w-full pl-12 ${CONTROL_FIELD}`}
             />
           </div>
           
@@ -1219,7 +1225,7 @@ export default function Slate({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="flex-1 md:flex-none bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent text-[13px] font-medium tracking-tight cursor-pointer appearance-none min-w-[120px] text-white"
+              className={`flex-1 md:flex-none min-w-[130px] ${CONTROL_SELECT}`}
             >
               <option value="All">All Statuses</option>
               {STATUSES.map(s => (
@@ -1234,7 +1240,7 @@ export default function Slate({
                 setClientFilter(e.target.value);
                 setProjectFilter('All'); // reset dependent project filter
               }}
-              className="flex-1 md:flex-none bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent text-[13px] font-medium tracking-tight cursor-pointer appearance-none min-w-[120px] text-white"
+              className={`flex-1 md:flex-none min-w-[130px] ${CONTROL_SELECT}`}
             >
               <option value="All">All Clients</option>
               {clients.map(c => (
@@ -1247,7 +1253,7 @@ export default function Slate({
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
               disabled={projectsForFilter.length === 0}
-              className="flex-1 md:flex-none bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent text-[13px] font-medium tracking-tight cursor-pointer appearance-none min-w-[120px] text-white disabled:opacity-30"
+              className={`flex-1 md:flex-none min-w-[130px] ${CONTROL_SELECT} disabled:opacity-30`}
             >
               <option value="All">All Projects</option>
               {projectsForFilter.map(p => (
@@ -1260,7 +1266,7 @@ export default function Slate({
               type="button"
               onClick={() => setGroupByProject(v => !v)}
               title="Group jobs by project"
-              className={`flex-1 md:flex-none p-3 rounded-xl border text-[13px] font-medium tracking-tight transition-all min-w-[110px] ${groupByProject ? 'bg-accent text-white border-accent' : 'bg-black/50 border-white/10 text-white/60 hover:text-white'}`}
+              className={`flex-1 md:flex-none min-w-[110px] ${controlToggle(groupByProject)}`}
             >
               {groupByProject ? 'Grouped' : 'Group'}
             </button>
@@ -1270,7 +1276,7 @@ export default function Slate({
         {!isClient && (
           <button 
             onClick={() => openNewJobModal()}
-            className="bg-accent text-white px-8 py-4 rounded-xl font-semibold tracking-tight text-sm hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center gap-3 w-full lg:w-auto justify-center"
+            className={`w-full lg:w-auto shrink-0 ${CONTROL_CTA}`}
           >
             <Plus className="w-4 h-4" /> New Production
           </button>
