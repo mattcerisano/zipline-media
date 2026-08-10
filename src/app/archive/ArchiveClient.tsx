@@ -208,7 +208,7 @@ function PerformanceSection({
           <button
             key={sub}
             onClick={() => setActiveTab(sub)}
-            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest transition-all whitespace-nowrap
+            className={`px-3 py-2.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest transition-all whitespace-nowrap
               ${activeTab === sub 
                 ? 'bg-white text-black' 
                 : 'bg-neutral-900 text-white/50 hover:bg-neutral-800 hover:text-white'
@@ -242,7 +242,7 @@ function BrandsNonprofitsSection({
           <button
             key={sub}
             onClick={() => setActiveTab(sub)}
-            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest transition-all
+            className={`px-3 py-2.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest transition-all
               ${activeTab === sub 
                 ? 'bg-white text-black' 
                 : 'bg-neutral-900 text-white/50 hover:bg-neutral-800 hover:text-white'
@@ -339,8 +339,8 @@ export default function ArchiveClient() {
   return (
     <main className="min-h-screen bg-black text-white px-4 md:px-8 lg:px-12 pt-16 md:pt-24 overflow-x-hidden">
       {/* Mobile Logo */}
-      <div className="md:hidden flex justify-center mb-8">
-        <Link href="/">
+      <div className="md:hidden flex justify-center mb-6">
+        <Link href="/" className="flex items-center min-h-11">
           <Image 
             src="/Zipline Logo FULL Blue.png" 
             alt="ZIPLINE" 
@@ -357,7 +357,7 @@ export default function ArchiveClient() {
           <Link 
             href="/" 
             onClick={handleBackToHome}
-            className="flex items-center gap-2 text-[10px] md:text-sm uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-70 hover:opacity-100 py-1 md:py-2"
+            className="flex items-center min-h-11 gap-2 text-[10px] md:text-sm uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-70 hover:opacity-100 py-1 md:py-2"
           >
             <ArrowLeft className="w-3 h-3 md:w-4 md:h-4" />
             Back to Home

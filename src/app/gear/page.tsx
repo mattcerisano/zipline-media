@@ -141,7 +141,7 @@ export default function EquipmentPage() {
             <div className="pt-12 border-t border-white/5 flex justify-end">
               <button 
                 onClick={scrollToTop}
-                className="text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest transition-colors"
+                className="inline-flex items-center min-h-11 px-2 -mr-2 text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest transition-colors"
               >
                 Back to Top ↑
               </button>

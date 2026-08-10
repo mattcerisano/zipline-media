@@ -118,7 +118,9 @@ export default function ServicesPage() {
       </div>
       
       {/* Back Button */}
-      <Link href="/" className="mt-12 text-xs font-mono uppercase underline hover:no-underline opacity-60 hover:opacity-100 transition-opacity">
+      {/* min-h-11 with the top margin trimmed to match: a bigger thumb target,
+          same position on the page. */}
+      <Link href="/" className="mt-9 inline-flex items-center min-h-11 text-xs font-mono uppercase underline hover:no-underline opacity-60 hover:opacity-100 transition-opacity">
         ← Return Home
       </Link>
     </main>

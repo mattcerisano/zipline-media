@@ -28,7 +28,14 @@ html {
 
 @font-face {
   font-family: 'LuloClean';
-  src: url('/lulo-clean/Lulo Clean One Bold.otf') format('opentype');
+  /* The bold cut ships as LuloClean-Bold.otf, not "Lulo Clean One Bold.otf" —
+     the name this rule asked for until now, which 404s. Its internal full name
+     really is "Lulo Clean One Bold" (family LuloCleanOne-Bold), so it is the
+     right pair for the regular above; only the filename differs. While the URL
+     was wrong every bold heading on the public site silently fell back to
+     Montserrat. The PDF generator already loads this same file by its real
+     name, which is why exports kept their branding and the site did not. */
+  src: url('/lulo-clean/LuloClean-Bold.otf') format('opentype');
   font-weight: bold;
   font-style: normal;
   font-display: swap;
