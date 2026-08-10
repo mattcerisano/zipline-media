@@ -976,8 +976,11 @@ export default function CommandCenterPage() {
             <div className="w-8 h-8 bg-gradient-to-br from-accent to-blue-600 rounded-lg flex items-center justify-center font-black text-xs shadow-[0_0_15px_rgba(0,119,255,0.3)] shrink-0">Z</div>
             <span className={`font-semibold tracking-tight text-lg bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent ${(!isSidebarOpen && !isMobile) && 'hidden'}`}>Studio</span>
           </div>
+          {/* Icon-only, so it needs a name of its own — without one a screen
+              reader announces an unlabelled button. */}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            aria-label={isMobile ? 'Close navigation' : isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             className="p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer text-white/60 hover:text-white"
           >
             {isMobile ? (
@@ -1169,6 +1172,7 @@ export default function CommandCenterPage() {
             {isMobile && (
               <button
                 onClick={() => setIsSidebarOpen(true)}
+                aria-label="Open navigation"
                 className="p-2 hover:bg-white/5 border border-white/10 rounded-lg transition-colors cursor-pointer text-white shrink-0"
               >
                 <Menu className="w-4 h-4" />

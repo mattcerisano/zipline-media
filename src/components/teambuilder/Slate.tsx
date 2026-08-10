@@ -54,7 +54,7 @@ import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/cale
 import { caps, currency } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
 import { trackAction } from '@/lib/usage';
-import { CONTROL_FIELD, CONTROL_SELECT, CONTROL_CTA, CONTROL_GAP, TOOLBAR_CARD, controlToggle } from '@/lib/controls';
+import { CONTROL_FIELD, CONTROL_SELECT, CONTROL_SELECT_MAX, CONTROL_CTA, CONTROL_GAP, TOOLBAR_CARD, controlToggle } from '@/lib/controls';
 import { FilterSheet } from '@/components/workspace/FilterSheet';
 import { Modal, DropdownMenu } from '@/components/workspace/Overlay';
 import type { BillingSummary } from '@/app/api/integrations/quickbooks/route';
@@ -1225,7 +1225,7 @@ export default function Slate({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className={`flex-1 md:flex-none min-w-[130px] ${CONTROL_SELECT}`}
+              className={`flex-1 md:flex-none min-w-[130px] ${CONTROL_SELECT_MAX} ${CONTROL_SELECT}`}
             >
               <option value="All">All Statuses</option>
               {STATUSES.map(s => (
@@ -1240,7 +1240,7 @@ export default function Slate({
                 setClientFilter(e.target.value);
                 setProjectFilter('All'); // reset dependent project filter
               }}
-              className={`flex-1 md:flex-none min-w-[130px] ${CONTROL_SELECT}`}
+              className={`flex-1 md:flex-none min-w-[130px] ${CONTROL_SELECT_MAX} ${CONTROL_SELECT}`}
             >
               <option value="All">All Clients</option>
               {clients.map(c => (
@@ -1253,7 +1253,7 @@ export default function Slate({
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
               disabled={projectsForFilter.length === 0}
-              className={`flex-1 md:flex-none min-w-[130px] ${CONTROL_SELECT} disabled:opacity-30`}
+              className={`flex-1 md:flex-none min-w-[130px] ${CONTROL_SELECT_MAX} ${CONTROL_SELECT} disabled:opacity-30`}
             >
               <option value="All">All Projects</option>
               {projectsForFilter.map(p => (

@@ -12,7 +12,8 @@
     "dist": "electron-builder",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev:phone": "next dev -H 0.0.0.0"
+    "dev:phone": "next dev -H 0.0.0.0",
+    "ui:harness": "scripts/ui-harness/run.sh"
   },
   "build": {
     "appId": "com.ziplinemedia.app",
