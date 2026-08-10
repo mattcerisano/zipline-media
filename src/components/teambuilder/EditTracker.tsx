@@ -46,7 +46,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { toast, confirmAction } from '@/components/Feedback';
-import { CONTROL_H, CONTROL_SELECT, CONTROL_BUTTON, CONTROL_GAP, TOOLBAR_CARD } from '@/lib/controls';
+import { CONTROL_H, CONTROL_SELECT, CONTROL_SELECT_MAX, CONTROL_BUTTON, CONTROL_GAP, TOOLBAR_CARD } from '@/lib/controls';
 
 // Columns are customizable: definitions are { id, label, color } where color
 // is a token from STAGE_COLORS. Custom definitions live org-wide in
@@ -515,7 +515,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
             <select
               value={clientFilter}
               onChange={(e) => { setClientFilter(e.target.value); setProjectFilter('All'); }}
-              className={`${CONTROL_SELECT} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px]`}
+              className={`${CONTROL_SELECT} ${CONTROL_SELECT_MAX} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px]`}
             >
               <option value="All">All Clients</option>
               {uniqueClients.map(c => <option key={c as string} value={c as string}>{caps(c as string)}</option>)}
@@ -524,7 +524,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
               disabled={projectsForFilter.length === 0}
-              className={`${CONTROL_SELECT} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px] disabled:opacity-30`}
+              className={`${CONTROL_SELECT} ${CONTROL_SELECT_MAX} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px] disabled:opacity-30`}
             >
               <option value="All">All Projects</option>
               {projectsForFilter.map(p => <option key={p.id} value={p.id}>{caps(p.name)}</option>)}
@@ -532,7 +532,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
             <select
               value={yearFilter}
               onChange={(e) => setYearFilter(e.target.value)}
-              className={`${CONTROL_SELECT} min-w-[110px]`}
+              className={`${CONTROL_SELECT} ${CONTROL_SELECT_MAX} min-w-[110px]`}
             >
               <option value="All">All Years</option>
               {uniqueYears.map(y => <option key={y as string} value={y as string}>{y}</option>)}

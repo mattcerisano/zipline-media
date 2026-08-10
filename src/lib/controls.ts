@@ -29,6 +29,18 @@ export const CONTROL_FIELD =
 /** Select. Same surface as a field, plus the pointer affordance. */
 export const CONTROL_SELECT = `${CONTROL_FIELD} cursor-pointer appearance-none`;
 
+/**
+ * Width cap for a filter select.
+ *
+ * A <select> sizes itself to its longest option, not to its current value. A
+ * client filter listing "Moulin Rouge! The Musical — Broadway Company" renders
+ * ~385px wide even while showing "All Clients", which is what pushed the Slate
+ * toolbar onto a third row no matter how the container was arranged. The cap
+ * makes a filter's width a property of the toolbar rather than of whatever the
+ * studio happened to name a client.
+ */
+export const CONTROL_SELECT_MAX = 'max-w-[190px]';
+
 /** Toggle pill, e.g. Group / Grouped. Pass whether it is active. */
 export const controlToggle = (active: boolean) =>
   `${CONTROL_BASE} border px-4 ${
