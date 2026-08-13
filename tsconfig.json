@@ -30,5 +30,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // scripts/ holds hand-run dev tooling, not shipped code. The UI harness
+  // imports playwright-core and runs under `npx tsx`, both fetched on demand
+  // rather than installed — so typechecking it here fails the production build
+  // (and every Vercel deploy) over a file the build does not compile.
+  "exclude": ["node_modules", "scripts"]
 }
