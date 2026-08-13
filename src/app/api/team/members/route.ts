@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthedUser } from '@/lib/api-auth';
+import { APP_ROLES, type AppRole } from '@/lib/roles';
 
 // Team member management for the internal command center. Admin-only:
 // - GET    → list members (user_roles)
@@ -11,8 +12,8 @@ import { getAuthedUser } from '@/lib/api-auth';
 // Accounts created here are for the internal team (admin/staff). Identity is
 // always proven by the caller's bearer token; the target comes from the body.
 
-const VALID_ROLES = ['admin', 'staff', 'client'] as const;
-type Role = (typeof VALID_ROLES)[number];
+const VALID_ROLES = APP_ROLES;
+type Role = AppRole;
 
 // Mirrors the primary-administrator bypass used at login, so the org owner
 // can manage the team even without a user_roles row.

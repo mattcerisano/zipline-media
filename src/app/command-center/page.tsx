@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { 
   Lock,
@@ -46,6 +46,14 @@ import ProfileSettings from '@/components/workspace/ProfileSettings';
 import SearchPalette from '@/components/workspace/SearchPalette';
 import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
 import { QuickStartGuideModal } from '@/components/workspace/QuickStartGuide';
+import {
+  CONFIGURABLE_ROLES,
+  ROLE_LABELS,
+  canAccessTab,
+  defaultTabForRole,
+  isScopedRole,
+  type AppRole,
+} from '@/lib/roles';
 
 interface CustomTab {
   id: string;
@@ -54,7 +62,10 @@ interface CustomTab {
   type: 'workspace' | 'embed' | 'notes' | 'system';
   embedUrl?: string;
   isDefault?: boolean;
-  allowedRoles?: ('admin' | 'staff' | 'client')[];
+  // Only the configurable roles appear here. Scoped roles (freelance editor)
+  // are whitelisted in src/lib/roles.ts instead, so no tab setting can hand
+  // one the rest of the OS — or lock them out of the board they were hired for.
+  allowedRoles?: AppRole[];
 }
 
 const SELECTABLE_ICONS = [
@@ -209,7 +220,7 @@ export default function CommandCenterPage() {
   const [newTabIcon, setNewTabIcon] = useState('LayoutDashboard');
   const [newTabType, setNewTabType] = useState<'workspace' | 'embed' | 'notes'>('workspace');
   const [newTabUrl, setNewTabUrl] = useState('');
-  const [newTabRoles, setNewTabRoles] = useState<('admin' | 'staff' | 'client')[]>(['admin', 'staff']);
+  const [newTabRoles, setNewTabRoles] = useState<AppRole[]>(['admin', 'staff']);
   // Which real tools the new workspace opens with. Auto-suggested from the
   // chosen icon until the user hand-picks (then their choice wins).
   const [newTabTools, setNewTabTools] = useState<string[]>(['notes']);
@@ -226,7 +237,7 @@ export default function CommandCenterPage() {
   const [editTabIcon, setEditTabIcon] = useState('LayoutDashboard');
   const [editTabType, setEditTabType] = useState<'workspace' | 'embed' | 'notes'>('workspace');
   const [editTabUrl, setEditTabUrl] = useState('');
-  const [editTabRoles, setEditTabRoles] = useState<('admin' | 'staff' | 'client')[]>(['admin', 'staff']);
+  const [editTabRoles, setEditTabRoles] = useState<AppRole[]>(['admin', 'staff']);
 
   const getIconComponent = (name: string) => {
     const Icon = (LucideIcons as any)[name];
@@ -331,7 +342,10 @@ export default function CommandCenterPage() {
   // Persist the tab layout: this browser immediately, the whole team's org
   // row in the background (fails soft pre-migration).
   const persistTabs = (items: CustomTab[]) => {
-    persistTabs(items);
+    // Was calling itself instead of writing to localStorage — every tab
+    // create/edit/reorder recursed until the stack blew, so no layout (and no
+    // role visibility set on it) ever survived a reload.
+    localStorage.setItem('custom_tabs_list', JSON.stringify(items));
     saveOrgPref('custom_tabs', items);
   };
 
@@ -530,7 +544,27 @@ export default function CommandCenterPage() {
   // Set when a date is picked in Calendar → "New production". Slate opens its
   // production form with this as the shoot date, then clears it.
   const [newProductionDate, setNewProductionDate] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<'admin' | 'staff' | 'client' | null>(null);
+  const [userRole, setUserRole] = useState<AppRole | null>(null);
+
+  // One source of truth for "what can this account open". Everything that
+  // navigates — the sidebar, the search palette, the guard below — reads this,
+  // so a role can never reach a workspace by way of a stale saved tab id.
+  const visibleTabs = useMemo(
+    () => tabs.filter(tab => canAccessTab(userRole, tab)),
+    [tabs, userRole]
+  );
+
+  // If the persisted/last-used tab isn't open to this account (a shared
+  // browser, a role change, a widget linking across tabs), fall back to the
+  // role's home tab rather than rendering a workspace they can't have.
+  useEffect(() => {
+    if (!userRole || tabs.length === 0 || visibleTabs.length === 0) return;
+    if (visibleTabs.some(t => t.id === activeTab)) return;
+    const fallback = defaultTabForRole(userRole);
+    const target = visibleTabs.some(t => t.id === fallback) ? fallback : visibleTabs[0].id;
+    setActiveTab(target);
+    localStorage.setItem('studio_active_tab', target);
+  }, [userRole, tabs, visibleTabs, activeTab]);
 
   // Google Calendar Integration States
   const [isGoogleConnected, setIsGoogleConnected] = useState<boolean | null>(null);
@@ -661,7 +695,7 @@ export default function CommandCenterPage() {
   const fetchUserRole = async (userId: string, email: string, setDefaultTab = false) => {
     setIsLoading(true);
 
-    const checkPersistedTab = (role: 'admin' | 'staff' | 'client') => {
+    const checkPersistedTab = (role: AppRole) => {
       const savedActiveTab = localStorage.getItem('studio_active_tab');
       if (savedActiveTab) {
         let currentTabs = DEFAULT_TABS;
@@ -672,7 +706,7 @@ export default function CommandCenterPage() {
           } catch (e) {}
         }
         const activeTabObj = currentTabs.find(t => t.id === savedActiveTab);
-        const isValid = activeTabObj && (!activeTabObj.allowedRoles || activeTabObj.allowedRoles.includes(role));
+        const isValid = activeTabObj && canAccessTab(role, activeTabObj);
         if (isValid) {
           setActiveTab(savedActiveTab);
           return true;
@@ -737,10 +771,10 @@ export default function CommandCenterPage() {
         role = newRole?.role || 'client';
       }
 
-      setUserRole(role as any);
+      setUserRole(role as AppRole);
       if (setDefaultTab) {
-        if (!checkPersistedTab(role as any)) {
-          const defaultTab = role === 'admin' ? 'dashboard' : 'calendar';
+        if (!checkPersistedTab(role as AppRole)) {
+          const defaultTab = defaultTabForRole(role);
           setActiveTab(defaultTab);
           localStorage.setItem('studio_active_tab', defaultTab);
         }
@@ -1003,11 +1037,7 @@ export default function CommandCenterPage() {
                     ref={provided.innerRef}
                     className="space-y-1.5"
                   >
-                    {tabs
-                      .filter(tab => {
-                        if (!tab.allowedRoles) return true;
-                        return tab.allowedRoles.includes(userRole as any);
-                      })
+                    {visibleTabs
                       .map((tab, index) => {
                         const Icon = getIconComponent(tab.iconName);
                         return (
@@ -1118,11 +1148,7 @@ export default function CommandCenterPage() {
             </DragDropContext>
           ) : (
             <div className="space-y-1.5">
-              {tabs
-                .filter(tab => {
-                  if (!tab.allowedRoles) return true;
-                  return tab.allowedRoles.includes(userRole as any);
-                })
+              {visibleTabs
                 .map(tab => {
                   const Icon = getIconComponent(tab.iconName);
                   return (
@@ -1260,15 +1286,18 @@ export default function CommandCenterPage() {
                   </span>
                 )}
 
-                {/* Calendar Sync */}
-                <button
-                   onClick={() => setIsCalendarSyncOpen(true)}
-                   className="p-2 rounded-md text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
-                   title="Google Calendar sync"
-                   aria-label="Calendar sync"
-                >
-                   <RefreshCw className="w-4 h-4 text-accent animate-spin-slow" />
-                </button>
+                {/* Calendar Sync — hidden for scoped roles, whose accounts have
+                    no calendar to sync and shouldn't push the studio's. */}
+                {!isScopedRole(userRole) && (
+                  <button
+                     onClick={() => setIsCalendarSyncOpen(true)}
+                     className="p-2 rounded-md text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                     title="Google Calendar sync"
+                     aria-label="Calendar sync"
+                  >
+                     <RefreshCw className="w-4 h-4 text-accent animate-spin-slow" />
+                  </button>
+                )}
 
                 {/* Quick Start Guide */}
                 <button
@@ -1361,9 +1390,12 @@ export default function CommandCenterPage() {
         open={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         onOpenJob={(jobId) => {
+          // A production opens on the Slate — unless this account can't reach
+          // it, in which case stay on the tab they do have.
+          const target = visibleTabs.some(t => t.id === 'slate') ? 'slate' : defaultTabForRole(userRole);
           setPreselectedJobId(jobId);
-          setActiveTab('slate');
-          localStorage.setItem('studio_active_tab', 'slate');
+          setActiveTab(target);
+          localStorage.setItem('studio_active_tab', target);
         }}
         onOpenContacts={() => {
           setActiveTab('rolodex');
@@ -1373,7 +1405,10 @@ export default function CommandCenterPage() {
           setActiveTab(tabId);
           localStorage.setItem('studio_active_tab', tabId);
         }}
-        availableTabs={tabs.map(t => t.id)}
+        availableTabs={visibleTabs.map(t => t.id)}
+        // The Rolodex is where crew rates and phone numbers live; a scoped
+        // account has no tab for it, so it must not leak through search either.
+        includePeople={visibleTabs.some(t => t.id === 'rolodex')}
       />
 
       {/* Profile & Branding Settings Modal */}
@@ -1710,27 +1745,30 @@ export default function CommandCenterPage() {
                 <div>
                   <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Role Visibility</label>
                   <div className="flex gap-4 bg-black/40 border border-white/5 p-3 rounded-xl">
-                    {['admin', 'staff', 'client'].map((role) => {
-                      const isChecked = newTabRoles.includes(role as any);
+                    {CONFIGURABLE_ROLES.map((role) => {
+                      const isChecked = newTabRoles.includes(role);
                       return (
                         <label key={role} className="flex items-center gap-2 text-white/60 hover:text-white cursor-pointer select-none">
-                          <input 
+                          <input
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => {
                               if (isChecked) {
                                 setNewTabRoles(newTabRoles.filter(r => r !== role));
                               } else {
-                                setNewTabRoles([...newTabRoles, role as any]);
+                                setNewTabRoles([...newTabRoles, role]);
                               }
                             }}
                             className="rounded border-white/10 text-accent focus:ring-accent bg-black"
                           />
-                          <span className="text-[10px] font-black uppercase tracking-wider">{role}</span>
+                          <span className="text-[10px] font-black uppercase tracking-wider">{ROLE_LABELS[role]}</span>
                         </label>
                       );
                     })}
                   </div>
+                  <p className="text-[11px] md:text-[9px] text-white/25 mt-2 leading-relaxed">
+                    {ROLE_LABELS.editor} accounts are locked to the Edit Tracker and aren&apos;t affected by this setting.
+                  </p>
                 </div>
 
                 <div className="flex gap-2 pt-2">
@@ -1860,27 +1898,30 @@ export default function CommandCenterPage() {
                 <div>
                   <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Role Visibility</label>
                   <div className="flex gap-4 bg-black/40 border border-white/5 p-3 rounded-xl">
-                    {['admin', 'staff', 'client'].map((role) => {
-                      const isChecked = editTabRoles.includes(role as any);
+                    {CONFIGURABLE_ROLES.map((role) => {
+                      const isChecked = editTabRoles.includes(role);
                       return (
                         <label key={role} className="flex items-center gap-2 text-white/60 hover:text-white cursor-pointer select-none">
-                          <input 
+                          <input
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => {
                               if (isChecked) {
                                 setEditTabRoles(editTabRoles.filter(r => r !== role));
                               } else {
-                                setEditTabRoles([...editTabRoles, role as any]);
+                                setEditTabRoles([...editTabRoles, role]);
                               }
                             }}
                             className="rounded border-white/10 text-accent focus:ring-accent bg-black"
                           />
-                          <span className="text-[10px] font-black uppercase tracking-wider">{role}</span>
+                          <span className="text-[10px] font-black uppercase tracking-wider">{ROLE_LABELS[role]}</span>
                         </label>
                       );
                     })}
                   </div>
+                  <p className="text-[11px] md:text-[9px] text-white/25 mt-2 leading-relaxed">
+                    {ROLE_LABELS.editor} accounts are locked to the Edit Tracker and aren&apos;t affected by this setting.
+                  </p>
                 </div>
 
                 <div className="flex gap-2 pt-2">
