@@ -29,6 +29,10 @@ Ranked roughly by on-set impact. Items marked ✅ are done.
 - [x] ✅ **Calendar timezone correctness** — call times are wall-clock in `STUDIO_TIMEZONE`; push sends `{dateTime, timeZone}` and the pull reads Google's own offset, instead of both resolving against the UTC server clock (an 8:00 AM call landed on Google at 4:00 AM)
 - [x] ✅ **Multi-day events render across their span** — Google-imported markers painted only their start day; jobs gained an End Date field in Slate
 - [x] ✅ **Slate auto-populates Google Calendar** — saving a production pushes it, deleting one removes it. Previously only the Calendar tab's inline editor ever pushed
+- [x] ✅ **Times on calendar markers** — a marker was date-only, so a 2 PM meeting booked on the Calendar tab covered the whole day here and pushed to Google as an all-day event; timed Google events also lost their hours on import
+- [x] ✅ **Hold → Booked without retyping** — a marker can be converted into a full production, carrying its name, dates, times, and notes into Slate's form, and clearing itself once the production saves
+- [x] ✅ **Secondary roles on contacts** — assigning an edit no longer requires retitling someone "Editor" and billing them as one on every call sheet; roles are offered as positions when adding crew to a sheet
+- [x] ✅ **CSV import that reads real exports** — one RFC 4180 parser for both importers: BOM, semicolon/tab delimiters, quoted commas and newlines, apostrophes in names, and header variants ("Contact", "Vendor", Company fallback), with an error that names the columns it found
 - [ ] **Offline / stale-cache support** — service worker caching last-viewed call sheets & gear lists for bad-signal locations
 - [x] ✅ **Google sync deletion round-trip** — tombstones so deleted Google events disappear here and in-app marker deletes don't resurrect
 - [ ] **Email round 2** — send attachments, drafts, Sent/Starred/Trash views, undo-send

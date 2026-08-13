@@ -30,6 +30,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
 import { caps } from '@/lib/format';
+import { contactRoles } from '@/lib/roles';
 import { formatLocalDate } from '@/lib/date';
 import { Contact, Job, JobRole, DEPARTMENTS, JobTemplate, JobSchedule, JobTodo } from '@/components/gearbuilder/types';
 import { toast, confirmAction } from '@/components/Feedback';
@@ -513,9 +514,12 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
   };
 
   const filteredContacts = useMemo(() => {
-    return contacts.filter(c => 
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.primary_role?.toLowerCase().includes(searchQuery.toLowerCase())
+    const q = searchQuery.toLowerCase();
+    // Every hat, not just the primary one — searching "gaffer" has to find the
+    // DP who gaffs, since that's the role they'd be booked in here.
+    return contacts.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      contactRoles(c).some(role => role.toLowerCase().includes(q))
     );
   }, [contacts, searchQuery]);
 
@@ -788,28 +792,58 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
             />
             
             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-              {filteredContacts.map(contact => (
-                <button
-                  key={contact.id}
-                  onClick={() => {
-                    const emptyRole = jobRoles.find(r => !r.contact_id);
-                    if (emptyRole) {
-                      handleSaveRole({ ...emptyRole, contact_id: contact.id });
-                    } else {
-                      handleSaveRole({
-                        job_id: selectedJobId,
-                        position: contact.primary_role || 'Crew',
-                        contact_id: contact.id,
-                        department: 'General'
-                      } as JobRole);
-                    }
-                  }}
-                  className="w-full text-left p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all group"
-                >
-                  <p className="text-[10px] font-black uppercase tracking-tight group-hover:text-accent transition-colors text-white">{contact.name}</p>
-                  <p className="text-[11px] md:text-[8px] font-bold uppercase tracking-widest opacity-40 text-white">{contact.primary_role || 'No Role Set'}</p>
-                </button>
-              ))}
+              {filteredContacts.map(contact => {
+                // Add them to the sheet in a named role. An empty slot on the
+                // sheet is filled first, and only then does the position come
+                // from the role that was clicked.
+                const addInRole = (position: string) => {
+                  const emptyRole = jobRoles.find(r => !r.contact_id);
+                  if (emptyRole) {
+                    handleSaveRole({ ...emptyRole, contact_id: contact.id });
+                  } else {
+                    handleSaveRole({
+                      job_id: selectedJobId,
+                      position,
+                      contact_id: contact.id,
+                      department: 'General'
+                    } as JobRole);
+                  }
+                };
+                const roles = contactRoles(contact);
+                const others = roles.slice(1);
+
+                return (
+                  <div
+                    key={contact.id}
+                    className="p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all group"
+                  >
+                    <button type="button" onClick={() => addInRole(roles[0] || 'Crew')} className="w-full text-left">
+                      <p className="text-[10px] font-black uppercase tracking-tight group-hover:text-accent transition-colors text-white">{contact.name}</p>
+                      <p className="text-[11px] md:text-[8px] font-bold uppercase tracking-widest opacity-40 text-white">{roles[0] || 'No Role Set'}</p>
+                    </button>
+
+                    {/* Their other hats. Someone booked as a producer today and
+                        a shooter tomorrow used to be added under whichever
+                        title their record happened to carry, and corrected by
+                        hand on the sheet every time. */}
+                    {others.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {others.map(role => (
+                          <button
+                            key={role}
+                            type="button"
+                            onClick={() => addInRole(role)}
+                            title={`Add ${contact.name} as ${role}`}
+                            className="px-2 py-0.5 rounded-md bg-black/30 border border-white/10 text-[11px] md:text-[8px] font-bold uppercase tracking-widest text-white/50 hover:text-accent hover:border-accent/40 transition-colors"
+                          >
+                            + {role}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

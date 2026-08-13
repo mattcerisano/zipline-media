@@ -162,6 +162,8 @@ export function buildMarkerDescription(event: {
   presetLabel?: string | null;
   event_date?: string | null;
   end_date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
 }): string {
   const blocks: (string | null)[] = [];
 
@@ -170,7 +172,11 @@ export function buildMarkerDescription(event: {
     const start = formatLocalDate(event.event_date, opts, '');
     const multi = event.end_date && event.end_date > event.event_date;
     const end = multi ? formatLocalDate(event.end_date, opts, '') : '';
-    blocks.push(section('WHEN', [multi && end ? `${start} — ${end}` : start]));
+    // Google renders the timing itself, but the description is what survives
+    // being forwarded or pasted into a text, so the hours go in it too.
+    const hours = [event.start_time, event.end_time].filter(Boolean).join(' – ');
+    const when = multi && end ? `${start} — ${end}` : start;
+    blocks.push(section('WHEN', [hours ? `${when} · ${hours}` : when]));
   }
 
   blocks.push(section('TYPE', [event.presetLabel]));
