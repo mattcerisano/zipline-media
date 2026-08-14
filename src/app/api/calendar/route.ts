@@ -4,6 +4,7 @@ import * as ics from 'ics';
 import { Job } from '@/components/gearbuilder/types';
 import { STUDIO_TIME_ZONE, parseCallTime, zonedWallClockToDate, parseLocalDate, addDays } from '@/lib/date';
 import { buildJobDescription } from '@/lib/event-description';
+import { jobEventUid } from '@/lib/calendar-uid';
 
 // Subscribable ICS feed of the studio's productions — the "share your calendar"
 // half of Slate. Any calendar app can subscribe to this URL and see shoots
@@ -70,7 +71,19 @@ export async function GET(request: Request) {
       // start is a stale value, not a span.
       const lastDate = job.end_date && job.end_date > shootDate ? job.end_date : shootDate;
 
+      // Milliseconds, not the ISO string: `ics` passes a string through to the
+      // file untouched, which would emit a malformed LAST-MODIFIED.
+      const modifiedAt = job.updated_at ? Date.parse(job.updated_at) : NaN;
+
       const common = {
+        // Stable identity for this shoot. Left unset, `ics` invents a fresh
+        // nanoid per render, so every poll of this feed described the same
+        // jobs as new events — an edit showed up as a second copy rather than
+        // a change to the one already on the subscriber's calendar.
+        uid: jobEventUid(job.id),
+        // Tells clients the event genuinely changed, rather than making them
+        // infer it from a DTSTAMP that moves on every request.
+        ...(Number.isFinite(modifiedAt) ? { lastModified: modifiedAt } : {}),
         title: `🎥 ${job.title}`,
         // Same layout the Google events get, with one deliberate omission: no
         // crew block. This feed has no per-person access control — without
