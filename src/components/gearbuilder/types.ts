@@ -5,6 +5,12 @@ export interface Contact {
   phone?: string;
   company_name?: string;
   primary_role?: string;
+  /**
+   * The other hats this person wears. The primary role is their default title;
+   * these count for role lookups (who can edit?) and are offered as positions
+   * when they're added to a call sheet.
+   */
+  secondary_roles?: string[] | null;
   location_city?: string;
   location_state?: string;
   location_country?: string;
@@ -184,6 +190,10 @@ export interface CalendarEvent {
   preset: CalendarEventPreset;
   event_date: string;
   end_date?: string | null;
+  /** Wall-clock start ("2:00 PM"). Empty means an all-day marker. */
+  start_time?: string | null;
+  /** Wall-clock end. Empty runs an hour from the start. */
+  end_time?: string | null;
   notes?: string;
   job_id?: string | null;
   /** Set when the marker was imported from Google Calendar. */

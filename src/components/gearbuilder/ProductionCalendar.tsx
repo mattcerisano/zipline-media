@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Job, CalendarEvent, CalendarEventPreset } from './types';
 import { supabase } from '@/lib/supabase';
-import { todayLocalISO, formatLocalDate } from '@/lib/date';
+import { todayLocalISO, formatLocalDate, toTimeInputValue, fromTimeInputValue } from '@/lib/date';
 import { useRealtime } from '@/lib/useRealtime';
 import { pushJobToGoogleCalendar, pushEventToGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
 import { Modal } from '@/components/workspace/Overlay';
@@ -60,6 +60,33 @@ function coversDate(start: string | null | undefined, end: string | null | undef
   return date > start && date <= end;
 }
 
+/** "2:00 PM", "2:00 PM – 4:00 PM", or "All day" for an untimed entry. */
+function describeTime(start?: string | null, end?: string | null): string {
+  if (!start) return 'All day';
+  return end ? `${start} – ${end}` : start;
+}
+
+/**
+ * Everything a marker knows that a production also wants, handed to Slate's
+ * full form when a Hold is promoted to a real shoot. Without this the only
+ * route from "we're holding the 14th" to a booked production was retyping it
+ * as a New Production and deleting the marker by hand.
+ */
+export interface NewProductionSeed {
+  /** Shoot date. Always set — this is also what a bare "New production" sends. */
+  date: string;
+  endDate?: string | null;
+  title?: string | null;
+  callTime?: string | null;
+  wrapTime?: string | null;
+  notes?: string | null;
+  status?: 'Planning' | 'Hold' | 'Booked';
+  /** The marker this came from, removed once the production is saved. */
+  markerId?: string;
+  /** Its Google event, removed alongside it. */
+  markerGoogleEventId?: string | null;
+}
+
 interface ProductionCalendarProps {
   onSelectDate?: (date: string) => void;
   onSelectJob?: (job: Job) => void;
@@ -71,11 +98,12 @@ interface ProductionCalendarProps {
   /** When true, clicking a day opens a preset quick-add (Timeout / Book to Shoot / etc.) backed by calendar_events. */
   enableQuickEvents?: boolean;
   /**
-   * Start a full production on this date. The quick-add presets only create
-   * markers; this is the escape hatch to Slate's production form for a real
-   * shoot. Omit it and the menu item isn't offered.
+   * Start a full production. The quick-add presets only create markers; this
+   * is the escape hatch to Slate's production form for a real shoot, either
+   * blank on a date or seeded from a marker being promoted. Omit it and
+   * neither the menu item nor the convert action is offered.
    */
-  onNewProduction?: (date: string) => void;
+  onNewProduction?: (seed: NewProductionSeed) => void;
 }
 
 export default function ProductionCalendar({ onSelectDate, onSelectJob, onDeleteJob, onSelectRange, selectionMode = 'single', editable = false, enableQuickEvents = false, onNewProduction }: ProductionCalendarProps) {
@@ -186,12 +214,54 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     trackAction('calendar', 'quick_marker');
     setQuickAddDate(null);
     setEventError(null);
-    setEventDraft({ preset, event_date: date, title: presetOf(preset).label, end_date: '', notes: '' });
+    setEventDraft({
+      preset,
+      event_date: date,
+      title: presetOf(preset).label,
+      end_date: '',
+      // Untimed by default: a hold or a day off covers the day, and inventing
+      // an hour nobody chose is what the times are here to stop.
+      start_time: '',
+      end_time: '',
+      notes: '',
+    });
   };
 
   const openEditEvent = (ev: CalendarEvent) => {
     setEventError(null);
-    setEventDraft({ ...ev, end_date: ev.end_date || '', notes: ev.notes || '' });
+    setEventDraft({
+      ...ev,
+      end_date: ev.end_date || '',
+      start_time: ev.start_time || '',
+      end_time: ev.end_time || '',
+      notes: ev.notes || '',
+    });
+  };
+
+  /**
+   * Promote the marker being edited into a full production: hand its name,
+   * dates, times, and notes to Slate's form, and clear the marker once that
+   * production saves so the day doesn't carry both.
+   */
+  const convertEventToProduction = (ev: Partial<CalendarEvent>) => {
+    if (!onNewProduction || !ev.event_date) return;
+    trackAction('calendar', 'marker_to_production');
+    setEventDraft(null);
+    onNewProduction({
+      date: ev.event_date,
+      endDate: ev.end_date || null,
+      // The preset's own label ("Hold") is a marker name, not a shoot name —
+      // sending it would just have to be deleted in the form.
+      title: ev.title && ev.title !== presetOf(ev.preset).label ? ev.title : '',
+      callTime: ev.start_time || '',
+      wrapTime: ev.end_time || '',
+      notes: ev.notes || '',
+      // A hold or a booked marker is being turned into the real thing; a
+      // meeting or a day off isn't, so it starts in Planning.
+      status: ev.preset === 'hold' || ev.preset === 'booked' ? 'Booked' : 'Planning',
+      markerId: ev.id,
+      markerGoogleEventId: ev.google_event_id || null,
+    });
   };
 
   const saveEvent = async () => {
@@ -205,6 +275,12 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       setEventError('The end date is before the start date.');
       return;
     }
+    // An end time without a start has nothing to run from, and would push to
+    // Google as an all-day event with the end silently dropped.
+    if (eventDraft.end_time && !eventDraft.start_time) {
+      setEventError('Set a start time as well, or clear the end time.');
+      return;
+    }
 
     setSavingEvent(true);
     setEventError(null);
@@ -215,20 +291,39 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       // Empty string is rejected by a DATE column, and an end equal to the
       // start is a single day rather than a span.
       end_date: eventDraft.end_date && eventDraft.end_date > eventDraft.event_date ? eventDraft.end_date : null,
+      start_time: eventDraft.start_time || null,
+      end_time: eventDraft.start_time ? eventDraft.end_time || null : null,
       notes: (eventDraft.notes || '').trim() || null,
     };
 
     try {
       let savedId = eventDraft.id;
-      if (eventDraft.id) {
-        const { error } = await supabase.from('calendar_events').update(payload).eq('id', eventDraft.id);
-        if (error) throw error;
-        setEvents(prev => prev.map(e => (e.id === eventDraft.id ? { ...e, ...payload } as CalendarEvent : e)));
-      } else {
-        const { data, error } = await supabase.from('calendar_events').insert([payload]).select().single();
-        if (error) throw error;
-        savedId = (data as CalendarEvent).id;
-        setEvents(prev => [...prev, data as CalendarEvent]);
+      // A database that hasn't run the times migration rejects the whole
+      // write. Losing the times is better than losing the event, so retry
+      // without them and say what happened.
+      const write = async (body: typeof payload | Omit<typeof payload, 'start_time' | 'end_time'>) => {
+        if (eventDraft.id) {
+          const { error } = await supabase.from('calendar_events').update(body).eq('id', eventDraft.id);
+          if (error) throw error;
+          setEvents(prev => prev.map(e => (e.id === eventDraft.id ? { ...e, ...body } as CalendarEvent : e)));
+        } else {
+          const { data, error } = await supabase.from('calendar_events').insert([body]).select().single();
+          if (error) throw error;
+          savedId = (data as CalendarEvent).id;
+          setEvents(prev => [...prev, data as CalendarEvent]);
+        }
+      };
+
+      try {
+        await write(payload);
+      } catch (err: any) {
+        const msg = String(err?.message || '');
+        if (!/start_time|end_time|schema cache/i.test(msg)) throw err;
+        const rest: Partial<typeof payload> = { ...payload };
+        delete rest.start_time;
+        delete rest.end_time;
+        await write(rest as Omit<typeof payload, 'start_time' | 'end_time'>);
+        toast('Saved without the times — this database is missing the calendar times migration.');
       }
       setEventDraft(null);
 
@@ -287,6 +382,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       shoot_date: job.shoot_date || '',
       end_date: job.end_date || '',
       call_time: job.call_time || '',
+      wrap_time: job.wrap_time || '',
       location_name: job.location_name || '',
       location_address: job.location_address || '',
       notes_general: job.notes_general || '',
@@ -308,6 +404,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       shoot_date: editForm.shoot_date || undefined,
       end_date: editForm.end_date || undefined,
       call_time: editForm.call_time?.trim() || undefined,
+      wrap_time: editForm.wrap_time?.trim() || undefined,
       location_name: editForm.location_name?.trim() || undefined,
       location_address: editForm.location_address?.trim() || undefined,
       notes_general: editForm.notes_general?.trim() || undefined,
@@ -417,6 +514,9 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
           items.push({
             start: ev.event_date, end, label: ev.title || preset.label,
             color: preset.color, event: ev,
+            // Start only on the grid — there is barely room for one time in a
+            // day cell. The full range shows in the agenda and the editor.
+            time: ev.start_time || undefined,
           });
         }
       }
@@ -524,7 +624,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
           meta: [ev.notes, runsTo && `runs to ${formatLocalDate(runsTo, { month: 'short', day: 'numeric' }, '')}`]
             .filter(Boolean).join(' · '),
           color: presetOf(ev.preset).color,
-          when: 'All day',
+          when: describeTime(ev.start_time, ev.end_time),
           event: ev,
         });
       }
@@ -744,7 +844,11 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                     borderBottomRightRadius: b.continuesRight ? 0 : undefined,
                   }}
                   className="relative z-10 mx-0.5 mb-0.5 px-1.5 py-[3px] rounded text-left overflow-hidden hover:brightness-110 transition-all"
-                  title={b.job ? `${b.label}${b.time ? ` · ${b.time}` : ''}` : b.label}
+                  title={
+                    b.event
+                      ? `${b.label} · ${describeTime(b.event.start_time, b.event.end_time)}`
+                      : `${b.label}${b.time ? ` · ${b.time}` : ''}`
+                  }
                 >
                   <span className="block text-[11px] md:text-[9px] md:text-[10px] font-semibold text-white truncate leading-tight drop-shadow-sm">
                     {b.continuesLeft && '‹ '}
@@ -802,7 +906,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                       <>
                         <div className="h-px bg-white/10 my-1" />
                         <button
-                          onClick={() => { setQuickAddDate(null); onNewProduction(c.date); }}
+                          onClick={() => { setQuickAddDate(null); onNewProduction({ date: c.date }); }}
                           className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/10 text-left transition-colors"
                         >
                           <span
@@ -872,6 +976,9 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                       >
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
                         <span className="text-[10px] font-semibold truncate text-white">{ev.title || p.label}</span>
+                        {ev.start_time && (
+                          <span className="text-[10px] text-white/40 shrink-0 tabular-nums">{ev.start_time}</span>
+                        )}
                       </button>
                       <button onClick={() => deleteQuickEvent(ev.id)} className="p-1 text-white/30 hover:text-red-500 shrink-0"><X className="w-4 h-4" /></button>
                     </div>
@@ -1057,6 +1164,39 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
               Leave the end date blank for a single day. A range paints across every day it covers.
             </p>
 
+            {/* Times. Blank on both is an all-day entry, which is what a hold
+                or a day off wants; filling them in is what a 2 PM meeting
+                needs, and used to be impossible. */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">
+                  Start time <span className="opacity-50 normal-case tracking-normal font-medium">(optional)</span>
+                </label>
+                <input
+                  type="time"
+                  value={toTimeInputValue(eventDraft.start_time)}
+                  onChange={(e) => setEventDraft({ ...eventDraft, start_time: fromTimeInputValue(e.target.value) })}
+                  className="w-full bg-black/50 border border-white/10 px-3 py-2.5 rounded-xl outline-none focus:border-accent text-sm font-semibold text-white [color-scheme:dark]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">
+                  End time <span className="opacity-50 normal-case tracking-normal font-medium">(optional)</span>
+                </label>
+                <input
+                  type="time"
+                  value={toTimeInputValue(eventDraft.end_time)}
+                  onChange={(e) => setEventDraft({ ...eventDraft, end_time: fromTimeInputValue(e.target.value) })}
+                  className="w-full bg-black/50 border border-white/10 px-3 py-2.5 rounded-xl outline-none focus:border-accent text-sm font-semibold text-white [color-scheme:dark]"
+                />
+              </div>
+            </div>
+            <p className="text-[11px] md:text-[9px] text-white/30 -mt-1 ml-1">
+              {eventDraft.start_time
+                ? 'An end time earlier than the start runs overnight, into the next morning.'
+                : 'Leave both blank for an all-day event.'}
+            </p>
+
             <div className="space-y-1.5">
               <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Notes</label>
               <textarea
@@ -1073,8 +1213,29 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
             {eventDraft.preset !== 'google' && (
               <p className="text-[10px] text-white/35 leading-relaxed flex items-center gap-1.5">
                 <RefreshCw className="w-3 h-3 shrink-0" />
-                Saving also adds this to your Google Calendar as an all-day event.
+                Saving also adds this to your Google Calendar
+                {eventDraft.start_time ? ' at that time.' : ' as an all-day event.'}
               </p>
+            )}
+
+            {/* Promote to a real shoot. A hold that turns into a booking used
+                to mean building a New Production from scratch and deleting the
+                marker by hand; this carries the name, dates, times, and notes
+                across and clears the marker once the production saves. */}
+            {onNewProduction && eventDraft.id && eventDraft.preset !== 'google' && (
+              <button
+                type="button"
+                onClick={() => convertEventToProduction(eventDraft)}
+                className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-white/10 bg-black/40 hover:border-white/25 hover:bg-white/5 transition-colors text-left"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PRODUCTION_COLOR }} />
+                  <span className="text-[11px] font-semibold text-white">
+                    {eventDraft.preset === 'hold' ? 'Book as a production' : 'Convert to a production'}
+                  </span>
+                </span>
+                <span className="text-[11px] md:text-[9px] text-white/35 shrink-0">Client, crew, call sheet</span>
+              </button>
             )}
 
             {/* The importer upserts on google_event_id, so a title edited here
@@ -1165,7 +1326,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-[10px] font-semibold text-white/40 mb-1.5">Shoot Date</label>
                     <input
@@ -1191,6 +1352,19 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                       placeholder="8:00 AM"
                       value={editForm.call_time || ''}
                       onChange={(e) => setEditForm(f => ({ ...f, call_time: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none transition-colors"
+                    />
+                  </div>
+                  {/* Wrap, too. With only a call time every shoot claimed the
+                      same eight hours on Google, so a half day read as a full
+                      one to anyone checking whether the crew was free. */}
+                  <div>
+                    <label className="block text-[10px] font-semibold text-white/40 mb-1.5">Wrap Time</label>
+                    <input
+                      type="text"
+                      placeholder="6:00 PM"
+                      value={editForm.wrap_time || ''}
+                      onChange={(e) => setEditForm(f => ({ ...f, wrap_time: e.target.value }))}
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none transition-colors"
                     />
                   </div>

@@ -8,6 +8,7 @@ import { Job, Contact, EditLabel, JobLink, Client, Project } from '@/components/
 import { sanitizeUrl } from '@/lib/sanitize';
 import { parseLocalDate, formatLocalDate } from '@/lib/date';
 import { caps } from '@/lib/format';
+import { hasAnyRole, POST_ROLES } from '@/lib/crew-roles';
 import { 
   Film, 
   Scissors, 
@@ -1474,8 +1475,15 @@ function CardDetailModal({
                       className="bg-white/5 border border-white/10 py-1.5 px-3 rounded-lg text-xs font-bold text-white outline-none focus:border-accent appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="">Unassigned</option>
+                      {/* Anyone who lists a post role, primary or secondary.
+                          Matching on the primary role alone meant a producer
+                          who also cuts had to be *retitled* an editor to be
+                          assignable — and was then billed as the editor on
+                          every call sheet. Whoever is already assigned stays
+                          listed even if their roles have since changed, so
+                          the select can't silently blank itself. */}
                       {contacts
-                        .filter(c => ['Editor', 'Colorist', 'Motion Graphics', 'Sound Designer'].includes(c.primary_role || ''))
+                        .filter(c => hasAnyRole(c, POST_ROLES) || c.id === job.editor_id)
                         .map(c => <option key={c.id} value={c.id}>{caps(c.name)}</option>)}
                     </select>
                   </div>

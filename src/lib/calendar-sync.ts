@@ -339,19 +339,19 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
       // relabel it 'google'.
       if (event.extendedProperties?.private?.app === STUDIO_MARKER_TAG) continue;
 
-      const startDate: string | null =
-        event.start?.date || wallClockFromGoogleDateTime(event.start?.dateTime)?.date || null;
+      const startWall = wallClockFromGoogleDateTime(event.start?.dateTime);
+      const startDate: string | null = event.start?.date || startWall?.date || null;
       if (!startDate) continue;
 
       // Google all-day end dates are exclusive; walk back one day so a
       // single-day event doesn't paint two calendar cells.
       let endDate: string | null = null;
+      const endWall = event.end?.dateTime ? wallClockFromGoogleDateTime(event.end.dateTime) : null;
       if (event.end?.date) {
         const inclusive = addDays(event.end.date, -1);
         if (inclusive > startDate) endDate = inclusive;
-      } else if (event.end?.dateTime) {
-        const inclusive = wallClockFromGoogleDateTime(event.end.dateTime)?.date;
-        if (inclusive && inclusive > startDate) endDate = inclusive;
+      } else if (endWall?.date && endWall.date > startDate) {
+        endDate = endWall.date;
       }
 
       markers.push({
@@ -359,14 +359,34 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
         preset: 'google',
         event_date: startDate,
         end_date: endDate,
+        // A timed Google event kept only its dates here, so a 2:00 PM meeting
+        // imported as an all-day block. The wall clock is taken verbatim from
+        // Google's own offset — see wallClockFromGoogleDateTime.
+        start_time: startWall ? formatCallTime(startWall) : null,
+        end_time: endWall ? formatCallTime(endWall) : null,
         google_event_id: event.id,
       });
     }
 
     if (markers.length > 0) {
-      const { error: markerErr } = await supabaseAdmin
+      let { error: markerErr } = await supabaseAdmin
         .from('calendar_events')
         .upsert(markers, { onConflict: 'google_event_id' });
+
+      // A database without the marker-times columns rejects the batch whole.
+      // Importing the events without their hours beats importing nothing.
+      if (markerErr && /start_time|end_time|schema cache/i.test(markerErr.message || '')) {
+        const untimed = markers.map(m => {
+          const rest = { ...m };
+          delete rest.start_time;
+          delete rest.end_time;
+          return rest;
+        });
+        ({ error: markerErr } = await supabaseAdmin
+          .from('calendar_events')
+          .upsert(untimed, { onConflict: 'google_event_id' }));
+      }
+
       if (markerErr) {
         console.warn('Google event import skipped:', markerErr.message);
       } else {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   Search,
   Plus, 
@@ -50,7 +50,8 @@ import { fetchGearCategoryMap, groupManifestByCategory, buildGearTableBody } fro
 import { getBranding, hexToRgb } from '@/lib/branding';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { formatLocalDate, todayLocalISO } from '@/lib/date';
-import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
+import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
+import type { NewProductionSeed } from '@/components/gearbuilder/ProductionCalendar';
 import { caps, currency } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
 import { trackAction } from '@/lib/usage';
@@ -97,16 +98,20 @@ export default function Slate({
   onBuildGear,
   preselectedJobId,
   onClearPreselectedJobId,
-  newProductionDate,
-  onClearNewProductionDate
+  newProductionSeed,
+  onClearNewProductionSeed
 }: { 
   userRole?: string, 
   onBuildGear?: (job: Job) => void,
   preselectedJobId?: string | null,
   onClearPreselectedJobId?: () => void,
-  /** Shoot date handed over by the Calendar tab's "New production" action. */
-  newProductionDate?: string | null,
-  onClearNewProductionDate?: () => void
+  /**
+   * A production handed over by the Calendar tab: a bare date from "New
+   * production", or a marker being promoted, carrying its name, dates, times,
+   * and notes so a hold doesn't have to be retyped as a shoot.
+   */
+  newProductionSeed?: NewProductionSeed | null,
+  onClearNewProductionSeed?: () => void
 } = {}) {
   const isClient = userRole === 'client';
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -160,35 +165,72 @@ export default function Slate({
       });
       if (!discard) return;
     }
+    // Abandoning the form leaves the marker it came from alone — the hold is
+    // still a hold until a production actually replaces it.
+    pendingMarker.current = null;
     setIsJobModalOpen(false);
   };
 
-  const openNewJobModal = (shootDate?: string) => {
-    // Distinguish the two entry points: whether the calendar hand-off actually
-    // gets used is the reason it was built.
-    trackAction('slate', shootDate ? 'new_production_from_calendar' : 'new_production');
+  const openNewJobModal = (seed?: NewProductionSeed) => {
+    // Distinguish the three entry points: whether the calendar hand-offs
+    // actually get used is the reason they were built.
+    trackAction('slate', seed?.markerId ? 'production_from_marker' : seed ? 'new_production_from_calendar' : 'new_production');
     const blank: Partial<Job> = {
-      title: '',
+      title: seed?.title || '',
       client_name: '',
       production_company: '',
-      job_status: 'Planning',
+      job_status: seed?.status || 'Planning',
       type: 'production',
       // toISOString() here gave the UTC day, so an evening west of UTC
       // pre-filled tomorrow's date on a form that says "today".
-      shoot_date: shootDate || todayLocalISO(),
+      shoot_date: seed?.date || todayLocalISO(),
+      end_date: seed?.endDate || '',
       // Call time defaults to TBD rather than inventing an 8:00 AM call
       // nobody chose — which also pushed a wrong time to Google Calendar.
-      // An empty call time syncs as an all-day event until it's set.
-      call_time: '',
+      // An empty call time syncs as an all-day event until it's set. A marker
+      // that already had times brings them across as call and wrap.
+      call_time: seed?.callTime || '',
+      wrap_time: seed?.wrapTime || '',
       location_name: '',
       location_address: '',
-      notes_general: '',
+      notes_general: seed?.notes || '',
       links: []
     };
+    // The marker only goes once its production exists — a form abandoned
+    // halfway must leave the hold on the calendar.
+    pendingMarker.current = seed?.markerId
+      ? { id: seed.markerId, googleEventId: seed.markerGoogleEventId || null }
+      : null;
     setEditingJob(blank);
     setJobModalBaseline(JSON.stringify(blank));
-    setShowJobDetails(false);
+    // Notes arriving from a marker are the only detail it carries; opening
+    // that block folded away would hide them behind a heading.
+    setShowJobDetails(!!seed?.notes);
     setIsJobModalOpen(true);
+  };
+
+  /**
+   * The calendar marker this production is replacing, if it came from one.
+   * A ref rather than state: nothing renders from it, and it has to survive
+   * the form being edited without re-running the effect that opened it.
+   */
+  const pendingMarker = useRef<{ id: string; googleEventId: string | null } | null>(null);
+
+  /** Clear the marker a saved production replaced, on both calendars. */
+  const clearPendingMarker = async () => {
+    const marker = pendingMarker.current;
+    pendingMarker.current = null;
+    if (!marker) return;
+    try {
+      if (marker.googleEventId) await removeEventFromGoogleCalendar(marker.googleEventId);
+      const { error } = await supabase.from('calendar_events').delete().eq('id', marker.id);
+      if (error) throw error;
+    } catch (err) {
+      // The production is saved and is what matters; a marker left behind is
+      // a duplicate on the day, not lost work.
+      console.error('Could not remove the calendar marker after converting it:', err);
+      toast('Production saved. The original calendar marker is still there — delete it from the Calendar tab.');
+    }
   };
 
   const openEditJobModal = (job: Job) => {
@@ -381,15 +423,16 @@ export default function Slate({
     }
   }, [preselectedJobId, jobs, onClearPreselectedJobId]);
 
-  // Arrived from Calendar → "New production" on a specific day. Same handoff as
-  // preselectedJobId above, but for a shoot that doesn't exist yet: open the
-  // full form with that date already set, then clear so closing it stays closed.
+  // Arrived from Calendar — "New production" on a day, or a marker being
+  // promoted to a real shoot. Same handoff as preselectedJobId above, but for
+  // a production that doesn't exist yet: open the full form pre-filled from
+  // the seed, then clear it so closing the form stays closed.
   useEffect(() => {
-    if (!newProductionDate) return;
-    openNewJobModal(newProductionDate);
-    onClearNewProductionDate?.();
+    if (!newProductionSeed) return;
+    openNewJobModal(newProductionSeed);
+    onClearNewProductionSeed?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newProductionDate]);
+  }, [newProductionSeed]);
 
   const fetchJobs = async () => {
     setIsLoading(true);
@@ -526,6 +569,10 @@ export default function Slate({
 
         // Announce the new production across all enabled channels.
         sendNotification('job_created', data as Job);
+
+        // Promoted from a calendar marker: the hold has become the shoot, so
+        // the marker goes rather than sitting alongside it on the same day.
+        await clearPendingMarker();
       }
 
       // Auto-populate Google Calendar. This is the whole point of Slate: a

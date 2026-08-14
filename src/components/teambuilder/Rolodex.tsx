@@ -38,6 +38,15 @@ import { Contact, Client } from '@/components/gearbuilder/types';
 import { toast, confirmAction } from '@/components/Feedback';
 import { FilterSheet } from '@/components/workspace/FilterSheet';
 import ContactSuggest from '@/components/workspace/ContactSuggest';
+import { contactRoles, hasAnyRole, parseRoleList, formatRoleList, normalizeSecondaryRoles } from '@/lib/crew-roles';
+import {
+  parseVCF,
+  parseContactCSV,
+  parseClientCSV,
+  describeHeaders,
+  type ImportContact,
+  type ImportClient,
+} from '@/lib/contact-import';
 
 const STANDARD_ROLES = [
   'Director', 'Producer', 'Director of Photography', 'Camera Operator', '1st AC', '2nd AC',
@@ -49,179 +58,6 @@ type SortField = 'name' | 'primary_role';
 type SortOrder = 'asc' | 'desc';
 type RolodexView = 'crew' | 'clients';
 
-// vCard (.vcf) Parser
-function parseVCF(text: string) {
-  const contacts: { name: string; email: string; phone: string; primary_role: string; tags: string }[] = [];
-  const cards = text.split(/END:VCARD/i);
-  
-  for (const card of cards) {
-    if (!card.includes('BEGIN:VCARD')) continue;
-    
-    let name = '';
-    let email = '';
-    let phone = '';
-    
-    const lines = card.split(/\r?\n/);
-    for (const line of lines) {
-      const cleanLine = line.trim();
-      if (cleanLine.toUpperCase().startsWith('FN:')) {
-        name = cleanLine.substring(3).trim();
-      } else if (cleanLine.toUpperCase().startsWith('FN;')) {
-        const parts = cleanLine.split(':');
-        if (parts.length > 1) name = parts.slice(1).join(':').trim();
-      } else if (cleanLine.toUpperCase().startsWith('EMAIL')) {
-        const parts = cleanLine.split(':');
-        if (parts.length > 1) {
-          const emailVal = parts.slice(1).join(':').trim();
-          if (emailVal.includes('@')) email = emailVal;
-        }
-      } else if (cleanLine.toUpperCase().startsWith('TEL')) {
-        const parts = cleanLine.split(':');
-        if (parts.length > 1) phone = parts.slice(1).join(':').trim();
-      }
-    }
-    
-    // Fallback if FN is not defined but N is: e.g. N:LastName;FirstName;;;
-    if (!name) {
-      const nLine = lines.find(l => l.toUpperCase().startsWith('N:'));
-      if (nLine) {
-        const parts = nLine.substring(2).split(';');
-        const last = parts[0]?.trim() || '';
-        const first = parts[1]?.trim() || '';
-        name = `${first} ${last}`.trim();
-      }
-    }
-    
-    if (name) {
-      contacts.push({
-        name,
-        email: email || `${name.toLowerCase().replace(/\s+/g, '.')}@temporary.com`,
-        phone: phone || '',
-        primary_role: '',
-        tags: 'iPhone Import'
-      });
-    }
-  }
-  return contacts;
-}
-
-// CSV Parser
-function parseCSV(text: string) {
-  const contacts: { name: string; email: string; phone: string; primary_role: string; tags: string }[] = [];
-  const lines = text.split(/\r?\n/);
-  if (lines.length < 2) return [];
-  
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
-  
-  const firstNameIdx = headers.findIndex(h => h.includes('first name') || h === 'first' || h === 'given name');
-  const lastNameIdx = headers.findIndex(h => h.includes('last name') || h === 'last' || h === 'family name');
-  const nameIdx = headers.findIndex(h => h === 'name' || h === 'full name' || h.includes('display name'));
-  const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('e-mail') || h === 'mail');
-  const phoneIdx = headers.findIndex(h => h.includes('phone') || h.includes('tel') || h === 'mobile' || h === 'cell');
-  const roleIdx = headers.findIndex(h => h.includes('role') || h.includes('job') || h === 'position' || h === 'title');
-  const tagsIdx = headers.findIndex(h => h.includes('tag') || h.includes('group') || h.includes('category'));
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    
-    const values = [];
-    let currentVal = '';
-    let inQuotes = false;
-    for (let c = 0; c < line.length; c++) {
-      const char = line[c];
-      if (char === '"' || char === "'") {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        values.push(currentVal.trim().replace(/^["']|["']$/g, ''));
-        currentVal = '';
-      } else {
-        currentVal += char;
-      }
-    }
-    values.push(currentVal.trim().replace(/^["']|["']$/g, ''));
-
-    let name = '';
-    if (nameIdx >= 0 && values[nameIdx]) {
-      name = values[nameIdx];
-    } else {
-      const first = firstNameIdx >= 0 ? (values[firstNameIdx] || '') : '';
-      const last = lastNameIdx >= 0 ? (values[lastNameIdx] || '') : '';
-      name = `${first} ${last}`.trim();
-    }
-    
-    const email = emailIdx >= 0 ? (values[emailIdx] || '') : '';
-    const phone = phoneIdx >= 0 ? (values[phoneIdx] || '') : '';
-    const primary_role = roleIdx >= 0 ? (values[roleIdx] || '') : '';
-    const tags = tagsIdx >= 0 ? (values[tagsIdx] || '') : '';
-
-    if (name) {
-      contacts.push({
-        name,
-        email: email || `${name.toLowerCase().replace(/\s+/g, '.')}@temporary.com`,
-        phone,
-        primary_role,
-        tags: tags || 'iCloud Import'
-      });
-    }
-  }
-  return contacts;
-}
-
-// Parse a QuickBooks customer-list CSV export into client rows. Handles the
-// common QuickBooks header variants (Customer / Display Name, Company, Email,
-// Phone, and either a single Bill-to Address or split Street/City/State/ZIP).
-function parseClientCSV(text: string) {
-  const rows: { name: string; email: string; phone: string; address: string }[] = [];
-  const lines = text.split(/\r?\n/);
-  if (lines.length < 2) return [];
-
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
-  const nameIdx = headers.findIndex(h => h === 'customer' || h.includes('display name') || h === 'full name' || h === 'name');
-  const companyIdx = headers.findIndex(h => h === 'company' || h.includes('company name'));
-  const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('e-mail'));
-  const phoneIdx = headers.findIndex(h => h.includes('phone') || h === 'mobile' || h === 'tel');
-  const billIdx = headers.findIndex(h => (h.includes('bill') && h.includes('address')) || h === 'billing address');
-  const addrIdx = headers.findIndex(h => h === 'address' || h === 'full address');
-  const streetIdx = headers.findIndex(h => h.includes('street') || h.includes('address line 1') || h.includes('addr 1'));
-  const cityIdx = headers.findIndex(h => h.includes('city'));
-  const stateIdx = headers.findIndex(h => h === 'state' || h.includes('province'));
-  const zipIdx = headers.findIndex(h => h.includes('zip') || h.includes('postal'));
-
-  const splitLine = (line: string) => {
-    const values: string[] = [];
-    let cur = '';
-    let inQuotes = false;
-    for (let c = 0; c < line.length; c++) {
-      const ch = line[c];
-      if (ch === '"' || ch === "'") inQuotes = !inQuotes;
-      else if (ch === ',' && !inQuotes) { values.push(cur.trim().replace(/^["']|["']$/g, '')); cur = ''; }
-      else cur += ch;
-    }
-    values.push(cur.trim().replace(/^["']|["']$/g, ''));
-    return values;
-  };
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    const v = splitLine(line);
-    let name = nameIdx >= 0 ? (v[nameIdx] || '') : '';
-    if (!name && companyIdx >= 0) name = v[companyIdx] || '';
-    const email = emailIdx >= 0 ? (v[emailIdx] || '') : '';
-    const phone = phoneIdx >= 0 ? (v[phoneIdx] || '') : '';
-    let address = '';
-    if (billIdx >= 0 && v[billIdx]) address = v[billIdx];
-    else if (addrIdx >= 0 && v[addrIdx]) address = v[addrIdx];
-    else {
-      const parts = [streetIdx, cityIdx, stateIdx, zipIdx].map(idx => (idx >= 0 ? (v[idx] || '') : '')).filter(Boolean);
-      address = parts.join(', ');
-    }
-    if (name) rows.push({ name, email, phone, address });
-  }
-  return rows;
-}
-
 export default function Rolodex() {
   const [activeView, setActiveView] = useState<RolodexView>('crew');
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -232,6 +68,8 @@ export default function Rolodex() {
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Partial<Contact> | null>(null);
+  /** Secondary roles as typed text while the form is open; parsed on save. */
+  const [secondaryRolesDraft, setSecondaryRolesDraft] = useState('');
   
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Partial<Client> | null>(null);
@@ -239,13 +77,13 @@ export default function Rolodex() {
   // Import states
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isImportOptionsOpen, setIsImportOptionsOpen] = useState(false);
-  const [parsedContacts, setParsedContacts] = useState<{ name: string; email: string; phone: string; primary_role: string; tags: string }[]>([]);
+  const [parsedContacts, setParsedContacts] = useState<ImportContact[]>([]);
   const [selectedImportIdxs, setSelectedImportIdxs] = useState<number[]>([]);
   const [isImportLoading, setIsImportLoading] = useState(false);
 
   // QuickBooks client CSV import states
   const [isClientImportOpen, setIsClientImportOpen] = useState(false);
-  const [parsedClients, setParsedClients] = useState<{ name: string; email: string; phone: string; address: string }[]>([]);
+  const [parsedClients, setParsedClients] = useState<ImportClient[]>([]);
   const [selectedClientIdxs, setSelectedClientIdxs] = useState<number[]>([]);
   const [isClientImportLoading, setIsClientImportLoading] = useState(false);
 
@@ -502,13 +340,16 @@ export default function Rolodex() {
     }
 
     if (selectedRoleFilter) {
-      result = result.filter(c => c.primary_role === selectedRoleFilter);
+      // Any hat, not just the headline one — "show me the editors" has to find
+      // the producer who also cuts, which is the whole point of these.
+      result = result.filter(c => hasAnyRole(c, [selectedRoleFilter]));
     }
 
-    result = result.filter(c => 
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.primary_role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.tags?.toLowerCase().includes(searchQuery.toLowerCase())
+    const q = searchQuery.toLowerCase();
+    result = result.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      contactRoles(c).some(role => role.toLowerCase().includes(q)) ||
+      c.tags?.toLowerCase().includes(q)
     );
 
     result.sort((a, b) => {
@@ -559,6 +400,7 @@ export default function Rolodex() {
             email,
             phone,
             primary_role: '',
+            secondary_roles: '',
             tags: 'iPhone Direct Import'
           };
         });
@@ -584,19 +426,36 @@ export default function Rolodex() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
-      let contactsList: { name: string; email: string; phone: string; primary_role: string; tags: string }[] = [];
-      
-      if (file.name.toLowerCase().endsWith('.vcf')) {
+      let contactsList: ImportContact[] = [];
+      const lower = file.name.toLowerCase();
+
+      if (lower.endsWith('.vcf')) {
         contactsList = parseVCF(text);
-      } else if (file.name.toLowerCase().endsWith('.csv')) {
-        contactsList = parseCSV(text);
+        if (contactsList.length === 0) {
+          toast('No contacts found in that vCard. Re-export it from Contacts and try again.');
+          return;
+        }
+      } else if (lower.endsWith('.csv') || lower.endsWith('.tsv') || lower.endsWith('.txt')) {
+        const { contacts, rawHeaders, rowCount } = parseContactCSV(text);
+        contactsList = contacts;
+        if (contactsList.length === 0) {
+          // Say what was actually wrong. "No contacts found" sent a beta
+          // tester round in circles re-saving a file that parsed fine — the
+          // problem was a header this importer didn't recognise.
+          if (rawHeaders.length === 0) {
+            toast('That file has no rows to read — it needs a header row and at least one contact.');
+          } else if (rowCount === 0) {
+            toast(`No rows under the header. ${describeHeaders(rawHeaders)}`);
+          } else {
+            toast(
+              `Found ${rowCount} row${rowCount === 1 ? '' : 's'} but no names. ` +
+              `Rename the name column to “Name” (or First Name / Last Name). ${describeHeaders(rawHeaders)}`
+            );
+          }
+          return;
+        }
       } else {
         toast('Please upload a .vcf (vCard) or .csv file.');
-        return;
-      }
-
-      if (contactsList.length === 0) {
-        toast('No valid contacts found in the file.');
         return;
       }
 
@@ -618,6 +477,7 @@ export default function Rolodex() {
           email: c.email.trim(),
           phone: c.phone.trim() || null,
           primary_role: c.primary_role.trim() || null,
+          secondary_roles: normalizeSecondaryRoles(parseRoleList(c.secondary_roles), c.primary_role),
           tags: c.tags.trim() || null,
           is_favorite: false
         }));
@@ -628,9 +488,20 @@ export default function Rolodex() {
         return;
       }
 
-      const { error } = await supabase
-        .from('contacts')
-        .insert(contactsToInsert);
+      let { error } = await supabase.from('contacts').insert(contactsToInsert);
+
+      // A database that hasn't run the secondary-roles migration rejects the
+      // whole batch. Import the contacts without them rather than failing on
+      // a column that is a bonus, not the point of the import.
+      if (error && /secondary_roles|schema cache/i.test(error.message || '')) {
+        const withoutRoles = contactsToInsert.map(c => {
+          const rest: Partial<typeof c> = { ...c };
+          delete rest.secondary_roles;
+          return rest;
+        });
+        ({ error } = await supabase.from('contacts').insert(withoutRoles));
+        if (!error) toast('Imported without secondary roles — this database is missing that migration.');
+      }
 
       if (error) throw error;
 
@@ -652,13 +523,14 @@ export default function Rolodex() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
-      if (!file.name.toLowerCase().endsWith('.csv')) {
+      const lower = file.name.toLowerCase();
+      if (!lower.endsWith('.csv') && !lower.endsWith('.tsv') && !lower.endsWith('.txt')) {
         toast('Please upload a .csv export from QuickBooks.');
         return;
       }
-      const rows = parseClientCSV(text);
+      const { clients: rows, rawHeaders } = parseClientCSV(text);
       if (rows.length === 0) {
-        toast('No clients found. Make sure the CSV has a Customer/Company column.');
+        toast(`No clients found — the file needs a Customer or Company column. ${describeHeaders(rawHeaders)}`);
         return;
       }
       setParsedClients(rows);
@@ -704,6 +576,13 @@ export default function Rolodex() {
     }
   };
 
+  /** Open the contact form, loading the roles text box from the saved roles. */
+  const openContactModal = (contact: Partial<Contact>) => {
+    setEditingContact(contact);
+    setSecondaryRolesDraft(formatRoleList(contact.secondary_roles || []));
+    setIsModalOpen(true);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingContact?.name?.trim()) {
@@ -714,10 +593,24 @@ export default function Rolodex() {
     try {
       // Email is optional (lots of crew don't have one on hand), but the column
       // is NOT NULL — send an empty string rather than null for blank emails.
-      const payload = { ...editingContact, email: editingContact.email?.trim() || '' };
-      const { error } = await supabase
-        .from('contacts')
-        .upsert(payload);
+      const payload: Partial<Contact> = {
+        ...editingContact,
+        email: editingContact.email?.trim() || '',
+        secondary_roles: normalizeSecondaryRoles(
+          parseRoleList(secondaryRolesDraft),
+          editingContact.primary_role,
+        ),
+      };
+      let { error } = await supabase.from('contacts').upsert(payload);
+
+      // Saving must not fail on a database that hasn't run the secondary-roles
+      // migration — every other field on the form still has to save.
+      if (error && /secondary_roles|schema cache/i.test(error.message || '')) {
+        const rest: Partial<Contact> = { ...payload };
+        delete rest.secondary_roles;
+        ({ error } = await supabase.from('contacts').upsert(rest));
+        if (!error) toast('Saved without the other roles — this database is missing that migration.');
+      }
       if (error) throw error;
 
       setIsModalOpen(false);
@@ -810,6 +703,12 @@ export default function Rolodex() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
+      {/* One list of suggested roles for every role field on the page — the
+          contact form, and both role columns in the import preview. */}
+      <datalist id="standard-roles">
+        {STANDARD_ROLES.map(role => <option key={role} value={role} />)}
+      </datalist>
+
       <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 w-fit mb-6">
         <button 
           onClick={() => setActiveView('crew')}
@@ -883,7 +782,7 @@ export default function Rolodex() {
             <input
               type="file"
               id="import-contacts-input"
-              accept=".vcf,.csv"
+              accept=".vcf,.csv,.tsv,.txt"
               onChange={handleImportFile}
               className="hidden"
             />
@@ -901,7 +800,7 @@ export default function Rolodex() {
             <input
               type="file"
               id="import-clients-input"
-              accept=".csv"
+              accept=".csv,.tsv,.txt"
               onChange={handleClientImportFile}
               className="hidden"
             />
@@ -910,8 +809,7 @@ export default function Rolodex() {
         <button
           onClick={() => {
             if (activeView === 'crew') {
-              setEditingContact({ name: '', email: '', primary_role: '', is_favorite: false });
-              setIsModalOpen(true);
+              openContactModal({ name: '', email: '', primary_role: '', is_favorite: false });
             } else {
               setEditingClient({ name: '', email: '', phone: '', address: '', notes: '' });
               setIsClientModalOpen(true);
@@ -967,6 +865,13 @@ export default function Rolodex() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-[10px] font-semibold text-accent">{contact.primary_role || '—'}</span>
+                    {/* The other hats, muted: this column is sorted by the
+                        primary role, so they read as extra rather than equal. */}
+                    {(contact.secondary_roles?.length || 0) > 0 && (
+                      <span className="block text-[10px] font-medium text-white/30 truncate max-w-[180px]">
+                        + {formatRoleList(contact.secondary_roles || [])}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 hidden md:table-cell">
                     <div className="space-y-1">
@@ -1001,7 +906,7 @@ export default function Rolodex() {
                         <History className="w-3.5 h-3.5" />
                       </button>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); setEditingContact(contact); setIsModalOpen(true); }}
+                        onClick={(e) => { e.stopPropagation(); openContactModal(contact); }}
                         className="p-2 text-white/10 hover:text-white hover:bg-white/5 rounded-lg transition-all"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -1235,6 +1140,24 @@ export default function Rolodex() {
                       </div>
                     </div>
                   )}
+
+                  {(selectedContact.secondary_roles?.length || 0) > 0 && (
+                    <div className="flex items-start gap-4 p-4">
+                      <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <Briefcase className="w-4 h-4 text-accent/60" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/30 mb-2">Other Roles</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(selectedContact.secondary_roles || []).map(role => (
+                            <span key={role} className="px-2.5 py-1 bg-white/5 rounded-lg text-[10px] font-semibold text-white/60 border border-white/5">
+                              {role}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {selectedContact.tags && (
                     <div className="flex items-start gap-4 p-4">
@@ -1317,8 +1240,7 @@ export default function Rolodex() {
                   <button 
                     onClick={() => {
                       setIsContactDetailOpen(false);
-                      setEditingContact(selectedContact);
-                      setIsModalOpen(true);
+                      openContactModal(selectedContact);
                     }}
                     className="flex items-center justify-center gap-2 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-white/60 hover:text-white transition-all"
                   >
@@ -1669,7 +1591,10 @@ export default function Rolodex() {
                   <div className="flex-grow min-w-0">
                     <span className="text-xs font-black uppercase tracking-wider text-white block">Upload vCard (.vcf) or CSV</span>
                     <p className="text-[10px] text-white/50 mt-1 leading-relaxed mb-3">
-                      Select an exported vCard file from your phone, or upload a custom CSV contact list.
+                      Select an exported vCard file from your phone, or upload a contact list.
+                      A CSV needs a name column — “Name”, “Contact”, “Vendor”, or First/Last —
+                      and can also carry Email, Phone, Role, and Tags columns. Semicolon and
+                      tab-separated exports work too.
                     </p>
                     <button
                       type="button"
@@ -1768,6 +1693,7 @@ export default function Rolodex() {
                       <th className="p-4">Email</th>
                       <th className="p-4">Phone</th>
                       <th className="p-4 w-44">Primary Role</th>
+                      <th className="p-4 w-48">Other Roles</th>
                       <th className="p-4">Tags</th>
                     </tr>
                   </thead>
@@ -1836,21 +1762,39 @@ export default function Rolodex() {
                             />
                           </td>
                           <td className="p-3">
-                            <select
+                            {/* A text field, not a fixed list: the file's own
+                                role ("Rental House / Vendor") has to survive
+                                the preview, and a dropdown silently blanked
+                                anything that wasn't one of the standard ones. */}
+                            <input
+                              type="text"
+                              list="standard-roles"
+                              placeholder="— none —"
                               value={contact.primary_role}
                               onChange={(e) => {
                                 const updated = [...parsedContacts];
                                 updated[idx].primary_role = e.target.value;
                                 setParsedContacts(updated);
                               }}
-                              className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-accent outline-none p-2 rounded-lg text-[10px] font-bold text-white uppercase cursor-pointer"
+                              className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-accent outline-none p-2 rounded-lg text-[10px] font-bold text-white uppercase"
                               disabled={!isSelected}
-                            >
-                              <option value="">— SELECT ROLE —</option>
-                              {STANDARD_ROLES.map(role => (
-                                <option key={role} value={role}>{role}</option>
-                              ))}
-                            </select>
+                            />
+                          </td>
+                          <td className="p-3">
+                            <input
+                              type="text"
+                              list="standard-roles"
+                              placeholder="Editor, Producer"
+                              title="Other hats this person wears, comma-separated"
+                              value={contact.secondary_roles}
+                              onChange={(e) => {
+                                const updated = [...parsedContacts];
+                                updated[idx].secondary_roles = e.target.value;
+                                setParsedContacts(updated);
+                              }}
+                              className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-accent outline-none p-2 rounded-lg text-[10px] font-bold text-white uppercase"
+                              disabled={!isSelected}
+                            />
                           </td>
                           <td className="p-3">
                             <input 
@@ -2040,16 +1984,56 @@ export default function Rolodex() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-white/50 ml-1">Primary Role</label>
-                  <input 
+                  <input
                     type="text"
                     value={editingContact?.primary_role || ''}
                     onChange={(e) => setEditingContact({ ...editingContact!, primary_role: e.target.value })}
                     list="standard-roles"
                     className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
                   />
-                  <datalist id="standard-roles">
-                    {STANDARD_ROLES.map(role => <option key={role} value={role} />)}
-                  </datalist>
+                  <p className="text-[11px] text-white/30 ml-1">Their default title on a call sheet.</p>
+                </div>
+
+                {/* Secondary roles. The reason they exist: an edit could only
+                    be assigned to someone whose *primary* role was a post one,
+                    so producers who also cut were listed as Editors on every
+                    call sheet they appeared on. */}
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-xs font-semibold text-white/50 ml-1">
+                    Other Roles <span className="opacity-50 font-medium">(comma-separated)</span>
+                  </label>
+                  <input
+                    type="text"
+                    list="standard-roles"
+                    placeholder="e.g. Editor, Camera Operator"
+                    value={secondaryRolesDraft}
+                    onChange={(e) => setSecondaryRolesDraft(e.target.value)}
+                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
+                  />
+                  <div className="flex flex-wrap gap-1.5 ml-1">
+                    {STANDARD_ROLES.filter(r => r !== editingContact?.primary_role).slice(0, 8).map(role => {
+                      const current = parseRoleList(secondaryRolesDraft);
+                      const active = current.some(r => r.toLowerCase() === role.toLowerCase());
+                      return (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => setSecondaryRolesDraft(formatRoleList(
+                            active
+                              ? current.filter(r => r.toLowerCase() !== role.toLowerCase())
+                              : [...current, role]
+                          ))}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-colors ${
+                            active
+                              ? 'bg-accent/20 border-accent/40 text-accent'
+                              : 'bg-white/5 border-white/10 text-white/50 hover:text-white hover:border-white/25'
+                          }`}
+                        >
+                          {role}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-xs font-semibold text-white/50 ml-1">Tags <span className="opacity-50 font-medium">(comma-separated)</span></label>

@@ -85,6 +85,27 @@ export function formatCallTime({ hour, minute }: WallClock): string {
   return `${display}:${String(minute).padStart(2, '0')} ${meridiem}`;
 }
 
+/**
+ * Stored wall-clock time → the "HH:mm" an `<input type="time">` requires.
+ * Anything unparseable comes back empty, which the input renders as blank
+ * rather than refusing to show the field at all.
+ */
+export function toTimeInputValue(value: string | null | undefined): string {
+  const parsed = parseCallTime(value);
+  if (!parsed) return '';
+  return `${String(parsed.hour).padStart(2, '0')}:${String(parsed.minute).padStart(2, '0')}`;
+}
+
+/**
+ * "HH:mm" from a time input → the display form everything else stores
+ * ("2:00 PM"), so a time typed on the calendar reads the same as a call time
+ * typed in Slate.
+ */
+export function fromTimeInputValue(value: string | null | undefined): string {
+  const parsed = parseCallTime(value);
+  return parsed ? formatCallTime(parsed) : '';
+}
+
 /** "YYYY-MM-DD" + N days, staying in date-string space (no DST arithmetic). */
 export function addDays(dateStr: string, days: number): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr.trim());

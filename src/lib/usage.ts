@@ -23,6 +23,9 @@ export type UsageLabel =
   | 'new_production'
   | 'new_production_from_calendar'
   | 'quick_marker'
+  // A calendar marker promoted into a full production — the Hold → Booked path.
+  | 'marker_to_production'
+  | 'production_from_marker'
   | 'add_contact'
   | 'add_deliverable'
   | 'export_call_sheet'

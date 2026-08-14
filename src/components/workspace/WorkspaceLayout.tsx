@@ -45,7 +45,7 @@ import { Job } from '@/components/gearbuilder/types';
 import Slate from '@/components/teambuilder/Slate';
 import EditTracker from '@/components/teambuilder/EditTracker';
 import Rentals from '@/components/gearbuilder/Rentals';
-import ProductionCalendar from '@/components/gearbuilder/ProductionCalendar';
+import ProductionCalendar, { NewProductionSeed } from '@/components/gearbuilder/ProductionCalendar';
 import Creative from '@/components/teambuilder/Creative';
 import SocialMedia from '@/components/social/SocialMedia';
 import Rolodex from '@/components/teambuilder/Rolodex';
@@ -144,8 +144,8 @@ interface WorkspaceLayoutProps {
   onClearPreload: () => void;
   preselectedJobId: string | null;
   onClearPreselectedJobId: () => void;
-  newProductionDate?: string | null;
-  onClearNewProductionDate?: () => void;
+  newProductionSeed?: NewProductionSeed | null;
+  onClearNewProductionSeed?: () => void;
   onSwitchTab: (tab: any) => void;
 }
 
@@ -156,8 +156,8 @@ export default function WorkspaceLayout({
   onClearPreload,
   preselectedJobId,
   onClearPreselectedJobId,
-  newProductionDate,
-  onClearNewProductionDate,
+  newProductionSeed,
+  onClearNewProductionSeed,
   onSwitchTab
 }: WorkspaceLayoutProps) {
   const [layoutRoot, setLayoutRoot] = useState<LayoutNode | null>(null);
@@ -248,8 +248,8 @@ export default function WorkspaceLayout({
           onClearPreload={onClearPreload}
           preselectedJobId={preselectedJobId}
           onClearPreselectedJobId={onClearPreselectedJobId}
-          newProductionDate={newProductionDate}
-          onClearNewProductionDate={onClearNewProductionDate}
+          newProductionSeed={newProductionSeed}
+          onClearNewProductionSeed={onClearNewProductionSeed}
           onSwitchTab={onSwitchTab}
         />
       </div>
@@ -421,8 +421,8 @@ function WorkspacePanel({
   onClearPreload,
   preselectedJobId,
   onClearPreselectedJobId,
-  newProductionDate,
-  onClearNewProductionDate,
+  newProductionSeed,
+  onClearNewProductionSeed,
   onSwitchTab
 }: { 
   node: LayoutNode & { type: 'panel' }; 
@@ -718,8 +718,8 @@ function WorkspacePanel({
           onClearPreload={onClearPreload}
           preselectedJobId={preselectedJobId}
           onClearPreselectedJobId={onClearPreselectedJobId}
-          newProductionDate={newProductionDate}
-          onClearNewProductionDate={onClearNewProductionDate}
+          newProductionSeed={newProductionSeed}
+          onClearNewProductionSeed={onClearNewProductionSeed}
           onSwitchTab={onSwitchTab}
         />
       </div>
@@ -893,8 +893,8 @@ function WidgetMount({
   onClearPreload,
   preselectedJobId,
   onClearPreselectedJobId,
-  newProductionDate,
-  onClearNewProductionDate,
+  newProductionSeed,
+  onClearNewProductionSeed,
   onSwitchTab
 }: { 
   type: string;
@@ -942,7 +942,7 @@ function WidgetMount({
             editable
             enableQuickEvents
             onSelectJob={(job) => onSwitchTab({ selectCalendarJob: job.id })}
-            onNewProduction={(date) => onSwitchTab({ newProductionDate: date })}
+            onNewProduction={(seed) => onSwitchTab({ newProductionSeed: seed })}
           />
         </div>
       );
@@ -953,8 +953,8 @@ function WidgetMount({
           onBuildGear={(job: any) => onSwitchTab({ gearJob: job })}
           preselectedJobId={boundJobId || preselectedJobId}
           onClearPreselectedJobId={onClearPreselectedJobId}
-          newProductionDate={newProductionDate}
-          onClearNewProductionDate={onClearNewProductionDate}
+          newProductionSeed={newProductionSeed}
+          onClearNewProductionSeed={onClearNewProductionSeed}
         />
       );
     case 'edits':

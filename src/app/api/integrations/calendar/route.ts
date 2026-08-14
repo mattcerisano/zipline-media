@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getValidGoogleToken } from '@/lib/google-auth';
 import { pullGoogleCalendarForUser, SLATE_APP_TAG, STUDIO_MARKER_TAG } from '@/lib/calendar-sync';
 import { getAuthedUserId } from '@/lib/api-auth';
-import { STUDIO_TIME_ZONE, parseCallTime, addDays } from '@/lib/date';
 import { buildJobDescription, buildMarkerDescription } from '@/lib/event-description';
+import { buildGoogleTiming, DEFAULT_MARKER_HOURS, DEFAULT_SHOOT_HOURS } from '@/lib/calendar-timing';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
@@ -43,16 +43,10 @@ const PRESET_LABELS: Record<string, string> = {
 /** Tangerine. Productions, so they stand apart from every marker type. */
 const PRODUCTION_COLOR_ID = '6';
 
-const DEFAULT_SHOOT_HOURS = 8;
-
 /**
  * Translate a job's stored date/time fields into a Google event's start/end.
- *
- * Call times are wall-clock strings with no zone ("8:00 AM"), so they are sent
- * as a naive dateTime plus an explicit `timeZone` and Google resolves them in
- * that zone. Building a `Date` here instead would resolve them against the
- * server clock — UTC on Vercel — which is what put an 8:00 AM call on the
- * calendar at 4:00 AM Eastern.
+ * The timing rules themselves live in src/lib/calendar-timing.ts, shared with
+ * markers and unit-tested there.
  */
 function buildEventTiming(job: {
   shoot_date?: string | null;
@@ -60,48 +54,13 @@ function buildEventTiming(job: {
   call_time?: string | null;
   wrap_time?: string | null;
 }): { start: Record<string, string>; end: Record<string, string> } {
-  const startDate = job.shoot_date || new Date().toISOString().split('T')[0];
-  // An end_date at or before the start is a stale/no-op value, not a span.
-  const lastDate = job.end_date && job.end_date > startDate ? job.end_date : startDate;
-  const call = parseCallTime(job.call_time);
-
-  if (!call) {
-    // All-day event. Google's all-day end date is exclusive, so a single-day
-    // shoot ends the following day — an end equal to the start is rejected.
-    return {
-      start: { date: startDate },
-      end: { date: addDays(lastDate, 1) },
-    };
-  }
-
-  const hhmm = `${String(call.hour).padStart(2, '0')}:${String(call.minute).padStart(2, '0')}:00`;
-
-  // A real wrap time beats the eight-hour estimate. Without one, every shoot
-  // claimed the same length on the calendar — a half-day looked full and a
-  // fourteen-hour day looked short to anyone checking availability.
-  const wrap = parseCallTime(job.wrap_time);
-  let endHhmm: string;
-  let endDate: string;
-
-  if (wrap) {
-    // A wrap at or before the call is a night shoot running past midnight,
-    // not bad data — roll the end onto the following day so it can't end
-    // before it starts.
-    const crossesMidnight =
-      wrap.hour * 60 + wrap.minute <= call.hour * 60 + call.minute;
-    endDate = crossesMidnight ? addDays(lastDate, 1) : lastDate;
-    endHhmm = `${String(wrap.hour).padStart(2, '0')}:${String(wrap.minute).padStart(2, '0')}:00`;
-  } else {
-    const wrapHour = (call.hour + DEFAULT_SHOOT_HOURS) % 24;
-    const wrapsMidnight = call.hour + DEFAULT_SHOOT_HOURS >= 24;
-    endDate = wrapsMidnight ? addDays(lastDate, 1) : lastDate;
-    endHhmm = `${String(wrapHour).padStart(2, '0')}:${String(call.minute).padStart(2, '0')}:00`;
-  }
-
-  return {
-    start: { dateTime: `${startDate}T${hhmm}`, timeZone: STUDIO_TIME_ZONE },
-    end: { dateTime: `${endDate}T${endHhmm}`, timeZone: STUDIO_TIME_ZONE },
-  };
+  return buildGoogleTiming({
+    startDate: job.shoot_date || new Date().toISOString().split('T')[0],
+    endDate: job.end_date,
+    startTime: job.call_time,
+    endTime: job.wrap_time,
+    defaultDurationHours: DEFAULT_SHOOT_HOURS,
+  });
 }
 
 export async function POST(request: Request) {
@@ -239,9 +198,9 @@ export async function POST(request: Request) {
     // ==========================================
     // ACTION: PUSH A CALENDAR MARKER TO GOOGLE
     // ==========================================
-    // Holds, meetings, and time off created on the Calendar tab. Pushed as
-    // all-day events — a marker has no call time, and inventing one would put
-    // it at an hour nobody chose.
+    // Holds, meetings, and time off created on the Calendar tab. A marker with
+    // a start time is pushed as a timed event; one without stays all-day,
+    // which is the right shape for a hold or a day off.
     if (action === 'push_event') {
       const { eventId } = body;
       if (!eventId) {
@@ -264,7 +223,13 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, message: 'Imported event — left as-is.' });
       }
 
-      const lastDay = event.end_date && event.end_date > event.event_date ? event.end_date : event.event_date;
+      const timing = buildGoogleTiming({
+        startDate: event.event_date,
+        endDate: event.end_date,
+        startTime: event.start_time,
+        endTime: event.end_time,
+        defaultDurationHours: DEFAULT_MARKER_HOURS,
+      });
       const eventBody: any = {
         summary: event.title || 'Untitled',
         description: buildMarkerDescription({
@@ -272,10 +237,11 @@ export async function POST(request: Request) {
           presetLabel: PRESET_LABELS[event.preset] || null,
           event_date: event.event_date,
           end_date: event.end_date,
+          start_time: event.start_time,
+          end_time: event.end_time,
         }),
-        // Google's all-day end is exclusive, so a single day ends tomorrow.
-        start: { date: event.event_date },
-        end: { date: addDays(lastDay, 1) },
+        start: timing.start,
+        end: timing.end,
         // Same colour as the chip in Studio OS, so a Hold reads as a Hold in
         // both places rather than taking the calendar's default blue.
         colorId: GOOGLE_COLOR_BY_PRESET[event.preset] || undefined,

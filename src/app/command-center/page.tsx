@@ -42,6 +42,7 @@ import { trackView, trackAction } from '@/lib/usage';
 import { getBranding } from '@/lib/branding';
 import { applyAccent } from '@/lib/brand-theme';
 import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
+import type { NewProductionSeed } from '@/components/gearbuilder/ProductionCalendar';
 import ProfileSettings from '@/components/workspace/ProfileSettings';
 import SearchPalette from '@/components/workspace/SearchPalette';
 import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
@@ -541,9 +542,10 @@ export default function CommandCenterPage() {
   const [feedUrl, setFeedUrl] = useState<string>('');
   const [preloadedJob, setPreloadedJob] = useState<any | null>(null);
   const [preselectedJobId, setPreselectedJobId] = useState<string | null>(null);
-  // Set when a date is picked in Calendar → "New production". Slate opens its
-  // production form with this as the shoot date, then clears it.
-  const [newProductionDate, setNewProductionDate] = useState<string | null>(null);
+  // Set when Calendar hands a production over — "New production" on a day, or
+  // a hold being promoted to a booked shoot. Slate opens its production form
+  // seeded from it, then clears it.
+  const [newProductionSeed, setNewProductionSeed] = useState<NewProductionSeed | null>(null);
   const [userRole, setUserRole] = useState<AppRole | null>(null);
 
   // One source of truth for "what can this account open". Everything that
@@ -1365,8 +1367,8 @@ export default function CommandCenterPage() {
                   onClearPreload={() => setPreloadedJob(null)}
                   preselectedJobId={preselectedJobId}
                   onClearPreselectedJobId={() => setPreselectedJobId(null)}
-                  newProductionDate={newProductionDate}
-                  onClearNewProductionDate={() => setNewProductionDate(null)}
+                  newProductionSeed={newProductionSeed}
+                  onClearNewProductionSeed={() => setNewProductionSeed(null)}
                   onSwitchTab={(target) => {
                     if (typeof target === 'string') {
                       setActiveTab(target);
@@ -1377,8 +1379,8 @@ export default function CommandCenterPage() {
                         setActiveTab('slate');
                         localStorage.setItem('studio_active_tab', 'slate');
                       }
-                      if (target.newProductionDate) {
-                        setNewProductionDate(target.newProductionDate);
+                      if (target.newProductionSeed) {
+                        setNewProductionSeed(target.newProductionSeed);
                         setActiveTab('slate');
                         localStorage.setItem('studio_active_tab', 'slate');
                       }
