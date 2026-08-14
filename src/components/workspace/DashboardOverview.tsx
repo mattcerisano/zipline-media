@@ -375,7 +375,9 @@ export default function DashboardOverview({
           </div>
 
           <div className="space-y-3">
-            <div className="flex gap-2">
+            {/* Stacked on a phone: at 390px the input and a nowrap button cannot
+                both fit on one line — side by side, one of them is always cut. */}
+            <div className="flex flex-col sm:flex-row gap-2">
               <input 
                 type="text"
                 placeholder="Write system message test..."
@@ -383,10 +385,15 @@ export default function DashboardOverview({
                 onChange={(e) => setDiscordMsg(e.target.value)}
                 className="flex-grow bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-accent focus:ring-1 focus:ring-accent/35 transition-all duration-300"
               />
-              <button 
+              {/* Accent, not purple: this is the panel's primary action and every
+                  other one in the app (New Production, Add Contact) is accent.
+                  The purple tile above stays — that marks the service, not the
+                  button. nowrap keeps the label on one line once the row form
+                  kicks in at sm, where it used to wrap to two. */}
+              <button
                 onClick={testDiscordWebhook}
                 disabled={isSending || !discordMsg.trim()}
-                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-5 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center gap-1.5 cursor-pointer hover:shadow-[0_0_20px_rgba(168,85,247,0.3)] active:scale-[0.98]"
+                className="bg-accent hover:bg-accent/90 text-white disabled:bg-white/5 disabled:text-white/30 disabled:cursor-not-allowed shrink-0 whitespace-nowrap px-5 py-3 sm:py-0 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer hover:shadow-[0_0_20px_rgba(0,119,255,0.3)] active:scale-[0.98]"
               >
                 {isSending ? (
                   <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -492,10 +499,17 @@ function StatCard({
         {isLoading ? (
           <div className="h-5 w-20 bg-white/5 rounded animate-pulse" />
         ) : (
-          <span className="hidden md:inline text-[10px] font-medium text-green-400 tracking-wide bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/15">{trend}</span>
+          // These are secondary counts, not deltas — "0 clients" in success
+          // green read as good news about nothing. Neutral by default, and
+          // dimmer still at zero, so colour means something when it appears.
+          <span className={`hidden md:inline text-[10px] font-medium tracking-wide px-2 py-0.5 rounded-full border ${
+            /^0\b/.test(trend)
+              ? 'text-white/30 bg-white/[0.03] border-white/5'
+              : 'text-white/60 bg-white/5 border-white/10'
+          }`}>{trend}</span>
         )}
       </div>
-      <h3 className="text-[11px] md:text-[9px] md:text-[11px] font-medium text-white/40 uppercase tracking-[0.12em] mb-0.5 truncate">{title}</h3>
+      <h3 className="text-[11px] font-medium text-white/40 uppercase tracking-[0.12em] mb-0.5 truncate">{title}</h3>
       {isLoading ? (
         <div className="h-8 w-24 bg-white/10 rounded animate-pulse mt-1" />
       ) : (

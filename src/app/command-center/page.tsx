@@ -969,7 +969,13 @@ export default function CommandCenterPage() {
   }
 
   return (
-    <div className="studio-shell min-h-screen bg-black text-white flex overflow-hidden relative">
+    // h-dvh, not min-h-screen: the shell pairs a growable height with
+    // overflow-hidden, so whenever <main>'s content ran past the viewport the
+    // whole row grew with it and the overflow was clipped rather than scrolled.
+    // The sidebar stretches to that row, which is what pushed "Sign Out" off the
+    // bottom of every panel. Pinning the shell to the viewport lets <main>'s own
+    // overflow-y-auto do the scrolling, as it was always meant to.
+    <div className="studio-shell h-dvh bg-black text-white flex overflow-hidden relative">
       {/* Ambient Glows */}
       <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-accent/5 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-500/5 rounded-full blur-[150px] pointer-events-none" />
@@ -1027,7 +1033,12 @@ export default function CommandCenterPage() {
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-6 overflow-y-auto custom-scrollbar">
+        {/* min-h-0 is load-bearing: a flex item defaults to min-height:auto, so
+            this nav refused to shrink below its ~780px of tabs. That pushed the
+            aside past the viewport and cut "Sign Out" in half against the
+            shell's overflow-hidden, on every panel. With it, the nav scrolls
+            and the footer stays pinned. */}
+        <nav className="flex-1 min-h-0 px-4 py-6 overflow-y-auto custom-scrollbar">
           {isMounted ? (
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="sidebar-nav">
