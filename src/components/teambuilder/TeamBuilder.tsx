@@ -30,7 +30,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
 import { caps } from '@/lib/format';
-import { contactRoles } from '@/lib/roles';
+import { contactRoles } from '@/lib/crew-roles';
 import { formatLocalDate } from '@/lib/date';
 import { Contact, Job, JobRole, DEPARTMENTS, JobTemplate, JobSchedule, JobTodo } from '@/components/gearbuilder/types';
 import { toast, confirmAction } from '@/components/Feedback';

@@ -10,7 +10,7 @@
  */
 
 import { parseDelimited, findColumn, findColumns, cell } from './csv';
-import { parseRoleList, formatRoleList } from './roles';
+import { parseRoleList, formatRoleList } from './crew-roles';
 
 /** A row in the import preview. Roles are text here so they stay editable. */
 export interface ImportContact {

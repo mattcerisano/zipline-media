@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, UserPlus, Trash2, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { confirmAction } from '@/components/Feedback';
+import { APP_ROLES, ROLE_HINTS, ROLE_LABELS, type AppRole } from '@/lib/roles';
 
 // Admin-only team roster. Creates internal accounts (admin/staff) with a
 // temporary password the admin hands to the teammate — no client-facing
@@ -11,14 +12,8 @@ import { confirmAction } from '@/components/Feedback';
 interface Member {
   id: string;
   email: string;
-  role: 'admin' | 'staff' | 'client';
+  role: AppRole;
 }
-
-const ROLE_HINTS: Record<string, string> = {
-  admin: 'Full access, settings & team management',
-  staff: 'Everything except admin settings',
-  client: 'Limited view (calendar, slate, tracker)',
-};
 
 interface Props {
   session: any;
@@ -32,7 +27,7 @@ export default function TeamSettings({ session, onMessage }: Props) {
 
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [newRole, setNewRole] = useState<'admin' | 'staff' | 'client'>('staff');
+  const [newRole, setNewRole] = useState<AppRole>('staff');
   const [showPassword, setShowPassword] = useState(false);
 
   const authHeaders = useCallback((): Record<string, string> => ({
@@ -162,9 +157,9 @@ export default function TeamSettings({ session, onMessage }: Props) {
                   onChange={(e) => changeRole(m.id, e.target.value)}
                   className="bg-black/40 border border-white/10 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-white/70 outline-none focus:border-accent appearance-none cursor-pointer disabled:opacity-40"
                 >
-                  <option value="admin">Admin</option>
-                  <option value="staff">Staff</option>
-                  <option value="client">Client</option>
+                  {APP_ROLES.map(role => (
+                    <option key={role} value={role}>{ROLE_LABELS[role]}</option>
+                  ))}
                 </select>
                 <button
                   onClick={() => removeMember(m)}
@@ -192,11 +187,12 @@ export default function TeamSettings({ session, onMessage }: Props) {
           </div>
           <div>
             <label className={labelClass}>Role</label>
-            <select value={newRole} onChange={(e) => setNewRole(e.target.value as any)} className={`${inputClass} appearance-none cursor-pointer`}>
-              <option value="staff">Staff</option>
-              <option value="admin">Admin</option>
-              <option value="client">Client</option>
+            <select value={newRole} onChange={(e) => setNewRole(e.target.value as AppRole)} className={`${inputClass} appearance-none cursor-pointer`}>
+              {APP_ROLES.map(role => (
+                <option key={role} value={role}>{ROLE_LABELS[role]}</option>
+              ))}
             </select>
+            <p className="text-[11px] md:text-[9px] text-white/30 mt-1.5 leading-relaxed">{ROLE_HINTS[newRole]}</p>
           </div>
         </div>
         <label className={labelClass}>Temporary Password</label>

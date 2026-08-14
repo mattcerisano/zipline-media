@@ -8,7 +8,7 @@ import { Job, Contact, EditLabel, JobLink, Client, Project } from '@/components/
 import { sanitizeUrl } from '@/lib/sanitize';
 import { parseLocalDate, formatLocalDate } from '@/lib/date';
 import { caps } from '@/lib/format';
-import { hasAnyRole, POST_ROLES } from '@/lib/roles';
+import { hasAnyRole, POST_ROLES } from '@/lib/crew-roles';
 import { 
   Film, 
   Scissors, 

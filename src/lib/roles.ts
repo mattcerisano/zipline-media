@@ -1,124 +1,93 @@
-/**
- * Crew roles.
- *
- * A contact used to have exactly one role, `primary_role`, and everything that
- * needed to know what someone does read that single field. On a small crew
- * that is wrong more often than it is right: the same person cuts, shoots, and
- * produces depending on the job. The practical damage was that assigning an
- * edit required setting someone's primary role to "Editor", which then billed
- * them as the editor on every call sheet they appeared on.
- *
- * Contacts now carry `secondary_roles` alongside the primary one. The primary
- * stays the headline — what they're listed as by default — and the secondary
- * roles are the other hats, used for "who can do X" lookups and offered when
- * building a call sheet.
- */
+// Who can see what.
+//
+// Most roles (admin / staff / client) are *configurable*: an admin picks which
+// tabs each one sees via a tab's `allowedRoles`. Scoped roles are different —
+// they exist to hand one outside person exactly one part of the OS, so their
+// access is a fixed whitelist in code rather than a checkbox an admin could
+// widen or narrow by accident.
+//
+// `editor` is the first of those: a freelance editor gets an account that opens
+// straight onto the Edit Tracker and can do everything on that board (drag
+// cards between stages, edit notes, labels, checklists, columns) — but the rest
+// of the OS (Slate, Gear, Rolodex, Vault, Inbox, Budget, Library, Settings)
+// simply is not reachable, whatever a saved or shared tab layout happens to say.
 
-export interface RoleBearing {
-  primary_role?: string | null;
-  secondary_roles?: string[] | null;
+export type AppRole = 'admin' | 'staff' | 'client' | 'editor';
+
+/** Roles an admin can hand out from Settings → Team. */
+export const APP_ROLES: AppRole[] = ['admin', 'staff', 'client', 'editor'];
+
+/** Roles that participate in per-tab `allowedRoles` configuration. */
+export const CONFIGURABLE_ROLES: AppRole[] = ['admin', 'staff', 'client'];
+
+export const ROLE_LABELS: Record<AppRole, string> = {
+  admin: 'Admin',
+  staff: 'Staff',
+  client: 'Client',
+  editor: 'Freelance Editor',
+};
+
+export const ROLE_HINTS: Record<AppRole, string> = {
+  admin: 'Full access, settings & team management',
+  staff: 'Everything except admin settings',
+  client: 'Limited view (calendar, slate, tracker)',
+  editor: 'Edit Tracker only — full editing on the board, nothing else',
+};
+
+interface ScopedRole {
+  /** Command Center tab ids this role may open. */
+  tabs: string[];
+  /** Workspace widgets this role may mount inside those tabs. */
+  widgets: string[];
+  /** Tab they land on at sign-in. */
+  home: string;
 }
 
-/** Roles that can be assigned an edit in the tracker. */
-export const POST_ROLES = [
-  'Editor',
-  'Assistant Editor',
-  'Colorist',
-  'Motion Graphics',
-  'Animator',
-  'Sound Designer',
-  'Composer',
-];
+const SCOPED_ROLES: Partial<Record<AppRole, ScopedRole>> = {
+  // 'notes' is the per-user scratch pad — it is what a split panel falls back
+  // to, and holds nothing but the editor's own text, so it stays available.
+  editor: { tabs: ['edits'], widgets: ['edits', 'notes'], home: 'edits' },
+};
 
-/**
- * Every role a contact holds, primary first, de-duplicated case-insensitively
- * and with blanks dropped.
- */
-export function contactRoles(contact: RoleBearing | null | undefined): string[] {
-  if (!contact) return [];
-  const out: string[] = [];
-  const seen = new Set<string>();
-  const push = (role: string | null | undefined) => {
-    const trimmed = (role || '').trim();
-    if (!trimmed) return;
-    const key = trimmed.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    out.push(trimmed);
-  };
+const scopeFor = (role: string | null | undefined): ScopedRole | undefined =>
+  role ? SCOPED_ROLES[role as AppRole] : undefined;
 
-  push(contact.primary_role);
-  for (const role of contact.secondary_roles || []) push(role);
-  return out;
-}
-
-/**
- * Break a role into the jobs it names.
- *
- * Imported rosters are full of compound titles — "Director - Editor",
- * "Composer/Music Producer", "Gaffer & Key Grip" — written into the single
- * role field there used to be. Splitting them means an existing contact
- * answers "who edits?" without anyone having to re-key their roles first.
- */
-export function roleTokens(role: string | null | undefined): string[] {
-  return (role || '')
-    .split(/[/,|&]|\s+-\s+|\s+\+\s+|\s+and\s+/i)
-    .map(part => part.trim())
-    .filter(Boolean);
-}
-
-/** Case-insensitive test: does this contact hold any of `targets`? */
-export function hasAnyRole(contact: RoleBearing | null | undefined, targets: string[]): boolean {
-  const wanted = new Set(targets.map(t => t.trim().toLowerCase()).filter(Boolean));
-  if (wanted.size === 0) return false;
-  for (const role of contactRoles(contact)) {
-    if (wanted.has(role.toLowerCase())) return true;
-    for (const token of roleTokens(role)) {
-      if (wanted.has(token.toLowerCase())) return true;
-    }
-  }
-  return false;
-}
-
-/** Parse typed or imported role text ("Editor; Producer") into a clean list. */
-export function parseRoleList(value: string | null | undefined): string[] {
-  if (!value) return [];
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const part of value.split(/[;,|\n]/)) {
-    const role = part.trim();
-    if (!role) continue;
-    const key = role.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(role);
-  }
-  return out;
-}
-
-/** Render a role list for an input box. */
-export function formatRoleList(roles: string[] | null | undefined): string {
-  return (roles || []).filter(Boolean).join(', ');
+/** True when the role's access is a fixed whitelist rather than tab config. */
+export function isScopedRole(role: string | null | undefined): boolean {
+  return !!scopeFor(role);
 }
 
 /**
- * Normalise a contact's roles for saving: the primary is never repeated in the
- * secondary list, so "Editor" can't show up twice on a call sheet picker.
+ * Panel tab ids carry their widget type plus context: `edits_job_<uuid>` is the
+ * Edit Tracker bound to one production, `embed_<timestamp>` an embedded site.
  */
-export function normalizeSecondaryRoles(
-  secondary: string[] | null | undefined,
-  primary: string | null | undefined,
-): string[] {
-  const primaryKey = (primary || '').trim().toLowerCase();
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const role of secondary || []) {
-    const trimmed = (role || '').trim();
-    if (!trimmed) continue;
-    const key = trimmed.toLowerCase();
-    if (key === primaryKey || seen.has(key)) continue;
-    seen.add(key);
-    out.push(trimmed);
-  }
-  return out;
+export function widgetTypeOf(panelTabId: string): string {
+  if (panelTabId.startsWith('embed_')) return 'embed';
+  const boundAt = panelTabId.indexOf('_job_');
+  return boundAt === -1 ? panelTabId : panelTabId.slice(0, boundAt);
+}
+
+/** Can this role open this Command Center tab? */
+export function canAccessTab(
+  role: string | null | undefined,
+  tab: { id: string; allowedRoles?: readonly string[] }
+): boolean {
+  const scope = scopeFor(role);
+  if (scope) return scope.tabs.includes(tab.id);
+  if (!tab.allowedRoles) return true;
+  return tab.allowedRoles.includes(role as string);
+}
+
+/** Can this role mount this widget in a workspace panel? */
+export function canUseWidget(role: string | null | undefined, panelTabId: string): boolean {
+  const scope = scopeFor(role);
+  if (!scope) return true;
+  return scope.widgets.includes(widgetTypeOf(panelTabId));
+}
+
+/** The tab a freshly signed-in user of this role should land on. */
+export function defaultTabForRole(role: string | null | undefined): string {
+  const scope = scopeFor(role);
+  if (scope) return scope.home;
+  return role === 'admin' ? 'dashboard' : 'calendar';
 }

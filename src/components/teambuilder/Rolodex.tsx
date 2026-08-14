@@ -38,7 +38,7 @@ import { Contact, Client } from '@/components/gearbuilder/types';
 import { toast, confirmAction } from '@/components/Feedback';
 import { FilterSheet } from '@/components/workspace/FilterSheet';
 import ContactSuggest from '@/components/workspace/ContactSuggest';
-import { contactRoles, hasAnyRole, parseRoleList, formatRoleList, normalizeSecondaryRoles } from '@/lib/roles';
+import { contactRoles, hasAnyRole, parseRoleList, formatRoleList, normalizeSecondaryRoles } from '@/lib/crew-roles';
 import {
   parseVCF,
   parseContactCSV,

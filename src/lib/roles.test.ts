@@ -1,86 +1,116 @@
 import { describe, it, expect } from 'vitest';
 import {
-  contactRoles,
-  roleTokens,
-  hasAnyRole,
-  parseRoleList,
-  formatRoleList,
-  normalizeSecondaryRoles,
-  POST_ROLES,
+  APP_ROLES,
+  CONFIGURABLE_ROLES,
+  canAccessTab,
+  canUseWidget,
+  defaultTabForRole,
+  isScopedRole,
+  widgetTypeOf,
 } from './roles';
 
-describe('contactRoles', () => {
-  it('lists the primary role first, then the secondary ones', () => {
-    expect(contactRoles({ primary_role: 'Producer', secondary_roles: ['Editor', 'Gaffer'] }))
-      .toEqual(['Producer', 'Editor', 'Gaffer']);
+/**
+ * The freelance-editor account is the case these rules exist for: an outside
+ * contractor with a login to the studio's OS. Everything below is a way in that
+ * has to stay shut — a shared tab layout, a saved panel, a search result — so
+ * each is asserted rather than assumed.
+ */
+
+const EDITS_TAB = { id: 'edits', allowedRoles: ['admin', 'staff', 'client'] };
+const VAULT_TAB = { id: 'vault', allowedRoles: ['admin', 'staff'] };
+
+describe('canAccessTab', () => {
+  it('gives a freelance editor the Edit Tracker and nothing else', () => {
+    expect(canAccessTab('editor', EDITS_TAB)).toBe(true);
+    expect(canAccessTab('editor', VAULT_TAB)).toBe(false);
+    expect(canAccessTab('editor', { id: 'slate', allowedRoles: ['admin', 'staff', 'client'] })).toBe(false);
+    expect(canAccessTab('editor', { id: 'rolodex', allowedRoles: ['admin'] })).toBe(false);
   });
 
-  it('de-duplicates case-insensitively and drops blanks', () => {
-    expect(contactRoles({ primary_role: 'Producer', secondary_roles: ['producer', '  ', 'Editor'] }))
-      .toEqual(['Producer', 'Editor']);
+  it('keeps the editor on the board even if the tab drops them from allowedRoles', () => {
+    expect(canAccessTab('editor', { id: 'edits', allowedRoles: ['admin'] })).toBe(true);
   });
 
-  it('copes with a contact carrying neither field', () => {
-    expect(contactRoles({})).toEqual([]);
-    expect(contactRoles(null)).toEqual([]);
-  });
-});
-
-describe('roleTokens', () => {
-  it('splits the compound titles imported rosters are full of', () => {
-    expect(roleTokens('Director - Editor')).toEqual(['Director', 'Editor']);
-    expect(roleTokens('Composer/Music Producer')).toEqual(['Composer', 'Music Producer']);
-    expect(roleTokens('Gaffer & Key Grip')).toEqual(['Gaffer', 'Key Grip']);
+  it('does not let a custom tab hand the editor a second workspace', () => {
+    // Custom tabs with no allowedRoles are open to everyone else.
+    expect(canAccessTab('editor', { id: 'custom_1712345' })).toBe(false);
+    expect(canAccessTab('staff', { id: 'custom_1712345' })).toBe(true);
   });
 
-  it('leaves a role that merely contains a hyphen or "and" alone', () => {
-    expect(roleTokens('Director of Photography')).toEqual(['Director of Photography']);
-    expect(roleTokens('1st AC')).toEqual(['1st AC']);
-  });
-});
-
-describe('hasAnyRole', () => {
-  it('matches a secondary role, which is the whole point', () => {
-    const tommy = { primary_role: 'Producer', secondary_roles: ['Editor'] };
-    expect(hasAnyRole(tommy, POST_ROLES)).toBe(true);
+  it('leaves the configurable roles on their per-tab settings', () => {
+    expect(canAccessTab('staff', VAULT_TAB)).toBe(true);
+    expect(canAccessTab('client', VAULT_TAB)).toBe(false);
+    expect(canAccessTab('client', EDITS_TAB)).toBe(true);
   });
 
-  it('matches case-insensitively', () => {
-    expect(hasAnyRole({ primary_role: 'editor' }, ['Editor'])).toBe(true);
-  });
-
-  it('matches inside a compound title, so old data needs no re-keying', () => {
-    expect(hasAnyRole({ primary_role: 'Director - Editor' }, POST_ROLES)).toBe(true);
-  });
-
-  it('is false for someone who holds none of them', () => {
-    expect(hasAnyRole({ primary_role: 'Gaffer', secondary_roles: ['Key Grip'] }, POST_ROLES)).toBe(false);
-    expect(hasAnyRole({ primary_role: 'Editor' }, [])).toBe(false);
+  it('treats a signed-out or unknown role as having no configured access', () => {
+    expect(canAccessTab(null, EDITS_TAB)).toBe(false);
+    expect(canAccessTab(undefined, VAULT_TAB)).toBe(false);
   });
 });
 
-describe('parseRoleList / formatRoleList', () => {
-  it('parses separated role text', () => {
-    expect(parseRoleList('Editor, Producer; Colorist')).toEqual(['Editor', 'Producer', 'Colorist']);
+describe('canUseWidget', () => {
+  it('lets the editor mount the board, including a job-bound card', () => {
+    expect(canUseWidget('editor', 'edits')).toBe(true);
+    expect(canUseWidget('editor', 'edits_job_9f0c1e6a-1111-2222-3333-444455556666')).toBe(true);
   });
 
-  it('drops blanks and repeats', () => {
-    expect(parseRoleList('Editor, , editor')).toEqual(['Editor']);
-    expect(parseRoleList('')).toEqual([]);
+  it('blocks widgets a saved panel layout might name', () => {
+    expect(canUseWidget('editor', 'vault')).toBe(false);
+    expect(canUseWidget('editor', 'rolodex')).toBe(false);
+    expect(canUseWidget('editor', 'budget')).toBe(false);
+    expect(canUseWidget('editor', 'inbox')).toBe(false);
+    expect(canUseWidget('editor', 'slate_job_9f0c1e6a-1111-2222-3333-444455556666')).toBe(false);
+    expect(canUseWidget('editor', 'embed_1712345')).toBe(false);
   });
 
-  it('round-trips through the input format', () => {
-    expect(parseRoleList(formatRoleList(['Editor', 'Producer']))).toEqual(['Editor', 'Producer']);
+  it('keeps the personal scratch pad, which a split panel falls back to', () => {
+    expect(canUseWidget('editor', 'notes')).toBe(true);
+  });
+
+  it('does not restrict the configurable roles', () => {
+    expect(canUseWidget('staff', 'vault')).toBe(true);
+    expect(canUseWidget('client', 'slate')).toBe(true);
   });
 });
 
-describe('normalizeSecondaryRoles', () => {
-  it('never repeats the primary role', () => {
-    expect(normalizeSecondaryRoles(['Producer', 'Editor'], 'producer')).toEqual(['Editor']);
+describe('widgetTypeOf', () => {
+  it('strips the job binding and the embed timestamp', () => {
+    expect(widgetTypeOf('edits')).toBe('edits');
+    expect(widgetTypeOf('gear_job_abc')).toBe('gear');
+    expect(widgetTypeOf('embed_1712345')).toBe('embed');
+  });
+});
+
+describe('defaultTabForRole', () => {
+  it('lands each role somewhere it can actually go', () => {
+    expect(defaultTabForRole('editor')).toBe('edits');
+    expect(defaultTabForRole('admin')).toBe('dashboard');
+    expect(defaultTabForRole('staff')).toBe('calendar');
+    expect(defaultTabForRole('client')).toBe('calendar');
   });
 
-  it('trims, de-duplicates, and drops empties', () => {
-    expect(normalizeSecondaryRoles([' Editor ', 'editor', ''], 'Producer')).toEqual(['Editor']);
-    expect(normalizeSecondaryRoles(null, 'Producer')).toEqual([]);
+  it('sends every role to a tab that role can access', () => {
+    const tabs = [
+      { id: 'dashboard', allowedRoles: ['admin'] },
+      { id: 'calendar', allowedRoles: ['admin', 'staff', 'client'] },
+      EDITS_TAB,
+    ];
+    for (const role of APP_ROLES) {
+      const home = tabs.find(t => t.id === defaultTabForRole(role));
+      expect(canAccessTab(role, home!)).toBe(true);
+    }
+  });
+});
+
+describe('role lists', () => {
+  it('offers the editor role in Settings → Team but not as a per-tab checkbox', () => {
+    expect(APP_ROLES).toContain('editor');
+    expect(CONFIGURABLE_ROLES).not.toContain('editor');
+  });
+
+  it('marks only the editor as scoped', () => {
+    expect(isScopedRole('editor')).toBe(true);
+    expect(CONFIGURABLE_ROLES.every(role => !isScopedRole(role))).toBe(true);
   });
 });
