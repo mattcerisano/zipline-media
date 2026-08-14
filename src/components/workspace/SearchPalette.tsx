@@ -43,9 +43,15 @@ interface SearchPaletteProps {
   onNavigate?: (tabId: string) => void;
   /** Tab ids visible to this user — feature results outside this set are hidden. */
   availableTabs?: string[];
+  /**
+   * Whether contacts and clients belong in this user's corpus. Accounts with no
+   * Rolodex (a freelance editor scoped to the Edit Tracker) must not be able to
+   * search their way to crew rates and phone numbers. Defaults to true.
+   */
+  includePeople?: boolean;
 }
 
-export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts, onNavigate, availableTabs }: SearchPaletteProps) {
+export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts, onNavigate, availableTabs, includePeople = true }: SearchPaletteProps) {
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<Hit[]>([]);
   const [corpus, setCorpus] = useState<Corpus | null>(null);
@@ -65,8 +71,12 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
         try {
           const [jobsRes, contactsRes, clientsRes] = await Promise.all([
             supabase.from('jobs').select('id, title, client_name, production_company, location_name, location_address, notes_general, shoot_date, job_status').order('shoot_date', { ascending: false }).limit(500),
-            supabase.from('contacts').select('id, name, primary_role, company_name, tags, notes_general, location_city').limit(1000),
-            supabase.from('clients').select('id, name, notes').limit(300),
+            includePeople
+              ? supabase.from('contacts').select('id, name, primary_role, company_name, tags, notes_general, location_city').limit(1000)
+              : Promise.resolve({ data: [] as any[] }),
+            includePeople
+              ? supabase.from('clients').select('id, name, notes').limit(300)
+              : Promise.resolve({ data: [] as any[] }),
           ]);
           const docs: SearchDoc[] = [];
           const meta = new Map<string, Omit<Hit, 'score'>>();

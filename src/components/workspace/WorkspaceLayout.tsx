@@ -39,6 +39,7 @@ import {
 
 import { supabase } from '@/lib/supabase';
 import { loadMyScratchNotes, saveMyScratchNotes } from '@/lib/team-prefs';
+import { canUseWidget, type AppRole } from '@/lib/roles';
 import { Job } from '@/components/gearbuilder/types';
 
 import Slate from '@/components/teambuilder/Slate';
@@ -138,7 +139,7 @@ const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
 
 interface WorkspaceLayoutProps {
   activeTab: string;
-  userRole?: 'admin' | 'staff' | 'client' | null;
+  userRole?: AppRole | null;
   preloadedJob: any;
   onClearPreload: () => void;
   preselectedJobId: string | null;
@@ -434,6 +435,12 @@ function WorkspacePanel({
   const [showAddMenu, setShowAddMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // The "+" menu is the other door into every tool in the OS: without this a
+  // freelance editor could mount the Vault or the Rolodex inside their own
+  // board. Scoped roles only ever see the widgets their role whitelists.
+  const addableWidgets = Object.keys(WIDGET_LABELS).filter(key => canUseWidget(userRole, key));
+  const canEmbed = canUseWidget(userRole, 'embed_new');
+
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -614,7 +621,7 @@ function WorkspacePanel({
                           <ChevronDown className="w-2.5 h-2.5 transition-transform group-open/details:rotate-180" />
                         </summary>
                         <div className="mt-1 space-y-0.5">
-                          {Object.keys(WIDGET_LABELS).map(key => {
+                          {addableWidgets.map(key => {
                             const Icon = WIDGET_ICONS[key] || Layout;
                             return (
                               <button
@@ -627,13 +634,15 @@ function WorkspacePanel({
                               </button>
                             );
                           })}
-                          <button
-                            onClick={() => handleAddTab('embed_' + Date.now())}
-                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[11px] md:text-[8px] font-bold text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
-                          >
-                            <Link className="w-3.5 h-3.5 text-accent" />
-                            <span>Web Embed</span>
-                          </button>
+                          {canEmbed && (
+                            <button
+                              onClick={() => handleAddTab('embed_' + Date.now())}
+                              className="w-full flex items-center gap-2 px-2.5 py-1.5 text-[11px] md:text-[8px] font-bold text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
+                            >
+                              <Link className="w-3.5 h-3.5 text-accent" />
+                              <span>Web Embed</span>
+                            </button>
+                          )}
                         </div>
                       </details>
                     </div>
@@ -641,7 +650,7 @@ function WorkspacePanel({
                 ) : (
                   <>
                     <p className="text-[11px] md:text-[7px] font-black tracking-widest uppercase text-white/30 px-2.5 py-1.5 border-b border-white/5 mb-1">Select Panel View</p>
-                    {Object.keys(WIDGET_LABELS).map(key => {
+                    {addableWidgets.map(key => {
                       const Icon = WIDGET_ICONS[key] || Layout;
                       return (
                         <button
@@ -654,13 +663,15 @@ function WorkspacePanel({
                         </button>
                       );
                     })}
-                    <button
-                      onClick={() => handleAddTab('embed_' + Date.now())}
-                      className="w-full flex items-center gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider border-t border-white/5"
-                    >
-                      <Link className="w-3.5 h-3.5 text-accent" />
-                      <span>Web Embed</span>
-                    </button>
+                    {canEmbed && (
+                      <button
+                        onClick={() => handleAddTab('embed_' + Date.now())}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider border-t border-white/5"
+                      >
+                        <Link className="w-3.5 h-3.5 text-accent" />
+                        <span>Web Embed</span>
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -891,6 +902,17 @@ function WidgetMount({
   onUpdateNode: (n: any) => void;
   [key: string]: any;
 }) {
+  // Last line of defence for scoped roles. Panel layouts are saved per browser
+  // and seeded from shared team defaults, so a layout naming a widget this
+  // account may not have can arrive without anyone clicking anything.
+  if (!canUseWidget(userRole, type)) {
+    return (
+      <div className="p-6 text-center text-xs text-white/40 uppercase tracking-widest">
+        Not available on your account
+      </div>
+    );
+  }
+
   if (type.startsWith('embed_')) {
     return (
       <EmbedWidget 
