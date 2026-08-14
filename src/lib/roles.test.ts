@@ -6,6 +6,7 @@ import {
   canUseWidget,
   defaultTabForRole,
   isScopedRole,
+  seesOnlyOwnCards,
   widgetTypeOf,
 } from './roles';
 
@@ -100,6 +101,21 @@ describe('defaultTabForRole', () => {
       const home = tabs.find(t => t.id === defaultTabForRole(role));
       expect(canAccessTab(role, home!)).toBe(true);
     }
+  });
+});
+
+describe('seesOnlyOwnCards', () => {
+  it('pins the freelance editor to their own queue', () => {
+    expect(seesOnlyOwnCards('editor')).toBe(true);
+  });
+
+  it('leaves every other role seeing the whole board', () => {
+    expect(seesOnlyOwnCards('admin')).toBe(false);
+    expect(seesOnlyOwnCards('staff')).toBe(false);
+    // A client is read-only on the tracker but still sees the studio's slate.
+    expect(seesOnlyOwnCards('client')).toBe(false);
+    expect(seesOnlyOwnCards(null)).toBe(false);
+    expect(seesOnlyOwnCards(undefined)).toBe(false);
   });
 });
 

@@ -41,12 +41,18 @@ interface ScopedRole {
   widgets: string[];
   /** Tab they land on at sign-in. */
   home: string;
+  /**
+   * Board shows only cards assigned to them — a freelancer sees their own
+   * queue, not the studio's slate. Matched on the account email against the
+   * assigned Rolodex contact's email, and enforced in RLS as well as here.
+   */
+  ownCardsOnly?: boolean;
 }
 
 const SCOPED_ROLES: Partial<Record<AppRole, ScopedRole>> = {
   // 'notes' is the per-user scratch pad — it is what a split panel falls back
   // to, and holds nothing but the editor's own text, so it stays available.
-  editor: { tabs: ['edits'], widgets: ['edits', 'notes'], home: 'edits' },
+  editor: { tabs: ['edits'], widgets: ['edits', 'notes'], home: 'edits', ownCardsOnly: true },
 };
 
 const scopeFor = (role: string | null | undefined): ScopedRole | undefined =>
@@ -83,6 +89,17 @@ export function canUseWidget(role: string | null | undefined, panelTabId: string
   const scope = scopeFor(role);
   if (!scope) return true;
   return scope.widgets.includes(widgetTypeOf(panelTabId));
+}
+
+/**
+ * Does this role see only the cards assigned to it?
+ *
+ * The UI filter this drives is a convenience, not the boundary: the boundary is
+ * the RLS policy on `jobs` (20260814000000), which returns nothing else to an
+ * editor's session in the first place.
+ */
+export function seesOnlyOwnCards(role: string | null | undefined): boolean {
+  return !!scopeFor(role)?.ownCardsOnly;
 }
 
 /** The tab a freshly signed-in user of this role should land on. */

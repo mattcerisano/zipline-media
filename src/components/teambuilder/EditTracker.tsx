@@ -8,6 +8,7 @@ import { Job, Contact, EditLabel, JobLink, Client, Project } from '@/components/
 import { sanitizeUrl } from '@/lib/sanitize';
 import { parseLocalDate, formatLocalDate } from '@/lib/date';
 import { caps } from '@/lib/format';
+import { seesOnlyOwnCards } from '@/lib/roles';
 import { 
   Film, 
   Scissors, 
@@ -128,6 +129,10 @@ const AVAILABLE_LABEL_COLORS = [
 
 export default function EditTracker({ userRole, selectedJobId }: { userRole?: string; selectedJobId?: string } = {}) {
   const isClient = userRole === 'client';
+  // A freelancer's board is their own queue. RLS already returns nothing else
+  // to their session; this keeps the UI honest about it — no "add a production"
+  // picker for jobs they can't see, no reassigning a card off their own board.
+  const ownCardsOnly = seesOnlyOwnCards(userRole);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -282,10 +287,15 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
       const matchClient = clientFilter === 'All' || (j.client_name === clientFilter || j.production_company === clientFilter);
       const matchProject = projectFilter === 'All' || j.project_id === projectFilter;
       const matchYear = yearFilter === 'All' || (j.shoot_date && j.shoot_date.startsWith(yearFilter));
-      const matchMine = !myCardsOnly || (!!myEmail && (j.editor?.email || '').toLowerCase() === myEmail);
+      // `ownCardsOnly` is the role's standing restriction, `myCardsOnly` the
+      // toggle anyone else can flip. Note the restriction needs a known email
+      // to match against: until the session resolves, a scoped account sees an
+      // empty board rather than everyone's.
+      const restrictToMine = ownCardsOnly || myCardsOnly;
+      const matchMine = !restrictToMine || (!!myEmail && (j.editor?.email || '').toLowerCase() === myEmail);
       return matchClient && matchProject && matchYear && matchMine;
     });
-  }, [boardJobs, clientFilter, projectFilter, yearFilter, myCardsOnly, myEmail]);
+  }, [boardJobs, clientFilter, projectFilter, yearFilter, myCardsOnly, myEmail, ownCardsOnly]);
 
   const updateJobEditStatus = async (jobId: string, newStatus: string) => {
     const job = jobs.find(j => j.id === jobId);
@@ -470,7 +480,8 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               Timeline
             </button>
           </div>
-          {!isClient && myEmail && (
+          {/* Redundant when the role is already pinned to its own cards. */}
+          {!isClient && !ownCardsOnly && myEmail && (
             <button
               onClick={() => setMyCardsOnly(v => !v)}
               className={`inline-flex items-center justify-center gap-2 border ${CONTROL_H} rounded-xl px-4 text-[13px] font-medium tracking-tight transition-colors ${
@@ -492,7 +503,9 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               <SlidersHorizontal className="w-3.5 h-3.5" /> Columns
             </button>
           )}
-          {!isClient && availableJobs.length > 0 && (
+          {/* Pulling a production onto the board means reaching for one that
+              isn't assigned to you — which RLS won't return anyway. */}
+          {!isClient && !ownCardsOnly && availableJobs.length > 0 && (
             <select
               value=""
               onChange={(e) => {
@@ -587,8 +600,10 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
                         </Draggable>
                       ))}
                       {provided.placeholder}
-                      {stage.id === firstStageId && !isClient && (
-                        <button 
+                      {/* A new card is a new production, which INSERT on jobs
+                          refuses for this role — so don't offer the form. */}
+                      {stage.id === firstStageId && !isClient && !ownCardsOnly && (
+                        <button
                           onClick={() => openNewCardModal(firstStageId)}
                           className="w-full text-left p-3 text-xs font-bold text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
                         >
@@ -634,6 +649,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
             stages={stages}
             isCreatingNew={isCreatingNew}
             isClient={isClient}
+            ownCardsOnly={ownCardsOnly}
           />
         )}
       </AnimatePresence>
@@ -1123,7 +1139,8 @@ function CardDetailModal({
   onRemoveFromBoard,
   stages,
   isCreatingNew,
-  isClient
+  isClient,
+  ownCardsOnly = false
 }: {
   job: Job,
   contacts: Contact[],
@@ -1132,7 +1149,10 @@ function CardDetailModal({
   onRemoveFromBoard: (jobId: string) => void,
   stages: ResolvedStage[],
   isCreatingNew?: boolean,
-  isClient: boolean
+  isClient: boolean,
+  /** Role is pinned to its own cards: assignment is read-only, and taking the
+      card off the board or cancelling the shoot isn't theirs to do. */
+  ownCardsOnly?: boolean
 }) {
   const [title, setTitle] = useState(job.title);
   const [notes, setNotes] = useState(job.edit_notes || '');
@@ -1467,17 +1487,25 @@ function CardDetailModal({
                         {job.editor.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                       </div>
                     )}
-                    <select
-                      value={job.editor_id || ''}
-                      onChange={(e) => updateEditor(e.target.value)}
-                      disabled={isClient}
-                      className="bg-white/5 border border-white/10 py-1.5 px-3 rounded-lg text-xs font-bold text-white outline-none focus:border-accent appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <option value="">Unassigned</option>
-                      {contacts
-                        .filter(c => ['Editor', 'Colorist', 'Motion Graphics', 'Sound Designer'].includes(c.primary_role || ''))
-                        .map(c => <option key={c.id} value={c.id}>{caps(c.name)}</option>)}
-                    </select>
+                    {ownCardsOnly ? (
+                      // Reassigning is what would hand the card away — and the
+                      // picker would list the whole post crew to do it with.
+                      <span className="text-xs font-bold text-white/70">
+                        {job.editor ? caps(job.editor.name) : 'Unassigned'}
+                      </span>
+                    ) : (
+                      <select
+                        value={job.editor_id || ''}
+                        onChange={(e) => updateEditor(e.target.value)}
+                        disabled={isClient}
+                        className="bg-white/5 border border-white/10 py-1.5 px-3 rounded-lg text-xs font-bold text-white outline-none focus:border-accent appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <option value="">Unassigned</option>
+                        {contacts
+                          .filter(c => ['Editor', 'Colorist', 'Motion Graphics', 'Sound Designer'].includes(c.primary_role || ''))
+                          .map(c => <option key={c.id} value={c.id}>{caps(c.name)}</option>)}
+                      </select>
+                    )}
                   </div>
                 </div>
               )}
@@ -2032,7 +2060,12 @@ function CardDetailModal({
                </div>
              </div>
 
-             {!isClient && !isCreatingNew && (
+             {/* Taking the card off the board loses the freelancer their own
+                 queue, and cancelling the shoot is a producer's call. Unlike
+                 the restrictions above these are a UI judgement, not an RLS
+                 one — both edits stay on a row that remains theirs, so the
+                 database would allow them. */}
+             {!isClient && !isCreatingNew && !ownCardsOnly && (
                <div className="space-y-2">
                  <h4 className="text-xs font-bold text-white/60 mb-2">Actions</h4>
                  <button
