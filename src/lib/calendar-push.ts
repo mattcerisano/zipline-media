@@ -68,7 +68,13 @@ export function removeJobFromGoogleCalendar(googleEventId?: string | null): Prom
 /**
  * Mirror a Calendar-tab marker (Hold, Meeting, time off) onto Google as an
  * all-day event. Safe to call on every save — the server updates in place once
- * the marker has a Google event id, and ignores markers imported from Google.
+ * the marker has a Google event id.
+ *
+ * Markers imported *from* Google take a narrower path on the server: only the
+ * name and the day are sent, as a patch, so the rest of someone's meeting
+ * survives being renamed here. That push can legitimately fail — Google won't
+ * let anyone but the organiser change an event — so check `ok` and put the row
+ * back when it does.
  */
 export function pushEventToGoogleCalendar(eventId: string): Promise<PushResult> {
   return callCalendar({ action: 'push_event', eventId });

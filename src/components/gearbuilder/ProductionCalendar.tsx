@@ -194,6 +194,24 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     setEventDraft({ ...ev, end_date: ev.end_date || '', notes: ev.notes || '' });
   };
 
+  /**
+   * Put an imported event back the way Google has it, after Google turned the
+   * edit down. Only the fields Google owns — a note typed here is ours and
+   * survives, whatever Google thinks of the rest.
+   */
+  const revertImportedEvent = async (previous: CalendarEvent) => {
+    const restored = {
+      // Explicit null, not undefined: Supabase drops undefined keys, and the
+      // field would silently keep the rejected value.
+      title: previous.title ?? null,
+      event_date: previous.event_date,
+      end_date: previous.end_date ?? null,
+    };
+    const { error } = await supabase.from('calendar_events').update(restored).eq('id', previous.id);
+    if (error) console.error('Error restoring imported event:', error);
+    fetchEvents();
+  };
+
   const saveEvent = async () => {
     if (!eventDraft) return;
     const title = (eventDraft.title || '').trim();
@@ -208,6 +226,13 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
 
     setSavingEvent(true);
     setEventError(null);
+
+    // Imported events belong to Google, so the row it hands back on the next
+    // sync is the one that lasts. Hold on to the version Google gave us: if it
+    // refuses the edit, this is what the row has to go back to.
+    const imported = eventDraft.preset === 'google';
+    const previous = imported && eventDraft.id ? events.find(e => e.id === eventDraft.id) : undefined;
+
     const payload = {
       title,
       preset: eventDraft.preset,
@@ -232,16 +257,32 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       }
       setEventDraft(null);
 
+      // An imported event only needs Google when something Google owns
+      // actually moved. Notes live in Studio OS alone, so annotating a meeting
+      // you were invited to stays a local, always-allowed edit.
+      const touchedGoogleFields =
+        !previous ||
+        (previous.title || '') !== payload.title ||
+        previous.event_date !== payload.event_date ||
+        (previous.end_date || null) !== payload.end_date;
+
       // Mirror onto Google. Fire-and-forget: the row is already saved, and a
-      // push failure shouldn't undo it or block the form from closing. The
-      // server ignores markers that came *from* Google.
-      if (savedId && eventDraft.preset !== 'google') {
+      // push failure shouldn't block the form from closing.
+      if (savedId && (!imported || touchedGoogleFields)) {
         pushEventToGoogleCalendar(savedId).then(r => {
           // Surfaced, not just logged. A console warning is invisible to
           // anyone not holding devtools open, so a failed push looked
           // identical to a successful one — the event saved locally and
           // simply never appeared on Google.
           if (!r.ok) toast(r.message || 'Saved here, but Google Calendar sync failed.');
+          // A change Google wouldn't take can't be kept here either: the next
+          // sync rewrites this row from the Google event, so leaving it would
+          // show an edit that quietly disappears later. Undo it now, while the
+          // toast explaining why is still on screen.
+          if (!r.ok && previous) {
+            revertImportedEvent(previous);
+            return;
+          }
           // Pick up the google_event_id the push just stored, so a later
           // delete knows to remove it from Google too.
           fetchEvents();
@@ -1000,34 +1041,45 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
               />
             </div>
 
+            {/* The type is also how the app knows where an event came from:
+                imported events are the ones it must never overwrite wholesale
+                on Google. Retyping one would strip that, so Google's own
+                events show their origin instead of a picker. */}
             <div className="space-y-1.5">
               <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Type</label>
-              <div className="grid grid-cols-2 gap-2">
-                {QUICK_ADD_PRESETS.map(p => {
-                  const active = eventDraft.preset === p.key;
-                  return (
-                    <button
-                      key={p.key}
-                      type="button"
-                      onClick={() => setEventDraft({
-                        ...eventDraft,
-                        preset: p.key,
-                        // Retitle only while the name is still the previous
-                        // preset's label — never overwrite something typed.
-                        title: !eventDraft.title || eventDraft.title === presetOf(eventDraft.preset).label
-                          ? p.label
-                          : eventDraft.title,
-                      })}
-                      className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-colors ${
-                        active ? 'bg-white/10 border-white/25' : 'bg-black/40 border-white/10 hover:border-white/20'
-                      }`}
-                    >
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                      <span className={`text-[11px] font-semibold ${active ? 'text-white' : 'text-white/60'}`}>{p.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              {eventDraft.preset === 'google' ? (
+                <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl border border-white/10 bg-black/40 w-fit">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: presetOf('google').color }} />
+                  <span className="text-[11px] font-semibold text-white/60">From Google Calendar</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {QUICK_ADD_PRESETS.map(p => {
+                    const active = eventDraft.preset === p.key;
+                    return (
+                      <button
+                        key={p.key}
+                        type="button"
+                        onClick={() => setEventDraft({
+                          ...eventDraft,
+                          preset: p.key,
+                          // Retitle only while the name is still the previous
+                          // preset's label — never overwrite something typed.
+                          title: !eventDraft.title || eventDraft.title === presetOf(eventDraft.preset).label
+                            ? p.label
+                            : eventDraft.title,
+                        })}
+                        className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-colors ${
+                          active ? 'bg-white/10 border-white/25' : 'bg-black/40 border-white/10 hover:border-white/20'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                        <span className={`text-[11px] font-semibold ${active ? 'text-white' : 'text-white/60'}`}>{p.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -1077,11 +1129,16 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
               </p>
             )}
 
-            {/* The importer upserts on google_event_id, so a title edited here
-                is replaced on the next pull. Worth saying before they type. */}
+            {/* Renaming or moving one of these changes the real event on
+                Google, which is a bigger deal than editing a marker the studio
+                made up — say so before they type. */}
             {eventDraft.preset === 'google' && (
-              <p className="text-[10px] font-semibold text-amber-400/90 leading-relaxed">
-                Synced from Google Calendar — edits here are overwritten on the next sync. Change it in Google to make it stick.
+              <p className="text-[10px] text-white/35 leading-relaxed flex items-center gap-1.5">
+                <RefreshCw className="w-3 h-3 shrink-0" />
+                <span>
+                  Synced from Google Calendar — the name and dates are saved back to the event itself,
+                  keeping its time of day. Notes stay here. Events someone else organises can&apos;t be changed.
+                </span>
               </p>
             )}
 

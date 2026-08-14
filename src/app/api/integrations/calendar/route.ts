@@ -5,6 +5,7 @@ import { pullGoogleCalendarForUser, SLATE_APP_TAG, STUDIO_MARKER_TAG } from '@/l
 import { getAuthedUserId } from '@/lib/api-auth';
 import { STUDIO_TIME_ZONE, parseCallTime, addDays } from '@/lib/date';
 import { buildJobDescription, buildMarkerDescription } from '@/lib/event-description';
+import { importedMarkerTiming } from '@/lib/imported-event-timing';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
@@ -44,6 +45,74 @@ const PRESET_LABELS: Record<string, string> = {
 const PRODUCTION_COLOR_ID = '6';
 
 const DEFAULT_SHOOT_HOURS = 8;
+
+const GOOGLE_EVENTS = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+
+/** Google's own event, as much of it as the imported-marker push cares about. */
+interface ImportedMarker {
+  title?: string | null;
+  event_date: string;
+  end_date?: string | null;
+  google_event_id: string;
+}
+
+/**
+ * Save an edit made to a marker that was imported *from* Google.
+ *
+ * Google owns these events; the marker row is a date-only shadow of one. So
+ * the edit goes back as a PATCH of just the two things the form can change —
+ * the name and the day — and everything else the event carries (its
+ * description, attendees, conference link, reminders, the time of day) is
+ * left exactly as Google has it. A PUT of the marker's own body, which is
+ * what owned markers get, would erase all of it.
+ *
+ * Returns a message rather than throwing on the refusals that aren't bugs:
+ * an event the signed-in user was merely invited to isn't theirs to rename,
+ * and Google says so with a 403.
+ */
+async function pushImportedMarker(
+  token: string,
+  marker: ImportedMarker,
+): Promise<{ success: boolean; message: string }> {
+  const url = `${GOOGLE_EVENTS}/${encodeURIComponent(marker.google_event_id)}`;
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  // Read it first: whether this is an all-day event or a 2 PM meeting decides
+  // the shape of the patch, and the marker row no longer remembers.
+  const current = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (current.status === 404 || current.status === 410) {
+    return { success: false, message: 'That event is no longer on your Google Calendar.' };
+  }
+  if (!current.ok) {
+    throw new Error(`Google Calendar read failed (${current.status}): ${(await current.text()).slice(0, 300)}`);
+  }
+
+  const timing = importedMarkerTiming(await current.json(), marker);
+  if (!timing) {
+    return { success: false, message: "Could not read that event's time from Google, so the date was left alone." };
+  }
+
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({ summary: marker.title || 'Untitled', start: timing.start, end: timing.end }),
+  });
+
+  if (res.status === 403) {
+    return {
+      success: false,
+      message: "Google only lets an event's organiser change it, so this edit was rolled back.",
+    };
+  }
+  if (res.status === 404 || res.status === 410) {
+    return { success: false, message: 'That event is no longer on your Google Calendar.' };
+  }
+  if (!res.ok) {
+    throw new Error(`Google Calendar patch failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
+  }
+
+  return { success: true, message: 'Event updated in Google Calendar.' };
+}
 
 /**
  * Translate a job's stored date/time fields into a Google event's start/end.
@@ -258,10 +327,16 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Event not found' }, { status: 404 });
       }
 
-      // Markers imported *from* Google are Google's to change, not ours —
-      // pushing one back would fight the next sync.
+      // Markers imported *from* Google stay Google's events, but an edit made
+      // here still has to reach it: the importer rewrites this row from the
+      // Google event on every sync, so anything kept only locally is undone a
+      // few minutes later without a word.
       if (event.preset === 'google') {
-        return NextResponse.json({ success: true, message: 'Imported event — left as-is.' });
+        if (!event.google_event_id) {
+          return NextResponse.json({ success: false, message: 'That imported event has no Google event to update.' });
+        }
+        const result = await pushImportedMarker(token, event as ImportedMarker);
+        return NextResponse.json(result);
       }
 
       const lastDay = event.end_date && event.end_date > event.event_date ? event.end_date : event.event_date;
