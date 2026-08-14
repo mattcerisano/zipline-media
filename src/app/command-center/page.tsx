@@ -969,7 +969,12 @@ export default function CommandCenterPage() {
   }
 
   return (
-    <div className="studio-shell min-h-screen bg-black text-white flex overflow-hidden relative">
+    // h-screen on desktop, not min-h-screen: with a floor rather than a cap, a
+    // sidebar taller than the window grew the whole shell and the browser
+    // scrolled the app instead of the nav scrolling inside itself, which took
+    // every panel — the calendar most visibly — below the fold. Phones keep the
+    // floor, where 100vh and the visible viewport disagree.
+    <div className="studio-shell min-h-screen md:h-screen bg-black text-white flex overflow-hidden relative">
       {/* Ambient Glows */}
       <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-accent/5 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-500/5 rounded-full blur-[150px] pointer-events-none" />

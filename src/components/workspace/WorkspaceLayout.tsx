@@ -937,9 +937,12 @@ function WidgetMount({
       return <DashboardOverview onSwitchTab={onSwitchTab} />;
     case 'calendar':
       return (
-        <div className="p-4 md:p-6 bg-neutral-900/10 h-full overflow-y-auto">
+        // The month grid sizes itself to this box on desktop, so the panel
+        // holds it whole instead of scrolling. Phones keep the scroll.
+        <div className="p-4 bg-neutral-900/10 h-full min-h-0 overflow-y-auto md:overflow-hidden md:flex md:flex-col">
           <ProductionCalendar
             editable
+            fitHeight
             enableQuickEvents
             onSelectJob={(job) => onSwitchTab({ selectCalendarJob: job.id })}
             onNewProduction={(date) => onSwitchTab({ newProductionDate: date })}

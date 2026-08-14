@@ -170,6 +170,7 @@ async function audit(page: Page) {
  */
 const SCREENS: { name: string; path: string; nav?: string }[] = [
   { name: 'dashboard', path: '/command-center' },
+  { name: 'calendar', path: '/command-center', nav: 'Calendar' },
   { name: 'slate', path: '/command-center', nav: 'Slate' },
   { name: 'edit-tracker', path: '/command-center', nav: 'Edit Tracker' },
   { name: 'rolodex', path: '/command-center', nav: 'Rolodex' },

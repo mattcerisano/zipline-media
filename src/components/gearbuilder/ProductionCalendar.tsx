@@ -43,6 +43,18 @@ export const EVENT_PRESETS: { key: CalendarEventPreset; label: string; color: st
 export const PRODUCTION_COLOR = '#f4511e';      // Tangerine
 export const PRODUCTION_COLOR_ID = '6';
 const QUICK_ADD_PRESETS = EVENT_PRESETS.filter(p => p.quickAdd);
+/**
+ * Measured heights of the two things a week row stacks: the date-number track
+ * and one lane of bars. The lane budget is divided out of these, so a row is
+ * only ever given as many bars as it can actually draw.
+ *
+ * MIN_WEEK_H is the floor that follows — a date number and one bar. A window
+ * too short for six of those scrolls the grid rather than shrinking further,
+ * which beats slicing the bars in half.
+ */
+const DATE_ROW_H = 26;
+const LANE_H = 21;
+const MIN_WEEK_H = DATE_ROW_H + LANE_H;
 const presetOf = (k?: string) => EVENT_PRESETS.find(p => p.key === k) || EVENT_PRESETS[0];
 
 /**
@@ -76,9 +88,16 @@ interface ProductionCalendarProps {
    * shoot. Omit it and the menu item isn't offered.
    */
   onNewProduction?: (date: string) => void;
+  /**
+   * Size the month grid to its container instead of to a fixed row height, so
+   * the whole month is on screen with no page scroll. Only meaningful when the
+   * parent gives the calendar a bounded height. Ignored on phones, which keep
+   * the taller scrolling rows.
+   */
+  fitHeight?: boolean;
 }
 
-export default function ProductionCalendar({ onSelectDate, onSelectJob, onDeleteJob, onSelectRange, selectionMode = 'single', editable = false, enableQuickEvents = false, onNewProduction }: ProductionCalendarProps) {
+export default function ProductionCalendar({ onSelectDate, onSelectJob, onDeleteJob, onSelectRange, selectionMode = 'single', editable = false, enableQuickEvents = false, onNewProduction, fitHeight = false }: ProductionCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [jobs, setJobs] = useState<Job[]>([]);
   const [rangeStart, setRangeStart] = useState<string | null>(null);
@@ -114,6 +133,23 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  /**
+   * Height of the month grid, measured. In fit mode the weeks split it evenly,
+   * so how many lanes of bars a week can show is a function of the panel size
+   * rather than a constant — anything past that becomes "+N more".
+   */
+  const gridRef = React.useRef<HTMLDivElement | null>(null);
+  const [gridHeight, setGridHeight] = useState(0);
+  const fitGrid = fitHeight && !isMobile;
+
+  React.useEffect(() => {
+    const el = gridRef.current;
+    if (!fitGrid || !el) { setGridHeight(0); return; }
+    const ro = new ResizeObserver(([entry]) => setGridHeight(entry.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [fitGrid]);
 
   // Load jobs for the months around the one being viewed. Unbounded, this
   // pulled the whole jobs table on every mount; the ±4-month window keeps the
@@ -371,6 +407,22 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     return cells.slice(0, cells.slice(35).some(c => c.inMonth) ? 42 : 35);
   }, [currentDate]);
 
+  const weekCount = Math.ceil(calendarCells.length / 7);
+
+  /**
+   * Lines a week row has room for below the date numbers. A week needing more
+   * than this spends its last line on "+N more" instead of a bar, so nothing
+   * is ever drawn past the bottom of the row. Fixed when the grid sizes itself
+   * to its content; measured when it sizes itself to the panel.
+   */
+  const slotBudget = useMemo(() => {
+    if (!fitGrid || !gridHeight || !weekCount) return 4;
+    // MIN_WEEK_H is the floor the rows are given in CSS; below it the grid
+    // scrolls rather than shrinking further, so the budget stops shrinking too.
+    const rowH = Math.max(MIN_WEEK_H, gridHeight / weekCount);
+    return Math.max(1, Math.min(8, Math.floor((rowH - DATE_ROW_H) / LANE_H)));
+  }, [fitGrid, gridHeight, weekCount]);
+
   /**
    * Week rows of positioned bars.
    *
@@ -380,7 +432,6 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
    * is how Google draws it.
    */
   const weeks = useMemo(() => {
-    const MAX_LANES = 3;
     const rows: {
       cells: typeof calendarCells;
       bars: {
@@ -432,6 +483,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       const laneEnds: number[] = [];
       const bars: (typeof rows)[number]['bars'] = [];
       const overflow: Record<string, number> = {};
+      const placed: ((typeof rows)[number]['bars'][number] & { lastCol: number })[] = [];
 
       for (const it of items) {
         const startCol = Math.max(0, cells.findIndex(c => c.date === it.start));
@@ -443,25 +495,34 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
         if (lane === -1) { lane = laneEnds.length; laneEnds.push(lastCol); }
         else laneEnds[lane] = lastCol;
 
-        if (lane >= MAX_LANES) {
-          // Counted per day so the "+N more" lands on the days it applies to.
-          for (let c = startCol; c <= lastCol; c++) overflow[cells[c].date] = (overflow[cells[c].date] || 0) + 1;
-          continue;
-        }
-
-        bars.push({
+        placed.push({
           key: (it.job?.id || it.event?.id || it.label) + '-' + it.start,
-          label: it.label, color: it.color, startCol, span, lane,
+          label: it.label, color: it.color, startCol, span, lane, lastCol,
           continuesLeft: it.start < weekStart,
           continuesRight: it.end > weekEnd,
           job: it.job, event: it.event, time: it.time,
         });
       }
 
+      // A week that fits gets every lane. One that doesn't gives its last line
+      // over to "+N more", so the count is never drawn on top of a bar or past
+      // the bottom of the row. Dropping the deepest lanes leaves the ones below
+      // exactly where they were, so this is safe to decide after packing.
+      const cap = laneEnds.length > slotBudget ? Math.max(1, slotBudget - 1) : laneEnds.length;
+
+      for (const b of placed) {
+        if (b.lane >= cap) {
+          // Counted per day so the "+N more" lands on the days it applies to.
+          for (let c = b.startCol; c <= b.lastCol; c++) overflow[cells[c].date] = (overflow[cells[c].date] || 0) + 1;
+          continue;
+        }
+        bars.push(b);
+      }
+
       rows.push({ cells, bars, overflow });
     }
     return rows;
-  }, [calendarCells, jobs, events, enableQuickEvents]);
+  }, [calendarCells, jobs, events, enableQuickEvents, slotBudget]);
 
   // Selected Day Jobs Details Helper
   const selectedDateJobs = useMemo(() => {
@@ -556,9 +617,9 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
   };
 
   return (
-    <div className="bg-neutral-900/30 border border-white/10 rounded-2xl p-4 md:p-8">
+    <div className={`bg-neutral-900/30 border border-white/10 rounded-2xl p-4 ${fitGrid ? 'md:p-5 h-full min-h-0 flex flex-col' : 'md:p-8'}`}>
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+      <div className={`flex flex-col md:flex-row justify-between items-center gap-4 ${fitGrid ? 'mb-4 shrink-0' : 'mb-8'}`}>
         <h2 className="text-lg md:text-xl font-bold tracking-tight flex items-center gap-3">
           <CalendarIcon className="w-5 h-5 md:w-6 md:h-6 text-accent" />
           {monthYear}
@@ -637,7 +698,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       {/* Weekdays Header */}
       {(!isMobile || mobileView === 'month') && (
       <>
-      <div className="grid grid-cols-7 mb-2 border-b border-white/5 pb-2">
+      <div className={`grid grid-cols-7 mb-2 border-b border-white/5 pb-2 ${fitGrid ? 'shrink-0' : ''}`}>
         {(isMobile 
           ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] 
           : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -650,14 +711,20 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
 
       {/* Month grid — one row per week, bars laid over the day cells so a
           multi-day entry draws as a single unbroken pill. */}
-      <div className="border border-white/5 rounded-lg overflow-hidden bg-white/5 space-y-px">
+      <div
+        ref={gridRef}
+        className={`border border-white/5 rounded-lg bg-white/5 space-y-px ${fitGrid ? 'flex-1 min-h-0 flex flex-col overflow-y-auto custom-scrollbar' : 'overflow-hidden'}`}
+      >
         {weeks.map((week, wi) => {
           const laneCount = Math.max(1, ...week.bars.map(b => b.lane + 1));
           return (
             <div
               key={wi}
-              className="relative grid grid-cols-7 gap-px"
-              style={{ gridTemplateRows: `auto repeat(${laneCount}, minmax(0, auto)) 1fr` }}
+              className={`relative grid grid-cols-7 gap-px ${fitGrid ? 'grow shrink-0 basis-0' : ''}`}
+              style={{
+                gridTemplateRows: `auto repeat(${laneCount}, minmax(0, auto)) 1fr`,
+                ...(fitGrid ? { minHeight: MIN_WEEK_H } : null),
+              }}
             >
               {/* Day cells. Span every row so they act as the backdrop the
                   bars sit on, and stay the click target for quick-add. */}
@@ -682,7 +749,8 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                       }
                     }}
                     style={{ gridColumn: ci + 1, gridRow: '1 / -1' }}
-                    className={`min-h-[76px] md:min-h-[124px] p-1 md:p-1.5 transition-colors group
+                    className={`p-1 md:p-1.5 transition-colors group
+                      ${fitGrid ? 'min-h-0' : 'min-h-[76px] md:min-h-[124px]'}
                       ${c.inMonth ? 'bg-black/40' : 'bg-black/60'}
                       ${(onSelectDate || onSelectRange || isMobile || enableQuickEvents) ? 'cursor-pointer hover:bg-white/[0.07]' : ''}
                       ${rangeStart === c.date ? 'ring-2 ring-blue-500 z-20' : ''}
@@ -929,7 +997,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       {/* Legend — the actual bar colours, which are Google's. The old one
           listed job statuses in Tailwind colours that appeared nowhere on the
           grid, so it explained nothing you could see. */}
-      <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/5 pt-5">
+      <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/5 ${fitGrid ? 'mt-3 pt-3 shrink-0' : 'mt-6 pt-5'}`}>
         <span className="flex items-center gap-1.5 text-[10px] font-semibold text-white/50">
           <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: PRODUCTION_COLOR }} /> Production
         </span>
