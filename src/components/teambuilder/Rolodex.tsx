@@ -47,6 +47,7 @@ import {
   type ImportContact,
   type ImportClient,
 } from '@/lib/contact-import';
+import ImportPreview from './ImportPreview';
 
 const STANDARD_ROLES = [
   'Director', 'Producer', 'Director of Photography', 'Camera Operator', '1st AC', '2nd AC',
@@ -77,8 +78,10 @@ export default function Rolodex() {
   // Import states
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isImportOptionsOpen, setIsImportOptionsOpen] = useState(false);
+  /** The rows as parsed. Corrections are made inside ImportPreview, not here. */
   const [parsedContacts, setParsedContacts] = useState<ImportContact[]>([]);
-  const [selectedImportIdxs, setSelectedImportIdxs] = useState<number[]>([]);
+  /** Bumped per file, so the preview remounts on a fresh batch. */
+  const [importBatchId, setImportBatchId] = useState(0);
   const [isImportLoading, setIsImportLoading] = useState(false);
 
   // QuickBooks client CSV import states
@@ -406,7 +409,7 @@ export default function Rolodex() {
         });
         
         setParsedContacts(formatted);
-        setSelectedImportIdxs(formatted.map((_: any, idx: number) => idx));
+        setImportBatchId(n => n + 1);
         setIsImportModalOpen(true);
         setIsImportOptionsOpen(false);
       }
@@ -460,27 +463,26 @@ export default function Rolodex() {
       }
 
       setParsedContacts(contactsList);
-      setSelectedImportIdxs(contactsList.map((_: any, idx: number) => idx));
+      setImportBatchId(n => n + 1);
       setIsImportModalOpen(true);
       e.target.value = '';
     };
     reader.readAsText(file);
   };
 
-  const handleConfirmImport = async () => {
+  /** `selected` is what the preview handed back: corrected, and ticked. */
+  const handleConfirmImport = async (selected: ImportContact[]) => {
     setIsImportLoading(true);
     try {
-      const contactsToInsert = parsedContacts
-        .filter((_, idx) => selectedImportIdxs.includes(idx))
-        .map(c => ({
-          name: c.name.trim(),
-          email: c.email.trim(),
-          phone: c.phone.trim() || null,
-          primary_role: c.primary_role.trim() || null,
-          secondary_roles: normalizeSecondaryRoles(parseRoleList(c.secondary_roles), c.primary_role),
-          tags: c.tags.trim() || null,
-          is_favorite: false
-        }));
+      const contactsToInsert = selected.map(c => ({
+        name: c.name.trim(),
+        email: c.email.trim(),
+        phone: c.phone.trim() || null,
+        primary_role: c.primary_role.trim() || null,
+        secondary_roles: normalizeSecondaryRoles(parseRoleList(c.secondary_roles), c.primary_role),
+        tags: c.tags.trim() || null,
+        is_favorite: false
+      }));
 
       if (contactsToInsert.length === 0) {
         toast('No contacts selected for import.');
@@ -1641,209 +1643,17 @@ export default function Rolodex() {
         )}
       </AnimatePresence>
 
-      {/* Import Contacts Modal */}
+      {/* Import preview. Keyed on the parsed batch so a second import starts
+          from that file's rows rather than the previous one's edits. */}
       <AnimatePresence>
         {isImportModalOpen && (
-          <div 
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setIsImportModalOpen(false);
-              }
-            }}
-            className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md cursor-pointer"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-4xl bg-neutral-950 border border-white/10 rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[90vh] text-white cursor-default"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Import Preview</h2>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mt-1">Review, edit, and select crew contacts to import</p>
-                </div>
-                <button 
-                  onClick={() => setIsImportModalOpen(false)}
-                  className="p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="overflow-x-auto border border-white/5 rounded-xl mb-6 max-h-[45vh] custom-scrollbar">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-white/10 bg-white/5 uppercase tracking-wider text-[11px] md:text-[9px] font-black opacity-60">
-                      <th className="p-4 w-12 text-center">
-                        <input 
-                          type="checkbox"
-                          checked={selectedImportIdxs.length === parsedContacts.length}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                               setSelectedImportIdxs(parsedContacts.map((_: any, idx: number) => idx));
-                            } else {
-                              setSelectedImportIdxs([]);
-                            }
-                          }}
-                          className="rounded border-white/10 text-accent focus:ring-accent bg-black"
-                        />
-                      </th>
-                      <th className="p-4">Name</th>
-                      <th className="p-4">Email</th>
-                      <th className="p-4">Phone</th>
-                      <th className="p-4 w-44">Primary Role</th>
-                      <th className="p-4 w-48">Other Roles</th>
-                      <th className="p-4">Tags</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {parsedContacts.map((contact, idx) => {
-                      const isSelected = selectedImportIdxs.includes(idx);
-                      const isPlaceholderEmail = contact.email.includes('@temporary.com');
-                      
-                      return (
-                        <tr key={idx} className={`hover:bg-white/[0.01] transition-colors ${isSelected ? 'text-white' : 'text-white/30'}`}>
-                          <td className="p-4 text-center">
-                            <input 
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => {
-                                if (isSelected) {
-                                  setSelectedImportIdxs(selectedImportIdxs.filter(i => i !== idx));
-                                } else {
-                                  setSelectedImportIdxs([...selectedImportIdxs, idx]);
-                                }
-                              }}
-                              className="rounded border-white/10 text-accent focus:ring-accent bg-black"
-                            />
-                          </td>
-                          <td className="p-3">
-                            <input 
-                              type="text" 
-                              value={contact.name}
-                              onChange={(e) => {
-                                const updated = [...parsedContacts];
-                                updated[idx].name = e.target.value;
-                                setParsedContacts(updated);
-                              }}
-                              className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-accent outline-none p-2 rounded-lg text-xs font-bold uppercase tracking-wide text-white"
-                              disabled={!isSelected}
-                            />
-                          </td>
-                          <td className="p-3">
-                            <input 
-                              type="email" 
-                              value={contact.email}
-                              onChange={(e) => {
-                                const updated = [...parsedContacts];
-                                updated[idx].email = e.target.value;
-                                setParsedContacts(updated);
-                              }}
-                              className={`w-full bg-black/40 border outline-none p-2 rounded-lg text-xs font-bold text-white ${
-                                isPlaceholderEmail ? 'border-yellow-500/30 focus:border-yellow-500' : 'border-white/5 hover:border-white/10 focus:border-accent'
-                              }`}
-                              title={isPlaceholderEmail ? 'Temporary email generated' : ''}
-                              disabled={!isSelected}
-                            />
-                          </td>
-                          <td className="p-3">
-                            <input 
-                              type="text" 
-                              value={contact.phone}
-                              placeholder="—"
-                              onChange={(e) => {
-                                const updated = [...parsedContacts];
-                                updated[idx].phone = e.target.value;
-                                setParsedContacts(updated);
-                              }}
-                              className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-accent outline-none p-2 rounded-lg text-xs font-bold text-white animate-fade-in"
-                              disabled={!isSelected}
-                            />
-                          </td>
-                          <td className="p-3">
-                            {/* A text field, not a fixed list: the file's own
-                                role ("Rental House / Vendor") has to survive
-                                the preview, and a dropdown silently blanked
-                                anything that wasn't one of the standard ones. */}
-                            <input
-                              type="text"
-                              list="standard-roles"
-                              placeholder="— none —"
-                              value={contact.primary_role}
-                              onChange={(e) => {
-                                const updated = [...parsedContacts];
-                                updated[idx].primary_role = e.target.value;
-                                setParsedContacts(updated);
-                              }}
-                              className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-accent outline-none p-2 rounded-lg text-[10px] font-bold text-white uppercase"
-                              disabled={!isSelected}
-                            />
-                          </td>
-                          <td className="p-3">
-                            <input
-                              type="text"
-                              list="standard-roles"
-                              placeholder="Editor, Producer"
-                              title="Other hats this person wears, comma-separated"
-                              value={contact.secondary_roles}
-                              onChange={(e) => {
-                                const updated = [...parsedContacts];
-                                updated[idx].secondary_roles = e.target.value;
-                                setParsedContacts(updated);
-                              }}
-                              className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-accent outline-none p-2 rounded-lg text-[10px] font-bold text-white uppercase"
-                              disabled={!isSelected}
-                            />
-                          </td>
-                          <td className="p-3">
-                            <input 
-                              type="text" 
-                              value={contact.tags}
-                              onChange={(e) => {
-                                const updated = [...parsedContacts];
-                                updated[idx].tags = e.target.value;
-                                setParsedContacts(updated);
-                              }}
-                              className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-accent outline-none p-2 rounded-lg text-xs font-bold text-white uppercase"
-                              disabled={!isSelected}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-between items-center bg-black/40 border border-white/5 p-4 rounded-2xl mb-6">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
-                  Total Contacts Found: <span className="text-white font-black">{parsedContacts.length}</span> | Selected: <span className="text-accent font-black">{selectedImportIdxs.length}</span>
-                </span>
-                <span className="text-[11px] md:text-[9px] font-bold text-yellow-500 uppercase tracking-widest animate-pulse">
-                  ⚠️ Verify highlighted fields before importing
-                </span>
-              </div>
-
-              <div className="flex gap-4">
-                <button 
-                  onClick={() => setIsImportModalOpen(false)}
-                  className="flex-1 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-all cursor-pointer font-bold"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleConfirmImport}
-                  disabled={isImportLoading || selectedImportIdxs.length === 0}
-                  className="flex-grow py-4 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-accent/25 font-bold"
-                >
-                  {isImportLoading ? (
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : `Confirm Import (${selectedImportIdxs.length})`}
-                </button>
-              </div>
-            </motion.div>
-          </div>
+          <ImportPreview
+            key={importBatchId}
+            initialContacts={parsedContacts}
+            isSaving={isImportLoading}
+            onCancel={() => setIsImportModalOpen(false)}
+            onConfirm={handleConfirmImport}
+          />
         )}
       </AnimatePresence>
 
