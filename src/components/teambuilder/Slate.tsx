@@ -49,7 +49,7 @@ import { generateMasterBrief } from '@/lib/pdf-generator';
 import { fetchGearCategoryMap, groupManifestByCategory, buildGearTableBody } from '@/lib/gear-manifest';
 import { getBranding, hexToRgb } from '@/lib/branding';
 import { sanitizeUrl } from '@/lib/sanitize';
-import { formatLocalDate, todayLocalISO } from '@/lib/date';
+import { formatLocalDate, todayLocalISO, timeOptions, minutesSinceMidnight } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
 import type { NewProductionSeed } from '@/components/gearbuilder/ProductionCalendar';
 import { caps, currency } from '@/lib/format';
@@ -69,15 +69,9 @@ import {
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-/** Every half hour as "7:30 AM". Shared by the call and wrap pickers so the
+/** Every quarter hour as "7:15 AM". Shared by the call and wrap pickers so the
  *  two can't drift into offering different times. */
-const TIME_OPTIONS: string[] = Array.from({ length: 48 }, (_, i) => {
-  const hour = Math.floor(i / 2);
-  const min = i % 2 === 0 ? '00' : '30';
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  return `${displayHour}:${min} ${ampm}`;
-});
+const TIME_OPTIONS: string[] = timeOptions().map(o => o.label);
 
 const weatherCodeToText = (code: number) => {
   const map: Record<number, string> = {
@@ -1678,8 +1672,14 @@ export default function Slate({
                   </div>
                   {/* A wrap at or before the call is a night shoot, not a
                       mistake — say so rather than validating it away. */}
-                  {editingJob.call_time && editingJob.wrap_time &&
-                    TIME_OPTIONS.indexOf(editingJob.wrap_time) <= TIME_OPTIONS.indexOf(editingJob.call_time) && (
+                  {/* Compared as clock minutes, not list position: a time that
+                      predates this list (or came from an import) isn't in it,
+                      and indexOf would call every such job an overnight. */}
+                  {(() => {
+                    const call = minutesSinceMidnight(editingJob.call_time);
+                    const wrap = minutesSinceMidnight(editingJob.wrap_time);
+                    return call !== null && wrap !== null && wrap <= call;
+                  })() && (
                     <p className="text-[11px] md:text-[9px] text-white/35 ml-1">Runs past midnight into the next day.</p>
                   )}
                 </div>

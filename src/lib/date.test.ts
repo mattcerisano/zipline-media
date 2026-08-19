@@ -7,6 +7,8 @@ import {
   wallClockFromGoogleDateTime,
   todayLocalISO,
   parseLocalDate,
+  timeOptions,
+  minutesSinceMidnight,
 } from './date';
 
 /**
@@ -155,5 +157,46 @@ describe('parseLocalDate', () => {
   it('rejects junk', () => {
     expect(parseLocalDate('')).toBeNull();
     expect(parseLocalDate(null)).toBeNull();
+  });
+});
+
+describe('timeOptions', () => {
+  it('offers quarter hours by default, so a 1:15 call is pickable', () => {
+    const labels = timeOptions().map(o => o.label);
+    expect(labels).toHaveLength(96);
+    expect(labels).toContain('1:15 PM');
+    expect(labels).toContain('2:45 AM');
+    expect(labels[0]).toBe('12:00 AM');
+    expect(labels[labels.length - 1]).toBe('11:45 PM');
+  });
+
+  it('pairs each label with the 24-hour value the schedule rows store', () => {
+    const opts = timeOptions();
+    expect(opts[5]).toEqual({ value: '01:15', label: '1:15 AM' });
+    expect(opts.find(o => o.label === '1:15 PM')?.value).toBe('13:15');
+  });
+
+  it('honours a coarser step for callers that want one', () => {
+    expect(timeOptions(30)).toHaveLength(48);
+    expect(timeOptions(30).some(o => o.label === '1:15 PM')).toBe(false);
+  });
+
+  it('round-trips every option back through parseCallTime', () => {
+    for (const opt of timeOptions()) {
+      expect(formatCallTime(parseCallTime(opt.value)!)).toBe(opt.label);
+    }
+  });
+});
+
+describe('minutesSinceMidnight', () => {
+  it('orders a wrap against a call regardless of stored format', () => {
+    expect(minutesSinceMidnight('1:15 PM')).toBe(13 * 60 + 15);
+    expect(minutesSinceMidnight('13:15')).toBe(13 * 60 + 15);
+    expect(minutesSinceMidnight('12:00 AM')).toBe(0);
+  });
+
+  it('returns null for a time it cannot read, so callers skip the comparison', () => {
+    expect(minutesSinceMidnight('TBD')).toBeNull();
+    expect(minutesSinceMidnight(null)).toBeNull();
   });
 });

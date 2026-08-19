@@ -186,3 +186,32 @@ export function wallClockFromGoogleDateTime(
 export function todayLocalISO(d: Date = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+/**
+ * The clock options offered by every time picker, one entry per `stepMinutes`
+ * across the day.
+ *
+ * Call sheets are not built on the half hour — a crew call at 1:15 or a
+ * company move at 2:45 is ordinary — so the default step is 15 minutes.
+ * Both forms of a time come back together because the pickers disagree on
+ * what they store: Slate saves the display string ("1:15 PM"), the schedule
+ * rows save 24-hour "HH:mm". Generating them from one place keeps the two
+ * lists offering the same times.
+ */
+export function timeOptions(stepMinutes = 15): { value: string; label: string }[] {
+  const count = Math.floor((24 * 60) / stepMinutes);
+  return Array.from({ length: count }, (_, i) => {
+    const hour = Math.floor((i * stepMinutes) / 60);
+    const minute = (i * stepMinutes) % 60;
+    return {
+      value: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+      label: formatCallTime({ hour, minute }),
+    };
+  });
+}
+
+/** Minutes since midnight, for ordering two stored times. `null` when unparseable. */
+export function minutesSinceMidnight(value: string | null | undefined): number | null {
+  const parsed = parseCallTime(value);
+  return parsed ? parsed.hour * 60 + parsed.minute : null;
+}

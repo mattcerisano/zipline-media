@@ -31,7 +31,11 @@ import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
 import { caps } from '@/lib/format';
 import { contactRoles } from '@/lib/crew-roles';
-import { formatLocalDate } from '@/lib/date';
+import { formatLocalDate, timeOptions } from '@/lib/date';
+
+/** Quarter-hour steps: schedule rows on a call sheet land on 1:15 as often as
+ *  on the half hour. */
+const SCHEDULE_TIME_OPTIONS = timeOptions();
 import { Contact, Job, JobRole, DEPARTMENTS, JobTemplate, JobSchedule, JobTodo } from '@/components/gearbuilder/types';
 import { toast, confirmAction } from '@/components/Feedback';
 import { CONTROL_H, CONTROL_GAP, TAB_STRIP_TEXT } from '@/lib/controls';
@@ -1189,26 +1193,15 @@ function ScheduleItem({
               className="w-full bg-transparent border-none p-0 pr-5 focus:ring-0 text-[10px] font-black uppercase tracking-wider cursor-pointer text-white appearance-none outline-none select-none"
             >
               <option value="" className="bg-neutral-900 text-white/40">TBD</option>
-              {Array.from({ length: 48 }).map((_, i) => {
-                const hour = Math.floor(i / 2);
-                const min = i % 2 === 0 ? '00' : '30';
-                const hourStr = hour.toString().padStart(2, '0');
-                const timeValue = `${hourStr}:${min}`;
-                const ampm = hour >= 12 ? 'PM' : 'AM';
-                const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-                const displayStr = `${displayHour}:${min} ${ampm}`;
-                return (
-                  <option key={timeValue} value={timeValue} className="bg-neutral-900 text-white">
-                    {displayStr}
-                  </option>
-                );
-              })}
-              {localSchedule.start_time && !Array.from({ length: 48 }).some((_, i) => {
-                const hour = Math.floor(i / 2);
-                const min = i % 2 === 0 ? '00' : '30';
-                const hourStr = hour.toString().padStart(2, '0');
-                return `${hourStr}:${min}` === localSchedule.start_time;
-              }) && (
+              {SCHEDULE_TIME_OPTIONS.map(t => (
+                <option key={t.value} value={t.value} className="bg-neutral-900 text-white">
+                  {t.label}
+                </option>
+              ))}
+              {/* A time saved before this list existed — or on a finer step
+                  than it offers — has to stay selectable, or reopening the row
+                  would quietly round it away. */}
+              {localSchedule.start_time && !SCHEDULE_TIME_OPTIONS.some(t => t.value === localSchedule.start_time) && (
                 <option value={localSchedule.start_time} className="bg-neutral-900 text-white">
                   {localSchedule.start_time}
                 </option>
@@ -1229,26 +1222,15 @@ function ScheduleItem({
               className="w-full bg-transparent border-none p-0 pr-5 focus:ring-0 text-[10px] font-black uppercase tracking-wider cursor-pointer text-white appearance-none outline-none select-none"
             >
               <option value="" className="bg-neutral-900 text-white/40">TBD</option>
-              {Array.from({ length: 48 }).map((_, i) => {
-                const hour = Math.floor(i / 2);
-                const min = i % 2 === 0 ? '00' : '30';
-                const hourStr = hour.toString().padStart(2, '0');
-                const timeValue = `${hourStr}:${min}`;
-                const ampm = hour >= 12 ? 'PM' : 'AM';
-                const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-                const displayStr = `${displayHour}:${min} ${ampm}`;
-                return (
-                  <option key={timeValue} value={timeValue} className="bg-neutral-900 text-white">
-                    {displayStr}
-                  </option>
-                );
-              })}
-              {localSchedule.end_time && !Array.from({ length: 48 }).some((_, i) => {
-                const hour = Math.floor(i / 2);
-                const min = i % 2 === 0 ? '00' : '30';
-                const hourStr = hour.toString().padStart(2, '0');
-                return `${hourStr}:${min}` === localSchedule.end_time;
-              }) && (
+              {SCHEDULE_TIME_OPTIONS.map(t => (
+                <option key={t.value} value={t.value} className="bg-neutral-900 text-white">
+                  {t.label}
+                </option>
+              ))}
+              {/* A time saved before this list existed — or on a finer step
+                  than it offers — has to stay selectable, or reopening the row
+                  would quietly round it away. */}
+              {localSchedule.end_time && !SCHEDULE_TIME_OPTIONS.some(t => t.value === localSchedule.end_time) && (
                 <option value={localSchedule.end_time} className="bg-neutral-900 text-white">
                   {localSchedule.end_time}
                 </option>
