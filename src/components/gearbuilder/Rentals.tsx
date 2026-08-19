@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
@@ -156,6 +156,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   // Job Details State
   const [jobTitle, setJobTitle] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [isClientPickerOpen, setIsClientPickerOpen] = useState(false);
+  // What the client list is filtered by. null means "show the whole roster" —
+  // the state after opening the picker, so a saved client doesn't filter the
+  // list down to itself the moment you reopen it.
+  const [clientSearch, setClientSearch] = useState<string | null>(null);
+  const [activeClientIndex, setActiveClientIndex] = useState(0);
+  const clientPickerRef = useRef<HTMLDivElement>(null);
   const [companyName, setCompanyName] = useState('Zipline Media');
   const [companyAddr, setCompanyAddr] = useState('');
   const [notes, setNotes] = useState('');
@@ -203,17 +210,6 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // Fetch clients from Supabase
-    const fetchClients = async () => {
-      try {
-        const { data, error } = await supabase.from('clients').select('*');
-        if (error) throw error;
-        if (data) setClients(data as Client[]);
-      } catch (err) {
-        console.error('Error fetching clients:', err);
-      }
-    };
-
     const fetchInventory = async () => {
       setIsLoadingInventory(true);
       try {
@@ -257,6 +253,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     fetchJobs();
     fetchGearTemplates();
     fetchContacts();
+    fetchClients();
 
     // Load saved owners: this browser instantly, then the team's shared list
     // (authoritative when present — synced across everyone's devices).
@@ -285,9 +282,18 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     }
   };
 
+  const fetchClients = async () => {
+    try {
+      const { data, error } = await supabase.from('clients').select('*').order('name');
+      if (!error && data) setClients(data as Client[]);
+    } catch (err) {
+      console.error('Error fetching clients:', err);
+    }
+  };
+
   // Live team sync: keep the gear catalog, jobs, templates and contacts fresh
   // when a teammate changes them. The embedded calendar live-updates on its own.
-  useRealtime(['jobs', 'inventory', 'gear_templates', 'contacts'], async () => {
+  useRealtime(['jobs', 'inventory', 'gear_templates', 'contacts', 'clients'], async () => {
     const [jobsRes, invRes, tplRes] = await Promise.all([
       supabase.from('jobs').select('*'),
       supabase.from('inventory').select('*'),
@@ -297,6 +303,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     if (!invRes.error && invRes.data) setDbInventory(invRes.data as InventoryItem[]);
     if (!tplRes.error && tplRes.data) setGearTemplates(tplRes.data as GearTemplate[]);
     fetchContacts();
+    fetchClients();
   });
 
   // Save the current owner/source as a Rolodex contact (rental house / contractor)
@@ -385,6 +392,105 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       return a.name.localeCompare(b.name);
     });
   }, [activeJobs, archivedJobs, showArchivedLists]);
+
+  // Everyone the "Generated For" picker can offer: the saved client roster plus
+  // any client that only ever existed on a job, deduped case-insensitively.
+  const clientOptions = useMemo(() => {
+    const byKey = new Map<string, { name: string; email?: string; listCount: number }>();
+
+    for (const client of clients) {
+      const name = client.name?.trim();
+      if (!name) continue;
+      const key = name.toUpperCase();
+      if (!byKey.has(key)) byKey.set(key, { name, email: client.email, listCount: 0 });
+    }
+
+    for (const job of jobs) {
+      const name = job.client_name?.trim();
+      if (!name) continue;
+      const key = name.toUpperCase();
+      const existing = byKey.get(key);
+      if (existing) existing.listCount += 1;
+      else byKey.set(key, { name, listCount: 1 });
+    }
+
+    return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [clients, jobs]);
+
+  const filteredClientOptions = useMemo(() => {
+    const term = clientSearch?.trim().toLowerCase();
+    if (!term) return clientOptions;
+    return clientOptions.filter(c => c.name.toLowerCase().includes(term));
+  }, [clientOptions, clientSearch]);
+
+  // A typed name that matches nobody is offered as a new client rather than
+  // silently accepted — saving still creates the client record either way.
+  const newClientName = useMemo(() => {
+    const typed = contactEmail.trim();
+    if (!typed) return null;
+    const exists = clientOptions.some(c => c.name.toUpperCase() === typed.toUpperCase());
+    return exists ? null : typed;
+  }, [contactEmail, clientOptions]);
+
+  const openClientPicker = () => {
+    setClientSearch(null);
+    setActiveClientIndex(0);
+    setIsClientPickerOpen(true);
+  };
+
+  const selectClient = (name: string) => {
+    setContactEmail(name);
+    setClientSearch(null);
+    setIsClientPickerOpen(false);
+  };
+
+  const handleClientKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const rowCount = filteredClientOptions.length + (newClientName ? 1 : 0);
+
+    if (e.key === 'Escape') {
+      setIsClientPickerOpen(false);
+      return;
+    }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!isClientPickerOpen) {
+        openClientPicker();
+        return;
+      }
+      if (rowCount === 0) return;
+      setActiveClientIndex(i => {
+        const next = e.key === 'ArrowDown' ? i + 1 : i - 1;
+        return Math.min(rowCount - 1, Math.max(0, next));
+      });
+      return;
+    }
+    if (e.key === 'Enter' && isClientPickerOpen) {
+      e.preventDefault();
+      const picked = filteredClientOptions[activeClientIndex];
+      if (picked) selectClient(picked.name);
+      else if (newClientName) selectClient(newClientName);
+      else setIsClientPickerOpen(false);
+    }
+  };
+
+  // Click anywhere else — or hit Escape — and the picker closes, like any other
+  // dropdown. Escape is handled here as well as on the input because the toggle
+  // opens the list without moving focus into the field.
+  useEffect(() => {
+    if (!isClientPickerOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (!clientPickerRef.current?.contains(e.target as Node)) setIsClientPickerOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsClientPickerOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isClientPickerOpen]);
 
   // Opening the library on the job you're editing saves a click; a lone client
   // is never worth collapsing.
@@ -1379,21 +1485,95 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             </button>
           </div>
         </div>
-        <div className="space-y-0.5">
+        <div className="space-y-0.5 relative" ref={clientPickerRef}>
           <label className="text-xs font-semibold opacity-40 ml-1">Generated For</label>
-          <input 
-            type="text" 
-            value={contactEmail}
-            onChange={(e) => setContactEmail(e.target.value)}
-            placeholder="Client Name"
-            list="client-options"
-            className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
-          />
-          <datalist id="client-options">
-            {clients.map(client => (
-                <option key={client.id} value={client.name} />
-            ))}
-          </datalist>
+          <div className="relative">
+            <input
+              type="text"
+              value={contactEmail}
+              onChange={(e) => {
+                setContactEmail(e.target.value);
+                setClientSearch(e.target.value);
+                setActiveClientIndex(0);
+                setIsClientPickerOpen(true);
+              }}
+              onFocus={openClientPicker}
+              // Focus alone isn't enough: after picking a client the input keeps
+              // focus, so clicking it again has to reopen the roster.
+              onClick={openClientPicker}
+              onKeyDown={handleClientKeyDown}
+              placeholder="Select a client"
+              autoComplete="off"
+              role="combobox"
+              aria-expanded={isClientPickerOpen}
+              aria-controls="client-picker-list"
+              className="w-full bg-black/50 border border-white/10 py-2.5 pl-4 pr-10 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
+            />
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => (isClientPickerOpen ? setIsClientPickerOpen(false) : openClientPicker())}
+              title="Pick from saved clients"
+              className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-white/40 hover:text-white transition-colors"
+            >
+              <ChevronDown className={`w-4 h-4 transition-transform ${isClientPickerOpen ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+
+          {isClientPickerOpen && (
+            <div
+              id="client-picker-list"
+              role="listbox"
+              className="absolute top-full left-0 mt-1 min-w-full w-max max-w-[min(18rem,calc(100vw-3rem))] max-h-64 overflow-y-auto bg-neutral-900 border border-white/10 rounded-xl shadow-2xl z-50 p-1 custom-scrollbar"
+            >
+              {filteredClientOptions.length === 0 && !newClientName && (
+                <p className="px-3 py-6 text-center text-[10px] font-semibold text-white/30">
+                  {clientOptions.length === 0 ? 'No clients saved yet' : 'No matching clients'}
+                </p>
+              )}
+
+              {filteredClientOptions.map((client, idx) => (
+                <button
+                  key={client.name}
+                  type="button"
+                  role="option"
+                  aria-selected={client.name.toUpperCase() === contactEmail.trim().toUpperCase()}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setActiveClientIndex(idx)}
+                  onClick={() => selectClient(client.name)}
+                  className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${idx === activeClientIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <User className="w-3.5 h-3.5 shrink-0 opacity-40" />
+                    <span className="text-xs font-semibold truncate" title={client.email || client.name}>{client.name}</span>
+                  </span>
+                  {client.listCount > 0 && (
+                    <span
+                      className="text-[10px] font-semibold opacity-40 shrink-0"
+                      title={`${client.listCount} saved gear list${client.listCount === 1 ? '' : 's'}`}
+                    >
+                      {client.listCount}
+                    </span>
+                  )}
+                </button>
+              ))}
+
+              {newClientName && (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={activeClientIndex === filteredClientOptions.length}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setActiveClientIndex(filteredClientOptions.length)}
+                  onClick={() => selectClient(newClientName)}
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-accent transition-colors ${filteredClientOptions.length > 0 ? 'border-t border-white/5 mt-1' : ''} ${activeClientIndex === filteredClientOptions.length ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                >
+                  <UserPlus className="w-3.5 h-3.5 shrink-0" />
+                  <span className="text-xs font-semibold truncate">Add &ldquo;{newClientName}&rdquo;</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <div className="space-y-0.5">
           <label className="text-xs font-semibold opacity-40 ml-1">Generated By</label>
