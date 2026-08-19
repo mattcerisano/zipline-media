@@ -52,6 +52,9 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 // behind a toggle — nothing is ever deleted.
 const GEAR_ARCHIVE_DAYS = 60;
 
+// Bucket in the library for gear lists saved without a client.
+const NO_CLIENT_LABEL = 'No Client';
+
 // Helper: Weather Code to Text
 const weatherCodeToText = (code: number) => {
   const map: Record<number, string> = {
@@ -167,6 +170,10 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   // Older shoots auto-drop out of the library so building a new list isn't
   // cluttered with months-old jobs. They're not deleted — a toggle reveals them.
   const [showArchivedLists, setShowArchivedLists] = useState(false);
+  // Which client's gear lists are open in the library. null = follow the
+  // default (the loaded job's client, or the only client); '' = user collapsed
+  // everything, so don't re-open a default behind their back.
+  const [expandedClient, setExpandedClient] = useState<string | null>(null);
 
   // Templates State
   const [gearTemplates, setGearTemplates] = useState<GearTemplate[]>([]);
@@ -346,6 +353,54 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     }
     return { activeJobs: active, archivedJobs: archived };
   }, [jobs]);
+
+  // The library is grouped by client so the sidebar opens as a short list of
+  // clients instead of every gear list ever saved. Clients are alphabetical
+  // with the unassigned bucket last; each client's lists stay newest-first.
+  const clientGroups = useMemo(() => {
+    const visible = showArchivedLists ? [...activeJobs, ...archivedJobs] : activeJobs;
+    const groups = new Map<string, { key: string; name: string; jobs: Job[] }>();
+
+    for (const job of visible) {
+      const name = job.client_name?.trim() || NO_CLIENT_LABEL;
+      // Dedupe case-insensitively so "Acme" and "ACME" are one client, but
+      // display whichever casing was saved first.
+      const key = name.toUpperCase();
+      const group = groups.get(key);
+      if (group) group.jobs.push(job);
+      else groups.set(key, { key, name, jobs: [job] });
+    }
+
+    const list = [...groups.values()];
+    for (const group of list) {
+      group.jobs.sort(
+        (a, b) => new Date(b.shoot_date || 0).getTime() - new Date(a.shoot_date || 0).getTime()
+      );
+    }
+
+    const unassigned = NO_CLIENT_LABEL.toUpperCase();
+    return list.sort((a, b) => {
+      if (a.key === unassigned) return 1;
+      if (b.key === unassigned) return -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [activeJobs, archivedJobs, showArchivedLists]);
+
+  // Opening the library on the job you're editing saves a click; a lone client
+  // is never worth collapsing.
+  const defaultOpenClient = useMemo(() => {
+    const withSelected = clientGroups.find(g => g.jobs.some(j => j.id === selectedJobId));
+    if (withSelected) return withSelected.key;
+    return clientGroups.length === 1 ? clientGroups[0].key : null;
+  }, [clientGroups, selectedJobId]);
+
+  const openClient = useMemo(() => {
+    if (expandedClient === null) return defaultOpenClient;
+    if (expandedClient === '') return null;
+    // The open client can disappear — its last list deleted, or the archive
+    // toggle hiding it — so fall back rather than leaving the library shut.
+    return clientGroups.some(g => g.key === expandedClient) ? expandedClient : defaultOpenClient;
+  }, [expandedClient, defaultOpenClient, clientGroups]);
 
   const filteredItems = useMemo(() => {
     const term = search.toLowerCase().trim();
@@ -1700,7 +1755,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 ) : activeSidebarTab === 'library' ? (
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-semibold text-accent">Saved Production Slates</h3>
-                    <p className="text-xs font-semibold opacity-40">{jobs.length} Total</p>
+                    <p className="text-xs font-semibold opacity-40">
+                      {clientGroups.length} Client{clientGroups.length === 1 ? '' : 's'} · {jobs.length} Total
+                    </p>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
@@ -1758,37 +1815,70 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                       </div>
                     ) : (
                       <>
-                        {(showArchivedLists ? [...activeJobs, ...archivedJobs] : activeJobs).map(job => (
-                          <div
-                            key={job.id}
-                            className="group flex items-center justify-between p-4 border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all rounded-xl cursor-pointer"
-                            onClick={() => {
-                              loadJob(job);
-                              setActiveSidebarTab('gear');
-                            }}
-                          >
-                            <div className="flex-1 min-w-0 pr-4">
-                              <h4 className="text-sm font-semibold tracking-tight mb-1 group-hover:text-accent transition-colors truncate">{job.title}</h4>
-                              <div className="flex items-center gap-3 opacity-40">
-                                <p className="text-[10px] font-semibold flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" /> {job.shoot_date}
-                                </p>
-                                <p className="text-[10px] font-semibold flex items-center gap-1">
-                                  <User className="w-3 h-3" /> {job.client_name || 'No Client'}
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteJob(job.id);
-                              }}
-                              className="p-3 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                        {clientGroups.map(group => {
+                          const isOpen = openClient === group.key;
+                          return (
+                            <div
+                              key={group.key}
+                              className={`border rounded-xl overflow-hidden transition-all ${isOpen ? 'border-white/20 bg-white/[0.04]' : 'border-white/5 bg-white/[0.02]'}`}
                             >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
+                              <button
+                                onClick={() => setExpandedClient(isOpen ? '' : group.key)}
+                                className="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-white/5 transition-all"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <User className={`w-3.5 h-3.5 shrink-0 ${isOpen ? 'text-accent' : 'opacity-40'}`} />
+                                  <h4 className={`text-sm font-semibold tracking-tight truncate ${isOpen ? 'text-accent' : ''}`}>
+                                    {group.name}
+                                  </h4>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="text-[10px] font-semibold opacity-40">
+                                    {group.jobs.length} List{group.jobs.length === 1 ? '' : 's'}
+                                  </span>
+                                  <ChevronDown className={`w-4 h-4 opacity-40 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                                </div>
+                              </button>
+
+                              {isOpen && (
+                                <div className="space-y-2 px-2 pb-2">
+                                  {group.jobs.map(job => (
+                                    <div
+                                      key={job.id}
+                                      className={`group flex items-center justify-between p-4 border transition-all rounded-xl cursor-pointer ${
+                                        job.id === selectedJobId
+                                          ? 'border-accent/40 bg-accent/10'
+                                          : 'border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20'
+                                      }`}
+                                      onClick={() => {
+                                        loadJob(job);
+                                        setActiveSidebarTab('gear');
+                                      }}
+                                    >
+                                      <div className="flex-1 min-w-0 pr-4">
+                                        <h4 className="text-sm font-semibold tracking-tight mb-1 group-hover:text-accent transition-colors truncate">{job.title}</h4>
+                                        <div className="flex items-center gap-3 opacity-40">
+                                          <p className="text-[10px] font-semibold flex items-center gap-1">
+                                            <Calendar className="w-3 h-3" /> {job.shoot_date || 'No Date'}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteJob(job.id);
+                                        }}
+                                        className="p-3 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
 
                         {activeJobs.length === 0 && !showArchivedLists && (
                           <div className="py-20 text-center opacity-30">
