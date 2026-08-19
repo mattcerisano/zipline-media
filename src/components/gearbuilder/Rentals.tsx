@@ -55,6 +55,30 @@ const GEAR_ARCHIVE_DAYS = 60;
 // Bucket in the library for gear lists saved without a client.
 const NO_CLIENT_LABEL = 'No Client';
 
+// Dropdown plumbing shared by the client and job pickers: an outside click or
+// Escape closes them. Put the returned ref on the dropdown's wrapper element.
+function useDismissable(isOpen: boolean, setIsOpen: (open: boolean) => void) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setIsOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isOpen, setIsOpen]);
+
+  return ref;
+}
+
 // Helper: Weather Code to Text
 const weatherCodeToText = (code: number) => {
   const map: Record<number, string> = {
@@ -162,7 +186,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   // list down to itself the moment you reopen it.
   const [clientSearch, setClientSearch] = useState<string | null>(null);
   const [activeClientIndex, setActiveClientIndex] = useState(0);
-  const clientPickerRef = useRef<HTMLDivElement>(null);
+  const clientPickerRef = useDismissable(isClientPickerOpen, setIsClientPickerOpen);
   const [companyName, setCompanyName] = useState('Zipline Media');
   const [companyAddr, setCompanyAddr] = useState('');
   const [notes, setNotes] = useState('');
@@ -170,6 +194,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const [includeReplacementValue, setIncludeReplacementValue] = useState(false);
   const [isMobileManifestOpen, setIsMobileManifestOpen] = useState(false);
   const [isJobPickerOpen, setIsJobPickerOpen] = useState(false);
+  const [jobSearch, setJobSearch] = useState<string | null>(null);
+  const [activeJobIndex, setActiveJobIndex] = useState(0);
+  const jobPickerRef = useDismissable(isJobPickerOpen, setIsJobPickerOpen);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState<'gear' | 'library' | 'templates'>('gear');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -444,6 +471,68 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     setIsClientPickerOpen(false);
   };
 
+  // The job picker only offers the chosen client's gear lists — picking the
+  // client first is what keeps this list short. With no client chosen it falls
+  // back to every saved job, newest shoot first either way.
+  const clientScopedJobs = useMemo(() => {
+    const client = contactEmail.trim().toUpperCase();
+    const scoped = client
+      ? jobs.filter(j => (j.client_name || '').trim().toUpperCase() === client)
+      : jobs;
+    return [...scoped].sort(
+      (a, b) => new Date(b.shoot_date || 0).getTime() - new Date(a.shoot_date || 0).getTime()
+    );
+  }, [jobs, contactEmail]);
+
+  const filteredJobOptions = useMemo(() => {
+    const term = jobSearch?.trim().toLowerCase();
+    if (!term) return clientScopedJobs;
+    return clientScopedJobs.filter(j => j.title.toLowerCase().includes(term));
+  }, [clientScopedJobs, jobSearch]);
+
+  const openJobPicker = () => {
+    // A job handed down from elsewhere (the command center, a share link) locks
+    // the title, so there's nothing to pick.
+    if (selectedJobIdProp) return;
+    setJobSearch(null);
+    setActiveJobIndex(0);
+    setIsJobPickerOpen(true);
+  };
+
+  const selectJob = (job: Job) => {
+    loadJob(job);
+    setJobSearch(null);
+    setIsJobPickerOpen(false);
+  };
+
+  const handleJobKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      setIsJobPickerOpen(false);
+      return;
+    }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!isJobPickerOpen) {
+        openJobPicker();
+        return;
+      }
+      if (filteredJobOptions.length === 0) return;
+      setActiveJobIndex(i => {
+        const next = e.key === 'ArrowDown' ? i + 1 : i - 1;
+        return Math.min(filteredJobOptions.length - 1, Math.max(0, next));
+      });
+      return;
+    }
+    if (e.key === 'Enter' && isJobPickerOpen) {
+      e.preventDefault();
+      const picked = filteredJobOptions[activeJobIndex];
+      // Typing a title nobody's used yet is how a new list gets started, so
+      // Enter on no match just closes the picker and keeps what was typed.
+      if (picked) selectJob(picked);
+      else setIsJobPickerOpen(false);
+    }
+  };
+
   const handleClientKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const rowCount = filteredClientOptions.length + (newClientName ? 1 : 0);
 
@@ -472,25 +561,6 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       else setIsClientPickerOpen(false);
     }
   };
-
-  // Click anywhere else — or hit Escape — and the picker closes, like any other
-  // dropdown. Escape is handled here as well as on the input because the toggle
-  // opens the list without moving focus into the field.
-  useEffect(() => {
-    if (!isClientPickerOpen) return;
-    const onPointerDown = (e: MouseEvent) => {
-      if (!clientPickerRef.current?.contains(e.target as Node)) setIsClientPickerOpen(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsClientPickerOpen(false);
-    };
-    document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [isClientPickerOpen]);
 
   // Opening the library on the job you're editing saves a click; a lone client
   // is never worth collapsing.
@@ -862,7 +932,15 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     setSelectedJobId(job.id);
     setJobTitle(job.title);
     if (job.shoot_date) setShootDate(job.shoot_date);
-    if (job.client_name) setContactEmail(job.client_name);
+    if (job.client_name) {
+      // Snap to the roster's spelling, so picking "Nike" and then one of its
+      // lists doesn't leave the field reading "nike" because that's how an old
+      // job happened to be saved.
+      const roster = clients.find(
+        c => c.name.trim().toUpperCase() === job.client_name!.trim().toUpperCase()
+      );
+      setContactEmail(roster?.name || job.client_name);
+    }
     if (job.location_address) {
         setCompanyAddr(job.location_address);
     }
@@ -1385,7 +1463,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
-        <div className="space-y-0.5 relative">
+        <div className="space-y-0.5 relative" ref={jobPickerRef}>
           <label className="text-xs font-semibold opacity-40 ml-1 flex items-center gap-1.5">
             Job Title
             {selectedJobIdProp && <Lock className="w-2.5 h-2.5 text-accent opacity-60" />}
@@ -1398,6 +1476,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               onChange={(e) => {
                   const val = e.target.value;
                   setJobTitle(val);
+                  setJobSearch(val);
+                  setActiveJobIndex(0);
+                  setIsJobPickerOpen(true);
                   
                   // Autofill attempt
                   const matchedJob = jobs.find(j => j.title.toLowerCase() === val.toLowerCase());
@@ -1448,24 +1529,84 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                   }
               }}
               placeholder="e.g. Moulin Rouge"
-              list="job-list"
-              className={`w-full bg-black/50 border py-2.5 px-4 outline-none transition-colors text-sm font-semibold rounded-lg ${
+              autoComplete="off"
+              role="combobox"
+              aria-expanded={isJobPickerOpen}
+              aria-controls="job-picker-list"
+              onFocus={openJobPicker}
+              onClick={openJobPicker}
+              onKeyDown={handleJobKeyDown}
+              className={`w-full bg-black/50 border py-2.5 pl-4 pr-10 outline-none transition-colors text-sm font-semibold rounded-lg ${
                 selectedJobIdProp 
                   ? 'border-accent/20 text-white/40 cursor-not-allowed bg-accent/5' 
                   : 'border-white/10 focus:border-accent'
               }`}
             />
-            {selectedJobIdProp && (
+            {selectedJobIdProp ? (
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
                 <Lock className="w-3.5 h-3.5 text-accent" />
               </div>
+            ) : (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => (isJobPickerOpen ? setIsJobPickerOpen(false) : openJobPicker())}
+                title={contactEmail.trim() ? `Pick a saved list for ${contactEmail.trim()}` : 'Pick a saved gear list'}
+                className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-white/40 hover:text-white transition-colors"
+              >
+                <ChevronDown className={`w-4 h-4 transition-transform ${isJobPickerOpen ? 'rotate-180' : ''}`} />
+              </button>
             )}
           </div>
-          <datalist id="job-list">
-            {jobs.map(j => (
-                <option key={j.id} value={j.title}>{j.client_name ? `(${caps(j.client_name)})` : ''}</option>
-            ))}
-          </datalist>
+
+          {isJobPickerOpen && (
+            <div
+              id="job-picker-list"
+              role="listbox"
+              className="absolute top-full left-0 mt-1 min-w-full w-max max-w-[min(20rem,calc(100vw-3rem))] max-h-64 overflow-y-auto bg-neutral-900 border border-white/10 rounded-xl shadow-2xl z-50 p-1 custom-scrollbar"
+            >
+              {contactEmail.trim() && (
+                <p className="px-3 py-2 text-[10px] font-semibold text-accent/70 truncate">
+                  Lists for {contactEmail.trim()}
+                </p>
+              )}
+
+              {filteredJobOptions.length === 0 ? (
+                <p className="px-3 py-6 text-center text-[10px] font-semibold text-white/30">
+                  {jobs.length === 0
+                    ? 'No gear lists saved yet'
+                    : jobSearch?.trim()
+                      ? 'No matching lists'
+                      : contactEmail.trim()
+                        ? 'No lists for this client yet'
+                        : 'No gear lists saved yet'}
+                </p>
+              ) : (
+                filteredJobOptions.map((job, idx) => (
+                  <button
+                    key={job.id}
+                    type="button"
+                    role="option"
+                    aria-selected={job.id === selectedJobId}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseEnter={() => setActiveJobIndex(idx)}
+                    onClick={() => selectJob(job)}
+                    className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${idx === activeJobIndex ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-xs font-semibold truncate">{job.title}</span>
+                      {!contactEmail.trim() && job.client_name && (
+                        <span className="block text-[10px] font-semibold opacity-40 truncate">{job.client_name}</span>
+                      )}
+                    </span>
+                    <span className="text-[10px] font-semibold opacity-40 shrink-0">
+                      {job.shoot_date || 'No Date'}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
         <div className="space-y-0.5">
           <label className="text-xs font-semibold opacity-40 ml-1">Shoot Date</label>
