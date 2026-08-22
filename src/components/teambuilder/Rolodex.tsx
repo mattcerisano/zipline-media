@@ -29,7 +29,9 @@ import {
   User,
   Building,
   FileText,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle,
+  Merge
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
@@ -39,6 +41,15 @@ import { toast, confirmAction } from '@/components/Feedback';
 import { FilterSheet } from '@/components/workspace/FilterSheet';
 import ContactSuggest from '@/components/workspace/ContactSuggest';
 import { contactRoles, hasAnyRole, parseRoleList, formatRoleList, normalizeSecondaryRoles } from '@/lib/crew-roles';
+import DuplicateReview from './DuplicateReview';
+import {
+  findDuplicateGroups,
+  findMatchesFor,
+  planMerge,
+  pairKey,
+  type DuplicateGroup,
+} from '@/lib/duplicate-contacts';
+import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
 import {
   parseVCF,
   parseContactCSV,
@@ -53,6 +64,9 @@ const STANDARD_ROLES = [
   'Gaffer', 'Key Grip', 'Grip', 'Audio Mixer', 'Boom Operator', 'Production Assistant',
   'Editor', 'Colorist', 'Motion Graphics', 'Sound Designer', 'Photographer', 'Creative Director'
 ];
+
+/** Pairs the user has ruled "not the same person", mirrored to the org row. */
+const DISMISSED_DUPES_KEY = 'zipline_dismissed_duplicate_pairs';
 
 type SortField = 'name' | 'primary_role';
 type SortOrder = 'asc' | 'desc';
@@ -107,6 +121,16 @@ export default function Rolodex() {
   const [clientDetailHistory, setClientDetailHistory] = useState<{job_title: string, shoot_date: string, crew: {name: string, position: string}[]}[]>([]);
   const [isClientDetailHistoryLoading, setIsClientDetailHistoryLoading] = useState(false);
 
+  // Duplicate review
+  const [dismissedPairs, setDismissedPairs] = useState<Set<string>>(new Set());
+  const [isDupeReviewOpen, setIsDupeReviewOpen] = useState(false);
+  const [focusedDupeKey, setFocusedDupeKey] = useState<string | null>(null);
+  const [mergingGroupKey, setMergingGroupKey] = useState<string | null>(null);
+  /** For each import preview row, the contact already on file it looks like. */
+  const [importDuplicateFlags, setImportDuplicateFlags] = useState<
+    Array<{ contact: Contact; match: { strength: string; reasons: string[] } } | null>
+  >([]);
+
   // Sort state
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
@@ -146,6 +170,140 @@ export default function Rolodex() {
       setIsLoading(false);
     }
   };
+
+  // Dismissed pairs: localStorage answers instantly, the org row (when the
+  // migration has run) is what makes the decision stick for teammates.
+  useEffect(() => {
+    let cancelled = false;
+    try {
+      const raw = localStorage.getItem(DISMISSED_DUPES_KEY);
+      if (raw) setDismissedPairs(new Set(JSON.parse(raw) as string[]));
+    } catch { /* a corrupt entry just means nothing is dismissed yet */ }
+
+    loadOrgPref<string[]>('dismissed_duplicate_pairs').then(remote => {
+      if (cancelled || !remote?.length) return;
+      setDismissedPairs(prev => new Set([...prev, ...remote]));
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const rememberDismissals = useCallback((keys: string[]) => {
+    setDismissedPairs(prev => {
+      const next = new Set(prev);
+      for (const key of keys) next.add(key);
+      const all = Array.from(next);
+      try { localStorage.setItem(DISMISSED_DUPES_KEY, JSON.stringify(all)); } catch { /* private mode */ }
+      saveOrgPref('dismissed_duplicate_pairs', all);
+      return next;
+    });
+  }, []);
+
+  // The whole flagging pass. It runs over the full roster, not the filtered
+  // view — a duplicate you can't currently see is still a duplicate.
+  const duplicateGroups = useMemo(
+    () => findDuplicateGroups(contacts, dismissedPairs),
+    [contacts, dismissedPairs],
+  );
+
+  const duplicateByContact = useMemo(() => {
+    const map = new Map<string, DuplicateGroup>();
+    for (const group of duplicateGroups) {
+      for (const contact of group.contacts) map.set(contact.id, group);
+    }
+    return map;
+  }, [duplicateGroups]);
+
+  /** Fold a group into one record: history first, then fields, then delete. */
+  const mergeDuplicates = useCallback(async (group: DuplicateGroup, keepId: string) => {
+    const keep = group.contacts.find(c => c.id === keepId);
+    if (!keep) return;
+    const plan = planMerge(group.contacts, keepId);
+    const dropped = plan.removeIds.length;
+
+    const confirmed = await confirmAction({
+      title: `Merge into ${keep.name}?`,
+      message:
+        `${dropped} other record${dropped === 1 ? '' : 's'} will be deleted. Every job, edit and call sheet ` +
+        `pointing at ${dropped === 1 ? 'it' : 'them'} moves onto ${keep.name}` +
+        (plan.gained.length ? `, along with their ${plan.gained.join(', ')}.` : '.'),
+      danger: true,
+      confirmLabel: 'Merge',
+    });
+    if (!confirmed) return;
+
+    setMergingGroupKey(group.key);
+    try {
+      // Re-point the work history before anything is deleted — a job row must
+      // never be left pointing at a contact that no longer exists.
+      const { error: rolesError } = await supabase
+        .from('job_roles').update({ contact_id: keepId }).in('contact_id', plan.removeIds);
+      if (rolesError) throw rolesError;
+      const { error: editsError } = await supabase
+        .from('jobs').update({ editor_id: keepId }).in('editor_id', plan.removeIds);
+      if (editsError) throw editsError;
+
+      if (Object.keys(plan.patch).length > 0) {
+        let { error } = await supabase.from('contacts').update(plan.patch).eq('id', keepId);
+        // Same fallback as saving: a database without the secondary-roles
+        // migration still gets every other merged field.
+        if (error && /secondary_roles|schema cache/i.test(error.message || '')) {
+          const rest = { ...plan.patch };
+          delete rest.secondary_roles;
+          ({ error } = await supabase.from('contacts').update(rest).eq('id', keepId));
+        }
+        if (error) throw error;
+      }
+
+      const { error: deleteError } = await supabase.from('contacts').delete().in('id', plan.removeIds);
+      if (deleteError) throw deleteError;
+
+      toast(`Merged ${dropped + 1} records into ${keep.name}.`);
+      await fetchData();
+    } catch (err) {
+      console.error('Error merging duplicate contacts:', err);
+      // The delete is the last step, so a failure anywhere above it leaves
+      // every record still here — say so, rather than leaving the user
+      // wondering which half went through.
+      toast(`Could not merge: ${(err as any)?.message || 'unknown error'}. No contact was deleted.`);
+    } finally {
+      setMergingGroupKey(null);
+    }
+  }, []);
+
+  /** "Not a duplicate" — remember every pair in the group, not just one. */
+  const dismissDuplicateGroup = useCallback((group: DuplicateGroup) => {
+    const keys: string[] = [];
+    for (let i = 0; i < group.contacts.length; i++) {
+      for (let j = i + 1; j < group.contacts.length; j++) {
+        keys.push(pairKey(group.contacts[i].id, group.contacts[j].id));
+      }
+    }
+    rememberDismissals(keys);
+    toast('Marked as separate people — they won’t be flagged again.');
+  }, [rememberDismissals]);
+
+  /**
+   * Contacts already on file that look like the one being typed. Shown live
+   * in the form, which is the cheapest place to stop a duplicate: before it
+   * exists.
+   */
+  const formDuplicateMatches = useMemo(() => {
+    if (!isModalOpen || !editingContact) return [];
+    const name = (editingContact.name || '').trim();
+    const hasDetail = Boolean((editingContact.email || '').trim() || (editingContact.phone || '').trim());
+    if (name.length < 3 && !hasDetail) return [];
+    return findMatchesFor(
+      {
+        id: editingContact.id || '',
+        name,
+        email: editingContact.email,
+        phone: editingContact.phone,
+        company_name: editingContact.company_name,
+        primary_role: editingContact.primary_role,
+      },
+      contacts,
+    );
+  }, [isModalOpen, editingContact, contacts]);
 
   const fetchContactHistory = async (contactId: string) => {
     try {
@@ -370,6 +528,27 @@ export default function Rolodex() {
     );
   }, [clients, searchQuery]);
 
+  /**
+   * Check parsed rows against the roster once, at parse time — not on every
+   * keystroke in the preview, which would re-scan the whole rolodex per row.
+   * Rows that are near-certainly already here start unticked; the weaker
+   * matches stay ticked and just carry a warning.
+   */
+  const flagImportDuplicates = (rows: ImportContact[]) => {
+    const flags = rows.map(row => {
+      const [best] = findMatchesFor(
+        { id: '', name: row.name, email: row.email, phone: row.phone },
+        contacts,
+        1,
+      );
+      return best ? { contact: best.contact as Contact, match: best.match } : null;
+    });
+    setImportDuplicateFlags(flags);
+    setSelectedImportIdxs(
+      rows.map((_, idx) => idx).filter(idx => flags[idx]?.match.strength !== 'high'),
+    );
+  };
+
   const handleNativeContactImport = async () => {
     if (typeof window === 'undefined') return;
     
@@ -406,7 +585,7 @@ export default function Rolodex() {
         });
         
         setParsedContacts(formatted);
-        setSelectedImportIdxs(formatted.map((_: any, idx: number) => idx));
+        flagImportDuplicates(formatted);
         setIsImportModalOpen(true);
         setIsImportOptionsOpen(false);
       }
@@ -460,7 +639,7 @@ export default function Rolodex() {
       }
 
       setParsedContacts(contactsList);
-      setSelectedImportIdxs(contactsList.map((_: any, idx: number) => idx));
+      flagImportDuplicates(contactsList);
       setIsImportModalOpen(true);
       e.target.value = '';
     };
@@ -771,6 +950,16 @@ export default function Rolodex() {
             </FilterSheet>
           )}
         </div>
+        {activeView === 'crew' && duplicateGroups.length > 0 && (
+          <button
+            onClick={() => { setFocusedDupeKey(null); setIsDupeReviewOpen(true); }}
+            title="Review contacts that look like the same person"
+            className="bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 px-6 py-4 rounded-xl border border-yellow-500/30 font-semibold text-xs transition-all flex items-center gap-3 whitespace-nowrap cursor-pointer"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            {duplicateGroups.length} possible duplicate{duplicateGroups.length === 1 ? '' : 's'}
+          </button>
+        )}
         {activeView === 'crew' && (
           <>
             <button
@@ -861,6 +1050,21 @@ export default function Rolodex() {
                         <Star className={`w-3.5 h-3.5 ${contact.is_favorite ? 'fill-current' : ''}`} />
                       </button>
                       <span className="text-sm font-semibold tracking-tight">{contact.name}</span>
+                      {/* The flag where it matters: on the row itself, not
+                          only in a panel someone has to think to open. */}
+                      {duplicateByContact.has(contact.id) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFocusedDupeKey(duplicateByContact.get(contact.id)!.key);
+                            setIsDupeReviewOpen(true);
+                          }}
+                          title="This looks like another contact — review and merge"
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/10 border border-yellow-500/25 text-[11px] md:text-[9px] font-semibold text-yellow-400 hover:bg-yellow-500/20 transition-colors"
+                        >
+                          <Merge className="w-2.5 h-2.5" /> Duplicate?
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -1671,6 +1875,17 @@ export default function Rolodex() {
                 </button>
               </div>
 
+              {importDuplicateFlags.some(Boolean) && (
+                <div className="flex items-start gap-3 mb-5 p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/25">
+                  <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
+                  <p className="text-[11px] font-medium text-yellow-500 leading-relaxed">
+                    {importDuplicateFlags.filter(Boolean).length} of these already look like someone in your
+                    rolodex. The near-certain ones have been unticked for you — tick one back on if it really
+                    is a different person.
+                  </p>
+                </div>
+              )}
+
               <div className="overflow-x-auto border border-white/5 rounded-xl mb-6 max-h-[45vh] custom-scrollbar">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
@@ -1701,6 +1916,7 @@ export default function Rolodex() {
                     {parsedContacts.map((contact, idx) => {
                       const isSelected = selectedImportIdxs.includes(idx);
                       const isPlaceholderEmail = contact.email.includes('@temporary.com');
+                      const duplicateOf = importDuplicateFlags[idx];
                       
                       return (
                         <tr key={idx} className={`hover:bg-white/[0.01] transition-colors ${isSelected ? 'text-white' : 'text-white/30'}`}>
@@ -1727,9 +1943,20 @@ export default function Rolodex() {
                                 updated[idx].name = e.target.value;
                                 setParsedContacts(updated);
                               }}
-                              className="w-full bg-black/40 border border-white/5 hover:border-white/10 focus:border-accent outline-none p-2 rounded-lg text-xs font-bold uppercase tracking-wide text-white"
+                              className={`w-full bg-black/40 border outline-none p-2 rounded-lg text-xs font-bold uppercase tracking-wide text-white ${
+                                duplicateOf ? 'border-yellow-500/40 focus:border-yellow-500' : 'border-white/5 hover:border-white/10 focus:border-accent'
+                              }`}
                               disabled={!isSelected}
                             />
+                            {duplicateOf && (
+                              <p
+                                title={duplicateOf.match.reasons.join(' · ')}
+                                className="mt-1 text-[11px] md:text-[9px] font-semibold text-yellow-400/80 normal-case"
+                              >
+                                Already here: {duplicateOf.contact.name}
+                                {duplicateOf.contact.primary_role ? ` (${duplicateOf.contact.primary_role})` : ''}
+                              </p>
+                            )}
                           </td>
                           <td className="p-3">
                             <input 
@@ -1954,6 +2181,44 @@ export default function Rolodex() {
               </div>
 
               <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Cheapest place to catch a duplicate is before it is saved,
+                    so the roster is checked as the name and details are typed. */}
+                {formDuplicateMatches.length > 0 && (
+                  <div className="md:col-span-2 p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/25">
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                      <p className="text-xs font-semibold text-yellow-500">
+                        {editingContact?.id ? 'This looks like another contact' : 'You may already have this person'}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      {formDuplicateMatches.map(({ contact, match }) => (
+                        <div key={contact.id} className="flex items-center gap-3 bg-black/30 border border-white/5 rounded-xl p-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-white truncate">
+                              {contact.name}
+                              {contact.primary_role ? <span className="text-white/40 font-medium"> · {contact.primary_role}</span> : null}
+                            </p>
+                            <p className="text-[10px] font-medium text-white/40 truncate">{match.reasons.join(' · ')}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsModalOpen(false);
+                              openContactDetail(contact as Contact);
+                            }}
+                            className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-semibold text-white/70 hover:text-white transition-all whitespace-nowrap"
+                          >
+                            Open theirs
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] font-medium text-yellow-500/70 mt-3">
+                      Saving anyway is fine — the rolodex will flag the pair so you can merge them later.
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-white/50 ml-1">Full Name</label>
                   <input 
@@ -2259,6 +2524,19 @@ export default function Rolodex() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════════════════ DUPLICATE REVIEW ═══════════════════════ */}
+      <AnimatePresence>
+        {isDupeReviewOpen && (
+          <DuplicateReview
+            groups={focusedDupeKey ? duplicateGroups.filter(g => g.key === focusedDupeKey) : duplicateGroups}
+            busyKey={mergingGroupKey}
+            onMerge={mergeDuplicates}
+            onDismiss={dismissDuplicateGroup}
+            onClose={() => { setIsDupeReviewOpen(false); setFocusedDupeKey(null); }}
+          />
         )}
       </AnimatePresence>
     </div>

@@ -32,6 +32,13 @@ export const contacts = [
   { id: 'ct2', name: 'Priyanka Raghunathan-Whitfield', email: 'priyanka@example.com', phone: '917-555-0102', primary_role: 'Director of Photography', is_favorite: true },
   { id: 'ct3', name: 'Jo', email: 'jo@example.com', phone: '917-555-0103', primary_role: 'Gaffer', is_favorite: false },
   { id: 'ct4', name: 'Marcus Webb', email: 'marcus@example.com', primary_role: 'Editor', is_favorite: false },
+  // The three shapes a duplicate actually arrives in: the same person re-added
+  // under a short form with the phone re-typed, a second export of a record
+  // that kept the email, and a plain mis-key of a first name. The rolodex has
+  // to flag these on sight — see src/lib/duplicate-contacts.ts.
+  { id: 'ct5', name: 'Alexander Lim', email: '', phone: '(917) 555-0101', primary_role: 'Audio Mixer', is_favorite: false },
+  { id: 'ct6', name: 'M. Webb', email: 'marcus@example.com', phone: '917-555-0144', primary_role: 'Editor', is_favorite: false },
+  { id: 'ct7', name: 'Priyanka Raghunathan-Whitfeld', email: 'priyanka@example.com', primary_role: 'Director of Photography', is_favorite: false },
 ];
 
 export const jobs = [

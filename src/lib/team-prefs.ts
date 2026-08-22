@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 // the database is the source of truth when reachable. Every call fails soft —
 // deployments that haven't run the migration just keep localStorage behavior.
 
-type OrgPrefColumn = 'custom_tabs' | 'saved_gear_owners';
+type OrgPrefColumn = 'custom_tabs' | 'saved_gear_owners' | 'dismissed_duplicate_pairs';
 
 let orgIdCache: string | null = null;
 
