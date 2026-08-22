@@ -165,7 +165,10 @@ export interface BackfillResult {
  * Failures are counted rather than thrown — one job Google refuses must not
  * strand the rest, and the next sync tries again.
  */
-export async function pushMissingJobsToStudioCalendar(token: string): Promise<BackfillResult> {
+export async function pushMissingJobsToStudioCalendar(
+  token: string,
+  calendarUserId?: string | null
+): Promise<BackfillResult> {
   // Same window the pull uses. Pushing years of wrapped shoots onto the
   // calendar would bury the work that is actually coming up.
   const since = new Date(Date.now() - PULL_DAYS_BACK * 24 * 60 * 60 * 1000)
@@ -226,7 +229,7 @@ export async function pushMissingJobsToStudioCalendar(token: string): Promise<Ba
   // rate limit, and a backfill has no deadline worth risking that for.
   for (const job of needsPush.slice(0, PUSH_BATCH_LIMIT)) {
     try {
-      await pushJobEvent(token, job);
+      await pushJobEvent(token, job, calendarUserId);
       pushed++;
     } catch (err: any) {
       failed++;
@@ -274,7 +277,7 @@ export async function pullGoogleCalendarForUser(userId: string, existingToken?: 
   }
 }
 
-async function runPull(_userId: string, token: string): Promise<PullResult> {
+async function runPull(userId: string, token: string): Promise<PullResult> {
   const timeMin = new Date(Date.now() - PULL_DAYS_BACK * 24 * 60 * 60 * 1000).toISOString();
   const timeMax = new Date(Date.now() + PULL_DAYS_FORWARD * 24 * 60 * 60 * 1000).toISOString();
 
@@ -542,6 +545,17 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
         .delete()
         .in('google_event_id', cancelledIds);
       if (delErr) console.warn('Cancelled-event cleanup skipped:', delErr.message);
+
+      // A marker Slate pushed here has its id in the links table, not the
+      // column above, so deleting this copy in Google leaves the marker (and
+      // everyone else's copy) alone — which is the point of mirroring. Drop the
+      // dead link so the next edit republishes rather than PUTting a tombstone.
+      const { error: linkErr } = await supabaseAdmin
+        .from('calendar_event_google_links')
+        .delete()
+        .eq('user_id', userId)
+        .in('google_event_id', cancelledIds);
+      if (linkErr) console.warn('Marker link cleanup skipped:', linkErr.message);
     }
   } catch (importErr: any) {
     // Import is additive — a failure here must not break the job sync.

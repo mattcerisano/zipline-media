@@ -199,7 +199,7 @@ export default function Slate({
     // The marker only goes once its production exists — a form abandoned
     // halfway must leave the hold on the calendar.
     pendingMarker.current = seed?.markerId
-      ? { id: seed.markerId, googleEventId: seed.markerGoogleEventId || null }
+      ? { id: seed.markerId }
       : null;
     setEditingJob(blank);
     setJobModalBaseline(JSON.stringify(blank));
@@ -214,7 +214,7 @@ export default function Slate({
    * A ref rather than state: nothing renders from it, and it has to survive
    * the form being edited without re-running the effect that opened it.
    */
-  const pendingMarker = useRef<{ id: string; googleEventId: string | null } | null>(null);
+  const pendingMarker = useRef<{ id: string } | null>(null);
 
   /** Clear the marker a saved production replaced, on both calendars. */
   const clearPendingMarker = async () => {
@@ -222,7 +222,9 @@ export default function Slate({
     pendingMarker.current = null;
     if (!marker) return;
     try {
-      if (marker.googleEventId) await removeEventFromGoogleCalendar(marker.googleEventId);
+      // The Slate id: a marker is mirrored onto every connected calendar, so
+      // the server resolves which Google events to remove.
+      await removeEventFromGoogleCalendar(marker.id);
       const { error } = await supabase.from('calendar_events').delete().eq('id', marker.id);
       if (error) throw error;
     } catch (err) {

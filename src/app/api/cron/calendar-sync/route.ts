@@ -54,7 +54,7 @@ export async function GET(request: Request) {
   try {
     const studio = await getStudioCalendarToken(null);
     if (studio.token) {
-      const backfill = await pushMissingJobsToStudioCalendar(studio.token);
+      const backfill = await pushMissingJobsToStudioCalendar(studio.token, studio.userId);
       pushed = backfill.pushed;
       pushFailed = backfill.failed;
     } else if (studio.message) {
