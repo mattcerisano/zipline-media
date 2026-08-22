@@ -71,6 +71,38 @@ function slateJobIdOf(event: any): string | null {
   return fromDescription && UUID_RE.test(fromDescription) ? fromDescription : null;
 }
 
+/**
+ * Collapse rows that would collide on the same upsert key, keeping the first.
+ *
+ * Postgres refuses an `ON CONFLICT DO UPDATE` whose payload touches the same
+ * row twice — "command cannot affect row a second time" — so a batch may carry
+ * each key only once. Two Google events reaching one Slate job is routine, not
+ * exotic: `singleEvents` expands a recurring series into instances that all
+ * inherit the same `slateJobId`, copying a Slate event in Google clones its
+ * tag and its "Slate ID:" line, and the push route recreates an event whose
+ * original was deleted. Without this the whole sync threw and *nothing* got
+ * written, so one stray duplicate stalled every job.
+ *
+ * First wins because both event lists arrive ordered by start time: that picks
+ * the earliest occurrence and keeps picking it on the next sync, rather than
+ * flipping the job between instances run to run.
+ */
+export function dedupeByKey<T>(rows: T[], keyOf: (row: T) => string | null | undefined): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const row of rows) {
+    const key = keyOf(row);
+    if (!key) {
+      out.push(row);
+      continue;
+    }
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
+}
+
 /** True for events Slate owns: tagged by push, or carrying the legacy 🎥 prefix. */
 function isProductionEvent(event: any): boolean {
   if (event?.extendedProperties?.private?.app === SLATE_APP_TAG) return true;
@@ -205,8 +237,6 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
 
   const jobsToUpdate: any[] = [];
   const jobsToInsert: any[] = [];
-  let syncCount = 0;
-  let createCount = 0;
 
   for (const event of events) {
     const summary = event.summary || '';
@@ -248,7 +278,6 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
       updateFields.end_date = endDate;
 
       jobsToUpdate.push(updateFields);
-      syncCount++;
     } else if (isProductionEvent(event)) {
       // Check if we already created a job for this google event to prevent duplicates
       const hasExisting = existingJobsByGoogleIdMap.has(event.id);
@@ -277,16 +306,23 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
         }
 
         jobsToInsert.push(insertFields);
-        createCount++;
       }
     }
   }
 
+  // One row per job id, one per Google event: see dedupeByKey. Counting the
+  // deduped arrays keeps the "Synced N jobs" message honest about rows written
+  // rather than events seen.
+  const updates = dedupeByKey(jobsToUpdate, row => row.id);
+  const inserts = dedupeByKey(jobsToInsert, row => row.google_event_id);
+  const syncCount = updates.length;
+  const createCount = inserts.length;
+
   // Execute bulk updates
-  if (jobsToUpdate.length > 0) {
+  if (updates.length > 0) {
     const { error: bulkUpdateErr } = await supabaseAdmin
       .from('jobs')
-      .upsert(jobsToUpdate, { onConflict: 'id' });
+      .upsert(updates, { onConflict: 'id' });
 
     if (bulkUpdateErr) {
       throw new Error(`Bulk update failed: ${bulkUpdateErr.message}`);
@@ -294,10 +330,10 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
   }
 
   // Execute bulk inserts
-  if (jobsToInsert.length > 0) {
+  if (inserts.length > 0) {
     const { error: bulkInsertErr } = await supabaseAdmin
       .from('jobs')
-      .insert(jobsToInsert);
+      .insert(inserts);
 
     if (bulkInsertErr) {
       throw new Error(`Bulk insert failed: ${bulkInsertErr.message}`);
@@ -368,15 +404,18 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
       });
     }
 
-    if (markers.length > 0) {
+    // Same ON CONFLICT rule as the job upsert above: one row per event id.
+    const uniqueMarkers = dedupeByKey(markers, m => m.google_event_id);
+
+    if (uniqueMarkers.length > 0) {
       let { error: markerErr } = await supabaseAdmin
         .from('calendar_events')
-        .upsert(markers, { onConflict: 'google_event_id' });
+        .upsert(uniqueMarkers, { onConflict: 'google_event_id' });
 
       // A database without the marker-times columns rejects the batch whole.
       // Importing the events without their hours beats importing nothing.
       if (markerErr && /start_time|end_time|schema cache/i.test(markerErr.message || '')) {
-        const untimed = markers.map(m => {
+        const untimed = uniqueMarkers.map(m => {
           const rest = { ...m };
           delete rest.start_time;
           delete rest.end_time;
@@ -390,7 +429,7 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
       if (markerErr) {
         console.warn('Google event import skipped:', markerErr.message);
       } else {
-        importCount = markers.length;
+        importCount = uniqueMarkers.length;
       }
     }
 
