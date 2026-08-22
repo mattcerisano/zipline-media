@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
@@ -9,6 +9,9 @@ import { sanitizeUrl } from '@/lib/sanitize';
 import { parseLocalDate, formatLocalDate } from '@/lib/date';
 import { caps } from '@/lib/format';
 import { hasAnyRole, POST_ROLES } from '@/lib/crew-roles';
+import { authHeader } from '@/lib/api-client';
+import { formatDuration } from '@/lib/edit-time';
+import CardTimeTracker from './CardTimeTracker';
 import { 
   Film, 
   Scissors, 
@@ -24,6 +27,7 @@ import {
   Paperclip,
   Tag,
   Clock,
+  Timer,
   LayoutDashboard,
   Eye,
   MessageSquare,
@@ -129,6 +133,12 @@ const AVAILABLE_LABEL_COLORS = [
 
 export default function EditTracker({ userRole, selectedJobId }: { userRole?: string; selectedJobId?: string } = {}) {
   const isClient = userRole === 'client';
+  // A freelance editor's board is already filtered before it reaches the
+  // browser — row-level security hands their account the cards assigned to them
+  // and nothing else (migration 20260822000000). What the app adds is a UI that
+  // matches: the controls that would fail on the way back aren't shown.
+  const isEditor = userRole === 'editor';
+  const canManageBoard = !isClient && !isEditor;
   const [jobs, setJobs] = useState<Job[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -152,6 +162,31 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
     supabase.auth.getSession().then(({ data: { session } }) => {
       setMyEmail(session?.user?.email?.toLowerCase() || null);
     });
+  }, []);
+
+  // Hours logged per card, for the badge on the card face. Read through the
+  // API rather than the table: the entries themselves are only readable there,
+  // and staff see the studio's total where an editor sees their own.
+  const [timeTotals, setTimeTotals] = useState<Record<string, number>>({});
+
+  const loadTimeTotals = useCallback(async () => {
+    try {
+      const res = await fetch('/api/edits/time', { headers: await authHeader() });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => ({}));
+      if (data?.totals) setTimeTotals(data.totals as Record<string, number>);
+    } catch {
+      // The board is not worth failing over a missing badge.
+    }
+  }, []);
+
+  useEffect(() => { loadTimeTotals(); }, [loadTimeTotals]);
+
+  // Called when a card's own tracker settles on a new figure, so the badge
+  // behind the modal is right the moment it closes. Skipped when unchanged so a
+  // running timer doesn't re-render the board every second.
+  const noteCardTime = useCallback((jobId: string, seconds: number) => {
+    setTimeTotals(prev => (prev[jobId] === seconds ? prev : { ...prev, [jobId]: seconds }));
   }, []);
 
   // Filter States
@@ -471,7 +506,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               Timeline
             </button>
           </div>
-          {!isClient && myEmail && (
+          {canManageBoard && myEmail && (
             <button
               onClick={() => setMyCardsOnly(v => !v)}
               className={`inline-flex items-center justify-center gap-2 border ${CONTROL_H} rounded-xl px-4 text-[13px] font-medium tracking-tight transition-colors ${
@@ -484,7 +519,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               <UserCheck className="w-3.5 h-3.5" /> My Cards
             </button>
           )}
-          {!isClient && (
+          {canManageBoard && (
             <button
               onClick={() => setIsColumnsModalOpen(true)}
               className={`${CONTROL_BUTTON} hover:border-white/25`}
@@ -493,7 +528,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               <SlidersHorizontal className="w-3.5 h-3.5" /> Columns
             </button>
           )}
-          {!isClient && availableJobs.length > 0 && (
+          {canManageBoard && availableJobs.length > 0 && (
             <select
               value=""
               onChange={(e) => {
@@ -582,13 +617,13 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
                               className="mb-2"
                               onClick={() => setActiveJob(job)}
                             >
-                              <CardFront job={job} isDragging={snapshot.isDragging} />
+                              <CardFront job={job} isDragging={snapshot.isDragging} loggedSeconds={timeTotals[job.id] || 0} />
                             </div>
                           )}
                         </Draggable>
                       ))}
                       {provided.placeholder}
-                      {stage.id === firstStageId && !isClient && (
+                      {stage.id === firstStageId && canManageBoard && (
                         <button 
                           onClick={() => openNewCardModal(firstStageId)}
                           className="w-full text-left p-3 text-xs font-bold text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
@@ -635,6 +670,8 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
             stages={stages}
             isCreatingNew={isCreatingNew}
             isClient={isClient}
+            isEditor={isEditor}
+            onTimeChange={noteCardTime}
           />
         )}
       </AnimatePresence>
@@ -1025,7 +1062,7 @@ function ColumnsEditorModal({
 // ----------------------------------------------------------------------
 // COMPONENT: CardFront (The compact Trello-style card on the board)
 // ----------------------------------------------------------------------
-function CardFront({ job, isDragging }: { job: Job, isDragging: boolean }) {
+function CardFront({ job, isDragging, loggedSeconds = 0 }: { job: Job, isDragging: boolean, loggedSeconds?: number }) {
   const hasNotes = !!job.edit_notes?.trim();
   const linkCount = (job.links?.length || 0) + (job.review_link ? 1 : 0) + (job.discord_url ? 1 : 0) + (job.drive_folder_url ? 1 : 0);
   
@@ -1073,6 +1110,13 @@ function CardFront({ job, isDragging }: { job: Job, isDragging: boolean }) {
              <div className="flex items-center gap-1" title="Attachments">
                <Paperclip className="w-3 h-3" />
                <span className="text-[10px] font-bold">{linkCount}</span>
+             </div>
+          )}
+
+          {loggedSeconds > 0 && (
+             <div className="flex items-center gap-1" title="Time logged against this card">
+               <Timer className="w-3 h-3" />
+               <span className="text-[10px] font-bold tabular-nums">{formatDuration(loggedSeconds)}</span>
              </div>
           )}
         </div>
@@ -1124,7 +1168,9 @@ function CardDetailModal({
   onRemoveFromBoard,
   stages,
   isCreatingNew,
-  isClient
+  isClient,
+  isEditor,
+  onTimeChange
 }: {
   job: Job,
   contacts: Contact[],
@@ -1133,8 +1179,16 @@ function CardDetailModal({
   onRemoveFromBoard: (jobId: string) => void,
   stages: ResolvedStage[],
   isCreatingNew?: boolean,
-  isClient: boolean
+  isClient: boolean,
+  isEditor?: boolean,
+  onTimeChange?: (jobId: string, seconds: number) => void
 }) {
+  // A card carries the production's own details as well as the board's. An
+  // editor works the board half — stage, notes, labels, deadline, links — and
+  // the rest is read-only for them, which is the same line the database draws
+  // (the column whitelist in migration 20260822000000). Locking the inputs
+  // here means they see why rather than watching a save quietly fail.
+  const isBoardOnly = isClient || !!isEditor;
   const [title, setTitle] = useState(job.title);
   const [notes, setNotes] = useState(job.edit_notes || '');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -1434,7 +1488,7 @@ function CardDetailModal({
               onBlur={saveTitle}
               autoFocus={isCreatingNew}
               placeholder="Enter task title..."
-              disabled={isClient}
+              disabled={isBoardOnly}
               className="w-full bg-transparent text-xl font-bold text-white outline-none border-2 border-transparent focus:border-accent focus:bg-black/20 rounded px-2 py-1 -ml-2 disabled:bg-transparent disabled:border-transparent disabled:-ml-2"
             />
             <p className="text-[11px] text-white/40 mt-1 pl-1">
@@ -1471,7 +1525,8 @@ function CardDetailModal({
                     <select
                       value={job.editor_id || ''}
                       onChange={(e) => updateEditor(e.target.value)}
-                      disabled={isClient}
+                      disabled={isBoardOnly}
+                      title={isEditor ? 'Only the studio can reassign a card' : undefined}
                       className="bg-white/5 border border-white/10 py-1.5 px-3 rounded-lg text-xs font-bold text-white outline-none focus:border-accent appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="">Unassigned</option>
@@ -1580,6 +1635,22 @@ function CardDetailModal({
                 <CheckCircle2 className="w-6 h-6 text-white/40 shrink-0" />
                 <div className="flex-1">
                   <CardChecklist jobId={job.id} isClient={isClient} />
+                </div>
+              </div>
+            )}
+
+            {/* Time logged against this card. Not shown to a client: the
+                studio's hours on their production are not theirs to read, and
+                the API would hand them an empty list anyway. */}
+            {!isCreatingNew && !isClient && (
+              <div className="flex gap-4">
+                <Timer className="w-6 h-6 text-white/40 shrink-0" />
+                <div className="flex-1">
+                  <CardTimeTracker
+                    jobId={job.id}
+                    canLog
+                    onTotalChange={(seconds) => onTimeChange?.(job.id, seconds)}
+                  />
                 </div>
               </div>
             )}
@@ -2040,7 +2111,7 @@ function CardDetailModal({
                </div>
              </div>
 
-             {!isClient && !isCreatingNew && (
+             {!isBoardOnly && !isCreatingNew && (
                <div className="space-y-2">
                  <h4 className="text-xs font-bold text-white/60 mb-2">Actions</h4>
                  <button
