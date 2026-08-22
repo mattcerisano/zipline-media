@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getGoogleToken, describeTokenFailure } from '@/lib/google-auth';
+import { pushJobEvent } from '@/lib/calendar-google';
+import { SLATE_APP_TAG, STUDIO_MARKER_TAG } from '@/lib/calendar-tags';
 import { formatCallTime, wallClockFromGoogleDateTime, addDays } from '@/lib/date';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
@@ -7,19 +9,8 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-/** Tag written to `extendedProperties.private.app` on every event Slate pushes. */
-export const SLATE_APP_TAG = 'zipline-slate';
-
-/**
- * Tag for calendar *markers* pushed from the Calendar tab (Hold, Meeting, …).
- *
- * Deliberately distinct from SLATE_APP_TAG: the job sync treats anything
- * carrying that tag as a production and would turn every Hold into a job. The
- * importer skips events carrying this one instead — the local row is the
- * source of truth for them, so re-importing would both duplicate the marker
- * and overwrite its preset with 'google'.
- */
-export const STUDIO_MARKER_TAG = 'zipline-marker';
+// Re-exported so the many existing importers of these tags keep working.
+export { SLATE_APP_TAG, STUDIO_MARKER_TAG };
 
 /** How far either side of today the sync looks. Matches the marker import window. */
 const PULL_DAYS_BACK = 30;
@@ -132,6 +123,118 @@ async function recordSyncStatus(userId: string, ok: boolean, error?: string) {
       })
       .eq('id', userId);
   } catch { /* status is best-effort */ }
+}
+
+/** One line for the sync toast: silent when there was nothing to push. */
+export function describeBackfill(result: BackfillResult): string {
+  const parts: string[] = [];
+  if (result.pushed > 0) {
+    parts.push(`Pushed ${result.pushed} job${result.pushed === 1 ? '' : 's'} to Google Calendar.`);
+  }
+  if (result.failed > 0) {
+    parts.push(`${result.failed} could not be pushed — see the logs.`);
+  }
+  return parts.join(' ');
+}
+
+/** Most jobs one backfill pass will push, so a first sync can't run all day. */
+const PUSH_BATCH_LIMIT = 100;
+
+/** Ceiling on the jobs a push pass will even look at, so the scan stays bounded. */
+const JOB_SCAN_LIMIT = 1000;
+
+export interface BackfillResult {
+  pushed: number;
+  failed: number;
+}
+
+/**
+ * Push productions that have never reached Google onto the studio calendar.
+ *
+ * The interactive push runs in the browser of whoever saved the job, so a shoot
+ * booked while that person had no Google connection — or before the studio
+ * calendar was designated — simply never left Slate. Nothing retried it: the
+ * sync was pull-only, so those dates stayed invisible on every calendar.
+ *
+ * A job is a candidate when it has no `google_event_id` at all, or when the id
+ * it has isn't on this calendar — the case for a shoot pushed to someone's
+ * personal calendar before the studio one was chosen. Both are safe to repeat:
+ * a job that already has an id is updated in place rather than duplicated, and
+ * one that doesn't gets an id the first time it succeeds and is skipped after.
+ * Edits keep pushing on save, so this is a backstop, not the main road.
+ * Failures are counted rather than thrown — one job Google refuses must not
+ * strand the rest, and the next sync tries again.
+ */
+export async function pushMissingJobsToStudioCalendar(token: string): Promise<BackfillResult> {
+  // Same window the pull uses. Pushing years of wrapped shoots onto the
+  // calendar would bury the work that is actually coming up.
+  const since = new Date(Date.now() - PULL_DAYS_BACK * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0];
+  const until = new Date(Date.now() + PULL_DAYS_FORWARD * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0];
+
+  const { data: jobs, error } = await supabaseAdmin
+    .from('jobs')
+    .select('*')
+    .neq('job_status', 'Cancelled')
+    .gte('shoot_date', since)
+    .lte('shoot_date', until)
+    .order('shoot_date', { ascending: true })
+    .limit(JOB_SCAN_LIMIT);
+
+  if (error) {
+    console.warn('Could not list jobs for the studio calendar push:', error.message);
+    return { pushed: 0, failed: 0 };
+  }
+  if (!jobs?.length) return { pushed: 0, failed: 0 };
+
+  // A job carrying a google_event_id is not necessarily *on this* calendar: it
+  // may point at an event in the personal calendar it was pushed to before the
+  // studio calendar was designated. Ask Google which Slate events this calendar
+  // actually holds, so those jobs get republished here instead of being skipped
+  // forever for having an id.
+  let onStudioCalendar: Set<string> | null = null;
+  try {
+    // No `singleEvents` here, deliberately: expanding a series would return
+    // per-instance ids (`<id>_20260824T130000Z`) that never match the master id
+    // stored on the job, and every sync would "helpfully" push it again.
+    const existing = await listAllEvents(token, {
+      privateExtendedProperty: `app=${SLATE_APP_TAG}`,
+      timeMin: new Date(Date.now() - PULL_DAYS_BACK * 24 * 60 * 60 * 1000).toISOString(),
+      timeMax: new Date(Date.now() + PULL_DAYS_FORWARD * 24 * 60 * 60 * 1000).toISOString(),
+    });
+    onStudioCalendar = new Set(
+      existing.filter(e => e?.id && e.status !== 'cancelled').map(e => e.id as string)
+    );
+  } catch (err: any) {
+    // Without the listing, fall back to the conservative rule — only jobs that
+    // have never reached any calendar. Re-pushing everything on a transient
+    // Google error would duplicate the studio's whole board.
+    console.warn('Could not list existing Slate events; pushing only unsynced jobs:', err?.message);
+  }
+
+  const needsPush = jobs.filter(job => {
+    if (!job.google_event_id) return true;
+    return onStudioCalendar ? !onStudioCalendar.has(job.google_event_id) : false;
+  });
+
+  let pushed = 0;
+  let failed = 0;
+  // Sequential on purpose: a burst of parallel writes trips Google's per-user
+  // rate limit, and a backfill has no deadline worth risking that for.
+  for (const job of needsPush.slice(0, PUSH_BATCH_LIMIT)) {
+    try {
+      await pushJobEvent(token, job);
+      pushed++;
+    } catch (err: any) {
+      failed++;
+      console.warn(`Could not push job ${job.id} to Google:`, err?.message);
+    }
+  }
+
+  return { pushed, failed };
 }
 
 /**

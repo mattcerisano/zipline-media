@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { pullGoogleCalendarForUser } from '@/lib/calendar-sync';
+import { pullGoogleCalendarForUser, pushMissingJobsToStudioCalendar } from '@/lib/calendar-sync';
+import { getStudioCalendarToken } from '@/lib/studio-calendar';
 
-// Background calendar sync, fired by Vercel Cron (see vercel.json). Pulls
-// Google Calendar for every connected account so the Command Center calendar
-// stays current even when nobody has the app open — a shoot added straight in
-// Google can never silently go missing.
+// Background calendar sync, fired by Vercel Cron (see vercel.json).
+//
+// Both directions, in this order:
+//  1. Push productions that have never reached Google onto the studio calendar,
+//     so a shoot booked by someone who isn't connected to Google still shows up
+//     for the people who are. Runs once, against the one studio calendar.
+//  2. Pull Google Calendar for every connected account, so the Command Center
+//     calendar stays current even when nobody has the app open — a shoot added
+//     straight in Google can never silently go missing.
 
 export const maxDuration = 60;
 
@@ -41,6 +47,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: `Could not list connected accounts: ${error.message}` }, { status: 500 });
   }
 
+  // No acting user here, so an undecided studio calendar resolves to null and
+  // the push is skipped rather than guessing whose calendar to write to.
+  let pushed = 0;
+  let pushFailed = 0;
+  try {
+    const studio = await getStudioCalendarToken(null);
+    if (studio.token) {
+      const backfill = await pushMissingJobsToStudioCalendar(studio.token);
+      pushed = backfill.pushed;
+      pushFailed = backfill.failed;
+    } else if (studio.message) {
+      console.warn('Studio calendar push skipped:', studio.message);
+    }
+  } catch (err: any) {
+    // The pull is the half that has always run; a push failure must not stop it.
+    console.warn('Studio calendar push failed:', err?.message);
+  }
+
   const results: { userId: string; ok: boolean; message: string }[] = [];
   // Sequential on purpose: connected accounts are few, and this keeps a burst
   // of Google API calls (and their token refreshes) from racing each other.
@@ -53,5 +77,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ ran: results.length, results });
+  return NextResponse.json({ ran: results.length, pushed, pushFailed, results });
 }

@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getValidGoogleToken } from '@/lib/google-auth';
-import { pullGoogleCalendarForUser, SLATE_APP_TAG, STUDIO_MARKER_TAG } from '@/lib/calendar-sync';
+import { pullGoogleCalendarForUser, pushMissingJobsToStudioCalendar, describeBackfill } from '@/lib/calendar-sync';
+import { STUDIO_MARKER_TAG } from '@/lib/calendar-tags';
+import { pushJobEvent } from '@/lib/calendar-google';
+import { getStudioCalendarToken } from '@/lib/studio-calendar';
 import { getAuthedUserId } from '@/lib/api-auth';
-import { buildJobDescription, buildMarkerDescription } from '@/lib/event-description';
-import { buildGoogleTiming, DEFAULT_MARKER_HOURS, DEFAULT_SHOOT_HOURS } from '@/lib/calendar-timing';
+import { buildMarkerDescription } from '@/lib/event-description';
+import { buildGoogleTiming, DEFAULT_MARKER_HOURS } from '@/lib/calendar-timing';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
@@ -40,29 +43,6 @@ const PRESET_LABELS: Record<string, string> = {
   edit: 'Edit Day',
 };
 
-/** Tangerine. Productions, so they stand apart from every marker type. */
-const PRODUCTION_COLOR_ID = '6';
-
-/**
- * Translate a job's stored date/time fields into a Google event's start/end.
- * The timing rules themselves live in src/lib/calendar-timing.ts, shared with
- * markers and unit-tested there.
- */
-function buildEventTiming(job: {
-  shoot_date?: string | null;
-  end_date?: string | null;
-  call_time?: string | null;
-  wrap_time?: string | null;
-}): { start: Record<string, string>; end: Record<string, string> } {
-  return buildGoogleTiming({
-    startDate: job.shoot_date || new Date().toISOString().split('T')[0],
-    endDate: job.end_date,
-    startTime: job.call_time,
-    endTime: job.wrap_time,
-    defaultDurationHours: DEFAULT_SHOOT_HOURS,
-  });
-}
-
 export async function POST(request: Request) {
   try {
     // Identity is derived from the verified session, not the request body, so a
@@ -75,11 +55,26 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, jobId } = body;
 
-    // 1. Retrieve a valid Google Token
-    const token = await getValidGoogleToken(userId);
-    if (!token) {
-      return NextResponse.json({ success: false, message: 'Google account not connected.' });
+    // Which Google account a request touches depends on its direction.
+    //
+    // Writes — push, push_event, delete, and the push half of sync — go to the
+    // *studio* calendar whoever is signed in. Sending them to the acting user's
+    // calendar is what scattered productions across personal calendars: a shoot
+    // a producer booked landed on the producer's own Google Calendar, or nowhere
+    // at all if they had never connected Google, and nobody else ever saw it.
+    // `jobs.google_event_id` holds one id, so one calendar is all the schema
+    // ever supported.
+    //
+    // Reads keep the caller's own token, which is what the pull is for: it
+    // imports the signed-in user's Google events into Slate as markers.
+    const writes = action === 'push' || action === 'push_event' || action === 'delete' || action === 'sync';
+    const studio = writes ? await getStudioCalendarToken(userId) : null;
+    if (studio && !studio.token) {
+      return NextResponse.json({ success: false, message: studio.message || 'Google account not connected.' });
     }
+
+    // Non-null for every write action; the pull resolves its own below.
+    const token = studio?.token as string;
 
     // ==========================================
     // ACTION: PUSH TO GOOGLE CALENDAR
@@ -100,99 +95,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 });
       }
 
-      // Crew rides along in the description, so the event doubles as a
-      // pocket call sheet. Ordered the way the manifest is, and failing soft:
-      // a roles lookup that errors must not block the calendar push.
-      const { data: crew } = await supabaseAdmin
-        .from('job_roles')
-        .select('name, position, department, phone, call_time, sort_order')
-        .eq('job_id', job.id)
-        .order('sort_order', { ascending: true, nullsFirst: false });
+      // Building the event and writing it back are shared with the backfill
+      // pass, so a production reaches Google identically however it got there.
+      const googleEventId = await pushJobEvent(token, job);
 
-      const timing = buildEventTiming(job);
-      const eventBody: any = {
-        summary: `🎥 ${job.title}`,
-        description: buildJobDescription(job, crew || []),
-        location: job.location_address || job.location_name || '',
-        start: timing.start,
-        end: timing.end,
-        // Tangerine — productions get their own colour so a shoot is never
-        // mistaken for a meeting at a glance.
-        colorId: PRODUCTION_COLOR_ID,
-        // Machine-readable linkage back to Slate. The "Slate ID:" line in the
-        // description is human-facing and breaks the moment someone edits the
-        // description in Google; this survives edits and lets the pull find
-        // Slate's own events without depending on the 🎥 title prefix.
-        extendedProperties: {
-          private: {
-            app: SLATE_APP_TAG,
-            slateJobId: job.id,
-          },
-        },
-      };
-
-      let response: Response;
-      const googleEventId = job.google_event_id;
-
-      if (googleEventId) {
-        response = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/primary/events/${googleEventId}`,
-          {
-            method: 'PUT',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(eventBody),
-          }
-        );
-
-        // 404 = the event was deleted outright; 410 = it was cancelled and
-        // Google is holding a tombstone. Neither can be updated in place, so
-        // recreate rather than leaving the job silently unsynced.
-        if (response.status === 404 || response.status === 410) {
-          response = await fetch(
-            `https://www.googleapis.com/calendar/v3/calendars/primary/events`,
-            {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(eventBody),
-            }
-          );
-        }
-      } else {
-        response = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/primary/events`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(eventBody),
-          }
-        );
-      }
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Google Calendar API responded with status ${response.status}: ${errText}`);
-      }
-
-      const eventData = await response.json();
-      const newGoogleEventId = eventData.id;
-
-      if (newGoogleEventId && newGoogleEventId !== job.google_event_id) {
-        await supabaseAdmin
-          .from('jobs')
-          .update({ google_event_id: newGoogleEventId })
-          .eq('id', job.id);
-      }
-
-      return NextResponse.json({ success: true, message: 'Google Calendar event synced.', googleEventId: newGoogleEventId });
+      return NextResponse.json({ success: true, message: 'Google Calendar event synced.', googleEventId });
     }
 
     // ==========================================
@@ -322,8 +229,40 @@ export async function POST(request: Request) {
     if (action === 'pull') {
       // Shared with the background cron (/api/cron/calendar-sync) so manual
       // and automatic syncs behave identically.
-      const result = await pullGoogleCalendarForUser(userId, token);
+      const own = await getValidGoogleToken(userId);
+      if (!own) {
+        return NextResponse.json({ success: false, message: 'Google account not connected.' });
+      }
+      const result = await pullGoogleCalendarForUser(userId, own);
       return NextResponse.json({ success: true, message: result.message });
+    }
+
+    // ==========================================
+    // ACTION: TWO-WAY SYNC
+    // ==========================================
+    // What the "Run Two-Way Sync" button has always claimed to do. It used to
+    // send action:'pull' and nothing else, so Slate → Google never ran outside
+    // an individual save — dates a colleague added stayed invisible on the
+    // calendar no matter how often anyone pressed it.
+    if (action === 'sync') {
+      // Push first: a job that has never reached Google gets its event now, so
+      // the pull that follows sees it as an existing production rather than
+      // importing a duplicate.
+      const backfill = await pushMissingJobsToStudioCalendar(token);
+      const pushed = describeBackfill(backfill);
+
+      const own = await getValidGoogleToken(userId);
+      if (!own) {
+        // The push half ran on the studio calendar and does not need this
+        // user's own connection; only importing their events does.
+        return NextResponse.json({
+          success: true,
+          message: `${pushed} Connect Google to import your own events into Slate.`.trim(),
+        });
+      }
+
+      const result = await pullGoogleCalendarForUser(userId, own);
+      return NextResponse.json({ success: true, message: `${pushed} ${result.message}`.trim() });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
