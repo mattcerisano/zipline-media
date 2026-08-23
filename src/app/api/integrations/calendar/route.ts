@@ -79,10 +79,11 @@ export async function POST(request: Request) {
     // ACTION: PUSH A CALENDAR MARKER TO GOOGLE
     // ==========================================
     // Holds, meetings, and time off created on the Calendar tab. Unlike a
-    // production, a marker is mirrored onto *every* connected calendar rather
-    // than the one studio calendar: it says something about a person's week, so
-    // it belongs on their own calendar, while still needing to be visible to
-    // the rest of the team. See src/lib/marker-sync.ts.
+    // production, a marker is routed by what it says: availability (Out of
+    // Office, Travel Day, Available) mirrors onto every connected calendar,
+    // because it describes a person's week; bookings (Hold, Booked, Meeting,
+    // Planning, Edit Day) go to the studio calendar alone. See
+    // src/lib/marker-sync.ts.
     if (action === 'push_event') {
       const { eventId } = body;
       if (!eventId) {

@@ -14,21 +14,76 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 const EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 
 /**
- * Calendar markers — Holds, Meetings, Travel Days, Out of Office — mirrored onto
- * every connected Google account rather than onto one studio calendar.
+ * Calendar markers on Google — routed by what the marker is actually saying.
  *
  * Productions are studio property and belong on the one calendar the team
- * shares. A marker is the opposite: it says something about a person's week, so
- * it wants to be on their own calendar, next to their dentist appointment. But
- * it also has to stay visible to everyone, or a Hold a producer drops is a Hold
- * nobody else can see — the exact failure that started all of this. Mirroring to
- * each account satisfies both.
+ * shares. Markers split in two:
  *
- * `calendar_events.google_event_id` cannot express that: it is one column, and a
- * mirrored marker has an id per calendar. Those live in
+ *  - *Availability* — Out of Office, Travel Day, Available. These describe a
+ *    person's week, so each connected account gets its own copy: the marker
+ *    sits on your own calendar next to your dentist appointment, and everyone
+ *    still sees that you're out.
+ *  - *Scheduling* — Hold, Booked, Meeting, Planning, Edit Day. These are studio
+ *    bookings and go to the studio calendar alone. Mirroring them would put
+ *    every hold the team takes onto five personal calendars, which is noise:
+ *    anyone who wants them already has the studio calendar shared to them.
+ *
+ * Either way they stay visible to the whole team — a Hold a producer drops that
+ * nobody else can see is the exact failure that started all of this.
+ *
+ * `calendar_events.google_event_id` cannot express a mirrored marker: it is one
+ * column, and a copy per calendar means an id per calendar. Those live in
  * calendar_event_google_links instead; the old column keeps its original job of
  * identifying markers imported *from* Google.
  */
+
+/**
+ * Presets that describe a person rather than a booking, so they mirror onto
+ * every connected calendar. Everything else is a studio booking and goes to the
+ * studio calendar alone — change a preset's side by moving it in or out here.
+ */
+const AVAILABILITY_PRESETS = new Set(['timeout', 'travel', 'available']);
+
+/** True when this marker belongs on everyone's own calendar. */
+export function isAvailabilityMarker(preset: string | null | undefined): boolean {
+  return AVAILABILITY_PRESETS.has((preset || '').trim());
+}
+
+export interface MarkerCalendarPlan {
+  /** Accounts that should hold a copy after this push. */
+  targets: string[];
+  /**
+   * Accounts holding a copy that shouldn't have one any more — the case when a
+   * marker's preset is edited from Out of Office to Hold, which narrows it from
+   * everyone's calendar to the studio's. Their copies are deleted, or the
+   * marker lingers on calendars it no longer belongs on.
+   */
+  prune: string[];
+}
+
+/**
+ * Work out which calendars a marker belongs on, and which to clean up.
+ *
+ * A studio-only marker with no studio calendar resolved falls back to mirroring
+ * rather than going nowhere: a marker on too many calendars is noise, but a
+ * marker on none is the invisible-hold bug all over again.
+ */
+export function markerCalendarPlan(
+  preset: string | null | undefined,
+  allAccounts: string[],
+  studioUserId: string | null,
+  linkedUserIds: string[]
+): MarkerCalendarPlan {
+  const studioOnly = !isAvailabilityMarker(preset) && !!studioUserId;
+  const onStudio = allAccounts.filter(id => id === studioUserId);
+
+  // An env override can name an account that never connected, leaving nothing
+  // to filter down to. Mirror rather than push the marker nowhere.
+  const targets = studioOnly && onStudio.length > 0 ? onStudio : allAccounts;
+
+  const wanted = new Set(targets);
+  return { targets, prune: linkedUserIds.filter(id => !wanted.has(id)) };
+}
 
 /** Google colour ids per marker preset, so a Hold reads as a Hold in both places. */
 const GOOGLE_COLOR_BY_PRESET: Record<string, string> = {
@@ -143,16 +198,22 @@ export async function pushMarkerToAllCalendars(eventId: string): Promise<MarkerF
   if (error || !event) throw new Error('Event not found');
   if (event.preset === 'google') return { synced: 0, failed: 0, noAccounts: false };
 
-  const [allAccounts, { links, available }] = await Promise.all([connectedUserIds(), linksFor(eventId)]);
+  const [allAccounts, { links, available }, studio] = await Promise.all([
+    connectedUserIds(),
+    linksFor(eventId),
+    resolveStudioCalendarUserId(null),
+  ]);
   if (allAccounts.length === 0) return { synced: 0, failed: 0, noAccounts: true };
 
   // Without the links table there is nowhere to record a per-calendar id, so
-  // mirroring would duplicate the marker on every save. Fall back to what the
-  // single google_event_id column can express: one copy, on the studio calendar.
-  const studio = available ? null : await resolveStudioCalendarUserId(null);
-  const accounts = available
-    ? allAccounts
-    : allAccounts.filter(id => id === (studio?.userId ?? allAccounts[0]));
+  // mirroring would stack a fresh copy on every calendar every save. Fall back
+  // to what the single google_event_id column can express: one copy, on the
+  // studio calendar, whatever the preset says.
+  const plan = available
+    ? markerCalendarPlan(event.preset, allAccounts, studio.userId, Array.from(links.keys()))
+    : { targets: allAccounts.filter(id => id === (studio.userId ?? allAccounts[0])), prune: [] };
+
+  const accounts = plan.targets;
 
   const eventBody = buildMarkerEventBody(event);
   let synced = 0;
@@ -215,6 +276,25 @@ export async function pushMarkerToAllCalendars(eventId: string): Promise<MarkerF
     } catch (err: any) {
       console.warn(`Marker push failed for ${userId}:`, err?.message);
       failed++;
+    }
+  }
+
+  // A preset edited from Out of Office to Hold narrows the marker from every
+  // calendar to the studio's. Without this the old copies stay put, showing
+  // someone as away on a day they are simply booked.
+  for (const userId of plan.prune) {
+    const staleId = links.get(userId);
+    if (!staleId) continue;
+    try {
+      const token = await getValidGoogleToken(userId);
+      if (token) await deleteEventFrom(token, staleId);
+      await supabaseAdmin
+        .from('calendar_event_google_links')
+        .delete()
+        .eq('event_id', eventId)
+        .eq('user_id', userId);
+    } catch (err: any) {
+      console.warn(`Could not prune the marker copy on ${userId}:`, err?.message);
     }
   }
 

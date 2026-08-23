@@ -68,10 +68,13 @@ export function removeJobFromGoogleCalendar(googleEventId?: string | null): Prom
 /**
  * Mirror a Calendar-tab marker (Hold, Meeting, time off) onto Google.
  *
- * Unlike a production, a marker goes onto *every* connected calendar: it
- * describes someone's week, so it belongs on their own calendar while still
- * being visible to the team. Safe to call on every save — each calendar's copy
- * is updated in place, and markers imported from Google are left alone.
+ * Where it lands depends on what the marker says. Availability — Out of Office,
+ * Travel Day, Available — goes onto every connected calendar, because it
+ * describes someone's week and belongs next to their own appointments.
+ * Bookings — Hold, Booked, Meeting, Planning, Edit Day — go to the studio
+ * calendar alone, which the team already shares. Safe to call on every save:
+ * each copy is updated in place, copies on calendars the marker no longer
+ * belongs on are removed, and markers imported from Google are left alone.
  */
 export function pushEventToGoogleCalendar(eventId: string): Promise<PushResult> {
   return callCalendar({ action: 'push_event', eventId });
