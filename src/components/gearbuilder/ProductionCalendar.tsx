@@ -84,7 +84,6 @@ export interface NewProductionSeed {
   /** The marker this came from, removed once the production is saved. */
   markerId?: string;
   /** Its Google event, removed alongside it. */
-  markerGoogleEventId?: string | null;
 }
 
 interface ProductionCalendarProps {
@@ -260,7 +259,6 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       // meeting or a day off isn't, so it starts in Planning.
       status: ev.preset === 'hold' || ev.preset === 'booked' ? 'Booked' : 'Planning',
       markerId: ev.id,
-      markerGoogleEventId: ev.google_event_id || null,
     });
   };
 
@@ -359,10 +357,12 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     if (ev?.preset === 'google') {
       const { error } = await supabase.from('calendar_events').update({ hidden: true }).eq('id', id);
       if (!error) return;
-    } else if (ev?.google_event_id) {
+    } else if (ev) {
       // Ours, and mirrored to Google — clear the Google side first so it
-      // doesn't outlive the row and get re-imported as a new marker.
-      await removeEventFromGoogleCalendar(ev.google_event_id);
+      // doesn't outlive the row and get re-imported as a new marker. The Slate
+      // id goes over, not a Google one: the marker has a copy (and an id) on
+      // every connected calendar, and the server holds that list.
+      await removeEventFromGoogleCalendar(ev.id);
     }
 
     const { error } = await supabase.from('calendar_events').delete().eq('id', id);

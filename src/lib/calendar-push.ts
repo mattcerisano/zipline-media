@@ -66,19 +66,27 @@ export function removeJobFromGoogleCalendar(googleEventId?: string | null): Prom
 }
 
 /**
- * Mirror a Calendar-tab marker (Hold, Meeting, time off) onto Google as an
- * all-day event. Safe to call on every save — the server updates in place once
- * the marker has a Google event id, and ignores markers imported from Google.
+ * Mirror a Calendar-tab marker (Hold, Meeting, time off) onto Google.
+ *
+ * Where it lands depends on what the marker says. Availability — Out of Office,
+ * Travel Day, Available — goes onto every connected calendar, because it
+ * describes someone's week and belongs next to their own appointments.
+ * Bookings — Hold, Booked, Meeting, Planning, Edit Day — go to the studio
+ * calendar alone, which the team already shares. Safe to call on every save:
+ * each copy is updated in place, copies on calendars the marker no longer
+ * belongs on are removed, and markers imported from Google are left alone.
  */
 export function pushEventToGoogleCalendar(eventId: string): Promise<PushResult> {
   return callCalendar({ action: 'push_event', eventId });
 }
 
 /**
- * Remove a marker's Google event. Shares the job delete path — the Google API
- * call is the same, and both treat an already-gone event as success.
+ * Remove a marker from Google. Takes the *Slate* event id, not a Google one:
+ * a mirrored marker has a different id on every calendar, and the server is the
+ * only side that knows them all. Call it before deleting the row, while those
+ * links are still readable.
  */
-export function removeEventFromGoogleCalendar(googleEventId?: string | null): Promise<PushResult> {
-  if (!googleEventId) return Promise.resolve({ ok: true, message: '' });
-  return callCalendar({ action: 'delete', googleEventId });
+export function removeEventFromGoogleCalendar(eventId?: string | null): Promise<PushResult> {
+  if (!eventId) return Promise.resolve({ ok: true, message: '' });
+  return callCalendar({ action: 'delete_event', eventId });
 }

@@ -578,6 +578,12 @@ export default function CommandCenterPage() {
   // the sync modal opens.
   const [googleSyncInfo, setGoogleSyncInfo] = useState<{ at: string | null; ok: boolean | null; error: string | null }>({ at: null, ok: null, error: null });
 
+  // Which calendar Slate pushes productions to. Until one account is marked as
+  // the studio calendar, a push follows whoever saved the job — so a shoot a
+  // producer booked lands on the producer's calendar and nobody else sees it.
+  const [studioCalendar, setStudioCalendar] = useState<{ isMine: boolean; isSet: boolean }>({ isMine: false, isSet: false });
+  const [isClaimingStudio, setIsClaimingStudio] = useState(false);
+
   const checkGoogleConnection = useCallback(async () => {
     if (!session?.access_token) return;
     try {
@@ -588,6 +594,7 @@ export default function CommandCenterPage() {
       const data = await res.json();
       setIsGoogleConnected(!!data.connected);
       setGoogleSyncInfo({ at: data.lastSyncAt ?? null, ok: data.lastSyncOk ?? null, error: data.lastSyncError ?? null });
+      setStudioCalendar({ isMine: !!data.isStudioCalendar, isSet: !!data.studioCalendarSet });
     } catch (err) {
       setIsGoogleConnected(false);
     }
@@ -623,6 +630,30 @@ export default function CommandCenterPage() {
     }
   };
 
+  // Point every future push at this account's calendar. Admin-only server-side;
+  // the button is only offered once the account is connected.
+  const handleClaimStudioCalendar = async () => {
+    if (!session?.access_token) return;
+    setIsClaimingStudio(true);
+    try {
+      const res = await fetch('/api/auth/google/studio', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStudioCalendar({ isMine: true, isSet: true });
+        setSyncStatusMsg('Productions will now push to this calendar. Run the sync to backfill.');
+      } else {
+        setSyncStatusMsg(data.error || 'Could not set the studio calendar.');
+      }
+    } catch {
+      setSyncStatusMsg('Could not reach the server.');
+    } finally {
+      setIsClaimingStudio(false);
+    }
+  };
+
   const handleTriggerSync = async () => {
     if (!session?.user?.id) return;
     setIsSyncing(true);
@@ -634,7 +665,11 @@ export default function CommandCenterPage() {
           'Content-Type': 'application/json',
           ...(session.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify({ action: 'pull' })
+        // 'sync' is both directions: jobs that have never reached Google are
+        // pushed to the studio calendar first, then Google is read back into
+        // Slate. The button sent 'pull' alone for a long time, which is why
+        // dates added by someone else never appeared on the calendar.
+        body: JSON.stringify({ action: 'sync' })
       });
       const data = await res.json();
       if (data.success) {
@@ -1514,8 +1549,34 @@ export default function CommandCenterPage() {
                   </div>
                   
                   <p className="text-white/60 leading-normal text-[11px]">
-                    Authenticate with Google to enable two-way live calendar sync. Changes made in Slate will sync to Google, and events on Google prefixed with 🎥 will sync back to Slate.
+                    Authenticate with Google to enable two-way live calendar sync. Productions booked in Slate — by anyone on the team — push to the studio calendar, and events on Google prefixed with 🎥 sync back to Slate.
                   </p>
+
+                  {/* Which calendar productions land on. Without this, a push
+                      follows whoever saved the job, so shoots booked by a
+                      colleague never reach anyone else's calendar. */}
+                  {isGoogleConnected && (
+                    studioCalendar.isMine ? (
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-green-500/80">
+                        ✓ Studio calendar — every production pushes here
+                      </p>
+                    ) : (
+                      <div className="space-y-2 p-2.5 rounded-lg bg-white/5 border border-white/10">
+                        <p className="text-[10px] text-white/60 leading-relaxed">
+                          {studioCalendar.isSet
+                            ? 'Productions push to another account\u2019s calendar. Make this the studio calendar to bring them here.'
+                            : 'No studio calendar is set, so productions push to whoever saved them — dates a colleague adds never reach your calendar.'}
+                        </p>
+                        <button
+                          onClick={handleClaimStudioCalendar}
+                          disabled={isClaimingStudio}
+                          className="w-full py-2 bg-white/10 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          {isClaimingStudio ? 'Setting...' : 'Use this as the studio calendar'}
+                        </button>
+                      </div>
+                    )
+                  )}
 
                   <div className="flex flex-col sm:flex-row gap-2 pt-1">
                     {!isGoogleConnected ? (

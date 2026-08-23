@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getGoogleToken, describeTokenFailure } from '@/lib/google-auth';
+import { pushJobEvent } from '@/lib/calendar-google';
+import { SLATE_APP_TAG, STUDIO_MARKER_TAG } from '@/lib/calendar-tags';
 import { formatCallTime, wallClockFromGoogleDateTime, addDays } from '@/lib/date';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
@@ -7,19 +9,8 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-/** Tag written to `extendedProperties.private.app` on every event Slate pushes. */
-export const SLATE_APP_TAG = 'zipline-slate';
-
-/**
- * Tag for calendar *markers* pushed from the Calendar tab (Hold, Meeting, …).
- *
- * Deliberately distinct from SLATE_APP_TAG: the job sync treats anything
- * carrying that tag as a production and would turn every Hold into a job. The
- * importer skips events carrying this one instead — the local row is the
- * source of truth for them, so re-importing would both duplicate the marker
- * and overwrite its preset with 'google'.
- */
-export const STUDIO_MARKER_TAG = 'zipline-marker';
+// Re-exported so the many existing importers of these tags keep working.
+export { SLATE_APP_TAG, STUDIO_MARKER_TAG };
 
 /** How far either side of today the sync looks. Matches the marker import window. */
 const PULL_DAYS_BACK = 30;
@@ -71,6 +62,38 @@ function slateJobIdOf(event: any): string | null {
   return fromDescription && UUID_RE.test(fromDescription) ? fromDescription : null;
 }
 
+/**
+ * Collapse rows that would collide on the same upsert key, keeping the first.
+ *
+ * Postgres refuses an `ON CONFLICT DO UPDATE` whose payload touches the same
+ * row twice — "command cannot affect row a second time" — so a batch may carry
+ * each key only once. Two Google events reaching one Slate job is routine, not
+ * exotic: `singleEvents` expands a recurring series into instances that all
+ * inherit the same `slateJobId`, copying a Slate event in Google clones its
+ * tag and its "Slate ID:" line, and the push route recreates an event whose
+ * original was deleted. Without this the whole sync threw and *nothing* got
+ * written, so one stray duplicate stalled every job.
+ *
+ * First wins because both event lists arrive ordered by start time: that picks
+ * the earliest occurrence and keeps picking it on the next sync, rather than
+ * flipping the job between instances run to run.
+ */
+export function dedupeByKey<T>(rows: T[], keyOf: (row: T) => string | null | undefined): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const row of rows) {
+    const key = keyOf(row);
+    if (!key) {
+      out.push(row);
+      continue;
+    }
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
+}
+
 /** True for events Slate owns: tagged by push, or carrying the legacy 🎥 prefix. */
 function isProductionEvent(event: any): boolean {
   if (event?.extendedProperties?.private?.app === SLATE_APP_TAG) return true;
@@ -100,6 +123,121 @@ async function recordSyncStatus(userId: string, ok: boolean, error?: string) {
       })
       .eq('id', userId);
   } catch { /* status is best-effort */ }
+}
+
+/** One line for the sync toast: silent when there was nothing to push. */
+export function describeBackfill(result: BackfillResult): string {
+  const parts: string[] = [];
+  if (result.pushed > 0) {
+    parts.push(`Pushed ${result.pushed} job${result.pushed === 1 ? '' : 's'} to Google Calendar.`);
+  }
+  if (result.failed > 0) {
+    parts.push(`${result.failed} could not be pushed — see the logs.`);
+  }
+  return parts.join(' ');
+}
+
+/** Most jobs one backfill pass will push, so a first sync can't run all day. */
+const PUSH_BATCH_LIMIT = 100;
+
+/** Ceiling on the jobs a push pass will even look at, so the scan stays bounded. */
+const JOB_SCAN_LIMIT = 1000;
+
+export interface BackfillResult {
+  pushed: number;
+  failed: number;
+}
+
+/**
+ * Push productions that have never reached Google onto the studio calendar.
+ *
+ * The interactive push runs in the browser of whoever saved the job, so a shoot
+ * booked while that person had no Google connection — or before the studio
+ * calendar was designated — simply never left Slate. Nothing retried it: the
+ * sync was pull-only, so those dates stayed invisible on every calendar.
+ *
+ * A job is a candidate when it has no `google_event_id` at all, or when the id
+ * it has isn't on this calendar — the case for a shoot pushed to someone's
+ * personal calendar before the studio one was chosen. Both are safe to repeat:
+ * a job that already has an id is updated in place rather than duplicated, and
+ * one that doesn't gets an id the first time it succeeds and is skipped after.
+ * Edits keep pushing on save, so this is a backstop, not the main road.
+ * Failures are counted rather than thrown — one job Google refuses must not
+ * strand the rest, and the next sync tries again.
+ */
+export async function pushMissingJobsToStudioCalendar(
+  token: string,
+  calendarUserId?: string | null
+): Promise<BackfillResult> {
+  // Same window the pull uses. Pushing years of wrapped shoots onto the
+  // calendar would bury the work that is actually coming up.
+  const since = new Date(Date.now() - PULL_DAYS_BACK * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0];
+  const until = new Date(Date.now() + PULL_DAYS_FORWARD * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split('T')[0];
+
+  const { data: jobs, error } = await supabaseAdmin
+    .from('jobs')
+    .select('*')
+    .neq('job_status', 'Cancelled')
+    .gte('shoot_date', since)
+    .lte('shoot_date', until)
+    .order('shoot_date', { ascending: true })
+    .limit(JOB_SCAN_LIMIT);
+
+  if (error) {
+    console.warn('Could not list jobs for the studio calendar push:', error.message);
+    return { pushed: 0, failed: 0 };
+  }
+  if (!jobs?.length) return { pushed: 0, failed: 0 };
+
+  // A job carrying a google_event_id is not necessarily *on this* calendar: it
+  // may point at an event in the personal calendar it was pushed to before the
+  // studio calendar was designated. Ask Google which Slate events this calendar
+  // actually holds, so those jobs get republished here instead of being skipped
+  // forever for having an id.
+  let onStudioCalendar: Set<string> | null = null;
+  try {
+    // No `singleEvents` here, deliberately: expanding a series would return
+    // per-instance ids (`<id>_20260824T130000Z`) that never match the master id
+    // stored on the job, and every sync would "helpfully" push it again.
+    const existing = await listAllEvents(token, {
+      privateExtendedProperty: `app=${SLATE_APP_TAG}`,
+      timeMin: new Date(Date.now() - PULL_DAYS_BACK * 24 * 60 * 60 * 1000).toISOString(),
+      timeMax: new Date(Date.now() + PULL_DAYS_FORWARD * 24 * 60 * 60 * 1000).toISOString(),
+    });
+    onStudioCalendar = new Set(
+      existing.filter(e => e?.id && e.status !== 'cancelled').map(e => e.id as string)
+    );
+  } catch (err: any) {
+    // Without the listing, fall back to the conservative rule — only jobs that
+    // have never reached any calendar. Re-pushing everything on a transient
+    // Google error would duplicate the studio's whole board.
+    console.warn('Could not list existing Slate events; pushing only unsynced jobs:', err?.message);
+  }
+
+  const needsPush = jobs.filter(job => {
+    if (!job.google_event_id) return true;
+    return onStudioCalendar ? !onStudioCalendar.has(job.google_event_id) : false;
+  });
+
+  let pushed = 0;
+  let failed = 0;
+  // Sequential on purpose: a burst of parallel writes trips Google's per-user
+  // rate limit, and a backfill has no deadline worth risking that for.
+  for (const job of needsPush.slice(0, PUSH_BATCH_LIMIT)) {
+    try {
+      await pushJobEvent(token, job, calendarUserId);
+      pushed++;
+    } catch (err: any) {
+      failed++;
+      console.warn(`Could not push job ${job.id} to Google:`, err?.message);
+    }
+  }
+
+  return { pushed, failed };
 }
 
 /**
@@ -139,7 +277,7 @@ export async function pullGoogleCalendarForUser(userId: string, existingToken?: 
   }
 }
 
-async function runPull(_userId: string, token: string): Promise<PullResult> {
+async function runPull(userId: string, token: string): Promise<PullResult> {
   const timeMin = new Date(Date.now() - PULL_DAYS_BACK * 24 * 60 * 60 * 1000).toISOString();
   const timeMax = new Date(Date.now() + PULL_DAYS_FORWARD * 24 * 60 * 60 * 1000).toISOString();
 
@@ -205,8 +343,6 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
 
   const jobsToUpdate: any[] = [];
   const jobsToInsert: any[] = [];
-  let syncCount = 0;
-  let createCount = 0;
 
   for (const event of events) {
     const summary = event.summary || '';
@@ -248,7 +384,6 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
       updateFields.end_date = endDate;
 
       jobsToUpdate.push(updateFields);
-      syncCount++;
     } else if (isProductionEvent(event)) {
       // Check if we already created a job for this google event to prevent duplicates
       const hasExisting = existingJobsByGoogleIdMap.has(event.id);
@@ -277,16 +412,23 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
         }
 
         jobsToInsert.push(insertFields);
-        createCount++;
       }
     }
   }
 
+  // One row per job id, one per Google event: see dedupeByKey. Counting the
+  // deduped arrays keeps the "Synced N jobs" message honest about rows written
+  // rather than events seen.
+  const updates = dedupeByKey(jobsToUpdate, row => row.id);
+  const inserts = dedupeByKey(jobsToInsert, row => row.google_event_id);
+  const syncCount = updates.length;
+  const createCount = inserts.length;
+
   // Execute bulk updates
-  if (jobsToUpdate.length > 0) {
+  if (updates.length > 0) {
     const { error: bulkUpdateErr } = await supabaseAdmin
       .from('jobs')
-      .upsert(jobsToUpdate, { onConflict: 'id' });
+      .upsert(updates, { onConflict: 'id' });
 
     if (bulkUpdateErr) {
       throw new Error(`Bulk update failed: ${bulkUpdateErr.message}`);
@@ -294,10 +436,10 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
   }
 
   // Execute bulk inserts
-  if (jobsToInsert.length > 0) {
+  if (inserts.length > 0) {
     const { error: bulkInsertErr } = await supabaseAdmin
       .from('jobs')
-      .insert(jobsToInsert);
+      .insert(inserts);
 
     if (bulkInsertErr) {
       throw new Error(`Bulk insert failed: ${bulkInsertErr.message}`);
@@ -368,15 +510,18 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
       });
     }
 
-    if (markers.length > 0) {
+    // Same ON CONFLICT rule as the job upsert above: one row per event id.
+    const uniqueMarkers = dedupeByKey(markers, m => m.google_event_id);
+
+    if (uniqueMarkers.length > 0) {
       let { error: markerErr } = await supabaseAdmin
         .from('calendar_events')
-        .upsert(markers, { onConflict: 'google_event_id' });
+        .upsert(uniqueMarkers, { onConflict: 'google_event_id' });
 
       // A database without the marker-times columns rejects the batch whole.
       // Importing the events without their hours beats importing nothing.
       if (markerErr && /start_time|end_time|schema cache/i.test(markerErr.message || '')) {
-        const untimed = markers.map(m => {
+        const untimed = uniqueMarkers.map(m => {
           const rest = { ...m };
           delete rest.start_time;
           delete rest.end_time;
@@ -390,7 +535,7 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
       if (markerErr) {
         console.warn('Google event import skipped:', markerErr.message);
       } else {
-        importCount = markers.length;
+        importCount = uniqueMarkers.length;
       }
     }
 
@@ -400,6 +545,17 @@ async function runPull(_userId: string, token: string): Promise<PullResult> {
         .delete()
         .in('google_event_id', cancelledIds);
       if (delErr) console.warn('Cancelled-event cleanup skipped:', delErr.message);
+
+      // A marker Slate pushed here has its id in the links table, not the
+      // column above, so deleting this copy in Google leaves the marker (and
+      // everyone else's copy) alone — which is the point of mirroring. Drop the
+      // dead link so the next edit republishes rather than PUTting a tombstone.
+      const { error: linkErr } = await supabaseAdmin
+        .from('calendar_event_google_links')
+        .delete()
+        .eq('user_id', userId)
+        .in('google_event_id', cancelledIds);
+      if (linkErr) console.warn('Marker link cleanup skipped:', linkErr.message);
     }
   } catch (importErr: any) {
     // Import is additive — a failure here must not break the job sync.

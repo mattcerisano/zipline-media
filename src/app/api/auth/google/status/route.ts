@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthedUserId } from '@/lib/api-auth';
+import { resolveStudioCalendarUserId } from '@/lib/studio-calendar';
 
 // Reports whether the calling user has a Google connection. Runs server-side
 // with the service key so the google_tokens table can be locked away from
@@ -32,6 +33,15 @@ export async function GET(request: Request) {
     data = withHealth.data;
   }
 
+  // Which account owns the studio calendar — the one every production is
+  // pushed to. Resolved the same way the push itself resolves it, so the UI
+  // can't claim a calendar the sync wouldn't actually use. Best-effort: a
+  // database without the column reports "nobody yet" rather than failing.
+  let studioPick: { userId: string | null; source: string } = { userId: null, source: 'acting' };
+  try {
+    studioPick = await resolveStudioCalendarUserId(null);
+  } catch { /* leave it undecided */ }
+
   return NextResponse.json({
     connected: !!data,
     // Lets the UI say "Google isn't configured on the server" instead of a
@@ -41,5 +51,10 @@ export async function GET(request: Request) {
     lastSyncAt: data?.last_sync_at ?? null,
     lastSyncOk: data?.last_sync_ok ?? null,
     lastSyncError: data?.last_sync_error ?? null,
+    // True when productions pushed from Slate land on *this* user's calendar.
+    isStudioCalendar: !!studioPick.userId && studioPick.userId === userId,
+    // False means nothing has been chosen and pushes still follow whoever
+    // saved the job — the state the UI needs to prompt about.
+    studioCalendarSet: studioPick.userId !== null && studioPick.source !== 'acting',
   });
 }
