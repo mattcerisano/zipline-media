@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
@@ -37,6 +37,7 @@ import Autocomplete from 'react-google-autocomplete';
 import { ALL_CATEGORIES, type InventoryItem } from '@/data/inventory';
 import { STORAGE_KEY_CLIENTS, STORAGE_KEY_JOBS, Client, Job, GearTemplate, Contact } from './types';
 import ProductionCalendar from './ProductionCalendar';
+import ClientPicker from '@/components/workspace/ClientPicker';
 import { supabase } from '@/lib/supabase';
 import { getBranding } from '@/lib/branding';
 import { fitImageBox } from '@/lib/pdf-image';
@@ -152,16 +153,10 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
   // Job Details State
   const [jobTitle, setJobTitle] = useState('');
-  // Who the list is billed to. A gear list is generated for a *client*, so this
-  // picker is backed by the clients table alone — crew, rental houses and the
-  // rest of the Rolodex contacts are deliberately not offered here, and free
-  // text no longer quietly becomes a client row (that is what turned the list
-  // into a copy of the Rolodex).
+  // Who the list is billed to. ClientPicker offers the clients table and
+  // nothing else — crew and rental houses are Rolodex contacts, not clients.
   const [clientName, setClientName] = useState('');
   const [clientId, setClientId] = useState<string | null>(null);
-  const [isClientPickerOpen, setIsClientPickerOpen] = useState(false);
-  const [creatingClient, setCreatingClient] = useState(false);
-  const clientPickerRef = useRef<HTMLDivElement>(null);
   const [companyName, setCompanyName] = useState('Zipline Media');
   const [companyAddr, setCompanyAddr] = useState('');
   const [notes, setNotes] = useState('');
@@ -505,80 +500,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
   const clearManifest = () => setManifest({});
   
-  // --- Client picker (clients only) -------------------------------------
-  // Close the dropdown when the click lands anywhere else on the page.
-  useEffect(() => {
-    if (!isClientPickerOpen) return;
-    const onPointerDown = (e: MouseEvent) => {
-      if (!clientPickerRef.current?.contains(e.target as Node)) setIsClientPickerOpen(false);
-    };
-    document.addEventListener('mousedown', onPointerDown);
-    return () => document.removeEventListener('mousedown', onPointerDown);
-  }, [isClientPickerOpen]);
-
-  const clientQuery = clientName.trim().toLowerCase();
-
-  const sortedClients = useMemo(
-    () => [...clients].sort((a, b) => a.name.localeCompare(b.name)),
-    [clients]
-  );
-
-  // Typing narrows the list; an empty box shows every client, so the field
-  // works as a browse-and-pick as well as a search.
-  const clientMatches = useMemo(() => {
-    if (!clientQuery) return sortedClients;
-    return sortedClients.filter(c =>
-      c.name.toLowerCase().includes(clientQuery) ||
-      (c.email || '').toLowerCase().includes(clientQuery)
-    );
-  }, [sortedClients, clientQuery]);
-
-  const exactClient = useMemo(
-    () => clients.find(c => c.name.trim().toLowerCase() === clientQuery) || null,
-    [clients, clientQuery]
-  );
-
-  const selectClient = (client: Client) => {
-    setClientName(client.name);
-    setClientId(client.id);
-    setIsClientPickerOpen(false);
-  };
-
-  // A name that isn't on the books becomes a client only when someone asks for
-  // it here, rather than as a side effect of saving the list.
-  const createClientFromInput = async () => {
-    const name = clientName.trim();
-    if (!name || creatingClient) return;
-    if (exactClient) {
-      selectClient(exactClient);
-      return;
-    }
-    setCreatingClient(true);
-    try {
-      const { data, error } = await supabase
-        .from('clients')
-        .insert({ name })
-        .select()
-        .single();
-      if (error) throw error;
-      const created = data as Client;
-      setClients(prev => [...prev, created]);
-      selectClient(created);
-      toast(`Added "${created.name}" to Clients.`);
-    } catch (err: any) {
-      console.error('Error creating client:', err);
-      toast('Failed to add that client: ' + (err.message || 'Unknown error'));
-    } finally {
-      setCreatingClient(false);
-    }
-  };
-
   // The link the rest of the app filters on. Falls back to a name match so a
   // list loaded from an older job still resolves to its client row.
   const resolveClientId = () => {
+    const query = clientName.trim().toLowerCase();
     if (clientId) return clientId;
-    if (!clientQuery) return null;
-    return clients.find(c => c.name.trim().toLowerCase() === clientQuery)?.id || null;
+    if (!query) return null;
+    return clients.find(c => c.name.trim().toLowerCase() === query)?.id || null;
   };
 
   const resetApp = () => {
@@ -1401,98 +1329,18 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             </button>
           </div>
         </div>
-        <div className="space-y-0.5 relative" ref={clientPickerRef}>
+        <div className="space-y-0.5">
           <label className="text-xs font-semibold opacity-40 ml-1">
             Generated For <span className="opacity-60 font-medium">(client)</span>
           </label>
-          <div className="relative">
-            <input
-              type="text"
-              value={clientName}
-              onChange={(e) => {
-                setClientName(e.target.value);
-                // Typing past a chosen client breaks the link until one is picked again.
-                setClientId(null);
-                setIsClientPickerOpen(true);
-              }}
-              onFocus={() => setIsClientPickerOpen(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') setIsClientPickerOpen(false);
-                // Enter takes the top match rather than leaving a half-typed
-                // name that looks chosen but carries no client link.
-                if (e.key === 'Enter' && isClientPickerOpen && clientMatches.length > 0) {
-                  e.preventDefault();
-                  selectClient(clientMatches[0]);
-                }
-              }}
-              placeholder="Client Name"
-              role="combobox"
-              aria-expanded={isClientPickerOpen}
-              aria-controls="client-picker-list"
-              autoComplete="off"
-              className="w-full bg-black/50 border border-white/10 py-2.5 pl-4 pr-10 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
-            />
-            <button
-              type="button"
-              tabIndex={-1}
-              onClick={() => setIsClientPickerOpen(o => !o)}
-              aria-label={isClientPickerOpen ? 'Hide client list' : 'Show client list'}
-              className="absolute right-1 top-1/2 -translate-y-1/2 p-2 text-white/40 hover:text-white transition-colors"
-            >
-              <ChevronDown className={`w-4 h-4 transition-transform ${isClientPickerOpen ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
-
-          {isClientPickerOpen && (
-            <div
-              id="client-picker-list"
-              role="listbox"
-              className="absolute z-30 left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-neutral-900 border border-white/10 rounded-lg shadow-2xl"
-            >
-              <p className="px-3 pt-2.5 pb-1.5 text-[11px] md:text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">
-                Clients
-              </p>
-              {clientMatches.length > 0 ? (
-                clientMatches.map(client => (
-                  <button
-                    key={client.id}
-                    type="button"
-                    role="option"
-                    aria-selected={clientId === client.id}
-                    onClick={() => selectClient(client)}
-                    title={client.name}
-                    className={`w-full text-left px-3 py-2 hover:bg-white/10 transition-colors ${clientId === client.id ? 'bg-accent/10 text-accent' : 'text-white'}`}
-                  >
-                    {/* Stacked, not side by side: client names are long enough
-                        that a contact column beside them left both unreadable. */}
-                    <span className="block text-xs font-semibold truncate">{client.name}</span>
-                    {(client.email || client.phone) && (
-                      <span className="block text-[11px] md:text-[10px] font-medium text-white/30 truncate">
-                        {client.email || client.phone}
-                      </span>
-                    )}
-                  </button>
-                ))
-              ) : (
-                <p className="px-3 py-2 text-xs font-semibold text-white/40">
-                  {clients.length === 0
-                    ? 'No clients yet — add one here or in the Rolodex.'
-                    : 'No client by that name.'}
-                </p>
-              )}
-              {clientQuery && !exactClient && (
-                <button
-                  type="button"
-                  onClick={createClientFromInput}
-                  disabled={creatingClient}
-                  className="w-full text-left px-3 py-2.5 border-t border-white/10 text-accent hover:bg-accent/10 disabled:opacity-40 transition-colors flex items-center gap-2 text-xs font-semibold"
-                >
-                  {creatingClient ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                  Add &ldquo;{clientName.trim()}&rdquo; as a new client
-                </button>
-              )}
-            </div>
-          )}
+          <ClientPicker
+            clients={clients}
+            value={clientName}
+            clientId={clientId}
+            onChange={({ name, clientId: id }) => { setClientName(name); setClientId(id); }}
+            onClientCreated={c => setClients(prev => [...prev, c])}
+            placeholder="Client Name"
+          />
         </div>
         <div className="space-y-0.5">
           <label className="text-xs font-semibold opacity-40 ml-1">Generated By</label>
