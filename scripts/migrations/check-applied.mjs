@@ -40,7 +40,7 @@ const onDisk = readdirSync(MIGRATIONS_DIR)
   .map((f) => f.replace(/\.sql$/, ''))
   .sort();
 
-const { data, error } = await supabase.from('schema_migrations').select('version, backfilled');
+const { data, error } = await supabase.from('schema_migrations').select('version, basis');
 
 if (error) {
   // The table itself is created by a migration, so its absence is the expected
@@ -74,9 +74,20 @@ if (unknown.length) {
   console.log('');
 }
 
-const backfilled = data.filter((r) => r.backfilled).length;
-if (backfilled) {
-  console.log(`(${backfilled} rows are backfilled — assumed applied on 2026-08-23, real dates unknown.)`);
+// How each row knows what it knows. 'verified' means the backfill found the
+// migration's change in the live schema; 'assumed' means it could not look,
+// because a later migration replaced the only thing that migration created.
+const byBasis = data.reduce((acc, r) => ({ ...acc, [r.basis]: (acc[r.basis] ?? 0) + 1 }), {});
+const summary = ['recorded', 'verified', 'assumed']
+  .filter((b) => byBasis[b])
+  .map((b) => `${byBasis[b]} ${b}`)
+  .join(', ');
+if (summary) console.log(`(${summary}.)`);
+
+const assumed = data.filter((r) => r.basis === 'assumed').map((r) => r.version).sort();
+if (assumed.length) {
+  console.log('  assumed, not checked against the schema:');
+  for (const v of assumed) console.log(`    ${v}`);
 }
 
 if (!pending.length) console.log('Up to date.');
