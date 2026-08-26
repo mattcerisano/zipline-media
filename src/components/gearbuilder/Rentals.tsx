@@ -671,6 +671,30 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     [clients, clientQuery]
   );
 
+  // Jobs offered under Job Title. Once a client is chosen in "Generated For",
+  // the list narrows to that client's jobs — the full studio history made the
+  // picker useless the moment you already knew whose shoot you were pulling
+  // gear for. A half-typed client name that matches nothing leaves the list
+  // alone rather than emptying it, so the field stays usable mid-keystroke.
+  const jobsForClient = useMemo(() => {
+    const selected = clientId ? clients.find(c => c.id === clientId) : null;
+    const targetName = (selected?.name || clientName).trim().toLowerCase();
+    if (!clientId && !targetName) return jobs;
+
+    const narrowed = jobs.filter(j => {
+      if (clientId && j.client_id === clientId) return true;
+      const jobClient = (j.client_name || '').trim().toLowerCase();
+      return !!jobClient && jobClient === targetName;
+    });
+
+    // A chosen client with no jobs yet genuinely has none to offer; a typed
+    // name that matched nothing is more likely still being typed.
+    if (clientId) return narrowed;
+    return narrowed.length > 0 ? narrowed : jobs;
+  }, [jobs, clients, clientId, clientName]);
+
+  const isJobListNarrowed = jobsForClient.length !== jobs.length;
+
   const selectClient = (client: Client) => {
     setClientName(client.name);
     setClientId(client.id);
@@ -1441,8 +1465,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                   const val = e.target.value;
                   setJobTitle(val);
                   
-                  // Autofill attempt
-                  const matchedJob = jobs.find(j => j.title.toLowerCase() === val.toLowerCase());
+                  // Autofill attempt. With a client chosen, only their jobs
+                  // count — two clients can run a shoot by the same name, and
+                  // matching the other one would rewrite the client field.
+                  const matchedJob = (clientId ? jobsForClient : jobs)
+                      .find(j => j.title.toLowerCase() === val.toLowerCase());
                   if (matchedJob) {
                       setSelectedJobId(matchedJob.id);
                       if (matchedJob.shoot_date) setShootDate(matchedJob.shoot_date);
@@ -1511,10 +1538,17 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             )}
           </div>
           <datalist id="job-list">
-            {jobs.map(j => (
+            {jobsForClient.map(j => (
                 <option key={j.id} value={j.title}>{j.client_name ? `(${caps(j.client_name)})` : ''}</option>
             ))}
           </datalist>
+          {isJobListNarrowed && !selectedJobIdProp && (
+            <p className="text-[10px] font-semibold text-white/30 ml-1 mt-0.5">
+              {jobsForClient.length === 0
+                ? `No jobs yet for ${caps(clientName.trim())}`
+                : `${jobsForClient.length} job${jobsForClient.length === 1 ? '' : 's'} for ${caps(clientName.trim())}`}
+            </p>
+          )}
         </div>
         <div className="space-y-0.5">
           <label className="text-xs font-semibold opacity-40 ml-1">Shoot Date</label>
