@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
@@ -75,16 +76,29 @@ interface ManifestItem {
 
 }
 
+// Workspace panels use backdrop-blur + overflow-hidden, which makes them the
+// containing block for any `fixed` child. Modals rendered inline get trapped
+// (and clipped) inside the panel, so they go to <body> instead.
+const subscribeToNothing = () => () => {};
+const ModalPortal = ({ children }: { children: React.ReactNode }) => {
+  // Hydration-safe mount check: false on the server pass, true once client-side.
+  const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
+  if (!mounted) return null;
+  return createPortal(children, document.body);
+};
+
 
 
 const GearItem = ({ 
   item, 
   manifestCount, 
-  onUpdate
+  onUpdate,
+  onEdit
 }: { 
   item: InventoryItem, 
   manifestCount: number, 
-  onUpdate: (name: string, dir: number) => void
+  onUpdate: (name: string, dir: number) => void,
+  onEdit?: (item: InventoryItem) => void
 }) => (
   <div className="group flex items-center justify-between p-3 md:p-4 border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all rounded-xl">
     <div 
@@ -97,6 +111,16 @@ const GearItem = ({
     </div>
     
     <div className="flex items-center gap-1 md:gap-3 shrink-0">
+      {onEdit && (
+        <button
+          type="button"
+          onClick={() => onEdit(item)}
+          title="Edit gear record"
+          className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-white/25 hover:text-white hover:bg-white/10 md:opacity-0 md:group-hover:opacity-100 transition-all"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      )}
       <button 
         onClick={() => onUpdate(item.name, -1)}
         disabled={!manifestCount}
@@ -134,6 +158,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const [customGear, setCustomGear] = useState<InventoryItem[]>([]);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
   const [editingItemName, setEditingItemName] = useState<string | null>(null);
+  // True when the record being edited lives in the shared `inventory` table
+  // rather than in this session's local custom gear.
+  const [editingIsDbItem, setEditingIsDbItem] = useState(false);
+  // New items: write straight to the studio inventory table instead of local-only.
+  const [saveToStudioInventory, setSaveToStudioInventory] = useState(false);
+  const [savingGearItem, setSavingGearItem] = useState(false);
+  const [gearItemError, setGearItemError] = useState<string | null>(null);
 
   // Form State
   const [customName, setCustomName] = useState('');
@@ -141,6 +172,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const [customQty, setCustomQty] = useState(1);
   const [customValue, setCustomValue] = useState(0);
   const [customOwner, setCustomOwner] = useState('');
+  const [customImage, setCustomImage] = useState('');
 
   // Rolodex contacts (so a rental house / contractor owner can be saved as a contact)
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -423,11 +455,15 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
   const openAddModal = () => {
     setEditingItemName(null);
+    setEditingIsDbItem(false);
+    setSaveToStudioInventory(true);
+    setGearItemError(null);
     setCustomName('');
     setCustomCategory(ALL_CATEGORIES[0]);
     setCustomQty(1);
     setCustomValue(0);
     setCustomOwner('');
+    setCustomImage('');
     resetOwnerContactUI();
     setIsCustomModalOpen(true);
   };
@@ -439,16 +475,54 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         baseName = baseName.replace(` [${owner}]`, '').trim();
     }
     setEditingItemName(item.name); 
+    setEditingIsDbItem(dbInventory.some(i => i.name === item.name));
+    setSaveToStudioInventory(false);
+    setGearItemError(null);
     setCustomName(baseName);
     setCustomCategory(item.category);
     setCustomQty(item.qty);
     setCustomValue(item.replacement);
     setCustomOwner(owner);
+    setCustomImage(item.image || '');
     resetOwnerContactUI();
     setIsCustomModalOpen(true);
   };
 
-  const addCustomItem = () => {
+  // The inventory table was created outside of migrations, so only send columns
+  // that actually came back from the API rather than guessing the schema.
+  const inventoryColumns = useMemo(
+    () => (dbInventory[0] ? Object.keys(dbInventory[0]) : null),
+    [dbInventory]
+  );
+
+  const toInventoryPayload = (item: InventoryItem) => {
+    const full: Record<string, any> = {
+      name: item.name,
+      category: item.category,
+      qty: item.qty,
+      replacement: item.replacement,
+      image: item.image || null,
+      owner: item.owner || null,
+    };
+    if (!inventoryColumns) return full;
+    return Object.fromEntries(Object.entries(full).filter(([key]) => inventoryColumns.includes(key)));
+  };
+
+  const renameInManifest = (fromName: string | null, toName: string, isNew: boolean) => {
+    setManifest(prev => {
+        const newManifest = { ...prev };
+        if (fromName && fromName !== toName) {
+            const count = newManifest[fromName];
+            delete newManifest[fromName];
+            if (count) newManifest[toName] = count;
+        } else if (isNew) {
+            newManifest[toName] = 1;
+        }
+        return newManifest;
+    });
+  };
+
+  const addCustomItem = async () => {
     if (!customName.trim()) return;
     const finalName = customOwner.trim() ? `${customName.trim()} [${customOwner.trim()}]` : customName.trim();
     if (finalName !== editingItemName && allInventory.find(i => i.name.toLowerCase() === finalName.toLowerCase())) {
@@ -460,23 +534,46 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       category: customCategory,
       qty: customQty,
       replacement: customValue,
+      image: customImage.trim() || undefined,
       owner: customOwner.trim() || undefined
     };
-    setCustomGear(prev => {
-        const filtered = prev.filter(i => i.name !== editingItemName);
-        return [...filtered, newItem];
-    });
-    setManifest(prev => {
-        const newManifest = { ...prev };
-        if (editingItemName && editingItemName !== finalName) {
-            const count = newManifest[editingItemName];
-            delete newManifest[editingItemName];
-            if (count) newManifest[finalName] = count;
-        } else if (!editingItemName) {
-            newManifest[finalName] = 1;
+
+    const writesToDb = editingIsDbItem || (!editingItemName && saveToStudioInventory);
+
+    if (writesToDb) {
+      setSavingGearItem(true);
+      setGearItemError(null);
+      try {
+        if (editingIsDbItem && editingItemName) {
+          const { error } = await supabase
+            .from('inventory')
+            .update(toInventoryPayload(newItem))
+            .eq('name', editingItemName);
+          if (error) throw error;
+          setDbInventory(prev => prev.map(i => (i.name === editingItemName ? { ...i, ...newItem } : i)));
+        } else {
+          const { data, error } = await supabase
+            .from('inventory')
+            .insert([toInventoryPayload(newItem)])
+            .select()
+            .single();
+          if (error) throw error;
+          setDbInventory(prev => [...prev, (data as InventoryItem) || newItem]);
         }
-        return newManifest;
-    });
+      } catch (err: any) {
+        setGearItemError(err.message || 'Could not save to the studio inventory.');
+        setSavingGearItem(false);
+        return;
+      }
+      setSavingGearItem(false);
+    } else {
+      setCustomGear(prev => {
+          const filtered = prev.filter(i => i.name !== editingItemName);
+          return [...filtered, newItem];
+      });
+    }
+
+    renameInManifest(editingItemName, finalName, !editingItemName);
 
     // Save owner to list for autofill
     if (customOwner.trim()) {
@@ -492,6 +589,42 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       });
     }
 
+    setIsCustomModalOpen(false);
+  };
+
+  const deleteGearItem = async () => {
+    if (!editingItemName) return;
+    const confirmed = await confirmAction({
+      message: editingIsDbItem
+        ? `Permanently delete "${editingItemName}" from the studio inventory?`
+        : `Remove "${editingItemName}" from this manifest?`,
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!confirmed) return;
+
+    if (editingIsDbItem) {
+      setSavingGearItem(true);
+      setGearItemError(null);
+      try {
+        const { error } = await supabase.from('inventory').delete().eq('name', editingItemName);
+        if (error) throw error;
+        setDbInventory(prev => prev.filter(i => i.name !== editingItemName));
+      } catch (err: any) {
+        setGearItemError(err.message || 'Could not delete from the studio inventory.');
+        setSavingGearItem(false);
+        return;
+      }
+      setSavingGearItem(false);
+    } else {
+      setCustomGear(prev => prev.filter(i => i.name !== editingItemName));
+    }
+
+    setManifest(prev => {
+      const next = { ...prev };
+      delete next[editingItemName];
+      return next;
+    });
     setIsCustomModalOpen(false);
   };
 
@@ -1663,7 +1796,6 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                             <div className="space-y-2">
                             {items.map((item) => {
                                 const invItem = allInventory.find(i => i.name === item.name);
-                                const isCustom = customGear.some(c => c.name === item.name);
                                 
                                 return (
                                 <div key={item.name} className="flex items-start justify-between bg-white/5 p-3 rounded-lg border border-white/5 group">
@@ -1675,9 +1807,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                                     </p>
                                     </div>
                                     <div className="flex items-center gap-1 shrink-0">
-                                        {isCustom && (
+                                        {invItem && (
                                             <button
-                                                onClick={() => handleEdit(invItem!)}
+                                                onClick={() => handleEdit(invItem)}
                                                 className="text-white/40 md:text-current md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-white/10 hover:text-white transition-all rounded-md"
                                             >
                                                 <Pencil className="w-3 h-3" />
@@ -1878,6 +2010,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                                   item={item} 
                                   manifestCount={manifest[item.name] || 0}
                                   onUpdate={updateManifest} 
+                                  onEdit={handleEdit}
                                 />
                             ))}
                           </div>
@@ -1897,6 +2030,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                               item={item} 
                               manifestCount={manifest[item.name] || 0}
                               onUpdate={updateManifest}
+                              onEdit={handleEdit}
                             />
                           ))
                         )}
@@ -2086,9 +2220,10 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           </motion.button>
         </div>
 
+        <ModalPortal>
         <AnimatePresence>
           {isCalendarOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-8">
+            <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 md:p-8">
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -2121,26 +2256,35 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             </div>
           )}
         </AnimatePresence>
+        </ModalPortal>
 
+        <ModalPortal>
         <AnimatePresence>
           {isCustomModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-[130] flex items-start md:items-center justify-center p-4 overflow-y-auto">
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsCustomModalOpen(false)}
-                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm"
               />
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="relative bg-neutral-900 border border-white/10 p-8 rounded-2xl w-full max-w-md shadow-2xl"
+                className="relative bg-neutral-900 border border-white/10 p-6 md:p-8 rounded-2xl w-full max-w-md shadow-2xl my-auto max-h-[92vh] overflow-y-auto custom-scrollbar"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-white">{editingItemName ? 'Edit Custom Gear' : 'Add Custom Gear'}</h2>
-                  <button onClick={() => setIsCustomModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <div className="flex items-start justify-between mb-6 gap-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-white">{editingItemName ? 'Edit Gear Record' : 'Add Gear'}</h2>
+                    {editingItemName && (
+                      <p className="text-[10px] font-semibold mt-1 uppercase tracking-wider opacity-40">
+                        {editingIsDbItem ? 'Studio inventory · saves to database' : 'Local custom item · this session only'}
+                      </p>
+                    )}
+                  </div>
+                  <button onClick={() => setIsCustomModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors shrink-0">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -2265,7 +2409,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold opacity-40 ml-1">Value ($)</label>
+                      <label className="text-xs font-semibold opacity-40 ml-1">Replacement Value ($)</label>
                       <input 
                         type="number" 
                         min="0"
@@ -2276,34 +2420,80 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                     </div>
                   </div>
 
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold opacity-40 ml-1">Image Path <span className="opacity-50">(Optional)</span></label>
+                    <input 
+                      type="text" 
+                      value={customImage}
+                      onChange={(e) => setCustomImage(e.target.value)}
+                      placeholder="/gear/red_komodo.jpg"
+                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
+                    />
+                  </div>
+
+                  {!editingItemName && (
+                    <button
+                      type="button"
+                      onClick={() => setSaveToStudioInventory(v => !v)}
+                      className="w-full flex items-center gap-3 p-3 bg-black/30 border border-white/10 rounded-lg text-left hover:border-white/20 transition-colors"
+                    >
+                      <span className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 ${saveToStudioInventory ? 'bg-accent border-accent' : 'border-white/20'}`}>
+                        {saveToStudioInventory && <Check className="w-3 h-3 text-white" />}
+                      </span>
+                      <span className="text-[11px] font-semibold text-white/70 leading-snug">
+                        Save to studio inventory database
+                        <span className="block text-[10px] opacity-40 font-medium">Off: the item stays on this manifest only.</span>
+                      </span>
+                    </button>
+                  )}
+
+                  {gearItemError && (
+                    <p className="text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3">{gearItemError}</p>
+                  )}
+
                   <button 
                     onClick={addCustomItem}
-                    disabled={!customName.trim()}
-                    className="w-full bg-accent text-white py-2.5 mt-4 font-semibold text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
+                    disabled={!customName.trim() || savingGearItem}
+                    className="w-full flex items-center justify-center gap-2 bg-accent text-white py-2.5 mt-4 font-semibold text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
                   >
-                    {editingItemName ? 'Save Changes' : 'Add to Manifest'}
+                    {savingGearItem && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {editingItemName ? 'Save Changes' : (saveToStudioInventory ? 'Add to Inventory & Manifest' : 'Add to Manifest')}
                   </button>
+
+                  {editingItemName && (
+                    <button
+                      type="button"
+                      onClick={deleteGearItem}
+                      disabled={savingGearItem}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 font-semibold text-xs text-red-400 border border-red-500/20 bg-red-500/5 hover:bg-red-500/15 disabled:opacity-50 transition-all rounded-xl"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {editingIsDbItem ? 'Delete From Inventory' : 'Delete Custom Item'}
+                    </button>
+                  )}
                 </div>
               </motion.div>
             </div>
           )}
         </AnimatePresence>
+        </ModalPortal>
 
+        <ModalPortal>
         <AnimatePresence>
           {isSaveTemplateModalOpen && (
-            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-[130] flex items-start md:items-center justify-center p-4 overflow-y-auto">
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsSaveTemplateModalOpen(false)}
-                className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+                className="fixed inset-0 bg-black/85 backdrop-blur-sm"
               />
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="relative bg-neutral-900 border border-white/10 p-8 rounded-2xl w-full max-w-md shadow-2xl"
+                className="relative bg-neutral-900 border border-white/10 p-6 md:p-8 rounded-2xl w-full max-w-md shadow-2xl my-auto max-h-[92vh] overflow-y-auto custom-scrollbar"
               >
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-white">Save Gear Package</h2>
@@ -2359,6 +2549,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             </div>
           )}
         </AnimatePresence>
+        </ModalPortal>
         
     </div>
   );
