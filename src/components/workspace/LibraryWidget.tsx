@@ -687,53 +687,59 @@ export default function LibraryWidget() {
           ) : (
             <ul className="divide-y divide-white/5">
               {sections.map(section => (
-                <React.Fragment key={section.heading ?? '__all__'}>
+                // Each section is its own list. A sticky heading is bounded by
+                // its parent, so headings sharing one list all pin at top:0 at
+                // once and stack on top of each other as you scroll; giving each
+                // its own <li> makes the next heading push the last one out.
+                <li key={section.heading ?? '__all__'}>
                   {section.heading && (
-                    <li className="px-4 py-1.5 bg-white/[0.04] sticky top-0 z-10 flex items-center justify-between">
+                    <div className="px-4 py-1.5 bg-[#0a0a0a] border-b border-white/5 sticky top-0 z-10 flex items-center justify-between">
                       <span className="text-[11px] md:text-[9px] font-black uppercase tracking-[0.2em] text-accent/80">{section.heading}</span>
                       <span className="text-[11px] md:text-[9px] text-white/25">{section.items.length}</span>
-                    </li>
+                    </div>
                   )}
-                  {section.items.map(row => (
-                    <li
-                      key={`${row.type}-${row.id}`}
-                      className={`flex items-center gap-3 px-4 hover:bg-white/[0.03] ${row.id === activeId ? 'bg-accent/10 shadow-[inset_2px_0_0_var(--accent)]' : ''}`}
-                    >
-                      {!searching && (
-                        <input
-                          type="checkbox"
-                          checked={selected.has(row.id)}
-                          onChange={() => toggle(row.id)}
-                          aria-label={`Select ${row.name || 'untitled'}`}
-                          className="accent-[var(--accent)] shrink-0"
-                        />
-                      )}
-
-                      {/* The row reads the record; it no longer edits it. Renaming
-                          moved to the detail pane, where the field is labelled and
-                          the consequences are visible next to it. */}
-                      <button
-                        type="button"
-                        onClick={() => openRecord(row)}
-                        className="flex-1 min-w-0 text-left py-2.5 flex items-center gap-3"
+                  <ul className="divide-y divide-white/5">
+                    {section.items.map(row => (
+                      <li
+                        key={`${row.type}-${row.id}`}
+                        className={`flex items-center gap-3 px-4 hover:bg-white/[0.03] ${row.id === activeId ? 'bg-accent/10 shadow-[inset_2px_0_0_var(--accent)]' : ''}`}
                       >
-                        <span className="flex-1 min-w-0">
-                          <span className="block text-xs text-white/90 truncate">{row.name || 'Untitled'}</span>
-                          {row.detail && <span className="block text-[10px] text-white/35 truncate">{row.detail}</span>}
-                        </span>
+                        {!searching && (
+                          <input
+                            type="checkbox"
+                            checked={selected.has(row.id)}
+                            onChange={() => toggle(row.id)}
+                            aria-label={`Select ${row.name || 'untitled'}`}
+                            className="accent-[var(--accent)] shrink-0"
+                          />
+                        )}
 
-                        {row.count === undefined && row.trailing && (
-                          <span className="text-[10px] text-white/30 shrink-0 tabular-nums">{row.trailing}</span>
-                        )}
-                        {row.count !== undefined && (
-                          <span className="text-[10px] text-white/25 shrink-0 tabular-nums">
-                            {row.count} {row.countUnit === 'shoot' ? (row.count === 1 ? 'shoot' : 'shoots') : row.countUnit}
+                        {/* The row reads the record; it no longer edits it. Renaming
+                            moved to the detail pane, where the field is labelled and
+                            the consequences are visible next to it. */}
+                        <button
+                          type="button"
+                          onClick={() => openRecord(row)}
+                          className="flex-1 min-w-0 text-left py-2.5 flex items-center gap-3"
+                        >
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-xs text-white/90 truncate">{row.name || 'Untitled'}</span>
+                            {row.detail && <span className="block text-[10px] text-white/35 truncate">{row.detail}</span>}
                           </span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </React.Fragment>
+
+                          {row.count === undefined && row.trailing && (
+                            <span className="text-[10px] text-white/30 shrink-0 tabular-nums">{row.trailing}</span>
+                          )}
+                          {row.count !== undefined && (
+                            <span className="text-[10px] text-white/25 shrink-0 tabular-nums">
+                              {row.count} {row.countUnit === 'shoot' ? (row.count === 1 ? 'shoot' : 'shoots') : row.countUnit}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
               ))}
             </ul>
           )}
