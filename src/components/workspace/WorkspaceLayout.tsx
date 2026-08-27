@@ -34,7 +34,10 @@ import {
   Activity,
   DollarSign,
   ListTodo,
-  UserCheck
+  UserCheck,
+  Video,
+  MapPin,
+  ClipboardList
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
@@ -53,6 +56,10 @@ import DashboardOverview from '@/components/workspace/DashboardOverview';
 import { QuickStartWidget } from './QuickStartGuide';
 import InboxWidget from '@/components/workspace/InboxWidget';
 import Vault from '@/components/workspace/Vault';
+import MeetingNotes from '@/components/workspace/MeetingNotes';
+import ClientReview from '@/components/workspace/ClientReview';
+import LocationsDatabase from '@/components/workspace/LocationsDatabase';
+import IntakeBriefs from '@/components/workspace/IntakeBriefs';
 import IntegrationsHub from '@/components/workspace/IntegrationsHub';
 import LibraryWidget from '@/components/workspace/LibraryWidget';
 import UsageWidget from '@/components/workspace/UsageWidget';
@@ -83,6 +90,10 @@ const WIDGET_ICONS: Record<string, any> = {
   social: Share2,
   rolodex: Users,
   notes: FileText,
+  meeting_notes: FileText,
+  review: Video,
+  locations: MapPin,
+  intake: ClipboardList,
   script: Tv,
   clock: Timer,
   quickstart: HelpCircle,
@@ -107,6 +118,10 @@ const WIDGET_LABELS: Record<string, string> = {
   social: 'Social Media',
   rolodex: 'Rolodex',
   notes: 'Scratch Notes',
+  meeting_notes: 'Meeting Notes',
+  review: 'Client Review',
+  locations: 'Locations Scouting',
+  intake: 'Client Onboarding',
   script: 'Script & Teleprompter',
   clock: 'Production Timer',
   quickstart: 'Quick Start Guide',
@@ -973,6 +988,14 @@ function WidgetMount({
       return <SocialMedia />;
     case 'rolodex':
       return <Rolodex />;
+    case 'meeting_notes':
+      return <MeetingNotes />;
+    case 'review':
+      return <ClientReview />;
+    case 'locations':
+      return <LocationsDatabase />;
+    case 'intake':
+      return <IntakeBriefs />;
     case 'notes':
       return <NotesWidget />;
     case 'script':

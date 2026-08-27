@@ -1,21 +1,57 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ALL_CATEGORIES, INVENTORY } from '@/data/inventory';
-import { Search, ChevronRight } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ALL_CATEGORIES, INVENTORY, type InventoryItem } from '@/data/inventory';
+import { Search, ChevronRight, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
+import { useRealtime } from '@/lib/useRealtime';
 
 export default function EquipmentPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  // This page shows the exact same catalog the Gear Builder and the Library
+  // write to, so gear added in the Command Center appears here. The bundled
+  // inventory file is only a fallback for when the database is unreachable.
+  const [inventory, setInventory] = useState<InventoryItem[]>(INVENTORY);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredInventory = INVENTORY.filter(item => {
+  const loadInventory = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('inventory').select('*');
+      if (error) throw error;
+      if (data && data.length > 0) setInventory(data as InventoryItem[]);
+    } catch (err) {
+      console.error('Error fetching inventory:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadInventory();
+  }, [loadInventory]);
+
+  // Live-update when a teammate adds or edits gear in the Command Center.
+  useRealtime(['inventory'], loadInventory);
+
+  const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ['All', ...ALL_CATEGORIES];
+  // Standard category order first, then any custom categories added in the
+  // Command Center, so new gear never gets filtered out of this page.
+  const orderedCategories = useMemo(() => {
+    const present = new Set(inventory.map(item => item.category).filter(Boolean));
+    const extras = [...present]
+      .filter(cat => !ALL_CATEGORIES.includes(cat))
+      .sort((a, b) => a.localeCompare(b));
+    return [...ALL_CATEGORIES.filter(cat => present.has(cat)), ...extras];
+  }, [inventory]);
+
+  const categories = ['All', ...orderedCategories];
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -23,13 +59,22 @@ export default function EquipmentPage() {
 
   // Group items by category for the list view
   const groupedInventory = filteredInventory.reduce((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = [];
-    acc[item.category].push(item);
+    const category = item.category || 'Uncategorized';
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(item);
     return acc;
-  }, {} as Record<string, typeof INVENTORY>);
+  }, {} as Record<string, InventoryItem[]>);
+
+  Object.values(groupedInventory).forEach(items =>
+    items.sort((a, b) => a.name.localeCompare(b.name))
+  );
 
   const sortedCategories = activeCategory === 'All' 
-    ? ALL_CATEGORIES.filter(cat => groupedInventory[cat])
+    ? Object.keys(groupedInventory).sort((a, b) => {
+        const ai = orderedCategories.indexOf(a);
+        const bi = orderedCategories.indexOf(b);
+        return (ai === -1 ? Number.MAX_SAFE_INTEGER : ai) - (bi === -1 ? Number.MAX_SAFE_INTEGER : bi);
+      })
     : [activeCategory].filter(cat => groupedInventory[cat]);
 
   return (
@@ -49,6 +94,16 @@ export default function EquipmentPage() {
           >
             Equipment
           </motion.h1>
+          <div className="flex items-center gap-2 text-[11px] md:text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+            {isLoading ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Syncing inventory
+              </>
+            ) : (
+              <>{inventory.length} items in house</>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-12">
