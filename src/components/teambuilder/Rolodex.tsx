@@ -2528,17 +2528,16 @@ export default function Rolodex() {
       </AnimatePresence>
 
       {/* ═══════════════════════ DUPLICATE REVIEW ═══════════════════════ */}
-      <AnimatePresence>
-        {isDupeReviewOpen && (
-          <DuplicateReview
-            groups={focusedDupeKey ? duplicateGroups.filter(g => g.key === focusedDupeKey) : duplicateGroups}
-            busyKey={mergingGroupKey}
-            onMerge={mergeDuplicates}
-            onDismiss={dismissDuplicateGroup}
-            onClose={() => { setIsDupeReviewOpen(false); setFocusedDupeKey(null); }}
-          />
-        )}
-      </AnimatePresence>
+      {/* Portals itself to body, so no AnimatePresence and no conditional
+          render here — the sheet owns its own open state. */}
+      <DuplicateReview
+        open={isDupeReviewOpen}
+        groups={focusedDupeKey ? duplicateGroups.filter(g => g.key === focusedDupeKey) : duplicateGroups}
+        busyKey={mergingGroupKey}
+        onMerge={mergeDuplicates}
+        onDismiss={dismissDuplicateGroup}
+        onClose={() => { setIsDupeReviewOpen(false); setFocusedDupeKey(null); }}
+      />
     </div>
   );
 }
