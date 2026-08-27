@@ -371,11 +371,65 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
     }
   };
 
-  const handleJobUpdate = async (updatedJob: Job) => {
+  // Match a typed client name to a clients row, creating it when the name is
+  // new. Same contract Slate uses when saving a shoot, so a card and a shoot
+  // that name the same client end up pointing at one row rather than two.
+  const resolveOrCreateClient = async (name?: string): Promise<Client | null> => {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return null;
+    const existing = clients.find(c => c.name.trim().toLowerCase() === trimmed.toLowerCase());
+    if (existing) return existing;
+    const { data, error } = await supabase
+      .from('clients')
+      .insert([{ name: trimmed }])
+      .select()
+      .single();
+    if (error) {
+      console.error('Error creating client:', error);
+      return null;
+    }
+    const created = data as Client;
+    setClients(prev => [...prev, created]);
+    return created;
+  };
+
+  const createProject = async (name: string, clientId?: string): Promise<Project | null> => {
+    const { data, error } = await supabase
+      .from('projects')
+      .insert([{ name: name.trim(), client_id: clientId || null }])
+      .select()
+      .single();
+    if (error) {
+      console.error('Error creating project:', error);
+      toast(`Failed to create project: ${error.message || 'unknown error'}`);
+      return null;
+    }
+    const created = data as Project;
+    setProjects(prev => [...prev, created]);
+    return created;
+  };
+
+  const handleJobUpdate = async (updatedJob: Job, opts?: { newProjectName?: string }) => {
     // If it's a new job being created from the modal
     if (isCreatingNew) {
        try {
           const { editor, id, ...dbData } = updatedJob; // Remove the dummy 'draft-' ID so Supabase generates a valid UUID
+
+          // A card can name a client the Rolodex hasn't got yet; create it so
+          // the card, its project and any later shoot share the same client.
+          const client = await resolveOrCreateClient(dbData.client_name);
+          dbData.client_id = client?.id;
+          if (client) dbData.client_name = client.name;
+
+          // A brand new project is only written once the card actually gets
+          // created — an abandoned modal leaves no empty project behind.
+          const pendingProject = opts?.newProjectName?.trim();
+          if (pendingProject) {
+            const project = await createProject(pendingProject, client?.id);
+            if (!project) return; // createProject surfaced the reason already
+            dbData.project_id = project.id;
+          }
+
           const { data, error } = await supabase
             .from('jobs')
             .insert([dbData])
@@ -661,6 +715,8 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
           <CardDetailModal
             job={activeJob}
             contacts={contacts}
+            clients={clients}
+            projects={projects}
             onClose={() => {
               setActiveJob(null);
               setIsCreatingNew(false);
@@ -1163,6 +1219,8 @@ const getEmbedDetails = (url: string) => {
 function CardDetailModal({
   job,
   contacts,
+  clients,
+  projects,
   onClose,
   onUpdate,
   onRemoveFromBoard,
@@ -1174,8 +1232,10 @@ function CardDetailModal({
 }: {
   job: Job,
   contacts: Contact[],
+  clients: Client[],
+  projects: Project[],
   onClose: () => void,
-  onUpdate: (job: Job) => void,
+  onUpdate: (job: Job, opts?: { newProjectName?: string }) => void,
   onRemoveFromBoard: (jobId: string) => void,
   stages: ResolvedStage[],
   isCreatingNew?: boolean,
@@ -1192,6 +1252,27 @@ function CardDetailModal({
   const [title, setTitle] = useState(job.title);
   const [notes, setNotes] = useState(job.edit_notes || '');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+
+  // Client + project, filled in while a card is being created. Nothing is
+  // written until Create Card, so backing out costs no rows.
+  const [clientName, setClientName] = useState(job.client_name || '');
+  const [projectId, setProjectId] = useState(job.project_id || '');
+  const [newProjectName, setNewProjectName] = useState('');
+  const NEW_PROJECT = '__new__';
+
+  // The client this card is being filed under, matched by name the way Slate
+  // matches it — used to scope the project list to that client's projects.
+  const matchedClient = useMemo(
+    () => clients.find(c => c.name.trim().toLowerCase() === clientName.trim().toLowerCase()),
+    [clients, clientName]
+  );
+  // No client named yet: every project is fair game. A client that isn't in
+  // the Rolodex yet owns no projects, so the only honest option is a new one.
+  const projectsForClient = useMemo(() => {
+    if (!clientName.trim()) return projects;
+    if (!matchedClient) return [];
+    return projects.filter(p => p.client_id === matchedClient.id);
+  }, [projects, matchedClient, clientName]);
   const [showLabelMenu, setShowLabelMenu] = useState(false);
   const [newLabelText, setNewLabelText] = useState('');
 
@@ -1497,8 +1578,20 @@ function CardDetailModal({
           </div>
           {isCreatingNew && (
             <button 
-              onClick={() => onUpdate({ ...job, title: title.trim() || 'Untitled Task', edit_notes: notes })}
-              className="px-6 py-2 bg-accent text-white rounded-lg font-bold text-xs hover:bg-white hover:text-black transition-all h-fit mt-1"
+              onClick={() => onUpdate(
+                {
+                  ...job,
+                  title: title.trim() || 'Untitled Task',
+                  edit_notes: notes,
+                  client_name: clientName.trim() || undefined,
+                  client_id: matchedClient?.id,
+                  project_id: projectId === NEW_PROJECT ? undefined : (projectId || undefined),
+                },
+                { newProjectName: projectId === NEW_PROJECT ? newProjectName : undefined }
+              )}
+              disabled={projectId === NEW_PROJECT && !newProjectName.trim()}
+              title={projectId === NEW_PROJECT && !newProjectName.trim() ? 'Name the new project first' : undefined}
+              className="px-6 py-2 bg-accent text-white rounded-lg font-bold text-xs hover:bg-white hover:text-black transition-all h-fit mt-1 disabled:opacity-40 disabled:hover:bg-accent disabled:hover:text-white"
             >
               Create Card
             </button>
@@ -1509,6 +1602,60 @@ function CardDetailModal({
           
           {/* Main Content Column */}
           <div className="flex-1 space-y-8">
+
+            {/* Client + project, on new cards only. A card started here is
+                post-production work that may have no shoot behind it, so it
+                files itself under a client and project directly. */}
+            {isCreatingNew && (
+              <div className="pl-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-2">Client</h4>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={clientName}
+                      onChange={(e) => { setClientName(e.target.value); setProjectId(''); }}
+                      list="edit-tracker-clients"
+                      placeholder="Client name"
+                      className="w-full bg-white/5 border border-white/10 py-1.5 pl-9 pr-3 rounded-lg text-xs font-bold text-white outline-none focus:border-accent"
+                    />
+                    <datalist id="edit-tracker-clients">
+                      {clients.map(c => <option key={c.id} value={c.name} />)}
+                    </datalist>
+                  </div>
+                  {clientName.trim() && !matchedClient && (
+                    <p className="text-[10px] text-accent/80 mt-1 ml-1">New client — will be added to the Rolodex.</p>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-2">Project</h4>
+                  <div className="relative">
+                    <FolderOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+                    <select
+                      value={projectId}
+                      onChange={(e) => setProjectId(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 py-1.5 pl-9 pr-3 rounded-lg text-xs font-bold text-white outline-none focus:border-accent appearance-none cursor-pointer"
+                    >
+                      <option value="">No project</option>
+                      {projectsForClient.map(p => <option key={p.id} value={p.id}>{caps(p.name)}</option>)}
+                      <option value={NEW_PROJECT}>+ New project…</option>
+                    </select>
+                  </div>
+                  {projectId === NEW_PROJECT && (
+                    <input
+                      type="text"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      placeholder="Project name"
+                      autoFocus
+                      className="w-full bg-white/5 border border-white/10 py-1.5 px-3 mt-2 rounded-lg text-xs font-bold text-white outline-none focus:border-accent"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
             
             {/* Metadata Row (Members, Labels, Due Date) */}
             <div className="flex flex-wrap gap-6 pl-10">
