@@ -26,6 +26,11 @@
 .DS_Store
 *.pem
 
+# ffmpeg two-pass encode artifacts. `*.log` below does not catch the .mbtree
+# half, which is how a 16 MB one reached the repo root in #18.
+ffmpeg2pass-*.log
+ffmpeg2pass-*.log.mbtree
+
 # debug
 npm-debug.log*
 yarn-debug.log*
