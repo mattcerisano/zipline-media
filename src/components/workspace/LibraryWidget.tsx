@@ -40,6 +40,8 @@ interface Row {
   group?: string;
   /** Right-aligned text for rows that have no meaningful count (a shoot date). */
   trailing?: string;
+  /** Clients only: looks like a Rolodex contact that became a client by accident. */
+  stray?: boolean;
   raw: Record<string, any>;
 }
 
@@ -207,11 +209,14 @@ export default function LibraryWidget() {
     try {
       // Jobs come along so each row can show what depends on it. Without that
       // number, deleting is a guess about what you're about to unpick.
-      const [projRes, cliRes, invRes, jobRes] = await Promise.all([
+      // Contacts come along for one purpose: telling a real client from a
+      // Rolodex contact that became one by accident (see strayClient below).
+      const [projRes, cliRes, invRes, jobRes, conRes] = await Promise.all([
         supabase.from('projects').select('*').order('name'),
         supabase.from('clients').select('*').order('name'),
         supabase.from('inventory').select('*').order('name'),
         supabase.from('jobs').select('id, title, shoot_date, job_status, client_name, client_id, project_id, google_event_id, gear_manifest'),
+        supabase.from('contacts').select('name').limit(2000),
       ]);
 
       if (projRes.error) throw projRes.error;
@@ -225,6 +230,36 @@ export default function LibraryWidget() {
         if (j.project_id) byProject.set(j.project_id, (byProject.get(j.project_id) || 0) + 1);
         if (j.client_id) byClient.set(j.client_id, (byClient.get(j.client_id) || 0) + 1);
       }
+
+      // A project on a client counts as a use of it just as much as a shoot.
+      const projectsPerClient = new Map<string, number>();
+      for (const p of (projRes.data || []) as any[]) {
+        if (p.client_id) projectsPerClient.set(p.client_id, (projectsPerClient.get(p.client_id) || 0) + 1);
+      }
+
+      const contactNames = new Set(
+        ((conRes.data || []) as any[])
+          .map(c => String(c.name || '').trim().toLowerCase())
+          .filter(Boolean),
+      );
+
+      /**
+       * Spot a client the app invented rather than one anybody added.
+       *
+       * Until the picker landed, the gear list's "Generated For" box and the
+       * production form's client box both inserted whatever was typed as a
+       * client on save. Type a crew member's name into either and they became
+       * a client for good. The residue has a shape: no contact details of its
+       * own, nothing pointing at it, and a Rolodex contact by the same name.
+       *
+       * Deliberately narrow. It flags candidates to look at; it never deletes,
+       * and a client with a single shoot or an email on file is left alone.
+       */
+      const strayClient = (c: any) =>
+        contactNames.has(String(c.name || '').trim().toLowerCase()) &&
+        (byClient.get(c.id) || 0) === 0 &&
+        (projectsPerClient.get(c.id) || 0) === 0 &&
+        !c.email && !c.phone && !c.address && !c.notes && !c.quickbooks_customer_id;
 
       // Gear lists key items by NAME, not id (see Rentals: manifest[item.name]),
       // so renaming or deleting a catalog item silently orphans it in every
@@ -263,6 +298,7 @@ export default function LibraryWidget() {
           usage: byClient.get(c.id) || 0,
           count: byClient.get(c.id) || 0,
           countUnit: 'shoot',
+          stray: strayClient(c),
           raw: c,
         })),
         // The inventory table predates the migrations and was created by hand,
@@ -413,6 +449,13 @@ export default function LibraryWidget() {
     });
   };
 
+  /** Clients that look auto-created, and the button that arms them for review. */
+  const strays = useMemo(() => rows.clients.filter(r => r.stray), [rows.clients]);
+  const selectStrays = () => {
+    setSelected(new Set(strays.map(r => r.id)));
+    setActiveId(strays[0]?.id ?? null);
+  };
+
   const add = async () => {
     const name = await promptAction({
       title: meta.addLabel,
@@ -549,6 +592,7 @@ export default function LibraryWidget() {
         { k: 'Phone', v: d.phone || '—', mono: true },
         { k: 'Shoots', v: String(row.count ?? 0), mono: true },
         { k: 'QuickBooks', v: linked },
+        ...(row.stray ? [{ k: 'Looks like', v: 'A Rolodex contact, not a client' }] : []),
       ];
     }
     return [
@@ -655,6 +699,26 @@ export default function LibraryWidget() {
         </div>
       </div>
 
+      {/* One-time cleanup prompt for the clients two forms used to invent. */}
+      {entity === 'clients' && !searching && !loading && strays.length > 0 && (
+        <div className="px-4 py-2.5 border-b border-white/5 flex items-start gap-2.5 bg-amber-500/[0.07] shrink-0">
+          <AlertCircle className="w-3.5 h-3.5 text-amber-400/80 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-white/60 leading-relaxed flex-1 min-w-0">
+            {strays.length} {strays.length === 1 ? 'client shares a name' : 'clients share a name'} with a Rolodex
+            contact and {strays.length === 1 ? 'has' : 'have'} no shoots, projects or details of their own — the
+            shape of a name typed into a client box back when that created a client on save. Worth a look before
+            deleting: productions keep their client name either way.
+          </p>
+          <button
+            type="button"
+            onClick={selectStrays}
+            className="shrink-0 px-2.5 py-1 rounded-lg bg-white/5 border border-white/15 text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white hover:border-white/30 transition-colors"
+          >
+            Select {strays.length}
+          </button>
+        </div>
+      )}
+
       {/* List | detail. Stacks on narrow screens rather than squeezing both. */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="overflow-y-auto custom-scrollbar lg:border-r border-white/5">
@@ -723,7 +787,17 @@ export default function LibraryWidget() {
                           className="flex-1 min-w-0 text-left py-2.5 flex items-center gap-3"
                         >
                           <span className="flex-1 min-w-0">
-                            <span className="block text-xs text-white/90 truncate">{row.name || 'Untitled'}</span>
+                            <span className="flex items-center gap-1.5 min-w-0">
+                              <span className="block text-xs text-white/90 truncate">{row.name || 'Untitled'}</span>
+                              {row.stray && (
+                                <span
+                                  title="Shares a name with a Rolodex contact and has nothing linked to it"
+                                  className="shrink-0 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/25 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-amber-400/80"
+                                >
+                                  In Rolodex
+                                </span>
+                              )}
+                            </span>
                             {row.detail && <span className="block text-[10px] text-white/35 truncate">{row.detail}</span>}
                           </span>
 
