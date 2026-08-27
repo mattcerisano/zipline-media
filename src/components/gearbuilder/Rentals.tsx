@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, 
@@ -27,13 +28,21 @@ import {
   Share2,
   Lock,
   UserPlus,
-  Loader2
+  Loader2,
+  QrCode,
+  Wrench,
+  Activity,
+  Clock
 } from 'lucide-react';
 
 import { jsPDF } from 'jspdf';
 import Autocomplete from 'react-google-autocomplete';
 
 import { ALL_CATEGORIES, type InventoryItem } from '@/data/inventory';
+
+// Category is optional when adding gear; anything left blank lands here so the
+// item still groups somewhere instead of disappearing from the catalog.
+const UNCATEGORIZED = 'Uncategorized';
 import { STORAGE_KEY_CLIENTS, STORAGE_KEY_JOBS, Client, Job, GearTemplate, Contact } from './types';
 import ProductionCalendar from './ProductionCalendar';
 import { supabase } from '@/lib/supabase';
@@ -66,16 +75,29 @@ interface ManifestItem {
 
 }
 
+// Workspace panels use backdrop-blur + overflow-hidden, which makes them the
+// containing block for any `fixed` child. Modals rendered inline get trapped
+// (and clipped) inside the panel, so they go to <body> instead.
+const subscribeToNothing = () => () => {};
+const ModalPortal = ({ children }: { children: React.ReactNode }) => {
+  // Hydration-safe mount check: false on the server pass, true once client-side.
+  const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
+  if (!mounted) return null;
+  return createPortal(children, document.body);
+};
+
 
 
 const GearItem = ({ 
   item, 
   manifestCount, 
-  onUpdate
+  onUpdate,
+  onEdit
 }: { 
   item: InventoryItem, 
   manifestCount: number, 
-  onUpdate: (name: string, dir: number) => void
+  onUpdate: (name: string, dir: number) => void,
+  onEdit?: (item: InventoryItem) => void
 }) => (
   <div className="group flex items-center justify-between p-3 md:p-4 border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all rounded-xl">
     <div 
@@ -88,6 +110,16 @@ const GearItem = ({
     </div>
     
     <div className="flex items-center gap-1 md:gap-3 shrink-0">
+      {onEdit && (
+        <button
+          type="button"
+          onClick={() => onEdit(item)}
+          title="Edit gear record"
+          className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-white/25 hover:text-white hover:bg-white/10 md:opacity-0 md:group-hover:opacity-100 transition-all"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      )}
       <button 
         onClick={() => onUpdate(item.name, -1)}
         disabled={!manifestCount}
@@ -125,13 +157,24 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const [customGear, setCustomGear] = useState<InventoryItem[]>([]);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
   const [editingItemName, setEditingItemName] = useState<string | null>(null);
+  // True when the record being edited lives in the shared `inventory` table
+  // rather than in this session's local custom gear.
+  const [editingIsDbItem, setEditingIsDbItem] = useState(false);
+  // New items: write straight to the studio inventory table instead of local-only.
+  const [saveToStudioInventory, setSaveToStudioInventory] = useState(false);
+  const [savingGearItem, setSavingGearItem] = useState(false);
+  const [gearItemError, setGearItemError] = useState<string | null>(null);
 
   // Form State
   const [customName, setCustomName] = useState('');
-  const [customCategory, setCustomCategory] = useState(ALL_CATEGORIES[0]);
-  const [customQty, setCustomQty] = useState(1);
-  const [customValue, setCustomValue] = useState(0);
+  // Category, quantity and replacement value are all optional. Kept as strings
+  // so a blank field stays blank instead of snapping back to 1 / 0; they are
+  // coerced to their defaults (Uncategorized / 1 / 0) on save.
+  const [customCategory, setCustomCategory] = useState('');
+  const [customQty, setCustomQty] = useState('');
+  const [customValue, setCustomValue] = useState('');
   const [customOwner, setCustomOwner] = useState('');
+  const [customImage, setCustomImage] = useState('');
 
   // Rolodex contacts (so a rental house / contractor owner can be saved as a contact)
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -152,8 +195,55 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const [isMobileManifestOpen, setIsMobileManifestOpen] = useState(false);
   const [isJobPickerOpen, setIsJobPickerOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'gear' | 'library' | 'templates'>('gear');
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'gear' | 'library' | 'templates' | 'scanner' | 'subrentals' | 'maintenance'>('gear');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+
+  // QR Scanner States
+  const [scanInput, setScanInput] = useState('');
+  const [scanHistory, setScanHistory] = useState<{id: string, itemName: string, timestamp: string, status: 'success' | 'not_found', code: string}[]>([]);
+  const [scanStatus, setScanStatus] = useState<'success' | 'not_found' | null>(null);
+  const [scannedItem, setScannedItem] = useState<string | null>(null);
+  const [isScanningSimulated, setIsScanningSimulated] = useState(false);
+
+  // Sub-Rentals States
+  const [subRentals, setSubRentals] = useState<{id: string, itemName: string, rentalHouse: string, cost: number, returnDate: string}[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('studio_sub_rentals');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  const [subRentalItem, setSubRentalItem] = useState('');
+  const [subRentalHouse, setSubRentalHouse] = useState('');
+  const [subRentalCost, setSubRentalCost] = useState('');
+  const [subRentalReturnDate, setSubRentalReturnDate] = useState('');
+
+  // Maintenance States
+  const [maintenanceLogs, setMaintenanceLogs] = useState<{id: string, itemName: string, serviceType: string, techName: string, serviceDate: string, status: string, notes: string}[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('studio_maintenance_logs');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  const [maintItem, setMaintItem] = useState('');
+  const [maintType, setMaintType] = useState('Sensor Cleaning');
+  const [maintTech, setMaintTech] = useState('');
+  const [maintDate, setMaintDate] = useState('');
+  const [maintNotes, setMaintNotes] = useState('');
+
+  // Persistence Effects
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('studio_sub_rentals', JSON.stringify(subRentals));
+    }
+  }, [subRentals]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('studio_maintenance_logs', JSON.stringify(maintenanceLogs));
+    }
+  }, [maintenanceLogs]);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Templates State
@@ -309,6 +399,15 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     return [...dbInventory, ...customGear].sort((a, b) => a.name.localeCompare(b.name));
   }, [dbInventory, customGear]);
 
+  // Standard categories plus any others already present in the catalog (e.g.
+  // "Uncategorized" from a quick-add), so nothing is filtered into oblivion.
+  const categoryOptions = useMemo(() => {
+    const extras = Array.from(new Set(allInventory.map(i => i.category).filter(Boolean)))
+      .filter(cat => !ALL_CATEGORIES.includes(cat))
+      .sort((a, b) => a.localeCompare(b));
+    return [...ALL_CATEGORIES, ...extras];
+  }, [allInventory]);
+
   const filteredItems = useMemo(() => {
     const term = search.toLowerCase().trim();
     return allInventory.filter(item => {
@@ -361,6 +460,51 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     });
   };
 
+  const handleBarcodeScan = (code: string) => {
+    if (!code.trim()) return;
+    const cleanCode = code.trim();
+    const item = allInventory.find(i => i.name.toLowerCase().includes(cleanCode.toLowerCase()));
+    
+    if (item) {
+      setManifest(prev => {
+        const current = prev[item.name] || 0;
+        const next = Math.min(item.qty, current + 1);
+        return { ...prev, [item.name]: next };
+      });
+      
+      const historyItem = {
+        id: 'scan_' + Date.now(),
+        itemName: item.name,
+        timestamp: new Date().toLocaleTimeString(),
+        status: 'success' as const,
+        code: cleanCode
+      };
+      setScanHistory(prev => [historyItem, ...prev].slice(0, 30));
+      setScanStatus('success');
+      setScannedItem(item.name);
+      
+      setTimeout(() => {
+        setScanStatus(null);
+        setScannedItem(null);
+      }, 3000);
+    } else {
+      const historyItem = {
+        id: 'scan_' + Date.now(),
+        itemName: cleanCode,
+        timestamp: new Date().toLocaleTimeString(),
+        status: 'not_found' as const,
+        code: cleanCode
+      };
+      setScanHistory(prev => [historyItem, ...prev].slice(0, 30));
+      setScanStatus('not_found');
+      
+      setTimeout(() => {
+        setScanStatus(null);
+      }, 3000);
+    }
+    setScanInput('');
+  };
+
   const resetOwnerContactUI = () => {
     setShowAddOwnerContact(false);
     setOwnerContactEmail('');
@@ -370,11 +514,15 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
   const openAddModal = () => {
     setEditingItemName(null);
+    setEditingIsDbItem(false);
+    setSaveToStudioInventory(true);
+    setGearItemError(null);
     setCustomName('');
-    setCustomCategory(ALL_CATEGORIES[0]);
-    setCustomQty(1);
-    setCustomValue(0);
+    setCustomCategory('');
+    setCustomQty('');
+    setCustomValue('');
     setCustomOwner('');
+    setCustomImage('');
     resetOwnerContactUI();
     setIsCustomModalOpen(true);
   };
@@ -386,44 +534,107 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         baseName = baseName.replace(` [${owner}]`, '').trim();
     }
     setEditingItemName(item.name); 
+    setEditingIsDbItem(dbInventory.some(i => i.name === item.name));
+    setSaveToStudioInventory(false);
+    setGearItemError(null);
     setCustomName(baseName);
-    setCustomCategory(item.category);
-    setCustomQty(item.qty);
-    setCustomValue(item.replacement);
+    setCustomCategory(item.category === UNCATEGORIZED ? '' : (item.category || ''));
+    setCustomQty(item.qty ? String(item.qty) : '');
+    setCustomValue(item.replacement ? String(item.replacement) : '');
     setCustomOwner(owner);
+    setCustomImage(item.image || '');
     resetOwnerContactUI();
     setIsCustomModalOpen(true);
   };
 
-  const addCustomItem = () => {
-    if (!customName.trim()) return;
-    const finalName = customOwner.trim() ? `${customName.trim()} [${customOwner.trim()}]` : customName.trim();
-    if (finalName !== editingItemName && allInventory.find(i => i.name.toLowerCase() === finalName.toLowerCase())) {
-      alert('Item with this name already exists.');
-      return;
-    }
-    const newItem: InventoryItem = {
-      name: finalName,
-      category: customCategory,
-      qty: customQty,
-      replacement: customValue,
-      owner: customOwner.trim() || undefined
+  // The inventory table was created outside of migrations, so only send columns
+  // that actually came back from the API rather than guessing the schema.
+  const inventoryColumns = useMemo(
+    () => (dbInventory[0] ? Object.keys(dbInventory[0]) : null),
+    [dbInventory]
+  );
+
+  const toInventoryPayload = (item: InventoryItem) => {
+    const full: Record<string, any> = {
+      name: item.name,
+      category: item.category,
+      qty: item.qty,
+      replacement: item.replacement,
+      image: item.image || null,
+      owner: item.owner || null,
     };
-    setCustomGear(prev => {
-        const filtered = prev.filter(i => i.name !== editingItemName);
-        return [...filtered, newItem];
-    });
+    if (!inventoryColumns) return full;
+    return Object.fromEntries(Object.entries(full).filter(([key]) => inventoryColumns.includes(key)));
+  };
+
+  const renameInManifest = (fromName: string | null, toName: string, isNew: boolean) => {
     setManifest(prev => {
         const newManifest = { ...prev };
-        if (editingItemName && editingItemName !== finalName) {
-            const count = newManifest[editingItemName];
-            delete newManifest[editingItemName];
-            if (count) newManifest[finalName] = count;
-        } else if (!editingItemName) {
-            newManifest[finalName] = 1;
+        if (fromName && fromName !== toName) {
+            const count = newManifest[fromName];
+            delete newManifest[fromName];
+            if (count) newManifest[toName] = count;
+        } else if (isNew) {
+            newManifest[toName] = 1;
         }
         return newManifest;
     });
+  };
+
+  const addCustomItem = async () => {
+    if (!customName.trim()) return;
+    const finalName = customOwner.trim() ? `${customName.trim()} [${customOwner.trim()}]` : customName.trim();
+    if (finalName !== editingItemName && allInventory.find(i => i.name.toLowerCase() === finalName.toLowerCase())) {
+      setGearItemError('Item with this name already exists.');
+      return;
+    }
+    const parsedQty = parseInt(customQty, 10);
+    const parsedValue = parseFloat(customValue);
+    const newItem: InventoryItem = {
+      name: finalName,
+      category: customCategory.trim() || UNCATEGORIZED,
+      qty: Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1,
+      replacement: Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : 0,
+      image: customImage.trim() || undefined,
+      owner: customOwner.trim() || undefined
+    };
+
+    const writesToDb = editingIsDbItem || (!editingItemName && saveToStudioInventory);
+
+    if (writesToDb) {
+      setSavingGearItem(true);
+      setGearItemError(null);
+      try {
+        if (editingIsDbItem && editingItemName) {
+          const { error } = await supabase
+            .from('inventory')
+            .update(toInventoryPayload(newItem))
+            .eq('name', editingItemName);
+          if (error) throw error;
+          setDbInventory(prev => prev.map(i => (i.name === editingItemName ? { ...i, ...newItem } : i)));
+        } else {
+          const { data, error } = await supabase
+            .from('inventory')
+            .insert([toInventoryPayload(newItem)])
+            .select()
+            .single();
+          if (error) throw error;
+          setDbInventory(prev => [...prev, (data as InventoryItem) || newItem]);
+        }
+      } catch (err: any) {
+        setGearItemError(err.message || 'Could not save to the studio inventory.');
+        setSavingGearItem(false);
+        return;
+      }
+      setSavingGearItem(false);
+    } else {
+      setCustomGear(prev => {
+          const filtered = prev.filter(i => i.name !== editingItemName);
+          return [...filtered, newItem];
+      });
+    }
+
+    renameInManifest(editingItemName, finalName, !editingItemName);
 
     // Save owner to list for autofill
     if (customOwner.trim()) {
@@ -438,6 +649,35 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       });
     }
 
+    setIsCustomModalOpen(false);
+  };
+
+  const deleteGearItem = async () => {
+    if (!editingItemName) return;
+    if (!confirm(`Delete "${editingItemName}"${editingIsDbItem ? ' from the studio inventory database' : ''}? This cannot be undone.`)) return;
+
+    if (editingIsDbItem) {
+      setSavingGearItem(true);
+      setGearItemError(null);
+      try {
+        const { error } = await supabase.from('inventory').delete().eq('name', editingItemName);
+        if (error) throw error;
+        setDbInventory(prev => prev.filter(i => i.name !== editingItemName));
+      } catch (err: any) {
+        setGearItemError(err.message || 'Could not delete from the studio inventory.');
+        setSavingGearItem(false);
+        return;
+      }
+      setSavingGearItem(false);
+    } else {
+      setCustomGear(prev => prev.filter(i => i.name !== editingItemName));
+    }
+
+    setManifest(prev => {
+      const next = { ...prev };
+      delete next[editingItemName];
+      return next;
+    });
     setIsCustomModalOpen(false);
   };
 
@@ -627,12 +867,46 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       }
 
       // 2. Handle Job Saving
-      // Check if job with same ID or same title/date exists for updating
-      const existingJob = jobs.find(j => j.id === selectedJobId) || jobs.find(j => j.title === dbJob.title && j.shoot_date === dbJob.shoot_date);
+      // Only write back to the production this manifest is explicitly linked to, and
+      // only while the title still matches it. Everything else gets its own row --
+      // a double-booked day (two units, two locations) must stay two productions.
+      const linkedJob = jobs.find(j => j.id === selectedJobId);
+      let existingJob = linkedJob && linkedJob.title.trim().toLowerCase() === dbJob.title.toLowerCase()
+        ? linkedJob
+        : undefined;
+
+      if (existingJob && existingJob.shoot_date && existingJob.shoot_date !== dbJob.shoot_date) {
+        // Same title, different day: usually a second shoot rather than a reschedule.
+        const isReschedule = confirm(
+          `"${existingJob.title}" is on Slate for ${existingJob.shoot_date}, but this list says ${dbJob.shoot_date}.\n\n` +
+          `OK - move that production to ${dbJob.shoot_date}\n` +
+          `Cancel - log this as a separate production on ${dbJob.shoot_date}`
+        );
+        if (!isReschedule) existingJob = undefined;
+      }
+
+      if (!existingJob) {
+        // A same-name production already on that date is ambiguous: it could be the one
+        // we mean to update, or the other team's shoot. Ask instead of silently merging.
+        const sameDayTwin = jobs.find(j =>
+          j.title.trim().toLowerCase() === dbJob.title.toLowerCase() &&
+          j.shoot_date === dbJob.shoot_date
+        );
+        if (sameDayTwin) {
+          const updateTwin = confirm(
+            `"${dbJob.title}" is already on Slate for ${dbJob.shoot_date}.\n\n` +
+            `OK - update that existing production\n` +
+            `Cancel - log this as a SECOND, separate production on the same day`
+          );
+          if (updateTwin) existingJob = sameDayTwin;
+        }
+      }
+
+      const targetJob = existingJob;
 
       let res;
-      if (existingJob) {
-        res = await supabase.from('jobs').update(dbJob).eq('id', existingJob.id).select();
+      if (targetJob) {
+        res = await supabase.from('jobs').update(dbJob).eq('id', targetJob.id).select();
       } else {
         res = await supabase.from('jobs').insert(dbJob).select();
       }
@@ -643,8 +917,8 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         throw new Error('No data returned from database');
       }
 
-      if (existingJob) {
-        setJobs(prev => prev.map(j => j.id === existingJob.id ? res.data![0] as Job : j));
+      if (targetJob) {
+        setJobs(prev => prev.map(j => j.id === targetJob.id ? res.data![0] as Job : j));
         setSelectedJobId(res.data![0].id);
         alert('Job updated on Slate successfully!');
       } else {
@@ -1150,6 +1424,10 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     doc.save(`${safeJob || "Equipment_List"}.pdf`);
   };
 
+  // Which saved production "Log to Slate" will write to. Undefined means "create a
+  // new production" -- the safe default when two shoots share a date.
+  const activeLinkedJob = selectedJobId ? jobs.find(j => j.id === selectedJobId) : undefined;
+
   const ManifestContent = (
     <section className="bg-neutral-900/80 border border-white/10 p-6 md:p-8 rounded-2xl lg:sticky lg:top-24 h-full lg:h-[calc(100vh-140px)] flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-6">
@@ -1180,6 +1458,23 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           <label className="text-xs font-semibold opacity-40 ml-1 flex items-center gap-1.5">
             Job Title
             {selectedJobIdProp && <Lock className="w-2.5 h-2.5 text-accent opacity-60" />}
+            {!selectedJobIdProp && (
+              activeLinkedJob ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="text-accent opacity-80">Updating &quot;{activeLinkedJob.title}&quot;</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedJobId(null)}
+                    className="underline opacity-60 hover:opacity-100"
+                    title="Log this as a separate production instead"
+                  >
+                    log as new
+                  </button>
+                </span>
+              ) : jobTitle.trim() ? (
+                <span className="opacity-60">New production</span>
+              ) : null
+            )}
           </label>
           <div className="relative">
             <input 
@@ -1234,7 +1529,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                       if (matchedJob.gear_manifest) {
                           setManifest(matchedJob.gear_manifest as Record<string, number>);
                       }
-                  } else if (!val.trim()) {
+                  } else {
+                      // Title no longer matches a saved production, so this is a different
+                      // shoot. Drop the link or saving would overwrite the job we were on.
                       setSelectedJobId(null);
                   }
               }}
@@ -1461,7 +1758,6 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                             <div className="space-y-2">
                             {items.map((item) => {
                                 const invItem = allInventory.find(i => i.name === item.name);
-                                const isCustom = customGear.some(c => c.name === item.name);
                                 
                                 return (
                                 <div key={item.name} className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/5 group">
@@ -1472,9 +1768,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                                     </p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {isCustom && (
+                                        {invItem && (
                                             <button
-                                                onClick={() => handleEdit(invItem!)}
+                                                onClick={() => handleEdit(invItem)}
                                                 className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 hover:text-white transition-all rounded-md"
                                             >
                                                 <Pencil className="w-3 h-3" />
@@ -1583,26 +1879,56 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-fit max-h-[75vh] lg:max-h-none lg:h-[calc(100vh-140px)] sticky top-24">
               
               <div className="bg-neutral-900/90 backdrop-blur-md p-4 md:p-0 z-20 sticky top-0 border-b md:border-b-0 border-white/10 space-y-4">
-                {/* Tab Toggle */}
-                <div className="flex gap-2 p-1 bg-black/40 border border-white/5 rounded-xl">
-                  <button 
-                    onClick={() => setActiveSidebarTab('gear')}
-                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'gear' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
-                  >
-                    Gear Selection
-                  </button>
-                  <button 
-                    onClick={() => setActiveSidebarTab('library')}
-                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'library' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
-                  >
-                    Slate Library
-                  </button>
-                  <button 
-                    onClick={() => setActiveSidebarTab('templates')}
-                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'templates' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
-                  >
-                    Packages
-                  </button>
+                {/* Double Row Tab Toggle */}
+                <div className="space-y-1.5 p-1.5 bg-black/40 border border-white/5 rounded-2xl">
+                  {/* Row 1: Core Selection & Building */}
+                  <div className="flex gap-1.5">
+                    <button 
+                      type="button"
+                      onClick={() => setActiveSidebarTab('gear')}
+                      className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl transition-all ${activeSidebarTab === 'gear' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white bg-white/5'}`}
+                    >
+                      Inventory
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setActiveSidebarTab('library')}
+                      className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl transition-all ${activeSidebarTab === 'library' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white bg-white/5'}`}
+                    >
+                      Library
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setActiveSidebarTab('templates')}
+                      className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl transition-all ${activeSidebarTab === 'templates' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white bg-white/5'}`}
+                    >
+                      Packages
+                    </button>
+                  </div>
+                  {/* Row 2: Expanded Logistics */}
+                  <div className="flex gap-1.5">
+                    <button 
+                      type="button"
+                      onClick={() => setActiveSidebarTab('scanner')}
+                      className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl transition-all ${activeSidebarTab === 'scanner' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white bg-white/5'}`}
+                    >
+                      QR Scanner
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setActiveSidebarTab('subrentals')}
+                      className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl transition-all ${activeSidebarTab === 'subrentals' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white bg-white/5'}`}
+                    >
+                      Sub-Rentals
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setActiveSidebarTab('maintenance')}
+                      className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl transition-all ${activeSidebarTab === 'maintenance' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white bg-white/5'}`}
+                    >
+                      Maintenance
+                    </button>
+                  </div>
                 </div>
 
                 {activeSidebarTab === 'gear' ? (
@@ -1614,7 +1940,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                         className="flex-1 bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-xl appearance-none cursor-pointer"
                       >
                         <option value="All">ALL CATEGORIES</option>
-                        {ALL_CATEGORIES.map(cat => (
+                        {categoryOptions.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </select>
@@ -1647,14 +1973,29 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                     </div>
                   </>
                 ) : activeSidebarTab === 'library' ? (
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between px-1">
                     <h3 className="text-xs font-semibold text-accent">Saved Production Slates</h3>
                     <p className="text-xs font-semibold opacity-40">{jobs.length} Total</p>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-between">
+                ) : activeSidebarTab === 'templates' ? (
+                  <div className="flex items-center justify-between px-1">
                     <h3 className="text-xs font-semibold text-accent">Gear Package Templates</h3>
                     <p className="text-xs font-semibold opacity-40">{gearTemplates.length} Total</p>
+                  </div>
+                ) : activeSidebarTab === 'scanner' ? (
+                  <div className="flex items-center justify-between px-1">
+                    <h3 className="text-xs font-semibold text-accent">Studio Barcode / QR Scanner</h3>
+                    <span className="text-[9px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded font-bold tracking-wider">SIMULATION ON</span>
+                  </div>
+                ) : activeSidebarTab === 'subrentals' ? (
+                  <div className="flex items-center justify-between px-1">
+                    <h3 className="text-xs font-semibold text-accent">External Sub-Rentals</h3>
+                    <span className="text-[9px] bg-accent/20 border border-accent/30 text-accent px-2 py-0.5 rounded font-bold tracking-wider">TRACKER</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between px-1">
+                    <h3 className="text-xs font-semibold text-accent">Gear Maintenance Logs</h3>
+                    <span className="text-[9px] bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded font-bold tracking-wider">HEALTH LOG</span>
                   </div>
                 )}
               </div>
@@ -1673,6 +2014,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                                   item={item} 
                                   manifestCount={manifest[item.name] || 0}
                                   onUpdate={updateManifest} 
+                                  onEdit={handleEdit}
                                 />
                             ))}
                           </div>
@@ -1692,6 +2034,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                               item={item} 
                               manifestCount={manifest[item.name] || 0}
                               onUpdate={updateManifest}
+                              onEdit={handleEdit}
                             />
                           ))
                         )}
@@ -1739,7 +2082,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                       ))
                     )}
                   </div>
-                ) : (
+                ) : activeSidebarTab === 'templates' ? (
                   // Templates list
                   <div className="space-y-3 pb-8">
                     {gearTemplates.length === 0 ? (
@@ -1761,6 +2104,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                               )}
                             </div>
                             <button 
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 deleteGearTemplate(template.id);
@@ -1782,12 +2126,14 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
                           <div className="grid grid-cols-2 gap-2 mt-auto">
                             <button
+                              type="button"
                               onClick={() => loadGearTemplate(template, 'merge')}
                               className="py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold rounded-lg text-white/80 transition-all"
                             >
                               Merge List
                             </button>
                             <button
+                              type="button"
                               onClick={() => loadGearTemplate(template, 'overwrite')}
                               className="py-2 bg-accent hover:bg-white hover:text-black text-xs font-semibold rounded-lg text-white transition-all shadow-md shadow-accent/10"
                             >
@@ -1797,6 +2143,379 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                         </div>
                       ))
                     )}
+                  </div>
+                ) : activeSidebarTab === 'scanner' ? (
+                  // Barcode & QR Scanner Simulation View
+                  <div className="space-y-6 pb-12 text-white px-1">
+                    {/* Simulated Cam Feed Viewport */}
+                    <div className="relative aspect-video w-full bg-neutral-950 rounded-2xl border border-white/10 overflow-hidden flex flex-col items-center justify-center">
+                      <style>{`
+                        @keyframes laser-sweep {
+                          0% { top: 0%; }
+                          50% { top: 100%; }
+                          100% { top: 0%; }
+                        }
+                        .laser-line {
+                          position: absolute;
+                          left: 0;
+                          right: 0;
+                          height: 2px;
+                          background: linear-gradient(90deg, transparent, #00FF88, transparent);
+                          box-shadow: 0 0 12px #00FF88;
+                          animation: laser-sweep 4s infinite linear;
+                          z-index: 10;
+                        }
+                      `}</style>
+                      
+                      {/* Laser Line */}
+                      <div className="laser-line" />
+                      
+                      {/* Neon Targeting Corners */}
+                      <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-green-500/60" />
+                      <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-green-500/60" />
+                      <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-green-500/60" />
+                      <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-green-500/60" />
+
+                      <div className="text-center p-6 z-10 flex flex-col items-center">
+                        <QrCode className="w-12 h-12 text-green-400 mb-3 animate-pulse" />
+                        <span className="text-[8px] font-black text-green-400 tracking-widest bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20 uppercase">
+                          FEED ACTIVE
+                        </span>
+                        <p className="text-[9px] text-white/35 mt-2 uppercase tracking-wider font-bold">Hold code or type item name below</p>
+                      </div>
+                    </div>
+
+                    {/* Alert Toast Notification */}
+                    {scanStatus && (
+                      <div className={`p-4 rounded-xl border flex items-center gap-3 transition-all ${
+                        scanStatus === 'success' 
+                          ? 'bg-green-500/10 border-green-500/25 text-green-400' 
+                          : 'bg-red-500/10 border-red-500/25 text-red-400'
+                      }`}>
+                        <div className="w-2 h-2 rounded-full bg-current animate-ping" />
+                        <div className="flex-1 text-[11px] font-bold uppercase tracking-wider">
+                          {scanStatus === 'success' 
+                            ? `Scanned Successfully: "${scannedItem}"` 
+                            : 'Scan Error: Equipment not found in studio inventory'}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quick presets */}
+                    <div className="space-y-2">
+                      <h4 className="text-[9px] font-black text-white/30 uppercase tracking-widest">Interactive Presets</h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {['RED V-Raptor', 'Sony FX6', 'Arri Signature Prime', 'DJI Ronin 2', 'Aputure 1200d'].map(name => (
+                          <button
+                            type="button"
+                            key={name}
+                            onClick={() => handleBarcodeScan(name)}
+                            className="bg-white/5 hover:bg-green-500/10 border border-white/5 hover:border-green-500/30 text-[9px] font-bold px-2.5 py-1.5 rounded-lg transition-all text-white/80 cursor-pointer"
+                          >
+                            Scan {name.split(' ')[0]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Manual entry */}
+                    <div className="space-y-2">
+                      <h4 className="text-[9px] font-black text-white/30 uppercase tracking-widest">Manual Barcode Input</h4>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text"
+                          value={scanInput}
+                          onChange={(e) => setScanInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleBarcodeScan(scanInput)}
+                          placeholder="ENTER BARCODE OR SEARCH ITEM NAME..."
+                          className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-2.5 text-[10px] font-medium text-white outline-none focus:border-accent"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleBarcodeScan(scanInput)}
+                          className="bg-accent hover:bg-white hover:text-black text-white px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer border border-accent"
+                        >
+                          Scan
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Scan History */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-[9px] font-black text-white/30 uppercase tracking-widest">Session History</h4>
+                        {scanHistory.length > 0 && (
+                          <button 
+                            type="button" 
+                            onClick={() => setScanHistory([])} 
+                            className="text-[8px] font-black text-red-400 hover:underline uppercase tracking-widest"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                      <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                        {scanHistory.length > 0 ? (
+                          scanHistory.map((h) => (
+                            <div key={h.id} className="flex justify-between items-center bg-black/20 border border-white/5 p-3 rounded-xl">
+                              <div>
+                                <p className="text-[10px] font-bold text-white uppercase tracking-tight">{h.itemName}</p>
+                                <span className="text-[7px] text-white/40 uppercase tracking-widest">{h.timestamp} • CODE: {h.code}</span>
+                              </div>
+                              <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${
+                                h.status === 'success' 
+                                  ? 'bg-green-500/10 border-green-500/20 text-green-400' 
+                                  : 'bg-red-500/10 border-red-500/20 text-red-400'
+                              }`}>
+                                {h.status === 'success' ? 'IN' : 'ERR'}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-[10px] text-white/30 italic py-4 text-center border border-dashed border-white/10 rounded-xl">
+                            Ready to scan studio equipment.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : activeSidebarTab === 'subrentals' ? (
+                  // External Sub-Rentals Panel
+                  <div className="space-y-6 pb-12 text-white px-1">
+                    {/* Add Form */}
+                    <div className="bg-black/15 border border-white/5 p-4 rounded-2xl space-y-4">
+                      <h4 className="text-[9px] font-black text-accent uppercase tracking-widest">Log External Sub-Rental</h4>
+                      <div className="space-y-2">
+                        <input 
+                          type="text"
+                          value={subRentalItem}
+                          onChange={(e) => setSubRentalItem(e.target.value)}
+                          placeholder="EQUIPMENT ITEM (e.g. 24-70mm f2.8)"
+                          className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-medium text-white outline-none focus:border-accent"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input 
+                            type="text"
+                            value={subRentalHouse}
+                            onChange={(e) => setSubRentalHouse(e.target.value)}
+                            placeholder="RENTAL HOUSE (e.g. Adorama)"
+                            className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-medium text-white outline-none focus:border-accent"
+                          />
+                          <input 
+                            type="number"
+                            value={subRentalCost}
+                            onChange={(e) => setSubRentalCost(e.target.value)}
+                            placeholder="COST ($)"
+                            className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-medium text-white outline-none focus:border-accent"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <input 
+                            type="date"
+                            value={subRentalReturnDate}
+                            onChange={(e) => setSubRentalReturnDate(e.target.value)}
+                            className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-bold text-white outline-none focus:border-accent cursor-pointer"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const val = parseFloat(subRentalCost);
+                              if (subRentalItem.trim() && subRentalHouse.trim() && subRentalReturnDate) {
+                                const newR = {
+                                  id: 'sub_' + Date.now(),
+                                  itemName: subRentalItem.trim(),
+                                  rentalHouse: subRentalHouse.trim(),
+                                  cost: isNaN(val) ? 0 : val,
+                                  returnDate: subRentalReturnDate
+                                };
+                                setSubRentals(prev => [newR, ...prev]);
+                                setSubRentalItem('');
+                                setSubRentalHouse('');
+                                setSubRentalCost('');
+                                setSubRentalReturnDate('');
+                              }
+                            }}
+                            className="bg-accent hover:bg-white hover:text-black text-white px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer border border-accent"
+                          >
+                            Log Rental
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Sub-rentals list */}
+                    <div className="space-y-3">
+                      <h4 className="text-[9px] font-black text-white/30 uppercase tracking-widest">Active Sub-rented Gear</h4>
+                      <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+                        {subRentals.length > 0 ? (
+                          subRentals.map((r) => {
+                            const diffTime = new Date(r.returnDate).getTime() - new Date().setHours(0,0,0,0);
+                            const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            
+                            return (
+                              <div key={r.id} className="group flex justify-between items-center bg-black/20 border border-white/5 p-3 rounded-xl hover:border-white/10 transition-all">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[8px] font-black bg-white/5 border border-white/5 px-1.5 py-0.5 rounded text-white/50 uppercase tracking-widest">{r.rentalHouse}</span>
+                                    <span className="text-[10px] font-black text-green-400">${r.cost.toLocaleString()}</span>
+                                  </div>
+                                  <p className="text-xs font-bold text-white mt-1 uppercase tracking-tight">{r.itemName}</p>
+                                  
+                                  {/* Return date countdown */}
+                                  <div className="mt-1.5 flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-white/30" />
+                                    <span className={`text-[8px] font-black uppercase tracking-widest ${
+                                      daysLeft < 0 
+                                        ? 'text-red-400' 
+                                        : daysLeft === 0 
+                                          ? 'text-yellow-400 animate-pulse' 
+                                          : 'text-white/50'
+                                    }`}>
+                                      {daysLeft < 0 
+                                        ? `OVERDUE BY ${Math.abs(daysLeft)} DAYS` 
+                                        : daysLeft === 0 
+                                          ? 'DUE TODAY' 
+                                          : `${daysLeft} DAYS REMAINING`}
+                                    </span>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setSubRentals(prev => prev.filter(item => item.id !== r.id))}
+                                  className="p-2 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded cursor-pointer opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p className="text-[10px] text-white/30 italic py-6 text-center border border-dashed border-white/10 rounded-xl">
+                            No active external sub-rentals logged.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // Gear Maintenance Logs Panel
+                  <div className="space-y-6 pb-12 text-white px-1">
+                    {/* Add Form */}
+                    <div className="bg-black/15 border border-white/5 p-4 rounded-2xl space-y-4">
+                      <h4 className="text-[9px] font-black text-accent uppercase tracking-widest">Log Maintenance / Service</h4>
+                      <div className="space-y-2">
+                        <input 
+                          type="text"
+                          value={maintItem}
+                          onChange={(e) => setMaintItem(e.target.value)}
+                          placeholder="EQUIPMENT ITEM (e.g. RED Raptor Body)"
+                          className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-medium text-white outline-none focus:border-accent"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <select
+                            value={maintType}
+                            onChange={(e) => setMaintType(e.target.value)}
+                            className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-bold text-white outline-none focus:border-accent cursor-pointer"
+                          >
+                            <option value="Sensor Cleaning">Sensor Cleaning</option>
+                            <option value="Firmware Update">Firmware Update</option>
+                            <option value="Lens Calibration">Lens Calibration</option>
+                            <option value="Repair / Service">Repair / Service</option>
+                            <option value="General Checkup">General Checkup</option>
+                          </select>
+                          <input 
+                            type="text"
+                            value={maintTech}
+                            onChange={(e) => setMaintTech(e.target.value)}
+                            placeholder="TECHNICIAN NAME"
+                            className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-medium text-white outline-none focus:border-accent"
+                          />
+                        </div>
+                        <input 
+                          type="text"
+                          value={maintNotes}
+                          onChange={(e) => setMaintNotes(e.target.value)}
+                          placeholder="SERVICE NOTES / COMPLETED TASKS"
+                          className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-medium text-white outline-none focus:border-accent"
+                        />
+                        <div className="flex gap-2">
+                          <input 
+                            type="date"
+                            value={maintDate}
+                            onChange={(e) => setMaintDate(e.target.value)}
+                            className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-bold text-white outline-none focus:border-accent cursor-pointer"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (maintItem.trim() && maintTech.trim() && maintDate) {
+                                const newL = {
+                                  id: 'maint_' + Date.now(),
+                                  itemName: maintItem.trim(),
+                                  serviceType: maintType,
+                                  techName: maintTech.trim(),
+                                  serviceDate: maintDate,
+                                  status: 'Completed',
+                                  notes: maintNotes.trim() || 'No additional notes'
+                                };
+                                setMaintenanceLogs(prev => [newL, ...prev]);
+                                setMaintItem('');
+                                setMaintTech('');
+                                setMaintNotes('');
+                                setMaintDate('');
+                              }
+                            }}
+                            className="bg-accent hover:bg-white hover:text-black text-white px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer border border-accent"
+                          >
+                            Log Service
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Maintenance history list */}
+                    <div className="space-y-3">
+                      <h4 className="text-[9px] font-black text-white/30 uppercase tracking-widest">Equipment Service History</h4>
+                      <div className="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+                        {maintenanceLogs.length > 0 ? (
+                          maintenanceLogs.map((l) => (
+                            <div key={l.id} className="group flex flex-col bg-black/20 border border-white/5 p-4 rounded-xl hover:border-white/10 transition-all space-y-2">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[8px] font-black bg-white/5 border border-white/5 px-1.5 py-0.5 rounded text-white/50 uppercase tracking-widest">{l.serviceType}</span>
+                                    <span className="text-[8px] font-bold text-white/40 uppercase tracking-wider">{l.serviceDate}</span>
+                                  </div>
+                                  <p className="text-xs font-bold text-white mt-1 uppercase tracking-tight">{l.itemName}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[8px] font-black bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded uppercase tracking-wider">
+                                    {l.status}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setMaintenanceLogs(prev => prev.filter(item => item.id !== l.id))}
+                                    className="p-1 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded cursor-pointer opacity-0 group-hover:opacity-100 transition-all"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-white/60 bg-black/20 p-2.5 rounded-lg border border-white/5 font-medium leading-relaxed uppercase tracking-tighter">
+                                {l.notes}
+                              </p>
+                              <div className="flex justify-between items-center text-[7px] text-white/30 uppercase tracking-widest font-bold">
+                                <span>Tech: {l.techName}</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-[10px] text-white/30 italic py-6 text-center border border-dashed border-white/10 rounded-xl">
+                            No equipment maintenance records logged.
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1859,9 +2578,10 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           </motion.button>
         </div>
 
+        <ModalPortal>
         <AnimatePresence>
           {isCalendarOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-8">
+            <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 md:p-8">
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -1894,26 +2614,35 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             </div>
           )}
         </AnimatePresence>
+        </ModalPortal>
 
+        <ModalPortal>
         <AnimatePresence>
           {isCustomModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-[130] flex items-start md:items-center justify-center p-4 overflow-y-auto">
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsCustomModalOpen(false)}
-                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm"
               />
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="relative bg-neutral-900 border border-white/10 p-8 rounded-2xl w-full max-w-md shadow-2xl"
+                className="relative bg-neutral-900 border border-white/10 p-6 md:p-8 rounded-2xl w-full max-w-md shadow-2xl my-auto max-h-[92vh] overflow-y-auto custom-scrollbar"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-white">{editingItemName ? 'Edit Custom Gear' : 'Add Custom Gear'}</h2>
-                  <button onClick={() => setIsCustomModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <div className="flex items-start justify-between mb-6 gap-4">
+                  <div>
+                    <h2 className="text-lg font-bold text-white">{editingItemName ? 'Edit Gear Record' : 'Add Gear'}</h2>
+                    {editingItemName && (
+                      <p className="text-[10px] font-semibold mt-1 uppercase tracking-wider opacity-40">
+                        {editingIsDbItem ? 'Studio inventory · saves to database' : 'Local custom item · this session only'}
+                      </p>
+                    )}
+                  </div>
+                  <button onClick={() => setIsCustomModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors shrink-0">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -2014,13 +2743,14 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                   </div>
                   
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold opacity-40 ml-1">Category</label>
+                    <label className="text-xs font-semibold opacity-40 ml-1">Category <span className="opacity-50">(Optional)</span></label>
                     <select 
                       value={customCategory}
                       onChange={(e) => setCustomCategory(e.target.value)}
                       className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg appearance-none"
                     >
-                      {ALL_CATEGORIES.map(cat => (
+                      <option value="">{UNCATEGORIZED} &mdash; pick later</option>
+                      {categoryOptions.filter(cat => cat !== UNCATEGORIZED).map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
@@ -2028,43 +2758,91 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
                   <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-1">
-                      <label className="text-xs font-semibold opacity-40 ml-1">Quantity</label>
+                      <label className="text-xs font-semibold opacity-40 ml-1">Quantity <span className="opacity-50">(Optional)</span></label>
                       <input 
                         type="number" 
                         min="1"
                         value={customQty}
-                        onChange={(e) => setCustomQty(parseInt(e.target.value) || 1)}
+                        onChange={(e) => setCustomQty(e.target.value)}
+                        placeholder="1"
                         className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold opacity-40 ml-1">Value ($)</label>
+                      <label className="text-xs font-semibold opacity-40 ml-1">Value ($) <span className="opacity-50">(Optional)</span></label>
                       <input 
                         type="number" 
                         min="0"
                         value={customValue}
-                        onChange={(e) => setCustomValue(parseInt(e.target.value) || 0)}
+                        onChange={(e) => setCustomValue(e.target.value)}
+                        placeholder="0"
                         className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
                       />
                     </div>
                   </div>
 
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold opacity-40 ml-1">Image Path <span className="opacity-50">(Optional)</span></label>
+                    <input 
+                      type="text" 
+                      value={customImage}
+                      onChange={(e) => setCustomImage(e.target.value)}
+                      placeholder="/gear/red_komodo.jpg"
+                      className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
+                    />
+                  </div>
+
+                  {!editingItemName && (
+                    <button
+                      type="button"
+                      onClick={() => setSaveToStudioInventory(v => !v)}
+                      className="w-full flex items-center gap-3 p-3 bg-black/30 border border-white/10 rounded-lg text-left hover:border-white/20 transition-colors"
+                    >
+                      <span className={`w-4 h-4 rounded flex items-center justify-center border shrink-0 ${saveToStudioInventory ? 'bg-accent border-accent' : 'border-white/20'}`}>
+                        {saveToStudioInventory && <Check className="w-3 h-3 text-white" />}
+                      </span>
+                      <span className="text-[11px] font-semibold text-white/70 leading-snug">
+                        Save to studio inventory database
+                        <span className="block text-[10px] opacity-40 font-medium">Off: the item stays on this manifest only.</span>
+                      </span>
+                    </button>
+                  )}
+
+                  {gearItemError && (
+                    <p className="text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3">{gearItemError}</p>
+                  )}
+
                   <button 
                     onClick={addCustomItem}
-                    disabled={!customName.trim()}
-                    className="w-full bg-accent text-white py-2.5 mt-4 font-semibold text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
+                    disabled={!customName.trim() || savingGearItem}
+                    className="w-full flex items-center justify-center gap-2 bg-accent text-white py-2.5 mt-4 font-semibold text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
                   >
-                    {editingItemName ? 'Save Changes' : 'Add to Manifest'}
+                    {savingGearItem && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {editingItemName ? 'Save Changes' : (saveToStudioInventory ? 'Add to Inventory & Manifest' : 'Add to Manifest')}
                   </button>
+
+                  {editingItemName && (
+                    <button
+                      type="button"
+                      onClick={deleteGearItem}
+                      disabled={savingGearItem}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 font-semibold text-xs text-red-400 border border-red-500/20 bg-red-500/5 hover:bg-red-500/15 disabled:opacity-50 transition-all rounded-xl"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {editingIsDbItem ? 'Delete From Inventory' : 'Delete Custom Item'}
+                    </button>
+                  )}
                 </div>
               </motion.div>
             </div>
           )}
         </AnimatePresence>
+        </ModalPortal>
 
+        <ModalPortal>
         <AnimatePresence>
           {isSaveTemplateModalOpen && (
-            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-[130] flex items-start md:items-center justify-center p-4 overflow-y-auto">
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -2076,7 +2854,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="relative bg-neutral-900 border border-white/10 p-8 rounded-2xl w-full max-w-md shadow-2xl"
+                className="relative bg-neutral-900 border border-white/10 p-6 md:p-8 rounded-2xl w-full max-w-md shadow-2xl my-auto max-h-[92vh] overflow-y-auto custom-scrollbar"
               >
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-white">Save Gear Package</h2>
@@ -2132,6 +2910,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             </div>
           )}
         </AnimatePresence>
+        </ModalPortal>
         
     </div>
   );

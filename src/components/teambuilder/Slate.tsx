@@ -514,7 +514,7 @@ export default function Slate({
         },
         body: [
           ['CALL TIME:', caps(job.call_time, 'TBD'), 'WEATHER:', caps(job.weather_summary, 'TBD')],
-          ['LOCATION:', caps(job.location_name, 'TBD'), 'HOSPITAL:', caps(job.nearest_hospital_name, 'TBD')],
+          ['LOCATION:', caps(job.location_name, 'TBD'), 'HOSPITAL:', job.nearest_hospital_name ? `${caps(job.nearest_hospital_name)}${job.nearest_hospital_address ? `\n${job.nearest_hospital_address}` : ''}` : 'TBD'],
           ['ADDRESS:', caps(job.location_address), 'PARKING:', caps(job.nearest_parking_name, 'TBD')],
         ],
         margin: { left: margin, right: margin }

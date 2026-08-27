@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -25,6 +25,7 @@ import {
   Tv,
   ArrowRight
 } from 'lucide-react';
+import TutorialsWidget from './TutorialsWidget';
 
 // --- INTERACTIVE TOUR STEPS ---
 interface TourStep {
@@ -38,16 +39,27 @@ interface QuickStartGuideModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenCalendarSync: () => void;
-  onOpenTutorials?: () => void;
+  initialTab?: 'tour' | 'tutorials';
+  initialTopicId?: string;
+  onSwitchTab?: (tab: any) => void;
 }
 
 export function QuickStartGuideModal({ 
   isOpen, 
   onClose, 
   onOpenCalendarSync,
-  onOpenTutorials
+  initialTab = 'tour',
+  initialTopicId,
+  onSwitchTab
 }: QuickStartGuideModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [activeModalTab, setActiveModalTab] = useState<'tour' | 'tutorials'>('tour');
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveModalTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   const steps: TourStep[] = [
     {
@@ -332,7 +344,11 @@ export function QuickStartGuideModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ type: "spring", duration: 0.4 }}
-            className="w-full max-w-xl bg-zinc-950 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative flex flex-col justify-between overflow-hidden min-h-[480px]"
+            className={`w-full bg-zinc-950 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative flex flex-col justify-between overflow-hidden transition-all duration-350 min-h-[500px] ${
+              activeModalTab === 'tutorials' 
+                ? 'max-w-5xl h-[85vh] max-h-[750px]' 
+                : 'max-w-xl h-auto'
+            }`}
           >
             {/* Top glowing line decoration */}
             <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-accent to-transparent" />
@@ -340,82 +356,118 @@ export function QuickStartGuideModal({
             {/* Close Button */}
             <button 
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-white transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-white transition-colors cursor-pointer z-50"
             >
               <X className="w-4 h-4" />
             </button>
 
-            {/* Step Header */}
-            <div className="flex items-center gap-3.5 mb-6">
-              <div className="w-11 h-11 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20 shrink-0">
-                <StepIcon className="w-6 h-6 text-accent animate-pulse" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-base font-black uppercase tracking-tighter text-white truncate">
-                  {steps[currentStep].title}
-                </h3>
-                <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mt-0.5 truncate">
-                  {steps[currentStep].subtitle}
-                </p>
-              </div>
-            </div>
-
-            {/* Slide Body */}
-            <div className="flex-1 mb-8 flex flex-col justify-center">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, x: 15 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -15 }}
-                transition={{ duration: 0.25 }}
+            {/* Tab Selector */}
+            <div className="flex items-center gap-2 border-b border-white/5 pb-4 mb-5 shrink-0 pr-8 z-10">
+              <button
+                onClick={() => setActiveModalTab('tour')}
+                className={`px-3.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeModalTab === 'tour'
+                    ? 'bg-accent text-white shadow-md shadow-accent/15'
+                    : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
+                }`}
               >
-                {steps[currentStep].content}
-              </motion.div>
+                <Sparkles className="w-3 h-3" /> Quick Start Tour
+              </button>
+              <button
+                onClick={() => setActiveModalTab('tutorials')}
+                className={`px-3.5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer ${
+                  activeModalTab === 'tutorials'
+                    ? 'bg-accent text-white shadow-md shadow-accent/15'
+                    : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <BookOpen className="w-3 h-3" /> Interactive Tutorials
+              </button>
             </div>
 
-            {/* Bottom Actions Area */}
-            <div className="flex items-center justify-between border-t border-white/5 pt-5 shrink-0 gap-4">
-              {/* Slide dots */}
-              <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-1">
-                {steps.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentStep(i)}
-                    className={`h-1.5 rounded-full transition-all duration-300 shrink-0 ${
-                      i === currentStep ? 'w-6 bg-accent' : 'w-1.5 bg-white/10 hover:bg-white/35'
-                    }`}
-                  />
-                ))}
-              </div>
+            {activeModalTab === 'tour' ? (
+              <div className="flex-grow flex flex-col justify-between min-h-0">
+                {/* Step Header */}
+                <div className="flex items-center gap-3.5 mb-6 shrink-0">
+                  <div className="w-11 h-11 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20 shrink-0">
+                    <StepIcon className="w-6 h-6 text-accent animate-pulse" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-base font-black uppercase tracking-tighter text-white truncate">
+                      {steps[currentStep].title}
+                    </h3>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mt-0.5 truncate">
+                      {steps[currentStep].subtitle}
+                    </p>
+                  </div>
+                </div>
 
-              {/* Navigation buttons */}
-              <div className="flex gap-2 shrink-0">
-                {onOpenTutorials && (currentStep === 0 || currentStep === steps.length - 1) && (
-                  <button
-                    onClick={onOpenTutorials}
-                    className="px-4 py-2.5 bg-purple-600/20 hover:bg-purple-600 border border-purple-500/30 text-purple-400 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer"
+                {/* Slide Body */}
+                <div className="flex-1 mb-8 flex flex-col justify-center min-h-0 overflow-y-auto">
+                  <motion.div
+                    key={currentStep}
+                    initial={{ opacity: 0, x: 15 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -15 }}
+                    transition={{ duration: 0.25 }}
                   >
-                    <BookOpen className="w-3.5 h-3.5" /> Learning Center
-                  </button>
-                )}
-                
-                {currentStep > 0 && (
-                  <button
-                    onClick={handleBack}
-                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" /> Back
-                  </button>
-                )}
-                
-                <button
-                  onClick={handleNext}
-                  className="px-5 py-2.5 bg-accent hover:bg-white hover:text-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-accent/15"
-                >
-                  {currentStep === steps.length - 1 ? 'Finish Tour' : 'Next'} <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+                    {steps[currentStep].content}
+                  </motion.div>
+                </div>
+
+                {/* Bottom Actions Area */}
+                <div className="flex items-center justify-between border-t border-white/5 pt-5 shrink-0 gap-4">
+                  {/* Slide dots */}
+                  <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-1">
+                    {steps.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentStep(i)}
+                        className={`h-1.5 rounded-full transition-all duration-300 shrink-0 ${
+                          i === currentStep ? 'w-6 bg-accent' : 'w-1.5 bg-white/10 hover:bg-white/35'
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Navigation buttons */}
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => setActiveModalTab('tutorials')}
+                      className="px-4 py-2.5 bg-purple-600/20 hover:bg-purple-600 border border-purple-500/30 text-purple-400 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <BookOpen className="w-3.5 h-3.5" /> Learning Center
+                    </button>
+                    
+                    {currentStep > 0 && (
+                      <button
+                        onClick={handleBack}
+                        className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" /> Back
+                      </button>
+                    )}
+                    
+                    <button
+                      onClick={handleNext}
+                      className="px-5 py-2.5 bg-accent hover:bg-white hover:text-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-accent/15"
+                    >
+                      {currentStep === steps.length - 1 ? 'Finish Tour' : 'Next'} <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex-grow min-h-0 flex flex-col relative overflow-hidden">
+                <TutorialsWidget 
+                  initialTopicId={initialTopicId} 
+                  onSwitchTab={(targetTab) => {
+                    onSwitchTab?.(targetTab);
+                    onClose();
+                  }} 
+                />
+              </div>
+            )}
           </motion.div>
         </div>
       )}

@@ -29,7 +29,10 @@ import {
   Lock,
   Mail,
   Share2,
-  BookOpen
+  BookOpen,
+  Video,
+  MapPin,
+  ClipboardList
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
@@ -48,6 +51,9 @@ import InboxWidget from '@/components/workspace/InboxWidget';
 import Vault from '@/components/workspace/Vault';
 import MeetingNotes from '@/components/workspace/MeetingNotes';
 import TutorialsWidget from './TutorialsWidget';
+import ClientReview from '@/components/workspace/ClientReview';
+import LocationsDatabase from '@/components/workspace/LocationsDatabase';
+import IntakeBriefs from '@/components/workspace/IntakeBriefs';
 
 export type LayoutNode = 
   | { type: 'row'; children: LayoutNode[]; sizes: number[] }
@@ -77,7 +83,10 @@ const WIDGET_ICONS: Record<string, any> = {
   quickstart: HelpCircle,
   tutorials: BookOpen,
   inbox: Mail,
-  vault: Lock
+  vault: Lock,
+  review: Video,
+  locations: MapPin,
+  intake: ClipboardList
 };
 
 const WIDGET_LABELS: Record<string, string> = {
@@ -96,7 +105,10 @@ const WIDGET_LABELS: Record<string, string> = {
   quickstart: 'Quick Start Guide',
   tutorials: 'Learning Center',
   inbox: 'Studio Inbox',
-  vault: 'Vault'
+  vault: 'Vault',
+  review: 'Client Review',
+  locations: 'Locations Scouting',
+  intake: 'Client Onboarding'
 };
 
 const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
@@ -111,7 +123,10 @@ const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
   meeting_notes: { type: 'panel', id: 'meeting-notes-root', activeTab: 'meeting_notes', tabs: ['meeting_notes'] },
   rolodex: { type: 'panel', id: 'rolodex-root', activeTab: 'rolodex', tabs: ['rolodex'] },
   tutorials: { type: 'panel', id: 'tutorials-root', activeTab: 'tutorials', tabs: ['tutorials'] },
-  vault: { type: 'panel', id: 'vault-root', activeTab: 'vault', tabs: ['vault'] }
+  vault: { type: 'panel', id: 'vault-root', activeTab: 'vault', tabs: ['vault'] },
+  review: { type: 'panel', id: 'review-root', activeTab: 'review', tabs: ['review'] },
+  locations: { type: 'panel', id: 'locations-root', activeTab: 'locations', tabs: ['locations'] },
+  intake: { type: 'panel', id: 'intake-root', activeTab: 'intake', tabs: ['intake'] }
 };
 
 interface WorkspaceLayoutProps {
@@ -122,6 +137,7 @@ interface WorkspaceLayoutProps {
   preselectedJobId: string | null;
   onClearPreselectedJobId: () => void;
   onSwitchTab: (tab: any) => void;
+  onOpenHelp?: (tabId: string) => void;
 }
 
 export default function WorkspaceLayout({
@@ -131,7 +147,8 @@ export default function WorkspaceLayout({
   onClearPreload,
   preselectedJobId,
   onClearPreselectedJobId,
-  onSwitchTab
+  onSwitchTab,
+  onOpenHelp
 }: WorkspaceLayoutProps) {
   const [layoutRoot, setLayoutRoot] = useState<LayoutNode | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -196,6 +213,7 @@ export default function WorkspaceLayout({
           preselectedJobId={preselectedJobId}
           onClearPreselectedJobId={onClearPreselectedJobId}
           onSwitchTab={onSwitchTab}
+          onOpenHelp={onOpenHelp}
         />
       </div>
     </div>
@@ -209,11 +227,13 @@ function WorkspaceNode({
   node, 
   onUpdate,
   activeTab,
+  onOpenHelp,
   ...props 
 }: { 
   node: LayoutNode; 
   onUpdate: (n: LayoutNode) => void;
   activeTab: string;
+  onOpenHelp?: (tabId: string) => void;
   [key: string]: any;
 }) {
   if (node.type === 'row' || node.type === 'col') {
@@ -222,6 +242,7 @@ function WorkspaceNode({
         node={node} 
         onUpdate={onUpdate} 
         activeTab={activeTab}
+        onOpenHelp={onOpenHelp}
         {...props} 
       />
     );
@@ -231,6 +252,7 @@ function WorkspaceNode({
       node={node} 
       onUpdate={onUpdate} 
       activeTab={activeTab} 
+      onOpenHelp={onOpenHelp}
       {...props} 
     />
   );
@@ -243,11 +265,13 @@ function WorkspaceSplit({
   node, 
   onUpdate,
   activeTab,
+  onOpenHelp,
   ...props 
 }: { 
   node: LayoutNode & { type: 'row' | 'col' }; 
   onUpdate: (n: LayoutNode) => void;
   activeTab: string;
+  onOpenHelp?: (tabId: string) => void;
   [key: string]: any; 
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -332,6 +356,7 @@ function WorkspaceSplit({
                   onUpdate={(updated) => handleChildUpdate(idx, updated)}
                   onDelete={() => handleChildDelete(idx)}
                   activeTab={activeTab}
+                  onOpenHelp={onOpenHelp}
                   {...props}
                 />
             </div>
@@ -366,13 +391,15 @@ function WorkspacePanel({
   onClearPreload,
   preselectedJobId,
   onClearPreselectedJobId,
-  onSwitchTab
+  onSwitchTab,
+  onOpenHelp
 }: { 
   node: LayoutNode & { type: 'panel' }; 
   onUpdate: (n: LayoutNode) => void;
   onDelete?: () => void;
   activeTab: string;
   jobs?: Job[];
+  onOpenHelp?: (tabId: string) => void;
   [key: string]: any;
 }) {
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -604,6 +631,13 @@ function WorkspacePanel({
  
         {/* Panel splitting operations */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button 
+            onClick={() => onOpenHelp?.(node.activeTab)}
+            className="p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white transition-colors"
+            title={`Help & Tutorial for ${WIDGET_LABELS[node.activeTab] || node.activeTab}`}
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-accent" />
+          </button>
           <button 
             onClick={() => handleSplit('row')}
             className="p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white transition-colors"
@@ -872,6 +906,12 @@ function WidgetMount({
       return <Creative selectedJobId={boundJobId || undefined} />;
     case 'social':
       return <SocialMedia />;
+    case 'review':
+      return <ClientReview />;
+    case 'locations':
+      return <LocationsDatabase />;
+    case 'intake':
+      return <IntakeBriefs />;
     case 'rolodex':
       return <Rolodex />;
     case 'meeting_notes':

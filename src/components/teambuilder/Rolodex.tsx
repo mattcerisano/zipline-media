@@ -233,6 +233,21 @@ export default function Rolodex() {
 
   const [activeView, setActiveView] = useState<RolodexView>('crew');
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [crewHolds, setCrewHolds] = useState<Record<string, 'Available' | '1st Hold' | '2nd Hold' | 'Booked'>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('studio_crew_holds');
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
+
+  const updateCrewHold = (contactId: string, hold: 'Available' | '1st Hold' | '2nd Hold' | 'Booked') => {
+    setCrewHolds(prev => {
+      const updated = { ...prev, [contactId]: hold };
+      localStorage.setItem('studio_crew_holds', JSON.stringify(updated));
+      return updated;
+    });
+  };
   const [clients, setClients] = useState<Client[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -942,6 +957,9 @@ export default function Rolodex() {
                   </div>
                 </th>
               )}
+              {activeView === 'crew' && (
+                <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 text-white">Booking Hold</th>
+              )}
               <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 hidden md:table-cell text-white">Contact Info</th>
               {activeView === 'crew' && <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 hidden lg:table-cell text-white">Tags</th>}
               <th className="px-6 py-4 text-right text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 text-white">Actions</th>
@@ -964,6 +982,28 @@ export default function Rolodex() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-[10px] font-semibold text-accent">{contact.primary_role || '—'}</span>
+                  </td>
+                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                    {(() => {
+                      const hold = crewHolds[contact.id] || 'Available';
+                      let badgeColor = 'border-white/10 text-white/45';
+                      if (hold === '1st Hold') badgeColor = 'border-yellow-500/35 text-yellow-400 bg-yellow-500/5';
+                      if (hold === '2nd Hold') badgeColor = 'border-orange-500/35 text-orange-400 bg-orange-500/5';
+                      if (hold === 'Booked') badgeColor = 'border-green-500/35 text-green-400 bg-green-500/5';
+
+                      return (
+                        <select
+                          value={hold}
+                          onChange={(e) => updateCrewHold(contact.id, e.target.value as any)}
+                          className={`bg-black/40 border rounded px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider outline-none cursor-pointer ${badgeColor}`}
+                        >
+                          <option value="Available" className="bg-zinc-900 text-white/60">Available</option>
+                          <option value="1st Hold" className="bg-zinc-900 text-yellow-400 font-bold">1st Hold</option>
+                          <option value="2nd Hold" className="bg-zinc-900 text-orange-400 font-bold">2nd Hold</option>
+                          <option value="Booked" className="bg-zinc-900 text-green-400 font-bold">Booked</option>
+                        </select>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 hidden md:table-cell">
                     <div className="space-y-1">

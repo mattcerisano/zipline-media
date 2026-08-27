@@ -232,6 +232,9 @@ export interface Job {
   edit_labels?: EditLabel[];
   creative_brief?: string;
   color_palette?: string[]; // Array of hex codes
+  estimated_budget?: number;
+  gear_budget?: number;
+  actual_expenses?: { id: string; description: string; category: string; amount: number; date: string }[];
   updated_at?: string;
 }
 

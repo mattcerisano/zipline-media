@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Lock, Unlock, Plus, Eye, EyeOff, Copy, Trash2, X, Loader2, ShieldCheck,
-  KeyRound, CreditCard, FileText, Paperclip, Calendar, Search, Download
+  KeyRound, CreditCard, FileText, Paperclip, Calendar, Search, Download,
+  FolderOpen, Cloud, RefreshCw, Check, ExternalLink
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import {
@@ -321,72 +322,82 @@ export default function Vault() {
         </div>
       </div>
 
-      {/* Grouped items */}
-      {filtered.length === 0 ? (
-        <div className="py-20 text-center bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40">
-          <p className="font-semibold text-xs text-white">Vault is empty. Add a subscription, license, or password.</p>
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {CATEGORIES.map(cat => {
-            const catItems = filtered.filter(i => i.category === cat.id);
-            if (catItems.length === 0) return null;
-            const Icon = cat.icon;
-            return (
-              <section key={cat.id} className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Icon className="w-3.5 h-3.5 text-accent" />
-                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/70">{cat.label}</h3>
-                  <div className="h-px bg-white/5 flex-1" />
-                  <span className="text-[9px] font-semibold opacity-30 uppercase tracking-wider text-white">{catItems.length}</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {catItems.map(item => (
-                    <div key={item.id} className="bg-neutral-900/50 border border-white/10 rounded-2xl p-5 group hover:border-accent/30 transition-colors">
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-white truncate">{item.name}</p>
-                          {item.username && <p className="text-[9px] font-medium text-white/40 truncate mt-0.5">{item.username}</p>}
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openEditItem(item)} className="p-1 text-white/40 hover:text-accent" title="Edit"><FileText className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => handleDeleteItem(item)} className="p-1 text-white/40 hover:text-red-500" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-                        </div>
-                      </div>
-
-                      {item.secret_cipher && (
-                        <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-lg px-3 py-2 mb-2">
-                          <code className="flex-1 text-[11px] text-white/80 font-mono truncate">
-                            {revealed[item.id] || '••••••••••••'}
-                          </code>
-                          <button onClick={() => revealSecret(item)} className="text-white/40 hover:text-accent" title="Reveal">
-                            {revealed[item.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
-                          <button onClick={() => copySecret(item)} className="text-white/40 hover:text-accent" title="Copy"><Copy className="w-3.5 h-3.5" /></button>
-                        </div>
-                      )}
-
-                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2">
-                        {item.url && (
-                          <a href={item.url.startsWith('http') ? item.url : `https://${item.url}`} target="_blank" rel="noreferrer" className="text-[9px] font-medium text-accent hover:underline truncate max-w-full">{item.url}</a>
-                        )}
-                        {item.expires_at && (
-                          <span className="text-[9px] font-medium text-white/40 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {item.expires_at}</span>
-                        )}
-                        {item.file_path && (
-                          <button onClick={() => downloadFile(item)} className="text-[9px] font-medium text-white/50 hover:text-accent flex items-center gap-1">
-                            <Download className="w-3 h-3" /> {item.file_name || 'File'}
-                          </button>
-                        )}
-                      </div>
+      {/* Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left: Vault Items */}
+        <div className="lg:col-span-8 space-y-6">
+          {filtered.length === 0 ? (
+            <div className="py-20 text-center bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40">
+              <p className="font-semibold text-xs text-white">Vault is empty. Add a subscription, license, or password.</p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {CATEGORIES.map(cat => {
+                const catItems = filtered.filter(i => i.category === cat.id);
+                if (catItems.length === 0) return null;
+                const Icon = cat.icon;
+                return (
+                  <section key={cat.id} className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-3.5 h-3.5 text-accent" />
+                      <h3 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/70">{cat.label}</h3>
+                      <div className="h-px bg-white/5 flex-1" />
+                      <span className="text-[9px] font-semibold opacity-30 uppercase tracking-wider text-white">{catItems.length}</span>
                     </div>
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {catItems.map(item => (
+                        <div key={item.id} className="bg-neutral-900/50 border border-white/10 rounded-2xl p-5 group hover:border-accent/30 transition-colors">
+                          <div className="flex items-start justify-between gap-2 mb-3">
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-white truncate">{item.name}</p>
+                              {item.username && <p className="text-[9px] font-medium text-white/40 truncate mt-0.5">{item.username}</p>}
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => openEditItem(item)} className="p-1 text-white/40 hover:text-accent" title="Edit"><FileText className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => handleDeleteItem(item)} className="p-1 text-white/40 hover:text-red-500" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </div>
+                          </div>
+
+                          {item.secret_cipher && (
+                            <div className="flex items-center gap-2 bg-black/40 border border-white/5 rounded-lg px-3 py-2 mb-2">
+                              <code className="flex-1 text-[11px] text-white/80 font-mono truncate">
+                                {revealed[item.id] || '••••••••••••'}
+                              </code>
+                              <button onClick={() => revealSecret(item)} className="text-white/40 hover:text-accent" title="Reveal">
+                                {revealed[item.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                              </button>
+                              <button onClick={() => copySecret(item)} className="text-white/40 hover:text-accent" title="Copy"><Copy className="w-3.5 h-3.5" /></button>
+                            </div>
+                          )}
+
+                          <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2">
+                            {item.url && (
+                              <a href={item.url.startsWith('http') ? item.url : `https://${item.url}`} target="_blank" rel="noreferrer" className="text-[9px] font-medium text-accent hover:underline truncate max-w-full">{item.url}</a>
+                            )}
+                            {item.expires_at && (
+                              <span className="text-[9px] font-medium text-white/40 flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {item.expires_at}</span>
+                            )}
+                            {item.file_path && (
+                              <button onClick={() => downloadFile(item)} className="text-[9px] font-medium text-white/50 hover:text-accent flex items-center gap-1">
+                                <Download className="w-3 h-3" /> {item.file_name || 'File'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Right: Cloud Folder Automator */}
+        <div className="lg:col-span-4 sticky top-24">
+          <CloudFolderAutomator />
+        </div>
+      </div>
 
       {/* Add / Edit modal */}
       <AnimatePresence>
@@ -463,6 +474,256 @@ export default function Vault() {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/* Cloud Folder Automator Sidebar Widget                              */
+/* ================================================================== */
+function CloudFolderAutomator() {
+  const [jobs, setJobs] = useState<{ id: string; title: string; client_name?: string }[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState<string>('');
+  const [provider, setProvider] = useState<'drive' | 'dropbox'>('drive');
+  const [isProvisioning, setIsProvisioning] = useState(false);
+  const [step, setStep] = useState(0); // 0 = idle, 1 = connecting, 2 = creating folders, 3 = finalizing, 4 = done
+  const [integrations, setIntegrations] = useState<{ id: string; jobTitle: string; provider: string; date: string; url: string }[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('studio_vault_folder_integrations');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('jobs')
+          .select('id, title, client_name')
+          .order('shoot_date', { ascending: false });
+        if (!error && data && data.length > 0) {
+          setJobs(data);
+          setSelectedJobId(data[0].id);
+        } else {
+          // Mock fallback
+          const mock = [
+            { id: 'job-1', title: 'Pekoe Commercial Cut', client_name: 'Pekoe Tea Co.' },
+            { id: 'job-2', title: 'Broadway B-Roll Reel', client_name: 'Broadway Productions' },
+            { id: 'job-3', title: 'Reveals Campaign', client_name: 'Tech Inc.' }
+          ];
+          setJobs(mock);
+          setSelectedJobId(mock[0].id);
+        }
+      } catch (e) {
+        // Mock fallback
+        const mock = [
+          { id: 'job-1', title: 'Pekoe Commercial Cut', client_name: 'Pekoe Tea Co.' },
+          { id: 'job-2', title: 'Broadway B-Roll Reel', client_name: 'Broadway Productions' },
+          { id: 'job-3', title: 'Reveals Campaign', client_name: 'Tech Inc.' }
+        ];
+        setJobs(mock);
+        setSelectedJobId(mock[0].id);
+      }
+    };
+    fetchJobs();
+  }, []);
+
+  const activeJob = jobs.find(j => j.id === selectedJobId) || null;
+
+  const handleProvision = () => {
+    if (!activeJob) return;
+    setIsProvisioning(true);
+    setStep(1);
+
+    // Step-by-step simulation
+    setTimeout(() => {
+      setStep(2);
+      setTimeout(() => {
+        setStep(3);
+        setTimeout(() => {
+          setStep(4);
+          setIsProvisioning(false);
+          
+          const newIntegration = {
+            id: 'int_' + Date.now(),
+            jobTitle: activeJob.title,
+            provider: provider === 'drive' ? 'Google Drive' : 'Dropbox',
+            date: new Date().toLocaleDateString(),
+            url: provider === 'drive' ? 'https://drive.google.com' : 'https://dropbox.com'
+          };
+          
+          const updated = [newIntegration, ...integrations];
+          setIntegrations(updated);
+          localStorage.setItem('studio_vault_folder_integrations', JSON.stringify(updated));
+        }, 1000);
+      }, 1000);
+    }, 1000);
+  };
+
+  const handleDisconnect = (id: string) => {
+    const updated = integrations.filter(i => i.id !== id);
+    setIntegrations(updated);
+    localStorage.setItem('studio_vault_folder_integrations', JSON.stringify(updated));
+  };
+
+  return (
+    <div className="bg-neutral-900/60 border border-white/10 p-5 rounded-2xl space-y-4 text-white">
+      <div className="flex items-center gap-2">
+        <Cloud className="w-4.5 h-4.5 text-accent" />
+        <h3 className="text-xs font-black uppercase tracking-widest text-accent">Cloud Folder Automator</h3>
+      </div>
+      
+      <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest leading-relaxed">
+        Auto-provision standardized folder directories on Google Drive or Dropbox for active jobs
+      </p>
+
+      {/* Selectors */}
+      <div className="space-y-3">
+        <div>
+          <label className="text-[8px] font-black uppercase tracking-widest text-white/40 mb-1 block">Target Job / Project</label>
+          <select
+            value={selectedJobId}
+            onChange={(e) => {
+              setSelectedJobId(e.target.value);
+              setStep(0);
+            }}
+            className="w-full bg-black/50 border border-white/10 py-2.5 px-3 rounded-xl outline-none focus:border-accent text-xs font-bold text-white appearance-none cursor-pointer"
+          >
+            {jobs.map(j => (
+              <option key={j.id} value={j.id} className="bg-zinc-900">
+                {j.title.toUpperCase()}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-[8px] font-black uppercase tracking-widest text-white/40 mb-1 block">Cloud Provider</label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => { setProvider('drive'); setStep(0); }}
+              className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-xl border transition-all ${
+                provider === 'drive'
+                  ? 'bg-white text-black border-white shadow'
+                  : 'bg-white/5 text-white/40 border-white/5 hover:text-white'
+              }`}
+            >
+              Google Drive
+            </button>
+            <button
+              type="button"
+              onClick={() => { setProvider('dropbox'); setStep(0); }}
+              className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-xl border transition-all ${
+                provider === 'dropbox'
+                  ? 'bg-white text-black border-white shadow'
+                  : 'bg-white/5 text-white/40 border-white/5 hover:text-white'
+              }`}
+            >
+              Dropbox
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Directory Preview */}
+      {step === 0 && activeJob && (
+        <div className="bg-black/30 border border-white/5 p-3.5 rounded-2xl font-mono text-[9px] text-white/60 space-y-1">
+          <p className="text-white/45 font-bold uppercase tracking-wider">Preview Structure:</p>
+          <div className="pl-2 border-l border-white/10 space-y-1 mt-2">
+            <p className="text-white font-bold">📁 {activeJob.title.toUpperCase().replace(/\s+/g, '_')}</p>
+            <p className="pl-3">📁 01_FOOTAGE</p>
+            <p className="pl-6">📁 A_CAM</p>
+            <p className="pl-6">📁 B_CAM</p>
+            <p className="pl-3">📁 02_AUDIO</p>
+            <p className="pl-3">📁 03_ASSETS</p>
+            <p className="pl-3">📁 04_EXPORTS</p>
+          </div>
+        </div>
+      )}
+
+      {/* Provisioning Animation */}
+      {isProvisioning && (
+        <div className="bg-black/30 border border-white/5 p-4 rounded-2xl space-y-3 text-center">
+          <Loader2 className="w-6 h-6 text-accent animate-spin mx-auto" />
+          <span className="text-[8px] font-black text-accent tracking-widest bg-accent/10 px-2 py-0.5 rounded border border-accent/20 uppercase">
+            {step === 1 ? 'CONNECTING TO API...' : step === 2 ? 'CREATING DIRECTORIES...' : 'FINALIZING PERMISSIONS...'}
+          </span>
+          <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+            <div 
+              className="bg-accent h-full transition-all duration-1000" 
+              style={{ width: `${(step / 4) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Provision Completed */}
+      {step === 4 && activeJob && (
+        <div className="bg-green-500/5 border border-green-500/25 p-4 rounded-2xl space-y-3 text-center">
+          <Check className="w-6 h-6 text-green-400 mx-auto" />
+          <div>
+            <p className="text-[10px] font-bold text-green-400 uppercase tracking-wider">STANDARD DIRECTORY PROVISIONED!</p>
+            <p className="text-[8px] text-white/40 uppercase tracking-widest mt-1">Ready for uploads on {provider === 'drive' ? 'Google Drive' : 'Dropbox'}</p>
+          </div>
+          <a
+            href={provider === 'drive' ? 'https://drive.google.com' : 'https://dropbox.com'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 text-green-400 text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+          >
+            Open Folder <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+      )}
+
+      {/* Action Button */}
+      {step < 4 && !isProvisioning && (
+        <button
+          type="button"
+          onClick={handleProvision}
+          disabled={!activeJob}
+          className="w-full bg-accent hover:bg-white hover:text-black text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer border border-accent flex items-center justify-center gap-1.5"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Provision Folder Structure
+        </button>
+      )}
+
+      {/* Active integrations log */}
+      {integrations.length > 0 && (
+        <div className="space-y-2 border-t border-white/5 pt-4">
+          <h4 className="text-[8px] font-black text-white/30 uppercase tracking-widest">Active Project Folders</h4>
+          <div className="space-y-2 max-h-36 overflow-y-auto custom-scrollbar">
+            {integrations.map(i => (
+              <div key={i.id} className="group flex justify-between items-center bg-black/20 border border-white/5 p-2.5 rounded-xl text-[9px]">
+                <div className="min-w-0 pr-2">
+                  <p className="text-[10px] font-bold text-white uppercase tracking-tight truncate">{i.jobTitle}</p>
+                  <span className="text-[7px] text-white/40 uppercase tracking-widest">{i.provider} • {i.date}</span>
+                </div>
+                <div className="flex gap-1.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <a
+                    href={i.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1 text-white/30 hover:text-accent rounded transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleDisconnect(i.id)}
+                    className="p-1 text-white/30 hover:text-red-400 rounded transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

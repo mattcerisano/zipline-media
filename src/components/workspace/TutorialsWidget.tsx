@@ -37,12 +37,19 @@ interface TutorialTopic {
 
 interface TutorialsWidgetProps {
   onSwitchTab: (tab: any) => void;
+  initialTopicId?: string;
 }
 
-export default function TutorialsWidget({ onSwitchTab }: TutorialsWidgetProps) {
+export default function TutorialsWidget({ onSwitchTab, initialTopicId }: TutorialsWidgetProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTopicId, setSelectedTopicId] = useState('layout');
+  const [selectedTopicId, setSelectedTopicId] = useState(initialTopicId || 'layout');
   const [checklistState, setChecklistState] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (initialTopicId) {
+      setSelectedTopicId(initialTopicId);
+    }
+  }, [initialTopicId]);
 
   const topics: TutorialTopic[] = [
     {

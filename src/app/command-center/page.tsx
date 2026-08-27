@@ -18,7 +18,8 @@ import {
   GripVertical,
   Settings,
   HelpCircle,
-  RotateCcw
+  RotateCcw,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -126,6 +127,9 @@ const DEFAULT_TABS: CustomTab[] = [
   { id: 'gear', label: 'Gear Builder', iconName: 'Package', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'creative', label: 'Creative Board', iconName: 'Palette', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'social', label: 'Social Media', iconName: 'Share2', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
+  { id: 'review', label: 'Client Review', iconName: 'Video', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
+  { id: 'locations', label: 'Locations Scouting', iconName: 'MapPin', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
+  { id: 'intake', label: 'Client Onboarding', iconName: 'ClipboardList', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
   { id: 'inbox', label: 'Inbox', iconName: 'Mail', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'meeting_notes', label: 'Meeting Notes', iconName: 'FileText', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'rolodex', label: 'Rolodex', iconName: 'Users', type: 'system', isDefault: true, allowedRoles: ['admin'] },
@@ -140,6 +144,43 @@ export default function CommandCenterPage() {
   const [tabs, setTabs] = useState<CustomTab[]>([]);
   const [isMounted, setIsMounted] = useState(false);
   const [isQuickStartOpen, setIsQuickStartOpen] = useState(false);
+  const [helpModalTab, setHelpModalTab] = useState<'tour' | 'tutorials'>('tour');
+  const [helpInitialTopic, setHelpInitialTopic] = useState<string | undefined>(undefined);
+
+  const getTopicForTab = (tab: string): string => {
+    let cleanTab = tab;
+    if (tab.includes('_job_')) {
+      cleanTab = tab.split('_job_')[0];
+    }
+    
+    switch (cleanTab) {
+      case 'dashboard': return 'layout';
+      case 'slate': return 'slate';
+      case 'edits': return 'edits';
+      case 'gear': return 'gear';
+      case 'calendar': return 'calendar';
+      case 'social': return 'discord';
+      case 'rolodex': return 'rolodex';
+      case 'vault': return 'vault';
+      case 'meeting_notes': return 'tools';
+      case 'notes': return 'tools';
+      case 'script': return 'tools';
+      case 'clock': return 'tools';
+      default: return 'layout';
+    }
+  };
+
+  const handleOpenHelp = (tabId?: string) => {
+    if (!tabId || tabId === 'dashboard') {
+      setHelpModalTab('tour');
+      setHelpInitialTopic(undefined);
+    } else {
+      const topicId = getTopicForTab(tabId);
+      setHelpModalTab('tutorials');
+      setHelpInitialTopic(topicId);
+    }
+    setIsQuickStartOpen(true);
+  };
 
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -193,17 +234,15 @@ export default function CommandCenterPage() {
     const savedTabs = localStorage.getItem('custom_tabs_list');
     if (savedTabs) {
       try {
-        const parsed = JSON.parse(savedTabs) as CustomTab[];
-        // Merge in any newer built-in system tabs the saved list predates
-        // (e.g. "social"), so existing users get them without losing custom
-        // tabs or ordering. New system tabs are appended before the last one.
+        let parsed = JSON.parse(savedTabs) as CustomTab[];
+        // Filter out the old "tutorials" tab since it is now integrated contextually
+        parsed = parsed.filter((t) => t.id !== 'tutorials');
+        
         const savedIds = new Set(parsed.map((t) => t.id));
         const missingSystemTabs = DEFAULT_TABS.filter((t) => t.type === 'system' && !savedIds.has(t.id));
         const merged = missingSystemTabs.length ? [...parsed, ...missingSystemTabs] : parsed;
         setTabs(merged);
-        if (missingSystemTabs.length) {
-          localStorage.setItem('custom_tabs_list', JSON.stringify(merged));
-        }
+        localStorage.setItem('custom_tabs_list', JSON.stringify(merged));
       } catch (e) {
         setTabs(DEFAULT_TABS);
       }
@@ -308,6 +347,31 @@ export default function CommandCenterPage() {
     }
     setIsEditModalOpen(false);
     setSelectedTabToEdit(null);
+  };
+
+  const handleDeleteTabById = (tabId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const tabName = tabs.find(t => t.id === tabId)?.label || "workspace";
+    const confirmed = window.confirm(`Are you sure you want to delete the "${tabName}" workspace? This will permanently remove its panel layouts.`);
+    if (!confirmed) return;
+
+    const updated = tabs.filter(t => t.id !== tabId);
+    setTabs(updated);
+    localStorage.setItem('custom_tabs_list', JSON.stringify(updated));
+    if (activeTab === tabId) {
+      setActiveTab('dashboard');
+      localStorage.setItem('studio_active_tab', 'dashboard');
+    }
+  };
+
+  const handleEditTab = (tab: CustomTab) => {
+    setSelectedTabToEdit(tab);
+    setEditTabLabel(tab.label);
+    setEditTabIcon(tab.iconName);
+    setEditTabType(tab.type === 'system' ? 'workspace' : tab.type);
+    setEditTabUrl(tab.embedUrl || '');
+    setEditTabRoles(tab.allowedRoles || ['admin', 'staff', 'client']);
+    setIsEditModalOpen(true);
   };
 
   const [session, setSession] = useState<any>(null);
@@ -690,11 +754,11 @@ export default function CommandCenterPage() {
       <motion.aside 
         initial={false}
         animate={isMobile ? {
-          x: isSidebarOpen ? 0 : -260,
-          width: 260,
+          x: isSidebarOpen ? 0 : -285,
+          width: 285,
         } : {
           x: 0,
-          width: isSidebarOpen ? 260 : 80
+          width: isSidebarOpen ? 285 : 80
         }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         className={`bg-zinc-950/80 backdrop-blur-2xl border-r border-white/10 flex flex-col z-50 shrink-0 shadow-2xl ${
@@ -754,7 +818,11 @@ export default function CommandCenterPage() {
                                       setIsSidebarOpen(false);
                                     }
                                   }}
-                                  className={`w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-300 relative border ${(!isSidebarOpen && !isMobile) ? 'justify-center px-0' : 'px-4'} ${
+                                  className={`w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-300 relative border ${
+                                    (!isSidebarOpen && !isMobile) 
+                                      ? 'justify-center px-0' 
+                                      : 'pl-4 pr-8'
+                                  } ${
                                     activeTab === tab.id
                                       ? 'bg-gradient-to-r from-accent/15 to-accent/5 text-white border-accent/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] shadow-accent/5'
                                       : 'text-white/40 hover:text-white hover:bg-white/5 border-transparent'
@@ -770,44 +838,10 @@ export default function CommandCenterPage() {
                                   
                                   <Icon className={`w-5 h-5 shrink-0 transition-colors duration-300 ${activeTab === tab.id ? 'text-accent' : ''}`} />
                                   
-                                  <span className={`font-medium tracking-tight text-[13px] text-left transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
+                                  <span className={`font-medium tracking-tight text-[13px] text-left transition-opacity duration-300 whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
                                     {tab.label}
                                   </span>
                                 </button>
-
-                                {/* Action controls live as siblings of the nav button — not
-                                    nested inside it — so the markup stays valid (no button-in-
-                                    button) while the absolute positioning + group-hover reveal
-                                    are unchanged. */}
-
-                                {/* Edit/Settings button for default/custom tabs on hover (admin only) */}
-                                {isSidebarOpen && userRole === 'admin' && (
-                                  <>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedTabToEdit(tab);
-                                        setEditTabLabel(tab.label);
-                                        setEditTabIcon(tab.iconName);
-                                        setEditTabType(tab.type as any);
-                                        setEditTabUrl(tab.embedUrl || '');
-                                        setEditTabRoles(tab.allowedRoles || ['admin']);
-                                        setIsEditModalOpen(true);
-                                      }}
-                                      className="absolute right-14 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-accent transition-opacity z-30 cursor-pointer"
-                                      title="Edit Workspace Settings"
-                                    >
-                                      <Settings className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={(e) => resetWorkspaceForTab(tab.id, e)}
-                                      className="absolute right-9 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-orange-400 transition-opacity z-30 cursor-pointer"
-                                      title="Reset panels to default view"
-                                    >
-                                      <RotateCcw className="w-3.5 h-3.5" />
-                                    </button>
-                                  </>
-                                )}
 
                                 {/* Grip handle visible on hover. Must stay mounted even when
                                     collapsed — @hello-pangea/dnd requires the drag handle to
@@ -834,7 +868,7 @@ export default function CommandCenterPage() {
                         className={`w-full flex items-center gap-3 py-3 rounded-xl border border-dashed border-white/10 hover:border-accent/40 text-white/40 hover:text-white bg-transparent hover:bg-white/5 transition-all duration-300 mt-4 cursor-pointer group/add-tab ${(!isSidebarOpen && !isMobile) ? 'justify-center px-0' : 'px-4'}`}
                       >
                         <Plus className="w-5 h-5 shrink-0 text-white/40 group-hover/add-tab:text-accent transition-colors duration-300" />
-                        <span className={`font-medium tracking-tight text-[13px] text-left transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
+                        <span className={`font-medium tracking-tight text-[13px] text-left transition-opacity duration-300 whitespace-nowrap ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
                           Create Workspace
                         </span>
                       </button>
@@ -869,7 +903,7 @@ export default function CommandCenterPage() {
                       }`}
                     >
                       <Icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-accent' : ''}`} />
-                      <span className="font-medium tracking-tight text-[13px]">
+                      <span className="font-medium tracking-tight text-[13px] whitespace-nowrap">
                         {tab.label}
                       </span>
                     </button>
@@ -885,7 +919,7 @@ export default function CommandCenterPage() {
             className="w-full flex items-center gap-3 px-4 py-3 text-white/20 hover:text-red-500 transition-colors rounded-xl group cursor-pointer"
           >
             <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            <span className={`font-medium tracking-tight text-[13px] ${(!isSidebarOpen && !isMobile) && 'hidden'}`}>Sign Out</span>
+            <span className={`font-medium tracking-tight text-[13px] whitespace-nowrap ${(!isSidebarOpen && !isMobile) && 'hidden'}`}>Sign Out</span>
           </button>
         </div>
       </motion.aside>
@@ -954,6 +988,30 @@ export default function CommandCenterPage() {
                   </button>
                 )}
 
+                {/* Edit Workspace Settings — only for admin */}
+                {userRole === 'admin' && activeTabObj && (
+                  <button
+                     onClick={() => handleEditTab(activeTabObj)}
+                     className="p-2 rounded-md text-white/50 hover:text-accent hover:bg-white/[0.06] transition-colors cursor-pointer"
+                     title={`Configure "${activeTabObj.label}" settings`}
+                     aria-label="Edit workspace"
+                  >
+                     <Settings className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* Delete Workspace — only for admin on custom workspaces */}
+                {userRole === 'admin' && activeTabObj && !activeTabObj.isDefault && (
+                  <button
+                     onClick={(e) => handleDeleteTabById(activeTabObj.id, e)}
+                     className="p-2 rounded-md text-white/50 hover:text-red-400 hover:bg-white/[0.06] transition-colors cursor-pointer"
+                     title={`Delete "${activeTabObj.label}" workspace`}
+                     aria-label="Delete workspace"
+                  >
+                     <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+
                 {/* Calendar Sync */}
                 <button
                    onClick={() => setIsCalendarSyncOpen(true)}
@@ -964,12 +1022,12 @@ export default function CommandCenterPage() {
                    <RefreshCw className="w-4 h-4 text-accent animate-spin-slow" />
                 </button>
 
-                {/* Quick Start Guide */}
+                {/* Quick Start & Learning Center */}
                 <button
-                   onClick={() => setIsQuickStartOpen(true)}
+                   onClick={() => handleOpenHelp(activeTab)}
                    className="p-2 rounded-md text-accent hover:bg-accent/10 transition-colors cursor-pointer"
-                   title="Quick start guide"
-                   aria-label="Quick start guide"
+                   title="Help & Learning Center"
+                   aria-label="Help & Learning Center"
                 >
                    <HelpCircle className="w-4 h-4" />
                 </button>
@@ -1019,8 +1077,15 @@ export default function CommandCenterPage() {
                   onClearPreload={() => setPreloadedJob(null)}
                   preselectedJobId={preselectedJobId}
                   onClearPreselectedJobId={() => setPreselectedJobId(null)}
+                  onOpenHelp={handleOpenHelp}
                   onSwitchTab={(target) => {
-                    if (typeof target === 'string') {
+                    if (target === 'tutorials') {
+                      handleOpenHelp(activeTab);
+                    } else if (target === 'quickstart') {
+                      setHelpModalTab('tour');
+                      setHelpInitialTopic(undefined);
+                      setIsQuickStartOpen(true);
+                    } else if (typeof target === 'string') {
                       setActiveTab(target);
                       localStorage.setItem('studio_active_tab', target);
                     } else if (target && typeof target === 'object') {
@@ -1490,7 +1555,7 @@ export default function CommandCenterPage() {
         )}
       </AnimatePresence>
 
-      {/* Quick Start Guide Modal */}
+      {/* Quick Start & Learning Center Modal */}
       <QuickStartGuideModal 
         isOpen={isQuickStartOpen} 
         onClose={() => setIsQuickStartOpen(false)} 
@@ -1498,10 +1563,13 @@ export default function CommandCenterPage() {
           setIsQuickStartOpen(false);
           setIsCalendarSyncOpen(true);
         }} 
-        onOpenTutorials={() => {
-          setIsQuickStartOpen(false);
-          setActiveTab('tutorials');
-          localStorage.setItem('studio_active_tab', 'tutorials');
+        initialTab={helpModalTab}
+        initialTopicId={helpInitialTopic}
+        onSwitchTab={(target) => {
+          if (typeof target === 'string') {
+            setActiveTab(target);
+            localStorage.setItem('studio_active_tab', target);
+          }
         }}
       />
     </div>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   CalendarDays, Megaphone, Film, Link2, Plus, Trash2, X, Check, Copy,
-  ChevronLeft, ChevronRight, ExternalLink, Quote,
+  ChevronLeft, ChevronRight, ExternalLink, Quote, Layers, Scissors
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { sanitizeUrl } from '@/lib/sanitize';
@@ -40,7 +40,7 @@ const labelCls = 'text-[9px] font-black uppercase tracking-widest text-white/40 
 /* Main                                                                */
 /* ================================================================== */
 export default function SocialMedia() {
-  const [section, setSection] = useState<'calendar' | 'rollouts' | 'deliverables' | 'links'>('calendar');
+  const [section, setSection] = useState<'calendar' | 'rollouts' | 'deliverables' | 'links' | 'planner'>('calendar');
   const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
@@ -52,6 +52,7 @@ export default function SocialMedia() {
     { key: 'rollouts', label: 'Rollout Tracker', icon: Megaphone },
     { key: 'deliverables', label: 'Deliverables', icon: Film },
     { key: 'links', label: 'Links & Captions', icon: Link2 },
+    { key: 'planner', label: 'Clip Planner', icon: Layers },
   ] as const;
 
   return (
@@ -80,6 +81,7 @@ export default function SocialMedia() {
         {section === 'rollouts' && <RolloutTracker clients={clients} />}
         {section === 'deliverables' && <Deliverables clients={clients} />}
         {section === 'links' && <LinkHub clients={clients} />}
+        {section === 'planner' && <SocialClipPlanner />}
       </div>
     </div>
   );
@@ -563,6 +565,357 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
         </div>
         {children}
       </div>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/* 5) Social Clip Planner                                              */
+/* ================================================================== */
+interface ClipPlan {
+  id: string;
+  sceneName: string;
+  cropFocus: string;
+  hookText: string;
+  captionCopy: string;
+  platforms: string[];
+  status: 'todo' | 'in_progress' | 'rendered' | 'posted';
+}
+
+function SocialClipPlanner() {
+  const [plans, setPlans] = useState<ClipPlan[]>([]);
+  
+  // Add Form states
+  const [scene, setScene] = useState('');
+  const [crop, setCrop] = useState('Center crop');
+  const [hook, setHook] = useState('');
+  const [caption, setCaption] = useState('');
+  const [platforms, setPlatforms] = useState<string[]>(['instagram']);
+  const [status, setStatus] = useState<ClipPlan['status']>('todo');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem('studio_social_clip_planner');
+    if (saved) {
+      try {
+        setPlans(JSON.parse(saved));
+      } catch (e) {
+        setPlans([]);
+      }
+    } else {
+      const mockPlans: ClipPlan[] = [
+        {
+          id: 'cp-1',
+          sceneName: 'Wide performance guitar solo',
+          cropFocus: 'Follow guitarist (left-to-center pan)',
+          hookText: 'POV: You are watching a live Broadway guitar solo...',
+          captionCopy: 'Unbelievable skill! Check out our latest commercial shoot #guitarist #broadway #bts',
+          platforms: ['instagram', 'tiktok'],
+          status: 'todo'
+        },
+        {
+          id: 'cp-2',
+          sceneName: 'Revealing the final studio lighting setup',
+          cropFocus: 'Center crop, focus on light halo',
+          hookText: 'The secret to our cinematic look 💡',
+          captionCopy: 'Here is a quick breakdown of our lighting set from yesterday #filmmaking #cinematic #lighting',
+          platforms: ['tiktok', 'youtube'],
+          status: 'in_progress'
+        }
+      ];
+      setPlans(mockPlans);
+      localStorage.setItem('studio_social_clip_planner', JSON.stringify(mockPlans));
+    }
+  }, []);
+
+  const save = (updated: ClipPlan[]) => {
+    setPlans(updated);
+    localStorage.setItem('studio_social_clip_planner', JSON.stringify(updated));
+  };
+
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!scene.trim()) return;
+    const newPlan: ClipPlan = {
+      id: 'cp_' + Date.now(),
+      sceneName: scene.trim(),
+      cropFocus: crop.trim() || 'Center crop',
+      hookText: hook.trim(),
+      captionCopy: caption.trim(),
+      platforms: platforms,
+      status: status
+    };
+    const updated = [newPlan, ...plans];
+    save(updated);
+    setScene('');
+    setCrop('Center crop');
+    setHook('');
+    setCaption('');
+  };
+
+  const handleCellChange = (id: string, field: keyof ClipPlan, val: any) => {
+    const updated = plans.map(p => p.id === id ? { ...p, [field]: val } : p);
+    save(updated);
+  };
+
+  const togglePlatform = (id: string, plat: string) => {
+    const p = plans.find(p => p.id === id);
+    if (!p) return;
+    const newPlats = p.platforms.includes(plat)
+      ? p.platforms.filter(x => x !== plat)
+      : [...p.platforms, plat];
+    handleCellChange(id, 'platforms', newPlats);
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm('Delete this clip plan?')) {
+      const updated = plans.filter(p => p.id !== id);
+      save(updated);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Intro */}
+      <div className="bg-neutral-900/40 border border-white/5 p-5 rounded-2xl">
+        <div className="flex items-center gap-2">
+          <Scissors className="w-5 h-5 text-accent" />
+          <div>
+            <h3 className="text-sm font-black uppercase tracking-widest text-accent">Widescreen Shotlist to Vertical Social Planner</h3>
+            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-0.5">Map master landscape footage into high-converting 9:16 social clips</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid Matrix Table */}
+      <div className="border border-white/10 rounded-2xl overflow-hidden bg-black/20">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[900px]">
+            <thead>
+              <tr className="bg-white/[0.03] border-b border-white/10 text-[9px] font-black uppercase tracking-widest text-white/40">
+                <th className="p-3.5 w-1/4">Master Shot / Scene</th>
+                <th className="p-3.5 w-1/5">9:16 Crop Focus</th>
+                <th className="p-3.5 w-1/5">Hook / Concept</th>
+                <th className="p-3.5 w-1/5">Caption & Tags</th>
+                <th className="p-3.5 w-[140px]">Platforms</th>
+                <th className="p-3.5 w-[110px]">Status</th>
+                <th className="p-3.5 w-[40px] text-center"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {plans.length > 0 ? (
+                plans.map((plan) => (
+                  <tr key={plan.id} className="hover:bg-white/[0.01] transition-colors text-xs">
+                    {/* Scene Name */}
+                    <td className="p-3">
+                      <input 
+                        type="text"
+                        value={plan.sceneName}
+                        onChange={(e) => handleCellChange(plan.id, 'sceneName', e.target.value)}
+                        className="bg-transparent border-none p-0 focus:ring-0 text-xs font-bold text-white uppercase tracking-tight w-full outline-none focus:text-accent"
+                      />
+                    </td>
+
+                    {/* Crop Focus */}
+                    <td className="p-3">
+                      <input 
+                        type="text"
+                        value={plan.cropFocus}
+                        onChange={(e) => handleCellChange(plan.id, 'cropFocus', e.target.value)}
+                        className="bg-transparent border-none p-0 focus:ring-0 text-xs font-medium text-white/80 w-full outline-none focus:text-accent"
+                      />
+                    </td>
+
+                    {/* Hook Text */}
+                    <td className="p-3">
+                      <textarea 
+                        value={plan.hookText}
+                        rows={2}
+                        onChange={(e) => handleCellChange(plan.id, 'hookText', e.target.value)}
+                        className="bg-transparent border-none p-0 focus:ring-0 text-[11px] font-medium text-white/70 w-full outline-none resize-none focus:text-accent custom-scrollbar"
+                      />
+                    </td>
+
+                    {/* Caption Copy */}
+                    <td className="p-3">
+                      <textarea 
+                        value={plan.captionCopy}
+                        rows={2}
+                        onChange={(e) => handleCellChange(plan.id, 'captionCopy', e.target.value)}
+                        className="bg-transparent border-none p-0 focus:ring-0 text-[10px] font-medium text-white/60 w-full outline-none resize-none focus:text-accent custom-scrollbar"
+                      />
+                    </td>
+
+                    {/* Platforms */}
+                    <td className="p-3">
+                      <div className="flex gap-1">
+                        {['instagram', 'tiktok', 'youtube'].map((plat) => {
+                          const hasPlat = plan.platforms.includes(plat);
+                          let color = 'bg-white/5 border-white/5 text-white/20';
+                          if (hasPlat) {
+                            if (plat === 'instagram') color = 'bg-pink-500/10 border-pink-500/30 text-pink-400 font-bold';
+                            if (plat === 'tiktok') color = 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 font-bold';
+                            if (plat === 'youtube') color = 'bg-red-500/10 border-red-500/30 text-red-400 font-bold';
+                          }
+                          return (
+                            <button
+                              type="button"
+                              key={plat}
+                              onClick={() => togglePlatform(plan.id, plat)}
+                              className={`text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded border transition-all cursor-pointer ${color}`}
+                            >
+                              {plat === 'instagram' ? 'IG' : plat === 'tiktok' ? 'TT' : 'YT'}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </td>
+
+                    {/* Status */}
+                    <td className="p-3">
+                      <select
+                        value={plan.status}
+                        onChange={(e) => handleCellChange(plan.id, 'status', e.target.value)}
+                        className="bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-[9px] text-white font-bold uppercase tracking-wider outline-none cursor-pointer w-full"
+                      >
+                        <option value="todo">To-Do</option>
+                        <option value="in_progress">Working</option>
+                        <option value="rendered">Rendered</option>
+                        <option value="posted">Posted</option>
+                      </select>
+                    </td>
+
+                    {/* Delete */}
+                    <td className="p-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(plan.id)}
+                        className="p-1.5 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="p-12 text-center text-white/30 italic uppercase tracking-wider">
+                    No clip plans created yet. Use the scheduler form below.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Add New Row Form */}
+      <form onSubmit={handleAdd} className="bg-neutral-900/20 border border-white/10 p-5 rounded-2xl space-y-4">
+        <h4 className="text-[10px] font-black text-accent uppercase tracking-widest">Plan New Vertical Clip</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <div>
+              <label className={labelCls}>Master Shot / Scene Description</label>
+              <input 
+                type="text"
+                value={scene}
+                onChange={(e) => setScene(e.target.value)}
+                placeholder="e.g., Close-up performance of lead actor"
+                className={inputCls}
+                required
+              />
+            </div>
+            <div>
+              <label className={labelCls}>9:16 Crop Focus / Camera instructions</label>
+              <input 
+                type="text"
+                value={crop}
+                onChange={(e) => setCrop(e.target.value)}
+                placeholder="e.g., Center crop, track actor right"
+                className={inputCls}
+              />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className={labelCls}>Video Hook Text (On-Screen Overlay)</label>
+              <input 
+                type="text"
+                value={hook}
+                onChange={(e) => setHook(e.target.value)}
+                placeholder="e.g., This lighting trick will blow your mind..."
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Social Caption & Hashtags</label>
+              <input 
+                type="text"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="e.g., A quick look at how we light our sets! #bts #lighting"
+                className={inputCls}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-4 items-center justify-between border-t border-white/5 pt-4">
+          <div className="flex gap-4 items-center">
+            {/* Platforms Selector */}
+            <div className="flex gap-2 items-center">
+              <span className="text-[8px] font-black uppercase tracking-widest text-white/35">Platforms:</span>
+              <div className="flex gap-1">
+                {['instagram', 'tiktok', 'youtube'].map((plat) => {
+                  const active = platforms.includes(plat);
+                  return (
+                    <button
+                      type="button"
+                      key={plat}
+                      onClick={() => {
+                        setPlatforms(prev => 
+                          prev.includes(plat) 
+                            ? prev.filter(x => x !== plat) 
+                            : [...prev, plat]
+                        );
+                      }}
+                      className={`text-[8px] uppercase tracking-wider px-2 py-1 rounded border transition-all cursor-pointer ${
+                        active 
+                          ? 'bg-accent/15 border-accent/40 text-accent font-bold' 
+                          : 'bg-white/5 border-white/10 text-white/40 hover:text-white'
+                      }`}
+                    >
+                      {plat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Status Selector */}
+            <div className="flex gap-2 items-center">
+              <span className="text-[8px] font-black uppercase tracking-widest text-white/35">Status:</span>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as ClipPlan['status'])}
+                className="bg-black/40 border border-white/10 rounded px-2 py-1 text-[9px] text-white font-bold uppercase tracking-wider outline-none cursor-pointer"
+              >
+                <option value="todo">To-Do</option>
+                <option value="in_progress">Working</option>
+                <option value="rendered">Rendered</option>
+                <option value="posted">Posted</option>
+              </select>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="bg-accent hover:bg-white hover:text-black text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer border border-accent"
+          >
+            Add Clip Plan
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

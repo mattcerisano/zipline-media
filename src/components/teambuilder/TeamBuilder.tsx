@@ -63,7 +63,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [newTodoText, setNewTodoText] = useState('');
   
-  const [activeTab, setActiveTab] = useState<'crew' | 'schedule' | 'preprod'>('crew');
+  const [activeTab, setActiveTab] = useState<'crew' | 'schedule' | 'preprod' | 'financials'>('crew');
 
   // Fetch initial data
   useEffect(() => {
@@ -561,7 +561,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content Area */}
-        <div className={`${activeTab === 'preprod' ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-4`}>
+        <div className={`${activeTab === 'crew' ? 'lg:col-span-2' : 'lg:col-span-3'} space-y-4`}>
           <div className="flex flex-wrap items-center gap-4 mb-4 border-b border-white/10 pb-2">
             <button 
               onClick={() => setActiveTab('crew')}
@@ -580,6 +580,12 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
               className={`flex items-center gap-2 pb-2 text-lg font-black uppercase tracking-tighter transition-colors border-b-2 ${activeTab === 'preprod' ? 'text-accent border-accent' : 'text-white/40 border-transparent hover:text-white'}`}
             >
               <ClipboardList className="w-5 h-5" /> Prep Checklist
+            </button>
+            <button 
+              onClick={() => setActiveTab('financials')}
+              className={`flex items-center gap-2 pb-2 text-lg font-black uppercase tracking-tighter transition-colors border-b-2 ${activeTab === 'financials' ? 'text-accent border-accent' : 'text-white/40 border-transparent hover:text-white'}`}
+            >
+              <DollarSign className="w-5 h-5" /> Financials
             </button>
           </div>
           
@@ -720,11 +726,158 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                 </div>
               </div>
             )}
+
+            {activeTab === 'financials' && selectedJob && (
+              <div className="space-y-6">
+                {/* Profitability Scorecard Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Estimated Revenue */}
+                  <div className="bg-neutral-900/40 border border-white/5 p-5 rounded-3xl space-y-2">
+                    <p className="text-[9px] font-black uppercase tracking-wider text-white/40 flex items-center gap-1">
+                      <DollarSign className="w-3.5 h-3.5 text-accent" /> Project Revenue
+                    </p>
+                    <div className="flex items-center gap-1 text-lg font-black">
+                      <span className="text-accent">$</span>
+                      <input 
+                        type="number"
+                        value={selectedJob.estimated_budget || 0}
+                        onChange={(e) => {
+                          const budget = parseFloat(e.target.value) || 0;
+                          setJobs(prev => prev.map(j => j.id === selectedJob.id ? { ...j, estimated_budget: budget } : j));
+                          supabase.from('jobs').update({ estimated_budget: budget }).eq('id', selectedJob.id).then();
+                        }}
+                        className="bg-transparent border-none p-0 focus:ring-0 text-lg font-black text-white w-full"
+                        placeholder="0"
+                      />
+                    </div>
+                    <p className="text-[8px] font-medium text-white/30 uppercase tracking-widest">Estimated Project Value</p>
+                  </div>
+
+                  {/* Gear Allocation */}
+                  <div className="bg-neutral-900/40 border border-white/5 p-5 rounded-3xl space-y-2">
+                    <p className="text-[9px] font-black uppercase tracking-wider text-white/40 flex items-center gap-1">
+                      <DollarSign className="w-3.5 h-3.5 text-blue-400" /> Gear Allocation
+                    </p>
+                    <div className="flex items-center gap-1 text-lg font-black">
+                      <span className="text-blue-400">$</span>
+                      <input 
+                        type="number"
+                        value={selectedJob.gear_budget || 0}
+                        onChange={(e) => {
+                          const gearCost = parseFloat(e.target.value) || 0;
+                          setJobs(prev => prev.map(j => j.id === selectedJob.id ? { ...j, gear_budget: gearCost } : j));
+                          supabase.from('jobs').update({ gear_budget: gearCost }).eq('id', selectedJob.id).then();
+                        }}
+                        className="bg-transparent border-none p-0 focus:ring-0 text-lg font-black text-white w-full"
+                        placeholder="0"
+                      />
+                    </div>
+                    <p className="text-[8px] font-medium text-white/30 uppercase tracking-widest">Internal or Sub-rental cost</p>
+                  </div>
+
+                  {/* Profit Margin Card */}
+                  {(() => {
+                    const rev = selectedJob.estimated_budget || 0;
+                    const gear = selectedJob.gear_budget || 0;
+                    const crew = jobRoles.reduce((sum, r) => sum + (r.day_rate || 0) + (r.flat_fee || 0), 0);
+                    
+                    let actualExpensesList = [];
+                    try {
+                      actualExpensesList = typeof selectedJob.actual_expenses === 'string' 
+                        ? JSON.parse(selectedJob.actual_expenses) 
+                        : (selectedJob.actual_expenses || []);
+                    } catch(e) {
+                      actualExpensesList = [];
+                    }
+                    if (!Array.isArray(actualExpensesList)) actualExpensesList = [];
+                    
+                    const expenses = actualExpensesList.reduce((sum: number, item: any) => sum + (parseFloat(item.amount) || 0), 0);
+                    const totalCost = gear + crew + expenses;
+                    const netProfit = rev - totalCost;
+                    const margin = rev > 0 ? (netProfit / rev) * 100 : 0;
+                    const isProfitable = netProfit >= 0;
+
+                    return (
+                      <div className={`border p-5 rounded-3xl space-y-2 transition-all ${
+                        isProfitable 
+                          ? 'bg-green-950/15 border-green-500/20 text-green-400' 
+                          : 'bg-red-950/15 border-red-500/20 text-red-400'
+                      }`}>
+                        <p className="text-[9px] font-black uppercase tracking-wider opacity-60 flex items-center gap-1">
+                          <ClipboardList className="w-3.5 h-3.5" /> Net Profit Margin
+                        </p>
+                        <div className="text-lg font-black">
+                          {isProfitable ? '+' : '-'}${Math.abs(netProfit).toLocaleString()}
+                        </div>
+                        <p className="text-[8px] font-bold uppercase tracking-widest opacity-60">
+                          Total Cost: ${totalCost.toLocaleString()} | Margin: {margin.toFixed(1)}%
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Expense Ledger Card */}
+                <div className="bg-neutral-900/40 border border-white/5 p-6 rounded-3xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-widest text-accent">Crew Expenses & Receipts</h3>
+                      <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-0.5">Log travel, catering, and on-set incidentals</p>
+                    </div>
+                    <span className="text-[10px] font-black bg-white/5 px-2 py-0.5 rounded border border-white/5 text-white/60">
+                      Roster Cost: ${jobRoles.reduce((sum, r) => sum + (r.day_rate || 0), 0).toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* Expense Items List */}
+                  {(() => {
+                    let actualExpensesList = [];
+                    try {
+                      actualExpensesList = typeof selectedJob.actual_expenses === 'string' 
+                        ? JSON.parse(selectedJob.actual_expenses) 
+                        : (selectedJob.actual_expenses || []);
+                    } catch(e) {
+                      actualExpensesList = [];
+                    }
+                    if (!Array.isArray(actualExpensesList)) actualExpensesList = [];
+
+                    const handleAddExpense = (desc: string, cat: string, amt: number) => {
+                      if (!desc.trim() || amt <= 0) return;
+                      const newItem = {
+                        id: 'exp_' + Date.now(),
+                        description: desc.trim(),
+                        category: cat,
+                        amount: amt,
+                        date: new Date().toISOString().split('T')[0]
+                      };
+                      const newList = [...actualExpensesList, newItem];
+                      
+                      setJobs(prev => prev.map(j => j.id === selectedJob.id ? { ...j, actual_expenses: newList as any } : j));
+                      supabase.from('jobs').update({ actual_expenses: newList }).eq('id', selectedJob.id).then();
+                    };
+
+                    const handleDeleteExpense = (expId: string) => {
+                      const newList = actualExpensesList.filter((item: any) => item.id !== expId);
+                      setJobs(prev => prev.map(j => j.id === selectedJob.id ? { ...j, actual_expenses: newList as any } : j));
+                      supabase.from('jobs').update({ actual_expenses: newList }).eq('id', selectedJob.id).then();
+                    };
+
+                    return (
+                      <ExpenseLedgerWidget 
+                        expenses={actualExpensesList} 
+                        onAdd={handleAddExpense} 
+                        onDelete={handleDeleteExpense} 
+                      />
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Sidebar: Quick Add / Contact Search */}
-        {activeTab !== 'preprod' && (
+        {activeTab === 'crew' && (
           <div className="space-y-6">
             <div className="bg-neutral-900/60 border border-white/10 p-6 rounded-2xl">
               <h3 className="text-sm font-black uppercase tracking-tighter mb-4 flex items-center gap-2 text-white">
@@ -939,6 +1092,18 @@ function RoleItem({ role, onUpdate, onDelete, contacts }: {
          </div>
 
          <div className="flex items-center gap-4 justify-end">
+            <div className="flex items-center gap-1.5 opacity-60 bg-black/25 px-2 py-1 rounded-lg border border-white/5 focus-within:border-accent/40 w-24">
+              <DollarSign className="w-3 h-3 text-green-400 shrink-0" />
+              <input 
+                type="number"
+                value={localRole.day_rate || ''}
+                onChange={(e) => handleChange('day_rate', parseFloat(e.target.value) || 0)}
+                onBlur={handleSave}
+                placeholder="DAY RATE"
+                className="bg-transparent border-none p-0 focus:ring-0 text-[9px] font-bold w-full text-white"
+              />
+            </div>
+
             <label className="flex items-center gap-2 cursor-pointer group">
               <input 
                 type="checkbox"
@@ -1219,5 +1384,95 @@ function ScheduleItem({
         </button>
       </div>
     </motion.div>
+  );
+}
+
+function ExpenseLedgerWidget({ 
+  expenses, 
+  onAdd, 
+  onDelete 
+}: { 
+  expenses: any[], 
+  onAdd: (desc: string, cat: string, amt: number) => void, 
+  onDelete: (id: string) => void 
+}) {
+  const [desc, setDesc] = useState('');
+  const [cat, setCat] = useState('Catering');
+  const [amt, setAmt] = useState('');
+
+  const submit = () => {
+    const val = parseFloat(amt);
+    if (desc.trim() && val > 0) {
+      onAdd(desc, cat, val);
+      setDesc('');
+      setAmt('');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* List */}
+      <div className="space-y-2 max-h-52 overflow-y-auto custom-scrollbar">
+        {expenses.length > 0 ? (
+          expenses.map((item: any) => (
+            <div key={item.id} className="flex justify-between items-center bg-black/20 border border-white/5 p-3 rounded-2xl group transition-all">
+              <div>
+                <span className="text-[8px] font-black bg-white/5 border border-white/5 px-1.5 py-0.5 rounded text-white/50 uppercase tracking-widest">{item.category}</span>
+                <p className="text-xs font-bold text-white mt-1 uppercase tracking-tight">{item.description}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-black text-green-400">${parseFloat(item.amount).toLocaleString()}</span>
+                <button
+                  onClick={() => onDelete(item.id)}
+                  className="p-1 text-white/20 hover:text-red-400 hover:bg-red-500/10 rounded cursor-pointer opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-[10px] text-white/30 italic py-3 text-center border border-dashed border-white/10 rounded-2xl">No logged expenses.</p>
+        )}
+      </div>
+
+      {/* Add Form */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-black/10 p-3 rounded-2xl border border-white/5">
+        <input 
+          type="text"
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          placeholder="EXPENSE DESCRIPTION"
+          className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-medium text-white outline-none focus:border-accent"
+        />
+        <select
+          value={cat}
+          onChange={(e) => setCat(e.target.value)}
+          className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-bold text-white outline-none focus:border-accent cursor-pointer"
+        >
+          <option value="Catering">Catering / Meals</option>
+          <option value="Travel">Travel & Mileage</option>
+          <option value="Location">Location Permits</option>
+          <option value="Gear Sub-rental">Gear Sub-rental</option>
+          <option value="Insurance">Insurance / Legal</option>
+          <option value="Other">Other Incidentals</option>
+        </select>
+        <div className="flex gap-2">
+          <input 
+            type="number"
+            value={amt}
+            onChange={(e) => setAmt(e.target.value)}
+            placeholder="AMOUNT ($)"
+            className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-medium text-white outline-none focus:border-accent flex-grow"
+          />
+          <button 
+            onClick={submit}
+            className="bg-accent hover:bg-white hover:text-black text-white px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer border border-accent"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
