@@ -36,6 +36,10 @@ import { jsPDF } from 'jspdf';
 import Autocomplete from 'react-google-autocomplete';
 
 import { ALL_CATEGORIES, type InventoryItem } from '@/data/inventory';
+
+// Category is optional when adding gear; anything left blank lands here so the
+// item still groups somewhere instead of disappearing from the catalog.
+const UNCATEGORIZED = 'Uncategorized';
 import { STORAGE_KEY_CLIENTS, STORAGE_KEY_JOBS, Client, Job, GearTemplate, Contact } from './types';
 import ProductionCalendar from './ProductionCalendar';
 import { supabase } from '@/lib/supabase';
@@ -168,9 +172,12 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
   // Form State
   const [customName, setCustomName] = useState('');
-  const [customCategory, setCustomCategory] = useState(ALL_CATEGORIES[0]);
-  const [customQty, setCustomQty] = useState(1);
-  const [customValue, setCustomValue] = useState(0);
+  // Category, quantity and replacement value are all optional. Kept as strings
+  // so a blank field stays blank instead of snapping back to 1 / 0; they are
+  // coerced to their defaults (Uncategorized / 1 / 0) on save.
+  const [customCategory, setCustomCategory] = useState('');
+  const [customQty, setCustomQty] = useState('');
+  const [customValue, setCustomValue] = useState('');
   const [customOwner, setCustomOwner] = useState('');
   const [customImage, setCustomImage] = useState('');
 
@@ -375,6 +382,15 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     return [...dbInventory, ...customGear].sort((a, b) => a.name.localeCompare(b.name));
   }, [dbInventory, customGear]);
 
+  // Standard categories plus any others already present in the catalog (e.g.
+  // "Uncategorized" from a quick-add), so nothing is filtered into oblivion.
+  const categoryOptions = useMemo(() => {
+    const extras = Array.from(new Set(allInventory.map(i => i.category).filter(Boolean)))
+      .filter(cat => !ALL_CATEGORIES.includes(cat))
+      .sort((a, b) => a.localeCompare(b));
+    return [...ALL_CATEGORIES, ...extras];
+  }, [allInventory]);
+
   // Split saved gear lists (jobs) into recent vs archived by shoot date, most
   // recent first. A list is "archived" once its shoot is more than
   // GEAR_ARCHIVE_DAYS in the past; lists with no date or upcoming shoots always
@@ -459,9 +475,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     setSaveToStudioInventory(true);
     setGearItemError(null);
     setCustomName('');
-    setCustomCategory(ALL_CATEGORIES[0]);
-    setCustomQty(1);
-    setCustomValue(0);
+    setCustomCategory('');
+    setCustomQty('');
+    setCustomValue('');
     setCustomOwner('');
     setCustomImage('');
     resetOwnerContactUI();
@@ -479,9 +495,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     setSaveToStudioInventory(false);
     setGearItemError(null);
     setCustomName(baseName);
-    setCustomCategory(item.category);
-    setCustomQty(item.qty);
-    setCustomValue(item.replacement);
+    setCustomCategory(item.category === UNCATEGORIZED ? '' : (item.category || ''));
+    setCustomQty(item.qty ? String(item.qty) : '');
+    setCustomValue(item.replacement ? String(item.replacement) : '');
     setCustomOwner(owner);
     setCustomImage(item.image || '');
     resetOwnerContactUI();
@@ -529,11 +545,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       toast('Item with this name already exists.');
       return;
     }
+    const parsedQty = parseInt(customQty, 10);
+    const parsedValue = parseFloat(customValue);
     const newItem: InventoryItem = {
       name: finalName,
-      category: customCategory,
-      qty: customQty,
-      replacement: customValue,
+      category: customCategory.trim() || UNCATEGORIZED,
+      qty: Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1,
+      replacement: Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : 0,
       image: customImage.trim() || undefined,
       owner: customOwner.trim() || undefined
     };
@@ -1985,7 +2003,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                         className="flex-1 min-w-0 bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-xl appearance-none cursor-pointer"
                       >
                         <option value="All">ALL CATEGORIES</option>
-                        {ALL_CATEGORIES.map(cat => (
+                        {categoryOptions.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
                       </select>
@@ -2419,13 +2437,14 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                   </div>
                   
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold opacity-40 ml-1">Category</label>
+                    <label className="text-xs font-semibold opacity-40 ml-1">Category <span className="opacity-50">(Optional)</span></label>
                     <select 
                       value={customCategory}
                       onChange={(e) => setCustomCategory(e.target.value)}
                       className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg appearance-none"
                     >
-                      {ALL_CATEGORIES.map(cat => (
+                      <option value="">{UNCATEGORIZED} &mdash; pick later</option>
+                      {categoryOptions.filter(cat => cat !== UNCATEGORIZED).map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
                     </select>
@@ -2433,22 +2452,24 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
                   <div className="grid grid-cols-2 gap-4">
                      <div className="space-y-1">
-                      <label className="text-xs font-semibold opacity-40 ml-1">Quantity</label>
+                      <label className="text-xs font-semibold opacity-40 ml-1">Quantity <span className="opacity-50">(Optional)</span></label>
                       <input 
                         type="number" 
                         min="1"
                         value={customQty}
-                        onChange={(e) => setCustomQty(parseInt(e.target.value) || 1)}
+                        onChange={(e) => setCustomQty(e.target.value)}
+                        placeholder="1"
                         className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-semibold opacity-40 ml-1">Replacement Value ($)</label>
+                      <label className="text-xs font-semibold opacity-40 ml-1">Replacement Value ($) <span className="opacity-50">(Optional)</span></label>
                       <input 
                         type="number" 
                         min="0"
                         value={customValue}
-                        onChange={(e) => setCustomValue(parseInt(e.target.value) || 0)}
+                        onChange={(e) => setCustomValue(e.target.value)}
+                        placeholder="0"
                         className="w-full bg-black/50 border border-white/10 p-3 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
                       />
                     </div>
