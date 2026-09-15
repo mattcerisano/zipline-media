@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { X, Users, Star, AlertTriangle, Check, Merge, Mail, Phone, Building, MapPin, Tag, Briefcase } from 'lucide-react';
+import { Users, Star, AlertTriangle, Check, Merge, Mail, Phone, Building, MapPin, Tag, Briefcase } from 'lucide-react';
+import { Modal } from '@/components/workspace/Overlay';
 import type { DuplicateGroup, MatchStrength } from '@/lib/duplicate-contacts';
 import { planMerge, type DuplicateCandidate } from '@/lib/duplicate-contacts';
 import { formatRoleList } from '@/lib/crew-roles';
@@ -186,65 +186,38 @@ function GroupCard({
 }
 
 export default function DuplicateReview({
+  open,
   groups,
   busyKey,
   onMerge,
   onDismiss,
   onClose,
 }: {
+  open: boolean;
   groups: DuplicateGroup[];
   busyKey: string | null;
   onMerge: (group: DuplicateGroup, keepId: string) => void;
   onDismiss: (group: DuplicateGroup) => void;
   onClose: () => void;
 }) {
+  // Portalled via the shared Modal rather than a local `fixed inset-0`: a
+  // workspace panel is its own stacking context, so a sheet rendered inside
+  // one paints under the sticky page header however high its z-index goes.
+  // Overlay.tsx exists for exactly that, and brings Escape-to-close and the
+  // background scroll lock with it.
   return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg cursor-pointer"
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 16 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 16 }}
-        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="w-full max-w-4xl bg-neutral-950 border border-white/10 rounded-3xl shadow-2xl cursor-default flex flex-col max-h-[90vh]"
-      >
-        <div className="flex items-start justify-between p-6 border-b border-white/5">
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight text-white flex items-center gap-2">
-              <Users className="w-5 h-5 text-yellow-500" /> Possible duplicates
-            </h2>
-            <p className="text-[11px] font-medium text-white/40 mt-1">
-              Nothing is merged until you pick the record to keep. Dismissed pairs stay dismissed.
-            </p>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-6 space-y-4">
-          {groups.length === 0 ? (
-            <div className="text-center py-16">
-              <Check className="w-8 h-8 text-green-400 mx-auto mb-3" />
-              <p className="text-sm font-semibold text-white">No duplicates left to review.</p>
-              <p className="text-[11px] font-medium text-white/30 mt-1">The rolodex looks clean.</p>
-            </div>
-          ) : (
-            groups.map(group => (
-              <GroupCard
-                key={group.key}
-                group={group}
-                busy={busyKey === group.key}
-                onMerge={(keepId) => onMerge(group, keepId)}
-                onDismiss={() => onDismiss(group)}
-              />
-            ))
-          )}
-        </div>
-
-        <div className="flex items-center gap-3 px-6 py-4 border-t border-white/5">
+    <Modal
+      open={open}
+      onClose={onClose}
+      maxWidth="max-w-4xl"
+      title={
+        <span className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-yellow-500" /> Possible duplicates
+        </span>
+      }
+      subtitle="Nothing is merged until you pick the record to keep. Dismissed pairs stay dismissed."
+      footer={
+        <div className="flex items-center gap-3">
           <AlertTriangle className="w-3.5 h-3.5 text-yellow-500/60 shrink-0" />
           <p className="text-[10px] font-medium text-white/30 flex-1">
             A merge keeps every value the surviving record already has and fills its blanks from the others.
@@ -256,7 +229,27 @@ export default function DuplicateReview({
             Done
           </button>
         </div>
-      </motion.div>
-    </div>
+      }
+    >
+      <div className="space-y-4">
+        {groups.length === 0 ? (
+          <div className="text-center py-16">
+            <Check className="w-8 h-8 text-green-400 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-white">No duplicates left to review.</p>
+            <p className="text-[11px] font-medium text-white/30 mt-1">The rolodex looks clean.</p>
+          </div>
+        ) : (
+          groups.map(group => (
+            <GroupCard
+              key={group.key}
+              group={group}
+              busy={busyKey === group.key}
+              onMerge={(keepId) => onMerge(group, keepId)}
+              onDismiss={() => onDismiss(group)}
+            />
+          ))
+        )}
+      </div>
+    </Modal>
   );
 }

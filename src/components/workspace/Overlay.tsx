@@ -6,16 +6,38 @@ import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 
 /**
- * Modal and menu primitives that render into document.body.
+ * Modal and menu primitives that render out of the panel that opened them.
  *
  * Widgets live inside workspace panels, and a panel is its own stacking
  * context — `.panel-rise` runs a fill-mode animation on opacity, which is
  * enough to create one. Everything a widget renders therefore paints as part
  * of the panel's subtree no matter how high its own z-index goes, so a modal
- * at z-150 still ended up underneath the sticky page header. Portalling to
- * body sidesteps the whole class of problem: no ancestor's stacking context,
+ * at z-150 still ended up underneath the sticky page header. Portalling
+ * sidesteps the whole class of problem: no ancestor's stacking context,
  * overflow, or transform can reach these.
+ *
+ * The target is the app shell rather than `document.body`, because body is
+ * outside both wrappers the app's own look depends on: `.studio-os`, which
+ * re-points the `--color-white` / `--color-black` variables every themed
+ * utility compiles to, and `.studio-shell`, which neutralises the brand
+ * site's "uppercase every heading and button" rule. Portalled to body a sheet
+ * renders in LuloClean caps and keeps the dark palette whatever the theme —
+ * in light mode that is a near-black card dropped into a white app. The shell
+ * is already high enough to clear any panel's stacking context, and it
+ * inherits both.
  */
+
+/**
+ * Where overlays mount: the app shell if we're inside it, else the themed
+ * root, else body — a page that has neither still gets a working modal.
+ */
+function portalTarget(): HTMLElement {
+  return (
+    document.querySelector<HTMLElement>('.studio-shell') ||
+    document.getElementById('studio-os-root') ||
+    document.body
+  );
+}
 
 /** True only after hydration, so createPortal never runs during SSR. */
 function useMounted() {
@@ -97,7 +119,7 @@ export function Modal({ open, onClose, title, subtitle, footer, maxWidth = 'max-
         )}
       </motion.div>
     </div>,
-    document.body,
+    portalTarget(),
   );
 }
 
@@ -189,7 +211,7 @@ export function DropdownMenu({ trigger, items, align = 'right' }: {
             ))}
           </motion.div>
         </>,
-        document.body,
+        portalTarget(),
       )}
     </>
   );
