@@ -159,7 +159,7 @@ function Hero() {
           <motion.a 
             href="/archive" 
             whileTap={{ scale: 0.95 }}
-            className="inline-block border border-white/20 px-8 py-4 text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase hover:bg-white hover:text-black transition-all duration-300 active:bg-white active:text-black"
+            className="inline-block border border-white/20 px-8 py-4 text-[11px] md:text-xs font-bold tracking-[0.3em] uppercase hover:bg-white hover:text-black transition-all duration-300 active:bg-white active:text-black"
           >
             See our work
           </motion.a>
@@ -172,7 +172,7 @@ function Hero() {
         transition={{ delay: 1.5, duration: 1 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-3"
       >
-        <span className="md:hidden text-[10px] font-bold tracking-[0.3em] uppercase opacity-50">Scroll</span>
+        <span className="md:hidden text-[11px] font-bold tracking-[0.3em] uppercase opacity-50">Scroll</span>
         <div className="w-[2px] md:w-px h-16 md:h-12 bg-white/20 relative overflow-hidden">
           <motion.div 
             animate={{ y: [0, 64] }}
@@ -470,7 +470,7 @@ function LazyVideo({ src, poster, title }: { src: string, poster?: string, title
       )}
       
       {!poster && (
-        <div className={`absolute inset-0 flex items-center justify-center bg-neutral-900 text-[10px] font-bold uppercase opacity-20 text-center px-4 leading-tight z-10 transition-opacity duration-500 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`absolute inset-0 flex items-center justify-center bg-neutral-900 text-[11px] font-bold uppercase opacity-60 text-center px-4 leading-tight z-10 transition-opacity duration-500 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}>
           {title}
         </div>
       )}
@@ -567,8 +567,8 @@ function Social() {
              
              {/* Text overlay on hover */}
              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 z-20">
-               <span className="text-[11px] md:text-[9px] font-black uppercase tracking-wider text-accent mb-1">View Clip</span>
-               <h3 className="text-white text-[10px] md:text-xs font-black uppercase tracking-tight leading-tight line-clamp-2">
+               <span className="text-[11px] font-black uppercase tracking-wider text-accent mb-1">View Clip</span>
+               <h3 className="text-white text-[11px] md:text-xs font-black uppercase tracking-tight leading-tight line-clamp-2">
                  {clip.title}
                </h3>
              </div>
@@ -677,8 +677,8 @@ function Contact() {
               </p>
               
               <div className="flex flex-row justify-center gap-6 md:gap-12 mb-2">
-                <p className="text-[10px] md:text-xs tracking-[0.3em] font-bold uppercase">CONTACT@ZIPLINE.MEDIA</p>
-                <p className="text-[10px] md:text-xs tracking-[0.3em] font-bold uppercase opacity-40">NEW YORK, NY</p>
+                <p className="text-[11px] md:text-xs tracking-[0.3em] font-bold uppercase">CONTACT@ZIPLINE.MEDIA</p>
+                <p className="text-[11px] md:text-xs tracking-[0.3em] font-bold uppercase opacity-60">NEW YORK, NY</p>
               </div>
             </motion.div>
           </div>
@@ -698,7 +698,7 @@ function Contact() {
               <input type="hidden" name="_subject" value="New Inquiry from Zipline Website" />
               
               <div className="space-y-2">
-                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Name</label>
+                <label className="text-[11px] tracking-[0.4em] uppercase opacity-60 font-bold">Name</label>
                 <input 
                   type="text" 
                   name="name"
@@ -708,7 +708,7 @@ function Contact() {
               </div>
               
               <div className="space-y-2">
-                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Email</label>
+                <label className="text-[11px] tracking-[0.4em] uppercase opacity-60 font-bold">Email</label>
                 <input 
                   type="email" 
                   name="email"
@@ -718,7 +718,7 @@ function Contact() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Message</label>
+                <label className="text-[11px] tracking-[0.4em] uppercase opacity-60 font-bold">Message</label>
                 <textarea 
                   name="message"
                   rows={4} 
