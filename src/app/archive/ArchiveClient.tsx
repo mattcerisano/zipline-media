@@ -316,12 +316,18 @@ export default function ArchiveClient() {
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const lowerQ = searchQuery.toLowerCase();
+    // Some videos are listed once per section they belong to (e.g. Recent Work
+    // and Events), sometimes under a different title in each. The sections want
+    // that; search results don't — show each video once, first listing wins.
+    const seen = new Set<string>();
     return allVideos.filter(v => {
       const titleMatch = v.title.toLowerCase().includes(lowerQ);
       const categoryMatch = Array.isArray(v.category) 
         ? v.category.some(cat => cat.toLowerCase().includes(lowerQ))
         : v.category.toLowerCase().includes(lowerQ);
-      return titleMatch || categoryMatch;
+      if (!(titleMatch || categoryMatch) || seen.has(v.videoUrl)) return false;
+      seen.add(v.videoUrl);
+      return true;
     });
   }, [searchQuery, allVideos]);
 
