@@ -508,10 +508,10 @@ export default function InboxWidget() {
         <div className="bg-gradient-to-r from-yellow-500/10 via-amber-500/5 to-transparent border-b border-yellow-500/20 px-6 py-2.5 flex items-center justify-between gap-4 select-none">
           <div className="flex items-center gap-2.5">
             <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
-            <span className="text-[11px] md:text-[9px] font-semibold uppercase tracking-wider text-yellow-500 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5" /> Offline Sandbox mode
+            <span className="text-xs font-semibold text-yellow-400 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5" /> Sample inbox
             </span>
-            <span className="text-[11px] md:text-[8px] font-semibold text-white/40 uppercase tracking-wide hidden sm:inline">— showing simulated studio inbox feeds</span>
+            <span className="text-xs text-white/60 hidden sm:inline">— these emails aren&apos;t real. Connect Gmail to see your inbox.</span>
           </div>
           <button 
             onClick={() => {
@@ -519,7 +519,7 @@ export default function InboxWidget() {
               const syncBtn = document.querySelector('button[title="Reconnect Account"]') || document.querySelector('button.bg-gradient-to-r.from-accent\\/20');
               if (syncBtn) (syncBtn as any).click();
             }}
-            className="px-2.5 py-1 bg-yellow-500/15 hover:bg-yellow-500/35 border border-yellow-500/30 rounded-lg text-[11px] md:text-[8px] font-semibold uppercase tracking-wider text-yellow-400 hover:text-white transition-all cursor-pointer"
+            className="px-2.5 py-1 bg-yellow-500/15 hover:bg-yellow-500/35 border border-yellow-500/30 rounded-lg text-xs font-semibold text-yellow-400 hover:text-white transition-all cursor-pointer"
           >
             Connect Gmail Account
           </button>
