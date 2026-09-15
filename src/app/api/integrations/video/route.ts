@@ -81,10 +81,12 @@ export async function GET(request: Request) {
         return NextResponse.json({
           platform: 'Vimeo',
           title: videoData.name || 'Vimeo Live Video',
-          resolution: videoData.width && videoData.height ? `${videoData.width}x${videoData.height}` : '1080p HD',
-          views: videoData.stats?.plays || 0,
-          completionRate: '92.4%', 
+          resolution: videoData.width && videoData.height ? `${videoData.width}x${videoData.height}` : null,
+          views: videoData.stats?.plays ?? null,
+          // Vimeo's basic video endpoint doesn't report completion rate.
+          completionRate: null,
           comments,
+          isLive: true,
         });
 
       } catch (err: any) {
@@ -137,10 +139,11 @@ export async function GET(request: Request) {
         return NextResponse.json({
           platform: 'Frame.io',
           title: reviewData.name || 'Frame.io Review Link',
-          resolution: '4K UHD (2160p)',
-          views: reviewData.view_count || 12,
-          completionRate: '87.5%',
+          resolution: null,
+          views: reviewData.view_count ?? null,
+          completionRate: null,
           comments,
+          isLive: true,
         });
       } catch (err: any) {
         console.error('Frame.io API error, falling back to simulated data:', err.message);
@@ -185,6 +188,7 @@ export async function GET(request: Request) {
     views: mockViews,
     completionRate: mockCompletion,
     comments,
+    isLive: false,
   });
 }
 
