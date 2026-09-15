@@ -64,6 +64,15 @@ tokens are only ever read server-side with the service role) and adds
 Run this *before* connecting QuickBooks, or the callback will fail to store
 its tokens.
 
+This is one migration of many, and it is only the QuickBooks one because that
+is what this section switches on. For the full picture — how to tell which
+migrations your database is missing, and how to write a new one — see
+[docs/MIGRATIONS.md](MIGRATIONS.md):
+
+```bash
+node --env-file=.env.local scripts/migrations/check-applied.mjs
+```
+
 ---
 
 ## 3. QuickBooks app — manual
