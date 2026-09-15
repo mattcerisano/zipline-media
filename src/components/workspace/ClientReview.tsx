@@ -45,6 +45,8 @@ export default function ClientReview() {
   const [isLoading, setIsLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [useLocalStorage, setUseLocalStorage] = useState(false);
+  // True while the list is the built-in example reviews rather than real ones.
+  const [isSampleReviews, setIsSampleReviews] = useState(false);
 
   // Video player refs & states
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -125,7 +127,9 @@ export default function ClientReview() {
           loadedReviews = [];
         }
       } else {
-        // High fidelity mock data for first load
+        // Example reviews so the tab isn't empty on first load. They're saved
+        // to localStorage with it, so they're recognised by id below rather
+        // than only on this first pass.
         loadedReviews = [
           {
             id: 'rev-1',
@@ -159,6 +163,8 @@ export default function ClientReview() {
       }
     }
 
+    // Built-in examples use `rev-<n>`; reviews people create use `rev_<timestamp>`.
+    setIsSampleReviews(fallbackToLocal && loadedReviews.some(r => /^rev-\d+$/.test(r.id)));
     setReviews(loadedReviews);
     if (loadedReviews.length > 0) {
       setSelectedReviewId(loadedReviews[0].id);
@@ -340,9 +346,15 @@ export default function ClientReview() {
         </div>
 
         {/* Local sandbox status */}
-        <div className="p-3 bg-black/40 border-t border-white/10 flex items-center gap-1.5 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          <span>{useLocalStorage ? 'Local Client Sandbox' : 'Cloud Review Synced'}</span>
+        <div className="p-3 bg-black/40 border-t border-white/10 flex items-center gap-1.5 text-xs font-semibold text-white/60">
+          <div className={`w-1.5 h-1.5 rounded-full ${useLocalStorage ? 'bg-amber-400' : 'bg-green-500'}`} />
+          <span>
+            {isSampleReviews
+              ? 'Includes sample reviews — not real, and only saved on this device'
+              : useLocalStorage
+                ? 'Saved on this device only'
+                : 'Synced to the cloud'}
+          </span>
         </div>
       </div>
 
