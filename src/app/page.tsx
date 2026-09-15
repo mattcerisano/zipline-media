@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import LogoTicker from '@/components/LogoTicker';
+import BackgroundVideo from '@/components/BackgroundVideo';
 import { Check, Play, X, ChevronRight } from 'lucide-react';
 
 function Hero() {
@@ -63,16 +64,12 @@ function Hero() {
 
       {/* --- MAIN HERO CONTENT (Revealed after intro) --- */}
       <div className="hidden md:block absolute inset-0 z-0">
-        <video 
-          autoPlay 
-          muted 
-          loop 
-          playsInline 
+        <BackgroundVideo
+          webm="/LandingPage.webm"
+          mp4="/LandingPage.mp4"
+          poster="/posters/LandingPage.jpg"
           className="w-full h-full object-cover"
-        >
-          <source src="/LandingPage.webm" type="video/webm" />
-          <source src="/LandingPage.mp4" type="video/mp4" />
-        </video>
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70 z-10" />
       </div>
 
@@ -200,9 +197,9 @@ function Work() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const categories = [
-    { id: 'performance', title: 'Performance', video: '/broadway-performance.mp4', link: '/archive#performance' },
-    { id: 'brands', title: 'Brands', video: '/corporate.mp4', link: '/archive#brands' },
-    { id: 'new-media', title: 'New Media', video: '/new-media.mp4', link: '/archive#new-media' },
+    { id: 'performance', title: 'Performance', video: 'broadway-performance', link: '/archive#performance' },
+    { id: 'brands', title: 'Brands', video: 'corporate', link: '/archive#brands' },
+    { id: 'new-media', title: 'New Media', video: 'new-media', link: '/archive#new-media' },
   ];
 
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -236,16 +233,12 @@ function Work() {
         <div className="flex flex-col gap-6 md:hidden">
           {categories.map((cat) => (
             <div key={cat.id} className="relative w-full h-[50vh] rounded-2xl overflow-hidden border border-white/10 bg-black group">
-              <video 
-                autoPlay 
-                muted 
-                loop 
-                playsInline 
+              <BackgroundVideo
+                webm={`/${cat.video}.webm`}
+                mp4={`/${cat.video}.mp4`}
+                poster={`/posters/${cat.video}.jpg`}
                 className="absolute inset-0 w-full h-full object-cover"
-              >
-                <source src={cat.video.replace('.mp4', '.webm')} type="video/webm" />
-                <source src={cat.video} type="video/mp4" />
-              </video>
+              />
               
               <a 
                 href={cat.link} 
@@ -278,16 +271,12 @@ function Work() {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black h-full cursor-pointer flex-[1.5]"
           >
-            <video 
-              autoPlay 
-              muted 
-              loop 
-              playsInline 
+            <BackgroundVideo
+              webm="/broadway-performance.webm"
+              mp4="/broadway-performance.mp4"
+              poster="/posters/broadway-performance.jpg"
               className="absolute inset-0 w-full h-full object-cover"
-            >
-              <source src="/broadway-performance.webm" type="video/webm" />
-              <source src="/broadway-performance.mp4" type="video/mp4" />
-            </video>
+            />
             
             <a 
               href="/archive#performance" 
@@ -329,16 +318,12 @@ function Work() {
                <motion.div 
                  className="absolute inset-0 w-full h-full"
                >
-                 <video
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
+                 <BackgroundVideo
+                  webm="/corporate.webm"
+                  mp4="/corporate.mp4"
+                  poster="/posters/corporate.jpg"
                   className="w-full h-full object-cover"
-                >
-                  <source src="/corporate.webm" type="video/webm" />
-                  <source src="/corporate.mp4" type="video/mp4" />
-                </video>
+                />
               </motion.div>
 
               <a 
@@ -377,16 +362,12 @@ function Work() {
                <motion.div 
                  className="absolute inset-0 w-full h-full"
                >
-                 <video
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
+                 <BackgroundVideo
+                  webm="/new-media.webm"
+                  mp4="/new-media.mp4"
+                  poster="/posters/new-media.jpg"
                   className="w-full h-full object-cover"
-                >
-                  <source src="/new-media.webm" type="video/webm" />
-                  <source src="/new-media.mp4" type="video/mp4" />
-                </video>
+                />
               </motion.div>
 
               <a 
