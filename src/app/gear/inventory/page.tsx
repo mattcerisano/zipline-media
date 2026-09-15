@@ -8,6 +8,29 @@ import { Search, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 
+// Image paths come from the Supabase `inventory` table and can point at photos
+// that were never added to public/gear, which rendered as a broken-image icon.
+// Failure is tracked per src because rows are keyed by index, so filtering
+// hands a row a different item and the new image deserves its own attempt.
+function GearThumb({ src }: { src?: string }) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
+  if (!src || failedSrc === src) {
+    return <div className="w-full h-full flex items-center justify-center text-[11px] text-zinc-400 font-mono">NO IMG</div>;
+  }
+
+  return (
+    <Image
+      src={src}
+      alt=""
+      fill
+      sizes="120px"
+      className="object-contain p-1"
+      onError={() => setFailedSrc(src)}
+    />
+  );
+}
+
 export default function GearPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -180,17 +203,7 @@ export default function GearPage() {
                                 style={{ originX: 0, originY: 0.5 }}
                                 className="relative w-12 h-12 bg-white rounded-sm overflow-hidden border border-white/10"
                               >
-                                {item.image ? (
-                                  <Image 
-                                    src={item.image}
-                                    alt=""
-                                    fill
-                                    sizes="120px"
-                                    className="object-contain p-1"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-[11px] text-zinc-400 font-mono">NO IMG</div>
-                                )}
+                                <GearThumb src={item.image} />
                               </motion.div>
                             </td>
                             <td className="py-3 text-center font-mono">
