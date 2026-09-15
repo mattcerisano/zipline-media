@@ -293,6 +293,18 @@ export default function CommandCenterPage() {
   useEffect(() => {
     setIsMounted(true);
 
+    // A deep link like /command-center?tab=gear (where the retired /gearbuilder
+    // route sends people) seeds the persisted tab, then drops the param so a
+    // reload doesn't keep forcing it. fetchUserRole still checks the tab
+    // against the user's role once the session resolves.
+    const url = new URL(window.location.href);
+    const linkedTab = url.searchParams.get('tab');
+    if (linkedTab) {
+      localStorage.setItem('studio_active_tab', linkedTab);
+      url.searchParams.delete('tab');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
+
     // Load persisted active tab
     const savedActiveTab = localStorage.getItem('studio_active_tab');
     if (savedActiveTab) {
