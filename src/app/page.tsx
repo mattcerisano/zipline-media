@@ -1,18 +1,47 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import LogoTicker from '@/components/LogoTicker';
 import BackgroundVideo from '@/components/BackgroundVideo';
 import { Check, Play, X, ChevronRight } from 'lucide-react';
 
+const INTRO_SEEN_KEY = 'zipline_intro_seen';
+
+/**
+ * The intro blocks the page and locks scrolling for ~2s. Skip it when it has
+ * already played in this browser tab session, or for people who've asked for
+ * reduced motion. Read on the client only; the server always renders the intro.
+ */
+function shouldSkipIntro() {
+  try {
+    if (sessionStorage.getItem(INTRO_SEEN_KEY) === '1') return true;
+  } catch {
+    // Storage can be unavailable (private mode, blocked site data).
+  }
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+const noSubscription = () => () => {};
+
 function Hero() {
-  const [isIntroComplete, setIsIntroComplete] = useState(false);
+  // Skipped intros vanish without the exit fade.
+  const skipIntro = useSyncExternalStore(noSubscription, shouldSkipIntro, () => false);
+  const [introFinished, setIntroFinished] = useState(false);
+  const isIntroComplete = skipIntro || introFinished;
   const [isPlayingReel, setIsPlayingReel] = useState(false);
   const text = "zzzzip";
   const letters = text.split("");
+
+  useEffect(() => {
+    if (!introFinished) return;
+    try {
+      sessionStorage.setItem(INTRO_SEEN_KEY, '1');
+    } catch {
+      // The intro just plays again next time.
+    }
+  }, [introFinished]);
 
   useEffect(() => {
     if (!isIntroComplete) {
@@ -31,7 +60,7 @@ function Hero() {
           <motion.div 
             className="absolute inset-0 z-50 bg-black flex items-center justify-center overflow-hidden"
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
+            transition={{ duration: skipIntro ? 0 : 0.3, ease: "easeInOut" }}
           >
             <div className="relative w-full max-w-[95vw] overflow-hidden">
               <motion.h1 
@@ -49,7 +78,7 @@ function Hero() {
                     }}
                     onAnimationComplete={() => {
                       if (index === letters.length - 1) {
-                        setTimeout(() => setIsIntroComplete(true), 600); // Longer pause before revealing site
+                        setTimeout(() => setIntroFinished(true), 600); // Longer pause before revealing site
                       }
                     }}
                   >
