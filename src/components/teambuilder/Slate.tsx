@@ -45,6 +45,7 @@ import { useRealtime } from '@/lib/useRealtime';
 import { Job, STATUSES, JobLink, Client, Project, JobRole } from '@/components/gearbuilder/types';
 import Autocomplete from 'react-google-autocomplete';
 import TeamBuilder from '@/components/teambuilder/TeamBuilder';
+import ClientPicker from '@/components/workspace/ClientPicker';
 import { generateMasterBrief } from '@/lib/pdf-generator';
 import { fetchGearCategoryMap, groupManifestByCategory, buildGearTableBody } from '@/lib/gear-manifest';
 import { getBranding, hexToRgb } from '@/lib/branding';
@@ -520,24 +521,13 @@ export default function Slate({
       for (const key of ['shoot_date', 'end_date', 'due_date'] as const) {
         if (jobPayload[key] === '') (jobPayload as any)[key] = null;
       }
-      if (editingJob.client_name && editingJob.client_name.trim()) {
-        const name = editingJob.client_name.trim();
-        let client = clients.find(c => c.name.toLowerCase() === name.toLowerCase());
-        if (!client) {
-          const { data: newClientData } = await supabase
-            .from('clients')
-            .insert([{ name }])
-            .select()
-            .single();
-          if (newClientData) {
-            client = newClientData as Client;
-            setClients(prev => [...prev, client as Client]);
-          }
-        }
-        if (client) jobPayload.client_id = client.id;
-      } else {
-        jobPayload.client_id = undefined;
-      }
+      // Link to a client row when the picker points at one. A name that
+      // matches nothing stays free text: saving a production is no reason to
+      // mint a client record, and doing so is what filled the client list with
+      // one-off names typed into this field.
+      jobPayload.client_id = editingJob.client_name?.trim()
+        ? resolveClientId(editingJob)
+        : undefined;
 
       if (editingJob.id) {
         const { data, error } = await supabase
@@ -1557,27 +1547,24 @@ export default function Slate({
                 {/* Client Name */}
                 <div className="md:col-span-3 space-y-1">
                   <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Client Name <span className="opacity-60 normal-case tracking-normal font-medium">(who you bill)</span></label>
-                  <input
-                    type="text"
-                    placeholder="Client name"
+                  <ClientPicker
+                    clients={clients}
                     value={editingJob.client_name || ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const match = clients.find(c => c.name.trim().toLowerCase() === val.trim().toLowerCase());
+                    clientId={editingJob.client_id || null}
+                    onChange={({ name, clientId }) => {
+                      const picked = clientId ? clients.find(c => c.id === clientId) : null;
                       setEditingJob(prev => ({
                         ...prev,
-                        client_name: val,
-                        client_id: match ? match.id : prev.client_id,
+                        client_name: name,
+                        client_id: clientId || undefined,
                         // Auto-pull the bill-to contact email from the Rolodex (only if not already set)
-                        contact_email: (match && match.email && !prev.contact_email) ? match.email : prev.contact_email,
+                        contact_email: (picked?.email && !prev.contact_email) ? picked.email : prev.contact_email,
                       }));
                     }}
-                    list="slate-clients"
-                    className="w-full bg-black/50 border border-white/10 py-2.5 px-2.5 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
+                    onClientCreated={c => setClients(prev => [...prev, c])}
+                    placeholder="Client name"
+                    inputClassName="w-full bg-black/50 border border-white/10 py-2.5 pl-2.5 pr-9 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
                   />
-                  <datalist id="slate-clients">
-                    {clients.map(c => <option key={c.id} value={c.name} />)}
-                  </datalist>
                   {(() => {
                     const match = clients.find(c => c.name.trim().toLowerCase() === (editingJob.client_name || '').trim().toLowerCase());
                     const details = match ? [match.email, match.phone, match.address].filter(Boolean).join('  ·  ') : '';

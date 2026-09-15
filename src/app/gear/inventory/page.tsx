@@ -72,13 +72,13 @@ export default function GearPage() {
           <div className="space-y-4">
             <Link 
               href="/" 
-              className="inline-flex items-center min-h-11 gap-2 text-[10px] font-bold tracking-widest uppercase opacity-40 hover:opacity-100 transition-opacity mb-1"
+              className="inline-flex items-center min-h-11 gap-2 text-[11px] font-bold tracking-widest uppercase opacity-60 hover:opacity-100 transition-opacity mb-1"
             >
               ← Back to site
             </Link>
             <div>
               <h1 className="text-white text-3xl font-black tracking-tighter uppercase mb-2">Internal Equipment List</h1>
-              <p className="text-[10px] text-zinc-500 tracking-widest uppercase">Zipline Media Production Assets // Inventory Control</p>
+              <p className="text-[11px] text-zinc-400 tracking-widest uppercase">Zipline Media Production Assets // Inventory Control</p>
             </div>
           </div>
           
@@ -87,7 +87,7 @@ export default function GearPage() {
             <input 
               type="text"
               placeholder="FILTER BY NAME OR CATEGORY..."
-              className="w-full bg-white/5 border border-white/10 rounded-sm py-3 pl-10 pr-4 text-[10px] tracking-widest uppercase focus:outline-none focus:border-accent transition-colors"
+              className="w-full bg-white/5 border border-white/10 rounded-sm py-3 pl-10 pr-4 text-[11px] tracking-widest uppercase focus:outline-none focus:border-accent transition-colors"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -124,7 +124,7 @@ export default function GearPage() {
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="text-[10px] text-accent hover:underline uppercase tracking-widest font-bold"
+              className="text-[11px] text-accent hover:underline uppercase tracking-widest font-bold"
             >
               Clear filter
             </button>
@@ -138,7 +138,7 @@ export default function GearPage() {
                   <button
                     key={category}
                     onClick={() => scrollToCategory(category.replace(/\s+/g, '-'))}
-                    className="px-3 py-1.5 rounded-full border border-white/10 text-[11px] md:text-[9px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+                    className="px-3 py-1.5 rounded-full border border-white/10 text-[11px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all"
                   >
                     {category}
                   </button>
@@ -150,7 +150,7 @@ export default function GearPage() {
             <div className="space-y-20">
               {Object.entries(groupedInventory).map(([category, items]) => (
                 <section key={category} id={category.replace(/\s+/g, '-')} className="scroll-mt-40">
-                  <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent mb-6 flex items-center gap-4">
+                  <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-accent mb-6 flex items-center gap-4">
                     <span>{category}</span>
                     <div className="h-px bg-accent/20 flex-1" />
                   </h2>
@@ -158,7 +158,7 @@ export default function GearPage() {
                   <div className="relative">
                     <table className="w-full border-collapse">
                       <thead>
-                        <tr className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase text-left border-b border-white/10">
+                        <tr className="text-[11px] text-zinc-400 tracking-[0.2em] uppercase text-left border-b border-white/10">
                           <th className="pb-4 font-black w-16">Preview</th>
                           <th className="pb-4 font-black w-12 text-center">Qty</th>
                           <th className="pb-4 font-black pl-4">Item Description</th>
@@ -189,7 +189,7 @@ export default function GearPage() {
                                     className="object-contain p-1"
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-[11px] md:text-[8px] text-zinc-700 font-mono">NO IMG</div>
+                                  <div className="w-full h-full flex items-center justify-center text-[11px] text-zinc-400 font-mono">NO IMG</div>
                                 )}
                               </motion.div>
                             </td>
@@ -216,7 +216,7 @@ export default function GearPage() {
             </div>
 
             {/* Footer Summary */}
-            <div className="mt-12 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 opacity-50 text-[10px] tracking-widest uppercase">
+            <div className="mt-12 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 opacity-50 text-[11px] tracking-widest uppercase">
               <div>
                 Total Line Items: {filteredInventory.length}
               </div>

@@ -1,17 +1,47 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import LogoTicker from '@/components/LogoTicker';
+import BackgroundVideo from '@/components/BackgroundVideo';
 import { Check, Play, X, ChevronRight } from 'lucide-react';
 
+const INTRO_SEEN_KEY = 'zipline_intro_seen';
+
+/**
+ * The intro blocks the page and locks scrolling for ~2s. Skip it when it has
+ * already played in this browser tab session, or for people who've asked for
+ * reduced motion. Read on the client only; the server always renders the intro.
+ */
+function shouldSkipIntro() {
+  try {
+    if (sessionStorage.getItem(INTRO_SEEN_KEY) === '1') return true;
+  } catch {
+    // Storage can be unavailable (private mode, blocked site data).
+  }
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+const noSubscription = () => () => {};
+
 function Hero() {
-  const [isIntroComplete, setIsIntroComplete] = useState(false);
+  // Skipped intros vanish without the exit fade.
+  const skipIntro = useSyncExternalStore(noSubscription, shouldSkipIntro, () => false);
+  const [introFinished, setIntroFinished] = useState(false);
+  const isIntroComplete = skipIntro || introFinished;
   const [isPlayingReel, setIsPlayingReel] = useState(false);
   const text = "zzzzip";
   const letters = text.split("");
+
+  useEffect(() => {
+    if (!introFinished) return;
+    try {
+      sessionStorage.setItem(INTRO_SEEN_KEY, '1');
+    } catch {
+      // The intro just plays again next time.
+    }
+  }, [introFinished]);
 
   useEffect(() => {
     if (!isIntroComplete) {
@@ -30,7 +60,7 @@ function Hero() {
           <motion.div 
             className="absolute inset-0 z-50 bg-black flex items-center justify-center overflow-hidden"
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
+            transition={{ duration: skipIntro ? 0 : 0.3, ease: "easeInOut" }}
           >
             <div className="relative w-full max-w-[95vw] overflow-hidden">
               <motion.h1 
@@ -48,7 +78,7 @@ function Hero() {
                     }}
                     onAnimationComplete={() => {
                       if (index === letters.length - 1) {
-                        setTimeout(() => setIsIntroComplete(true), 600); // Longer pause before revealing site
+                        setTimeout(() => setIntroFinished(true), 600); // Longer pause before revealing site
                       }
                     }}
                   >
@@ -63,16 +93,12 @@ function Hero() {
 
       {/* --- MAIN HERO CONTENT (Revealed after intro) --- */}
       <div className="hidden md:block absolute inset-0 z-0">
-        <video 
-          autoPlay 
-          muted 
-          loop 
-          playsInline 
+        <BackgroundVideo
+          webm="/LandingPage.webm"
+          mp4="/LandingPage.mp4"
+          poster="/posters/LandingPage.jpg"
           className="w-full h-full object-cover"
-        >
-          <source src="/LandingPage.webm" type="video/webm" />
-          <source src="/LandingPage.mp4" type="video/mp4" />
-        </video>
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70 z-10" />
       </div>
 
@@ -133,7 +159,7 @@ function Hero() {
           <motion.a 
             href="/archive" 
             whileTap={{ scale: 0.95 }}
-            className="inline-block border border-white/20 px-8 py-4 text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase hover:bg-white hover:text-black transition-all duration-300 active:bg-white active:text-black"
+            className="inline-block border border-white/20 px-8 py-4 text-[11px] md:text-xs font-bold tracking-[0.3em] uppercase hover:bg-white hover:text-black transition-all duration-300 active:bg-white active:text-black"
           >
             See our work
           </motion.a>
@@ -146,7 +172,7 @@ function Hero() {
         transition={{ delay: 1.5, duration: 1 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-3"
       >
-        <span className="md:hidden text-[10px] font-bold tracking-[0.3em] uppercase opacity-50">Scroll</span>
+        <span className="md:hidden text-[11px] font-bold tracking-[0.3em] uppercase opacity-50">Scroll</span>
         <div className="w-[2px] md:w-px h-16 md:h-12 bg-white/20 relative overflow-hidden">
           <motion.div 
             animate={{ y: [0, 64] }}
@@ -200,9 +226,9 @@ function Work() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const categories = [
-    { id: 'performance', title: 'Performance', video: '/broadway-performance.mp4', link: '/archive#performance' },
-    { id: 'brands', title: 'Brands', video: '/corporate.mp4', link: '/archive#brands' },
-    { id: 'new-media', title: 'New Media', video: '/new-media.mp4', link: '/archive#new-media' },
+    { id: 'performance', title: 'Performance', video: 'broadway-performance', link: '/archive#performance' },
+    { id: 'brands', title: 'Brands', video: 'corporate', link: '/archive#brands' },
+    { id: 'new-media', title: 'New Media', video: 'new-media', link: '/archive#new-media' },
   ];
 
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -236,16 +262,12 @@ function Work() {
         <div className="flex flex-col gap-6 md:hidden">
           {categories.map((cat) => (
             <div key={cat.id} className="relative w-full h-[50vh] rounded-2xl overflow-hidden border border-white/10 bg-black group">
-              <video 
-                autoPlay 
-                muted 
-                loop 
-                playsInline 
+              <BackgroundVideo
+                webm={`/${cat.video}.webm`}
+                mp4={`/${cat.video}.mp4`}
+                poster={`/posters/${cat.video}.jpg`}
                 className="absolute inset-0 w-full h-full object-cover"
-              >
-                <source src={cat.video.replace('.mp4', '.webm')} type="video/webm" />
-                <source src={cat.video} type="video/mp4" />
-              </video>
+              />
               
               <a 
                 href={cat.link} 
@@ -278,16 +300,12 @@ function Work() {
             transition={{ duration: 0.4, ease: "easeInOut" }}
             className="relative overflow-hidden group rounded-2xl border border-white/10 bg-black h-full cursor-pointer flex-[1.5]"
           >
-            <video 
-              autoPlay 
-              muted 
-              loop 
-              playsInline 
+            <BackgroundVideo
+              webm="/broadway-performance.webm"
+              mp4="/broadway-performance.mp4"
+              poster="/posters/broadway-performance.jpg"
               className="absolute inset-0 w-full h-full object-cover"
-            >
-              <source src="/broadway-performance.webm" type="video/webm" />
-              <source src="/broadway-performance.mp4" type="video/mp4" />
-            </video>
+            />
             
             <a 
               href="/archive#performance" 
@@ -329,16 +347,12 @@ function Work() {
                <motion.div 
                  className="absolute inset-0 w-full h-full"
                >
-                 <video
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
+                 <BackgroundVideo
+                  webm="/corporate.webm"
+                  mp4="/corporate.mp4"
+                  poster="/posters/corporate.jpg"
                   className="w-full h-full object-cover"
-                >
-                  <source src="/corporate.webm" type="video/webm" />
-                  <source src="/corporate.mp4" type="video/mp4" />
-                </video>
+                />
               </motion.div>
 
               <a 
@@ -377,16 +391,12 @@ function Work() {
                <motion.div 
                  className="absolute inset-0 w-full h-full"
                >
-                 <video
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
+                 <BackgroundVideo
+                  webm="/new-media.webm"
+                  mp4="/new-media.mp4"
+                  poster="/posters/new-media.jpg"
                   className="w-full h-full object-cover"
-                >
-                  <source src="/new-media.webm" type="video/webm" />
-                  <source src="/new-media.mp4" type="video/mp4" />
-                </video>
+                />
               </motion.div>
 
               <a 
@@ -460,7 +470,7 @@ function LazyVideo({ src, poster, title }: { src: string, poster?: string, title
       )}
       
       {!poster && (
-        <div className={`absolute inset-0 flex items-center justify-center bg-neutral-900 text-[10px] font-bold uppercase opacity-20 text-center px-4 leading-tight z-10 transition-opacity duration-500 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`absolute inset-0 flex items-center justify-center bg-neutral-900 text-[11px] font-bold uppercase opacity-60 text-center px-4 leading-tight z-10 transition-opacity duration-500 ${videoLoaded ? 'opacity-0' : 'opacity-100'}`}>
           {title}
         </div>
       )}
@@ -557,8 +567,8 @@ function Social() {
              
              {/* Text overlay on hover */}
              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 z-20">
-               <span className="text-[11px] md:text-[9px] font-black uppercase tracking-wider text-accent mb-1">View Clip</span>
-               <h3 className="text-white text-[10px] md:text-xs font-black uppercase tracking-tight leading-tight line-clamp-2">
+               <span className="text-[11px] font-black uppercase tracking-wider text-accent mb-1">View Clip</span>
+               <h3 className="text-white text-[11px] md:text-xs font-black uppercase tracking-tight leading-tight line-clamp-2">
                  {clip.title}
                </h3>
              </div>
@@ -667,8 +677,8 @@ function Contact() {
               </p>
               
               <div className="flex flex-row justify-center gap-6 md:gap-12 mb-2">
-                <p className="text-[10px] md:text-xs tracking-[0.3em] font-bold uppercase">CONTACT@ZIPLINE.MEDIA</p>
-                <p className="text-[10px] md:text-xs tracking-[0.3em] font-bold uppercase opacity-40">NEW YORK, NY</p>
+                <p className="text-[11px] md:text-xs tracking-[0.3em] font-bold uppercase">CONTACT@ZIPLINE.MEDIA</p>
+                <p className="text-[11px] md:text-xs tracking-[0.3em] font-bold uppercase opacity-60">NEW YORK, NY</p>
               </div>
             </motion.div>
           </div>
@@ -688,7 +698,7 @@ function Contact() {
               <input type="hidden" name="_subject" value="New Inquiry from Zipline Website" />
               
               <div className="space-y-2">
-                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Name</label>
+                <label className="text-[11px] tracking-[0.4em] uppercase opacity-60 font-bold">Name</label>
                 <input 
                   type="text" 
                   name="name"
@@ -698,7 +708,7 @@ function Contact() {
               </div>
               
               <div className="space-y-2">
-                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Email</label>
+                <label className="text-[11px] tracking-[0.4em] uppercase opacity-60 font-bold">Email</label>
                 <input 
                   type="email" 
                   name="email"
@@ -708,7 +718,7 @@ function Contact() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] tracking-[0.4em] uppercase opacity-40 font-bold">Message</label>
+                <label className="text-[11px] tracking-[0.4em] uppercase opacity-60 font-bold">Message</label>
                 <textarea 
                   name="message"
                   rows={4} 

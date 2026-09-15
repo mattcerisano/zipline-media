@@ -94,7 +94,7 @@ export default function EquipmentPage() {
           >
             Equipment
           </motion.h1>
-          <div className="flex items-center gap-2 text-[11px] md:text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-400">
             {isLoading ? (
               <>
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -109,7 +109,7 @@ export default function EquipmentPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-12">
           
           {/* Sidebar Filters */}
-          <aside className="space-y-8 lg:sticky lg:top-32 h-fit">
+          <aside className="space-y-4 lg:space-y-8 lg:sticky lg:top-32 h-fit">
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-accent transition-colors" />
               <input 
@@ -121,20 +121,27 @@ export default function EquipmentPage() {
               />
             </div>
 
-            <nav className="flex flex-col gap-1">
-              <span className="text-[11px] md:text-[8px] font-bold tracking-[0.3em] uppercase opacity-30 mb-4 px-2">Categories</span>
+            {/* Below lg the categories are one swipeable row of chips, so the gear
+                itself is on screen immediately instead of a screen-tall stack of
+                13 buttons. The row bleeds to the screen edges to scroll cleanly. */}
+            <nav
+              aria-label="Equipment categories"
+              className="flex gap-2 overflow-x-auto -mx-4 px-4 md:-mx-8 md:px-8 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:px-0 lg:pb-0 lg:flex-col lg:gap-1 lg:overflow-visible"
+            >
+              <span className="hidden lg:block text-[11px] font-bold tracking-[0.3em] uppercase opacity-60 mb-4 px-2">Categories</span>
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`group flex items-center justify-between px-4 py-3 rounded-xl text-[10px] font-bold tracking-[0.2em] uppercase transition-all ${
+                  aria-pressed={activeCategory === cat}
+                  className={`group shrink-0 whitespace-nowrap flex items-center justify-between min-h-11 px-4 py-2.5 rounded-full border lg:shrink lg:whitespace-normal lg:min-h-0 lg:py-3 lg:rounded-xl lg:border-0 text-[11px] font-bold tracking-[0.2em] uppercase transition-all ${
                     activeCategory === cat 
-                    ? 'bg-accent text-white' 
-                    : 'hover:bg-white/5 text-zinc-500 hover:text-white'
+                    ? 'bg-accent border-accent text-white' 
+                    : 'border-white/10 hover:bg-white/5 text-zinc-400 lg:text-zinc-500 hover:text-white'
                   }`}
                 >
                   {cat}
-                  <ChevronRight className={`w-3 h-3 transition-transform ${activeCategory === cat ? 'translate-x-0' : '-translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0'}`} />
+                  <ChevronRight className={`hidden lg:block w-3 h-3 transition-transform ${activeCategory === cat ? 'translate-x-0' : '-translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0'}`} />
                 </button>
               ))}
             </nav>
@@ -154,7 +161,7 @@ export default function EquipmentPage() {
                   sortedCategories.map((category) => (
                     <div key={category} className="space-y-6">
                       <div className="flex items-center gap-4">
-                        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent whitespace-nowrap">
+                        <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-accent whitespace-nowrap">
                           {category}
                         </h2>
                         <div className="h-px bg-white/10 flex-1" />
@@ -173,7 +180,7 @@ export default function EquipmentPage() {
                               {item.name}
                             </span>
                             {item.qty > 1 && (
-                              <span className="text-[10px] font-black text-accent tracking-widest ml-4 px-2 py-0.5 border border-accent/20 rounded">
+                              <span className="text-[11px] font-black text-accent tracking-widest ml-4 px-2 py-0.5 border border-accent/20 rounded">
                                 {item.qty}X
                               </span>
                             )}
@@ -187,7 +194,7 @@ export default function EquipmentPage() {
                     <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.3em]">No equipment found matching your search</p>
                     <button 
                       onClick={() => { setSearchQuery(''); setActiveCategory('All'); }}
-                      className="mt-4 text-accent text-[10px] font-black uppercase tracking-widest hover:underline"
+                      className="mt-4 text-accent text-[11px] font-black uppercase tracking-widest hover:underline"
                     >
                       Clear all filters
                     </button>
@@ -199,7 +206,7 @@ export default function EquipmentPage() {
             <div className="pt-12 border-t border-white/5 flex justify-end">
               <button 
                 onClick={scrollToTop}
-                className="inline-flex items-center min-h-11 px-2 -mr-2 text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest transition-colors"
+                className="inline-flex items-center min-h-11 px-2 -mr-2 text-[11px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest transition-colors"
               >
                 Back to Top ↑
               </button>

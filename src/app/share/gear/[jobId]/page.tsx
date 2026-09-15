@@ -475,29 +475,29 @@ export default function ShareGearPage() {
       <header className="relative z-10 bg-zinc-950/40 border border-white/10 backdrop-blur-md p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
         <div>
           <div className="flex flex-wrap items-center gap-3 mb-1.5">
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Gear Collaboration Feed</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.3em] text-accent">Gear Collaboration Feed</span>
             <div className="flex items-center gap-2 px-2.5 py-0.5 bg-green-500/10 border border-green-500/20 rounded-full">
               <div className={`w-1.5 h-1.5 bg-green-500 rounded-full ${saveStatus === 'Saving' ? 'animate-ping' : ''}`} />
-              <span className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-green-400">
+              <span className="text-[11px] font-black uppercase tracking-widest text-green-400">
                 {saveStatus === 'Saving' ? 'Syncing...' : saveStatus === 'Error' ? 'Sync Failed' : 'Live Sync'}
               </span>
             </div>
           </div>
           <h1 className="text-2xl font-black uppercase tracking-tighter text-white">{job.title}</h1>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mt-1">Shoot Date: {job.shoot_date}</p>
+          <p className="text-[11px] font-bold uppercase tracking-widest text-white/60 mt-1">Shoot Date: {job.shoot_date}</p>
         </div>
 
         <div className="flex gap-2.5 w-full md:w-auto">
           <button 
             onClick={() => setIsCustomModalOpen(true)}
-            className="flex-1 md:flex-none bg-white/5 border border-white/10 text-white hover:bg-white hover:text-black py-3.5 px-6 font-black tracking-widest uppercase text-[10px] rounded-xl transition-all"
+            className="flex-1 md:flex-none bg-white/5 border border-white/10 text-white hover:bg-white hover:text-black py-3.5 px-6 font-black tracking-widest uppercase text-[11px] rounded-xl transition-all"
           >
             + Add Custom Item
           </button>
           <button 
             onClick={exportPDF}
             disabled={Object.keys(manifest).length === 0}
-            className="flex-1 md:flex-none bg-accent text-white hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-white py-3.5 px-6 font-black tracking-widest uppercase text-[10px] rounded-xl transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-2"
+            className="flex-1 md:flex-none bg-accent text-white hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-white py-3.5 px-6 font-black tracking-widest uppercase text-[11px] rounded-xl transition-all shadow-lg shadow-accent/20 flex items-center justify-center gap-2"
           >
             <FileDown className="w-4 h-4" /> Download PDF
           </button>
@@ -550,7 +550,7 @@ export default function ShareGearPage() {
                 >
                   <div className="flex-1 min-w-0 pr-4">
                     <p className={`text-xs font-bold uppercase ${currentCount > 0 ? 'text-accent' : 'text-white'}`}>{item.name}</p>
-                    <p className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30 mt-1">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-white/60 mt-1">
                       {item.category} • Qty: {item.qty} {item.owner ? `• ${item.owner}` : ''}
                     </p>
                   </div>
@@ -576,7 +576,7 @@ export default function ShareGearPage() {
                     ) : (
                       <button 
                         onClick={() => updateQty(item.name, 1)}
-                        className="py-2 px-4 bg-white/5 border border-white/10 text-white hover:bg-accent hover:border-accent hover:text-white text-[11px] md:text-[9px] font-black uppercase tracking-widest rounded-lg transition-all"
+                        className="py-2 px-4 bg-white/5 border border-white/10 text-white hover:bg-accent hover:border-accent hover:text-white text-[11px] font-black uppercase tracking-widest rounded-lg transition-all"
                       >
                         Add
                       </button>
@@ -598,7 +598,7 @@ export default function ShareGearPage() {
         <div className="lg:col-span-5 flex flex-col bg-zinc-950/40 border border-white/10 rounded-2xl p-6 h-[calc(100vh-270px)] min-h-[500px]">
           <h2 className="text-sm font-black uppercase tracking-tighter mb-4 flex items-center justify-between">
             <span>Project Manifest</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded">
+            <span className="text-[11px] font-black uppercase tracking-widest text-accent bg-accent/10 border border-accent/20 px-2 py-0.5 rounded">
               {Object.keys(manifest).length} Unique Items
             </span>
           </h2>
@@ -607,14 +607,14 @@ export default function ShareGearPage() {
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4 mb-4">
             {Object.keys(manifestByOwner).map(owner => (
               <div key={owner} className="space-y-3">
-                <h3 className={`text-[10px] font-black uppercase tracking-widest border-b border-white/5 pb-1 ${
+                <h3 className={`text-[11px] font-black uppercase tracking-widest border-b border-white/5 pb-1 ${
                   owner === 'Zipline Media' ? 'text-white/40' : 'text-red-400'
                 }`}>
                   {owner}
                 </h3>
                 {Object.entries(manifestByOwner[owner]).map(([cat, items]) => (
                   <div key={cat} className="space-y-2">
-                    <p className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-accent/60 pl-2">{cat}</p>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-accent/60 pl-2">{cat}</p>
                     <div className="space-y-1.5">
                       {items.map(item => {
                         const inv = allInventory.find(i => i.name === item.name);
@@ -622,7 +622,7 @@ export default function ShareGearPage() {
                           <div key={item.name} className="flex items-center justify-between p-3 bg-black/45 border border-white/5 rounded-xl group transition-all">
                             <div className="flex-1 min-w-0 pr-4">
                               <p className="text-xs font-bold uppercase text-white/95 truncate">{item.name}</p>
-                              <p className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30 mt-0.5">
+                              <p className="text-[11px] font-black uppercase tracking-widest text-white/60 mt-0.5">
                                 Qty: {item.count} {inv?.replacement ? `• $${(inv.replacement * item.count).toLocaleString()}` : ''}
                               </p>
                             </div>
@@ -653,7 +653,7 @@ export default function ShareGearPage() {
               <div className="py-24 text-center opacity-25 border border-dashed border-white/10 rounded-2xl h-full flex flex-col justify-center items-center">
                 <Package className="w-12 h-12 mb-3 text-accent animate-bounce" />
                 <p className="text-xs font-bold uppercase tracking-widest">Manifest is empty.</p>
-                <p className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest mt-1 opacity-55">Select gear from catalog to add.</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest mt-1 opacity-55">Select gear from catalog to add.</p>
               </div>
             )}
           </div>
@@ -662,7 +662,7 @@ export default function ShareGearPage() {
           {grandTotal > 0 && (
             <div className="border-t border-white/10 pt-4 bg-zinc-950/20">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Grand Est. Replacement Value</span>
+                <span className="text-[11px] font-black uppercase tracking-widest opacity-60">Grand Est. Replacement Value</span>
                 <span className="text-lg font-black uppercase tracking-tight text-white">${grandTotal.toLocaleString()}</span>
               </div>
             </div>
@@ -693,13 +693,13 @@ export default function ShareGearPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-black uppercase tracking-tighter text-white">Add Custom Item</h3>
-                  <p className="text-[11px] md:text-[9px] font-bold uppercase tracking-[0.3em] text-white/30">Collaborator Custom Gear Builder</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-white/60">Collaborator Custom Gear Builder</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] md:text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Item Name</label>
+                  <label className="text-[11px] font-black tracking-[0.3em] uppercase opacity-60 text-white">Item Name</label>
                   <input 
                     type="text" 
                     value={customName}
@@ -711,7 +711,7 @@ export default function ShareGearPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] md:text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Category</label>
+                    <label className="text-[11px] font-black tracking-[0.3em] uppercase opacity-60 text-white">Category</label>
                     <select
                       value={customCategory}
                       onChange={(e) => setCustomCategory(e.target.value)}
@@ -723,7 +723,7 @@ export default function ShareGearPage() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] md:text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Owner / Source</label>
+                    <label className="text-[11px] font-black tracking-[0.3em] uppercase opacity-60 text-white">Owner / Source</label>
                     <input 
                       type="text" 
                       value={customOwner}
@@ -736,7 +736,7 @@ export default function ShareGearPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] md:text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Max Quantity Available</label>
+                    <label className="text-[11px] font-black tracking-[0.3em] uppercase opacity-60 text-white">Max Quantity Available</label>
                     <input 
                       type="number" 
                       min={1}
@@ -746,7 +746,7 @@ export default function ShareGearPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] md:text-[9px] font-black tracking-[0.3em] uppercase opacity-40 text-white">Replacement Value ($)</label>
+                    <label className="text-[11px] font-black tracking-[0.3em] uppercase opacity-60 text-white">Replacement Value ($)</label>
                     <input 
                       type="number" 
                       min={0}
@@ -760,14 +760,14 @@ export default function ShareGearPage() {
                 <div className="flex gap-3 pt-4">
                   <button 
                     onClick={() => setIsCustomModalOpen(false)}
-                    className="flex-1 py-3 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all"
+                    className="flex-1 py-3 bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all"
                   >
                     Cancel
                   </button>
                   <button 
                     onClick={addCustomItem}
                     disabled={!customName.trim()}
-                    className="flex-1 py-3 bg-accent text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-black disabled:opacity-50 transition-all shadow-lg shadow-accent/20"
+                    className="flex-1 py-3 bg-accent text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-black disabled:opacity-50 transition-all shadow-lg shadow-accent/20"
                   >
                     Add to Manifest
                   </button>

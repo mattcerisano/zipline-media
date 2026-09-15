@@ -19,6 +19,10 @@ export const clients = [
   { id: 'c2', name: 'SIX', email: 'hello@six.example' },
   { id: 'c3', name: 'Hot Ones / First We Feast', email: 'booking@firstwefeast.example' },
   { id: 'c4', name: "That Parenting Music Cast", email: 'hi@tpmc.example' },
+  // A crew member who became a client back when saving a gear list or a
+  // production inserted whatever was typed in the client box. No details, no
+  // shoots, and a Rolodex contact by the same name — the Library flags it.
+  { id: 'c5', name: 'Alex Lim' },
 ];
 
 export const projects = [
