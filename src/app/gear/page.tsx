@@ -94,7 +94,7 @@ export default function EquipmentPage() {
           >
             Equipment
           </motion.h1>
-          <div className="flex items-center gap-2 text-[11px] md:text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-400">
             {isLoading ? (
               <>
                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -122,12 +122,12 @@ export default function EquipmentPage() {
             </div>
 
             <nav className="flex flex-col gap-1">
-              <span className="text-[11px] md:text-[8px] font-bold tracking-[0.3em] uppercase opacity-30 mb-4 px-2">Categories</span>
+              <span className="text-[11px] font-bold tracking-[0.3em] uppercase opacity-60 mb-4 px-2">Categories</span>
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`group flex items-center justify-between px-4 py-3 rounded-xl text-[10px] font-bold tracking-[0.2em] uppercase transition-all ${
+                  className={`group flex items-center justify-between px-4 py-3 rounded-xl text-[11px] font-bold tracking-[0.2em] uppercase transition-all ${
                     activeCategory === cat 
                     ? 'bg-accent text-white' 
                     : 'hover:bg-white/5 text-zinc-500 hover:text-white'
@@ -154,7 +154,7 @@ export default function EquipmentPage() {
                   sortedCategories.map((category) => (
                     <div key={category} className="space-y-6">
                       <div className="flex items-center gap-4">
-                        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-accent whitespace-nowrap">
+                        <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-accent whitespace-nowrap">
                           {category}
                         </h2>
                         <div className="h-px bg-white/10 flex-1" />
@@ -173,7 +173,7 @@ export default function EquipmentPage() {
                               {item.name}
                             </span>
                             {item.qty > 1 && (
-                              <span className="text-[10px] font-black text-accent tracking-widest ml-4 px-2 py-0.5 border border-accent/20 rounded">
+                              <span className="text-[11px] font-black text-accent tracking-widest ml-4 px-2 py-0.5 border border-accent/20 rounded">
                                 {item.qty}X
                               </span>
                             )}
@@ -187,7 +187,7 @@ export default function EquipmentPage() {
                     <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.3em]">No equipment found matching your search</p>
                     <button 
                       onClick={() => { setSearchQuery(''); setActiveCategory('All'); }}
-                      className="mt-4 text-accent text-[10px] font-black uppercase tracking-widest hover:underline"
+                      className="mt-4 text-accent text-[11px] font-black uppercase tracking-widest hover:underline"
                     >
                       Clear all filters
                     </button>
@@ -199,7 +199,7 @@ export default function EquipmentPage() {
             <div className="pt-12 border-t border-white/5 flex justify-end">
               <button 
                 onClick={scrollToTop}
-                className="inline-flex items-center min-h-11 px-2 -mr-2 text-[10px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest transition-colors"
+                className="inline-flex items-center min-h-11 px-2 -mr-2 text-[11px] font-bold text-zinc-400 hover:text-white uppercase tracking-widest transition-colors"
               >
                 Back to Top ↑
               </button>

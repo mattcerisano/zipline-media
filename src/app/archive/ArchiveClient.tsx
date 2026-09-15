@@ -109,7 +109,7 @@ function VideoGrid({ videos, activeVideo, onSelect }: { videos: Video[], activeV
               </div>
             )}
             <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/90 to-transparent">
-               <p className="text-[10px] font-bold text-white uppercase tracking-wider line-clamp-1">
+               <p className="text-[11px] font-bold text-white uppercase tracking-wider line-clamp-1">
                  {video.title}
                </p>
             </div>
@@ -348,7 +348,7 @@ export default function ArchiveClient() {
           <Link 
             href="/" 
             onClick={handleBackToHome}
-            className="flex items-center min-h-11 gap-2 text-[10px] md:text-sm uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-70 hover:opacity-100 py-1 md:py-2"
+            className="flex items-center min-h-11 gap-2 text-[11px] md:text-sm uppercase tracking-[0.3em] font-bold hover:text-[var(--accent)] transition-colors w-fit opacity-70 hover:opacity-100 py-1 md:py-2"
           >
             <ArrowLeft className="w-3 h-3 md:w-4 md:h-4" />
             Back to Home
@@ -430,7 +430,7 @@ export default function ArchiveClient() {
                       <h3 className="text-xs font-bold uppercase tracking-wider text-white leading-snug group-hover:text-[var(--accent)] transition-colors line-clamp-2">
                         {video.title}
                       </h3>
-                      <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">
+                      <p className="text-[11px] text-white/60 uppercase tracking-widest mt-1">
                         {video.category}
                       </p>
                     </div>
@@ -478,7 +478,7 @@ export default function ArchiveClient() {
                         </div>
                       </div>
                     </div>
-                    <h3 className="font-bold text-[10px] md:text-xs uppercase tracking-wider leading-snug group-hover:text-[var(--accent)] transition-colors duration-300 line-clamp-2">
+                    <h3 className="font-bold text-[11px] md:text-xs uppercase tracking-wider leading-snug group-hover:text-[var(--accent)] transition-colors duration-300 line-clamp-2">
                       {video.title}
                     </h3>
                   </motion.button>
