@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import SampleDataNotice from '@/components/workspace/SampleDataNotice';
 import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
 import { Job, Contact, EditLabel, JobLink, Client, Project } from '@/components/gearbuilder/types';
@@ -1250,16 +1251,19 @@ function CardDetailModal({
 
   // Video Integration State
   const [videoStats, setVideoStats] = useState<{
-    resolution: string;
-    completionRate: string;
-    views: number;
+    resolution: string | null;
+    completionRate: string | null;
+    views: number | null;
     platform?: string;
   } | null>(null);
+  // Only true when the numbers and comments came from Vimeo / Frame.io.
+  const [isLiveVideo, setIsLiveVideo] = useState(false);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
 
   useEffect(() => {
     if (!job.review_link) {
       setVideoStats(null);
+      setIsLiveVideo(false);
       return;
     }
     
@@ -1288,6 +1292,7 @@ function CardDetailModal({
             views: data.views,
             platform: data.platform
           });
+          setIsLiveVideo(data.isLive === true);
           if (data.comments && data.comments.length > 0) {
             setComments(data.comments);
           }
@@ -1845,20 +1850,26 @@ function CardDetailModal({
                       />
                     </div>
 
+                    {!isLoadingVideo && !isLiveVideo && (
+                      <SampleDataNotice>
+                        Sample comments — {embedDetails.type} isn&apos;t connected, so the feed and stats below aren&apos;t from this video.
+                      </SampleDataNotice>
+                    )}
+
                     {/* Telemetry Dashboard */}
                     <div className="bg-black/30 p-3 rounded-lg border border-white/5">
                       <div className="grid grid-cols-3 gap-4 border-b border-white/5 pb-3 mb-3">
                         <div>
                           <p className="text-[11px] md:text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Resolution</p>
-                          <p className="text-xs font-black text-white mt-0.5">{videoStats?.resolution || '4K UHD (2160p)'}</p>
+                          <p className="text-xs font-black text-white mt-0.5">{videoStats?.resolution ?? '—'}</p>
                         </div>
                         <div>
                           <p className="text-[11px] md:text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Completion Rate</p>
-                          <p className="text-xs font-black text-green-400 mt-0.5">{videoStats?.completionRate || '88.5%'}</p>
+                          <p className="text-xs font-black text-green-400 mt-0.5">{videoStats?.completionRate ?? '—'}</p>
                         </div>
                         <div>
                           <p className="text-[11px] md:text-[8px] font-medium uppercase tracking-[0.12em] text-white/40">Total Views</p>
-                          <p className="text-xs font-black text-white mt-0.5">{videoStats?.views ?? (142 + comments.length * 3)}</p>
+                          <p className="text-xs font-black text-white mt-0.5">{videoStats?.views ?? '—'}</p>
                         </div>
                       </div>
 
@@ -1943,7 +1954,7 @@ function CardDetailModal({
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 bg-white/5 border border-white/10 text-white/40 text-[11px] md:text-[8px] font-semibold tracking-wide rounded-full">
-                            Simulated Vault
+                            Sample files
                           </span>
                         )}
                         <button 
@@ -1958,6 +1969,12 @@ function CardDetailModal({
                         </button>
                       </div>
                     </div>
+
+                    {!isLoadingDrive && !isLiveDrive && (
+                      <SampleDataNotice>
+                        Sample files — Google Drive isn&apos;t connected, so this isn&apos;t the real folder. Connect Google in Integrations to see it.
+                      </SampleDataNotice>
+                    )}
 
                     <div className="bg-black/30 border border-white/5 rounded-lg p-3">
                       {/* Search & Upload */}
