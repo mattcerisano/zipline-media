@@ -14,7 +14,17 @@ const supabaseAdmin = createClient(
   }
 );
 
+// Never commit a password here — this repo is public. Pass it at run time:
+//   ADMIN_PASSWORD='…' node scripts/migrations/create_admin_user.mjs
+const password = process.env.ADMIN_PASSWORD;
+
 async function updateUser() {
+  if (!password) {
+    console.error('Set ADMIN_PASSWORD to the new password.');
+    process.exitCode = 1;
+    return;
+  }
+
   console.log('Fetching user...');
   
   // First, get the user ID
@@ -36,7 +46,7 @@ async function updateUser() {
   
   const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
     user.id,
-    { password: 'zipline2026', email_confirm: true }
+    { password, email_confirm: true }
   );
 
   if (error) {
