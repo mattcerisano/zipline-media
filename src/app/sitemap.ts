@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/site';
 
 // Public marketing pages only. The Command Center, the Gear Builder, share
-// links and API routes stay out — see robots.ts.
+// links, the unlisted /photography page and API routes stay out — see robots.ts.
 export default function sitemap(): MetadataRoute.Sitemap {
   const pages: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'] }[] = [
     { path: '/', priority: 1, changeFrequency: 'monthly' },
