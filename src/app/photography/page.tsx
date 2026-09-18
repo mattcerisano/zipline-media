@@ -9,7 +9,7 @@ import PhotographyClient from './PhotographyClient';
 // Command Center login instead.
 export const metadata: Metadata = {
   title: 'Photography',
-  description: 'Photography by Matt Cerisano — film and digital.',
+  description: 'Photography — film and digital.',
   robots: {
     index: false,
     follow: false,

@@ -171,7 +171,7 @@ export default function PhotographyClient() {
               than usual to clear a 375px screen. */}
           <h1 className="text-[1.6rem] sm:text-5xl md:text-6xl font-bold">Photography</h1>
           <p className="mt-4 max-w-xl text-sm md:text-base text-white/50 leading-relaxed">
-            Stills by Matt Cerisano. {PHOTOS_IN_PAGE_ORDER.length} frames, shot on film and digital.
+            {PHOTOS_IN_PAGE_ORDER.length} frames, shot on film and digital.
           </p>
         </header>
 
