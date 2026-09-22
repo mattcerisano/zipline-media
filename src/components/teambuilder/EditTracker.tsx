@@ -13,6 +13,13 @@ import { hasAnyRole, POST_ROLES } from '@/lib/crew-roles';
 import { authHeader } from '@/lib/api-client';
 import { formatDuration } from '@/lib/edit-time';
 import CardTimeTracker from './CardTimeTracker';
+import {
+  type Deliverable,
+  DELIVERABLE_FORMATS,
+  nextDeliverableStatus,
+  deliverableStatusLabel,
+  deliverableStatusTone,
+} from '@/lib/deliverables';
 import { 
   Film, 
   Scissors, 
@@ -737,6 +744,177 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
 }
 
 // ----------------------------------------------------------------------
+// COMPONENT: CardDeliverables — the cutdowns this job owes the client.
+// The same social_deliverables rows the Slate card edits, so a job built on
+// Slate arrives here with its list and a change on either screen is the
+// same change. Producers can add, rename, reformat and remove; an editor can
+// only move status (the line migration 20260921000000 draws); a client reads.
+// ----------------------------------------------------------------------
+function CardDeliverables({
+  job,
+  isClient,
+  isEditor,
+}: {
+  job: Job;
+  isClient: boolean;
+  isEditor: boolean;
+}) {
+  const [items, setItems] = useState<Deliverable[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const canManage = !isClient && !isEditor;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from('social_deliverables')
+        .select('*')
+        .eq('job_id', job.id)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (cancelled) return;
+      if (error) console.error('Failed to load deliverables:', error);
+      else setItems((data || []) as Deliverable[]);
+      setLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [job.id]);
+
+  // The same insert Slate makes: inherits the job's client so it also lands
+  // under the right name on the Social tab, and leaves sort_order at its
+  // default so both screens order the list by created_at alike.
+  const add = async () => {
+    const { data, error } = await supabase
+      .from('social_deliverables')
+      .insert([{ job_id: job.id, client_id: job.client_id || null, label: '', format: '16:9', status: 'todo' }])
+      .select()
+      .single();
+    if (error || !data) { toast('Could not add the deliverable.'); return; }
+    setItems(prev => [...prev, data as Deliverable]);
+  };
+
+  // A failed save rolls back only the row it touched, so it can't undo an
+  // unrelated edit that landed while the request was in flight.
+  const patch = async (id: string, change: Partial<Deliverable>) => {
+    const prior = items.find(d => d.id === id);
+    if (!prior) return;
+    setItems(prev => prev.map(d => (d.id === id ? { ...d, ...change } : d)));
+    const { error } = await supabase.from('social_deliverables').update(change).eq('id', id);
+    if (error) {
+      toast('Could not save that change.');
+      setItems(prev => prev.map(d => (d.id === id ? prior : d)));
+    }
+  };
+
+  const remove = async (id: string) => {
+    const index = items.findIndex(d => d.id === id);
+    if (index < 0) return;
+    const prior = items[index];
+    setItems(prev => prev.filter(d => d.id !== id));
+    const { error } = await supabase.from('social_deliverables').delete().eq('id', id);
+    if (error) {
+      toast('Could not remove that deliverable.');
+      setItems(prev => [...prev.slice(0, index), prior, ...prev.slice(index)]);
+    }
+  };
+
+  if (!loaded) return null;
+  // Nothing to show an editor or client, and nothing they could add.
+  if (items.length === 0 && !canManage) return null;
+
+  const delivered = items.filter(d => d.status === 'delivered').length;
+
+  return (
+    <div className="flex gap-4">
+      <Film className="w-6 h-6 text-white/40 shrink-0" />
+      <div className="flex-1">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-base font-bold text-white">Deliverables</h3>
+          {items.length > 0 && (
+            <span className="text-[10px] font-bold text-white/40">{delivered}/{items.length} delivered</span>
+          )}
+        </div>
+
+        {items.length === 0 && (
+          <p className="text-xs text-white/35 mb-2">None yet. Deliverables added on Slate show up here too.</p>
+        )}
+
+        <div className="space-y-1">
+          {items.map(d => (
+            <div key={d.id} className="group flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
+              {canManage ? (
+                <input
+                  // Keyed on the saved label so a rolled-back rename resets
+                  // the field instead of leaving the unsaved text in it.
+                  key={`${d.id}:${d.label || ''}`}
+                  defaultValue={d.label || ''}
+                  placeholder="e.g. 60s hero cut"
+                  aria-label="Deliverable name"
+                  onBlur={e => {
+                    const value = e.target.value;
+                    if (value !== (d.label || '')) void patch(d.id, { label: value });
+                  }}
+                  onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                  className="flex-1 min-w-0 bg-transparent outline-none text-sm text-white/80 rounded px-1.5 py-0.5 -my-0.5 focus:bg-white/10 placeholder:text-white/25"
+                />
+              ) : (
+                <span className="flex-1 min-w-0 text-sm text-white/80 truncate">{d.label || 'Untitled'}</span>
+              )}
+
+              {canManage ? (
+                <select
+                  value={d.format || '16:9'}
+                  aria-label="Aspect ratio"
+                  onChange={e => void patch(d.id, { format: e.target.value })}
+                  className="bg-transparent outline-none text-xs text-white/45 cursor-pointer shrink-0 hover:text-white/70"
+                >
+                  {DELIVERABLE_FORMATS.map(f => (
+                    <option key={f} value={f} className="bg-zinc-900">{f}</option>
+                  ))}
+                </select>
+              ) : (
+                d.format && <span className="text-xs text-white/45 shrink-0">{d.format}</span>
+              )}
+
+              <button
+                type="button"
+                disabled={isClient}
+                onClick={() => void patch(d.id, { status: nextDeliverableStatus(d.status) })}
+                title={isClient ? undefined : 'Change status'}
+                className={`px-2 py-0.5 rounded border text-[10px] font-black uppercase tracking-widest shrink-0 transition-colors ${deliverableStatusTone(d.status)} ${isClient ? '' : 'cursor-pointer'}`}
+              >
+                {deliverableStatusLabel(d.status)}
+              </button>
+
+              {canManage && (
+                <button
+                  type="button"
+                  aria-label={`Remove ${d.label || 'deliverable'}`}
+                  onClick={() => void remove(d.id)}
+                  className="p-1 text-white/0 group-hover:text-white/30 hover:!text-red-400 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {canManage && (
+          <button
+            type="button"
+            onClick={add}
+            className="mt-2 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-colors"
+          >
+            + Deliverable
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------
 // COMPONENT: CardChecklist — delivery-spec checklist on a tracker card.
 // Backed by job_todos (shared with the Slate prep checklist and the Task
 // List tool), so checking off "4K master uploaded" here reflects everywhere.
@@ -798,6 +976,35 @@ function CardChecklist({ jobId, isClient }: { jobId: string; isClient: boolean }
     }
   };
 
+  // Click an item's text to reword it. Enter or blur saves, Escape backs out.
+  // Clearing the text is not a delete — the X is — so an empty save reverts.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
+  // Escape unmounts the input, and some browsers fire blur on the way out —
+  // which would save the draft the user just abandoned.
+  const cancelled = React.useRef(false);
+
+  const startEdit = (item: { id: string; task: string }) => {
+    cancelled.current = false;
+    setEditingId(item.id);
+    setDraft(item.task);
+  };
+
+  const commitEdit = async () => {
+    const id = editingId;
+    if (!id || cancelled.current) return;
+    setEditingId(null);
+    const task = draft.trim();
+    const prior = items.find(i => i.id === id);
+    if (!prior || !task || task === prior.task) return;
+    setItems(prev => prev.map(i => (i.id === id ? { ...i, task } : i)));
+    const { error } = await supabase.from('job_todos').update({ task }).eq('id', id);
+    if (error) {
+      toast('Could not save that change.');
+      setItems(prev => prev.map(i => (i.id === id ? { ...i, task: prior.task } : i)));
+    }
+  };
+
   const done = items.filter(i => i.completed).length;
   const pct = items.length > 0 ? Math.round((done / items.length) * 100) : 0;
 
@@ -831,9 +1038,28 @@ function CardChecklist({ jobId, isClient }: { jobId: string; isClient: boolean }
               onChange={(e) => toggle(item.id, e.target.checked)}
               className="w-4 h-4 rounded border-white/20 text-accent focus:ring-accent bg-black cursor-pointer"
             />
-            <span className={`flex-1 text-sm ${item.completed ? 'text-white/35 line-through' : 'text-white/80'}`}>
-              {item.task}
-            </span>
+            {editingId === item.id ? (
+              <input
+                autoFocus
+                value={draft}
+                aria-label="Checklist item"
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={commitEdit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.blur();
+                  if (e.key === 'Escape') { e.stopPropagation(); cancelled.current = true; setEditingId(null); }
+                }}
+                className="flex-1 min-w-0 bg-white/10 rounded px-1.5 py-0.5 -my-0.5 text-sm text-white outline-none focus:ring-1 focus:ring-accent"
+              />
+            ) : (
+              <span
+                onClick={isClient ? undefined : () => startEdit(item)}
+                title={isClient ? undefined : 'Click to edit'}
+                className={`flex-1 text-sm ${isClient ? '' : 'cursor-text'} ${item.completed ? 'text-white/35 line-through' : 'text-white/80'}`}
+              >
+                {item.task}
+              </span>
+            )}
             {!isClient && (
               <button
                 onClick={() => remove(item.id)}
@@ -1780,6 +2006,11 @@ function CardDetailModal({
                 )}
               </div>
             </div>
+
+            {/* Deliverables, as built on Slate */}
+            {!isCreatingNew && (
+              <CardDeliverables job={job} isClient={isClient} isEditor={!!isEditor} />
+            )}
 
             {/* Delivery Checklist */}
             {!isCreatingNew && (
