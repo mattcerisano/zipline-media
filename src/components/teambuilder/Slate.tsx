@@ -412,8 +412,11 @@ export default function Slate({
     fetchJobs();
   }, []);
 
-  // Live team sync: refetch when any teammate changes jobs/clients/projects
-  useRealtime(['jobs', 'clients', 'projects'], () => fetchJobs());
+  // Live team sync: refetch when any teammate changes jobs/clients/projects.
+  // In the background — the spinner replaces the whole board, which unmounted
+  // an open form, the crew manager, or a half-typed deliverable every time
+  // anyone (including this tab's own status change, echoed back) saved a job.
+  useRealtime(['jobs', 'clients', 'projects'], () => fetchJobs({ background: true }));
 
   useEffect(() => {
     if (preselectedJobId && jobs.length > 0) {
@@ -437,8 +440,8 @@ export default function Slate({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newProductionSeed]);
 
-  const fetchJobs = async () => {
-    setIsLoading(true);
+  const fetchJobs = async ({ background = false }: { background?: boolean } = {}) => {
+    if (!background) setIsLoading(true);
     try {
       // Bounded like the calendar and Rolodex queries. This pulled the entire
       // jobs table on every mount; a rolling two-year archive covers what the
@@ -525,9 +528,12 @@ export default function Slate({
       // matches nothing stays free text: saving a production is no reason to
       // mint a client record, and doing so is what filled the client list with
       // one-off names typed into this field.
-      jobPayload.client_id = editingJob.client_name?.trim()
-        ? resolveClientId(editingJob)
-        : undefined;
+      // Null, not undefined: supabase-js drops undefined keys, so a job moved
+      // to a free-text client (or cleared) kept its old client_id — and with
+      // it the old client's filter, billing, and deliverable inheritance.
+      (jobPayload as any).client_id = editingJob.client_name?.trim()
+        ? resolveClientId(editingJob) ?? null
+        : null;
 
       if (editingJob.id) {
         const { data, error } = await supabase
@@ -662,6 +668,16 @@ export default function Slate({
         email_thread_id: _threadId,
         email_thread_subject: _threadSubject,
         gear_list_url: _gearListUrl,
+        // Identity the new day must not inherit. The Google event id made
+        // saving day 2 move day 1's calendar event, and deleting day 2 delete
+        // it; the share token let day 1's gear link open day 2. The database
+        // mints fresh values for both.
+        google_event_id: _googleEventId,
+        google_calendar_user_id: _googleCalendarUserId,
+        share_token: _shareToken,
+        created_at: _createdAt,
+        // A forecast for the original date, not the new one.
+        weather_summary: _weather,
         ...copy
       } = job as any;
 
@@ -669,6 +685,8 @@ export default function Slate({
         ...copy,
         title: nextDayTitle(job.title),
         shoot_date: job.shoot_date ? nextShootDate(job.shoot_date) : undefined,
+        // Shifted with the start so the copy never ends before it begins.
+        end_date: job.end_date ? nextShootDate(job.end_date) : null,
         // Duplicated days start clean in post — keep them off the Edit
         // Tracker board (explicit null beats the legacy DB default).
         edit_status: null,
@@ -699,6 +717,15 @@ export default function Slate({
       }
 
       setJobs(prev => [...prev, data as Job].sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')));
+
+      // The new day gets its own calendar event, the same as a production
+      // created from the form. Undated copies stay off Google: the push would
+      // pin them to today, and the calendar sync skips undated jobs too.
+      if (data.shoot_date) {
+        pushJobToGoogleCalendar(data.id).then(result => {
+          if (!result.ok && result.message) toast(result.message);
+        });
+      }
     } catch (err: any) {
       console.error('Error duplicating job:', err);
       toast('Failed to duplicate production: ' + (err.message || 'Unknown error'));
@@ -1019,6 +1046,13 @@ export default function Slate({
   // Crew per production, so a card can say who's on it without opening the
   // crew manager. One query for the board, same as billing and deliverables.
   const [crew, setCrew] = useState<Record<string, JobRole[]>>({});
+  // Bumped when the crew manager closes, so cards show the edit just made.
+  const [crewVersion, setCrewVersion] = useState(0);
+
+  const closeCrewManager = () => {
+    setManageJobId(null);
+    setCrewVersion(v => v + 1);
+  };
 
   useEffect(() => {
     if (jobIdsOnBoard.length === 0) { setCrew({}); return; }
@@ -1039,7 +1073,7 @@ export default function Slate({
       setCrew(byJob);
     })();
     return () => { cancelled = true; };
-  }, [jobIdsOnBoard.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [jobIdsOnBoard.join(','), crewVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A new row starts blank and inherits the job's client, so it also lands in
   // the Social tab's list under the right name instead of an orphaned dash.
@@ -1112,14 +1146,16 @@ export default function Slate({
   );
 
   const upcomingJobs = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    // Local, not UTC: after 8 PM in New York the UTC date is already
+    // tomorrow, which archived today's shoot while it was still running.
+    const today = todayLocalISO();
     // Compared against the *last* day so a multi-day shoot stays "upcoming"
     // while it is still running, rather than archiving itself on day two.
     return filteredJobs.filter(j => j.shoot_date && (lastDayOf(j) as string) >= today);
   }, [filteredJobs]);
 
   const pastJobs = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocalISO();
     return filteredJobs
       .filter(j => j.shoot_date && (lastDayOf(j) as string) < today)
       // Most recent first: an archive that leads with the oldest job ever
@@ -1939,10 +1975,10 @@ export default function Slate({
       {/* Manage Crew Modal (Team Builder) */}
       <Modal
         open={!!manageJobId}
-        onClose={() => setManageJobId(null)}
+        onClose={closeCrewManager}
         maxWidth="max-w-6xl"
       >
-        {manageJobId && <TeamBuilder predefinedJobId={manageJobId} onClose={() => setManageJobId(null)} />}
+        {manageJobId && <TeamBuilder predefinedJobId={manageJobId} onClose={closeCrewManager} />}
       </Modal>
 
       {/* Call Sheet export options — pick exactly what goes on the PDF */}
