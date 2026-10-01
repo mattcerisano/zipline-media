@@ -1,4 +1,6 @@
 import { formatLocalDate } from '@/lib/date';
+import { latestDraftLinks } from '@/lib/drafts';
+import type { JobLink } from '@/components/gearbuilder/types';
 
 /**
  * Google Calendar event descriptions for Studio OS.
@@ -45,7 +47,7 @@ export interface JobLike {
   discord_url?: string | null;
   gear_list_url?: string | null;
   contact_email?: string | null;
-  links?: { label?: string; url?: string }[] | null;
+  links?: { label?: string; url?: string; version?: number; category?: JobLink['category'] }[] | null;
 }
 
 export interface CrewRow {
@@ -139,12 +141,16 @@ export function buildJobDescription(job: JobLike, crew: CrewRow[] = []): string 
 
   blocks.push(section('NOTES', [job.notes_general]));
 
+  // Drafts collapse to their newest version, and the review link is skipped
+  // when it's just that newest draft again (posting a draft sets both).
+  const jobLinks = latestDraftLinks(job.links);
+  const reviewIsDraft = jobLinks.some(l => l.category === 'Draft' && l.url === job.review_link);
   const links = [
-    job.review_link && `Review — ${job.review_link}`,
+    !reviewIsDraft && job.review_link && `Review — ${job.review_link}`,
     job.drive_folder_url && `Drive — ${job.drive_folder_url}`,
     job.gear_list_url && `Gear list — ${job.gear_list_url}`,
     job.discord_url && `Discord — ${job.discord_url}`,
-    ...(job.links || []).map(l => (l?.url ? `${l.label || 'Link'} — ${l.url}` : null)),
+    ...jobLinks.map(l => (l?.url ? `${l.label || 'Link'}${l.version ? ` v${l.version}` : ''} — ${l.url}` : null)),
   ];
   blocks.push(section('LINKS', links));
 

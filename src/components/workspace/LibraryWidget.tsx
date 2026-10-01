@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Trash2, Search, Loader2, FolderKanban, Building2, Package, Clapperboard, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Search, Loader2, FolderKanban, Building2, Clapperboard, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
 import { useRealtime } from '@/lib/useRealtime';
@@ -11,11 +11,13 @@ import { formatLocalDate } from '@/lib/date';
 /**
  * Library — the reference data behind everything else.
  *
- * Projects, clients and the gear catalog were all created as side effects of
- * other screens and then stranded there: a project could only be made from
- * inside the production form and never renamed or removed, and the inventory
- * that the whole Gear Builder reads had no editor at all, so adding a lens
- * meant opening Supabase.
+ * Projects and clients were both created as side effects of other screens
+ * and then stranded there: a project could only be made from inside the
+ * production form and never renamed or removed.
+ *
+ * The gear catalog used to live here too. It's edited in the Gear Builder now
+ * (add, edit, rename, delete, and who it belongs to), where renames carry
+ * through to saved gear lists instead of orphaning them.
  *
  * Deletes here are safe by construction: every foreign key pointing at these
  * tables is ON DELETE SET NULL, so removing a client unlinks its shoots rather
@@ -23,7 +25,7 @@ import { formatLocalDate } from '@/lib/date';
  * because "safe" is not the same as "expected".
  */
 
-type EntityKey = 'projects' | 'clients' | 'inventory' | 'jobs';
+type EntityKey = 'projects' | 'clients' | 'jobs';
 
 interface Row {
   id: string;
@@ -33,7 +35,7 @@ interface Row {
   detail?: string;
   /** How many productions point at this row. Undefined when not applicable. */
   usage?: number;
-  /** Right-hand number and its unit — shoots for projects/clients, qty for gear. */
+  /** Right-hand number and its unit — shoots for projects/clients. */
   count?: number;
   countUnit?: string;
   /** Bucket a category sort groups by. */
@@ -49,7 +51,7 @@ interface Row {
  * Sort options per entity.
  *
  * `group: true` turns the list into sections headed by the sort value — the
- * point of sorting a 250-item gear catalog by category is to see the lenses
+ * point of sorting 60 shoots by client is to see each client's shoots
  * together, which a flat ordered list makes you infer from adjacency.
  */
 interface SortOption {
@@ -99,12 +101,6 @@ const SORTS: Record<EntityKey, SortOption[]> = {
     } },
     { key: 'name', label: 'Title', compare: byName },
   ],
-  inventory: [
-    { key: 'name', label: 'Name', compare: byName },
-    { key: 'category', label: 'Category', compare: byText(r => r.group || ''), group: true },
-    { key: 'owner', label: 'Owner', compare: byText(r => String(r.raw.owner || '')), group: true },
-    { key: 'qty', label: 'Quantity', compare: byCount },
-  ],
 };
 
 const ENTITIES: {
@@ -125,7 +121,6 @@ const ENTITIES: {
 }[] = [
   { key: 'projects', label: 'Projects', icon: FolderKanban, nameField: 'name', addLabel: 'Add project', unlinkNote: 'Productions in these projects stay — they just lose the project tag.' },
   { key: 'clients', label: 'Clients', icon: Building2, nameField: 'name', addLabel: 'Add client', unlinkNote: 'Productions for these clients stay — they just lose the client link.' },
-  { key: 'inventory', label: 'Inventory', icon: Package, nameField: 'name', addLabel: 'Add gear item' },
   { key: 'jobs', label: 'Shoots', icon: Clapperboard, nameField: 'title', addLabel: 'Add shoot', destructive: true },
 ];
 
@@ -136,7 +131,7 @@ const inputClass =
 
 export default function LibraryWidget() {
   const [entity, setEntity] = useState<EntityKey>('projects');
-  const [rows, setRows] = useState<Record<EntityKey, Row[]>>({ projects: [], clients: [], inventory: [], jobs: [] });
+  const [rows, setRows] = useState<Record<EntityKey, Row[]>>({ projects: [], clients: [], jobs: [] });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -147,8 +142,6 @@ export default function LibraryWidget() {
   /** The record open in the detail pane. Distinct from `selected`, which arms
    *  rows for deletion — clicking a row to read it must never stage a delete. */
   const [activeId, setActiveId] = useState<string | null>(null);
-  /** Inventory rows with no primary key — listed but not editable. */
-  const [unkeyed, setUnkeyed] = useState(0);
 
   /**
    * QuickBooks customers, for linking a client by hand.
@@ -211,17 +204,15 @@ export default function LibraryWidget() {
       // number, deleting is a guess about what you're about to unpick.
       // Contacts come along for one purpose: telling a real client from a
       // Rolodex contact that became one by accident (see strayClient below).
-      const [projRes, cliRes, invRes, jobRes, conRes] = await Promise.all([
+      const [projRes, cliRes, jobRes, conRes] = await Promise.all([
         supabase.from('projects').select('*').order('name'),
         supabase.from('clients').select('*').order('name'),
-        supabase.from('inventory').select('*').order('name'),
-        supabase.from('jobs').select('id, title, shoot_date, job_status, client_name, client_id, project_id, google_event_id, gear_manifest'),
+        supabase.from('jobs').select('id, title, shoot_date, job_status, client_name, client_id, project_id, google_event_id'),
         supabase.from('contacts').select('name').limit(2000),
       ]);
 
       if (projRes.error) throw projRes.error;
       if (cliRes.error) throw cliRes.error;
-      if (invRes.error) throw invRes.error;
 
       const jobs = jobRes.data || [];
       const byProject = new Map<string, number>();
@@ -261,22 +252,7 @@ export default function LibraryWidget() {
         (projectsPerClient.get(c.id) || 0) === 0 &&
         !c.email && !c.phone && !c.address && !c.notes && !c.quickbooks_customer_id;
 
-      // Gear lists key items by NAME, not id (see Rentals: manifest[item.name]),
-      // so renaming or deleting a catalog item silently orphans it in every
-      // saved manifest. Count the references so both actions can say so.
-      const gearRefs = new Map<string, number>();
-      for (const j of jobs as any[]) {
-        const manifest = (j.gear_manifest || {}) as Record<string, number>;
-        for (const [itemName, qty] of Object.entries(manifest)) {
-          if (!qty) continue;
-          const k = itemName.trim().toLowerCase();
-          gearRefs.set(k, (gearRefs.get(k) || 0) + 1);
-        }
-      }
-
       const clientName = new Map((cliRes.data || []).map((c: any) => [c.id, c.name]));
-      const unkeyedInventory = (invRes.data || []).filter((i: any) => !i.id).length;
-      setUnkeyed(unkeyedInventory);
 
       setRows({
         projects: (projRes.data || []).map((p: any) => ({
@@ -301,23 +277,6 @@ export default function LibraryWidget() {
           stray: strayClient(c),
           raw: c,
         })),
-        // The inventory table predates the migrations and was created by hand,
-        // so an id column isn't guaranteed. Rename and delete both address rows
-        // by id; a row without one can't be edited safely, so it's dropped here
-        // and counted rather than rendered as a control that silently no-ops.
-        inventory: (invRes.data || [])
-          .filter((i: any) => !!i.id)
-          .map((i: any) => ({
-            id: i.id as string,
-            type: 'inventory' as const,
-            name: i.name || '',
-            detail: [i.category, i.owner].filter(Boolean).join(' · '),
-            usage: gearRefs.get(String(i.name || '').trim().toLowerCase()) || 0,
-            count: typeof i.qty === 'number' ? i.qty : undefined,
-            countUnit: 'in kit',
-            group: i.category || '',
-            raw: i,
-          })),
         jobs: (jobs as any[]).map((j: any) => ({
           id: j.id,
           type: 'jobs' as const,
@@ -339,7 +298,7 @@ export default function LibraryWidget() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
-  useRealtime(['projects', 'clients', 'inventory', 'jobs'], load);
+  useRealtime(['projects', 'clients', 'jobs'], load);
 
   // Switching tabs must drop the selection: ids from the previous table would
   // otherwise still be armed for the next delete.
@@ -459,20 +418,14 @@ export default function LibraryWidget() {
   const add = async () => {
     const name = await promptAction({
       title: meta.addLabel,
-      message: entity === 'inventory'
-        ? 'Added to the gear catalog. Category and quantity can be set after.'
-        : undefined,
       label: 'Name',
-      placeholder: entity === 'inventory' ? 'e.g. Canon C400' : 'e.g. Moulin Rouge Campaign',
+      placeholder: 'e.g. Moulin Rouge Campaign',
     });
     if (!name?.trim()) return;
 
     setBusy(true);
     try {
       const payload: Record<string, any> = { name: name.trim() };
-      // inventory.qty is NOT NULL in the catalog the Gear Builder reads, so a
-      // bare {name} insert would be rejected.
-      if (entity === 'inventory') { payload.category = 'Specialty'; payload.qty = 1; payload.replacement = 0; }
       // jobs has no `name` column — the title is the display field, and a new
       // shoot starts in Planning like one created from Slate.
       if (entity === 'jobs') { delete payload.name; payload.title = name.trim(); payload.job_status = 'Planning'; payload.type = 'production'; }
@@ -490,17 +443,6 @@ export default function LibraryWidget() {
     const next = value.trim();
     if (!next || next === row.name) return;
 
-    // Saved gear lists point at catalog items by name, so a rename doesn't
-    // follow — the old name becomes a one-off custom item on every list using
-    // it. Worth a question when it would actually happen.
-    if (entity === 'inventory' && (row.usage || 0) > 0) {
-      const ok = await confirmAction({
-        title: 'Rename this gear item?',
-        message: `${row.usage} saved gear ${row.usage === 1 ? 'list references' : 'lists reference'} “${row.name}” by name. They won't follow the rename — the old name stays on them as a custom item.`,
-        confirmLabel: 'Rename anyway',
-      });
-      if (!ok) { void load(); return; }
-    }
     setRows(prev => ({ ...prev, [entity]: prev[entity].map(r => (r.id === row.id ? { ...r, name: next } : r)) }));
     const { error } = await supabase.from(entity).update({ [meta.nameField]: next }).eq('id', row.id);
     if (error) {
@@ -531,9 +473,7 @@ export default function LibraryWidget() {
         ? `Crew, schedule, shot list, to-dos and budget items go with ${ids.length === 1 ? 'it' : 'them'} permanently, and ${ids.length === 1 ? 'the shoot is' : 'the shoots are'} removed from Google Calendar. This cannot be undone.`
         : linked === 0
         ? 'Nothing references these. This cannot be undone.'
-        : entity === 'inventory'
-          ? `${linked} saved gear ${linked === 1 ? 'list references' : 'lists reference'} ${ids.length === 1 ? 'this item' : 'these items'} by name. Those lists keep the item as a one-off custom entry; only the catalog entry goes.`
-          : `${linked} production${linked === 1 ? '' : 's'} reference ${ids.length === 1 ? 'this' : 'these'}. ${meta.unlinkNote || ''}`,
+        : `${linked} production${linked === 1 ? '' : 's'} reference ${ids.length === 1 ? 'this' : 'these'}. ${meta.unlinkNote || ''}`,
       confirmLabel: 'Delete',
       danger: true,
     });
@@ -595,16 +535,10 @@ export default function LibraryWidget() {
         ...(row.stray ? [{ k: 'Looks like', v: 'A Rolodex contact, not a client' }] : []),
       ];
     }
-    return [
-      { k: 'Category', v: d.category || 'Uncategorised' },
-      { k: 'Owner', v: d.owner || 'Zipline Media' },
-      { k: 'Quantity', v: String(d.qty ?? 0), mono: true },
-      { k: 'Replacement', v: typeof d.replacement === 'number' ? `$${d.replacement.toLocaleString('en-US')}` : '—', mono: true },
-      { k: 'On gear lists', v: String(row.usage ?? 0), mono: true },
-    ];
+    return [];
   }
 
-  const typeLabel = (k: EntityKey) => ({ jobs: 'Shoot', projects: 'Project', clients: 'Client', inventory: 'Gear item' }[k]);
+  const typeLabel = (k: EntityKey) => ({ jobs: 'Shoot', projects: 'Project', clients: 'Client' }[k]);
 
   return (
     <div className="h-full flex flex-col bg-black text-white">
@@ -617,7 +551,7 @@ export default function LibraryWidget() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search shoots, clients, projects and gear…"
+              placeholder="Search shoots, clients and projects…"
               aria-label="Search the library"
               className={`${inputClass} pl-9`}
             />
@@ -728,14 +662,6 @@ export default function LibraryWidget() {
             <div className="py-20 text-center space-y-2">
               <AlertCircle className="w-8 h-8 text-red-400/70 mx-auto" />
               <p className="text-xs text-white/70">{loadError}</p>
-            </div>
-          ) : entity === 'inventory' && !searching && unkeyed > 0 && visible.length === 0 ? (
-            <div className="py-20 text-center space-y-2 px-6">
-              <AlertCircle className="w-8 h-8 text-amber-400/70 mx-auto" />
-              <p className="text-[11px] text-white/60 leading-relaxed max-w-sm mx-auto">
-                {unkeyed} gear {unkeyed === 1 ? 'item has' : 'items have'} no id column, so they can&rsquo;t be edited here.
-                The inventory table needs a primary key before the Library can manage it.
-              </p>
             </div>
           ) : visible.length === 0 ? (
             <div className="py-20 text-center space-y-2">
@@ -888,15 +814,6 @@ export default function LibraryWidget() {
                 )
               )}
 
-              {activeRow.type === 'inventory' && (activeRow.usage || 0) > 0 && (
-                <p className="flex gap-2 text-[10px] text-amber-300/80 bg-amber-400/5 border border-amber-400/20 rounded-lg p-2.5 leading-relaxed">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />
-                  <span>
-                    {activeRow.usage} saved gear {activeRow.usage === 1 ? 'list references' : 'lists reference'} this by name.
-                    Renaming won&rsquo;t follow — they keep the old name as a custom item.
-                  </span>
-                </p>
-              )}
               {activeRow.type === 'jobs' && (
                 <p className="flex gap-2 text-[10px] text-amber-300/80 bg-amber-400/5 border border-amber-400/20 rounded-lg p-2.5 leading-relaxed">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-px" />

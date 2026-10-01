@@ -50,6 +50,7 @@ import { generateMasterBrief } from '@/lib/pdf-generator';
 import { fetchGearCategoryMap, groupManifestByCategory, buildGearTableBody } from '@/lib/gear-manifest';
 import { getBranding, hexToRgb } from '@/lib/branding';
 import { sanitizeUrl } from '@/lib/sanitize';
+import { latestDraftLinks } from '@/lib/drafts';
 import { formatLocalDate, todayLocalISO } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
 import type { NewProductionSeed } from '@/components/gearbuilder/ProductionCalendar';
@@ -2092,6 +2093,11 @@ function JobCard({
   const gearCount = job.gear_manifest ? Object.values(job.gear_manifest as Record<string, number>).reduce((a, b) => a + b, 0) : 0;
 
   const hasVaultLinks = !!(job.review_link || job.discord_url || job.drive_folder_url || job.links?.length);
+  // Edit Tracker drafts show as their newest cut only; the full history lives
+  // on the card. Posting a draft also sets review_link, so skip that button
+  // when it would just repeat the newest draft.
+  const vaultLinks = latestDraftLinks(job.links);
+  const reviewIsDraft = vaultLinks.some(l => l.category === 'Draft' && l.url === job.review_link);
 
   const statusTone: Record<string, string> = {
     Booked: 'bg-green-500/10 border-green-500/20 text-green-300',
@@ -2428,7 +2434,7 @@ function JobCard({
                <LinkIcon className="w-3 h-3" /> Project Vault
              </p>
              <div className="grid grid-cols-2 gap-2">
-                {job.review_link && (
+                {job.review_link && !reviewIsDraft && (
                   <a href={sanitizeUrl(job.review_link)} target="_blank" className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
                     <Eye className="w-3 h-3 text-accent shrink-0" />
                     <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Review</span>
@@ -2446,10 +2452,10 @@ function JobCard({
                     <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Drive</span>
                   </a>
                 )}
-                {job.links?.map((link, i) => (
+                {vaultLinks.map((link, i) => (
                   <a key={i} href={sanitizeUrl(link.url)} target="_blank" className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
                     <ExternalLink className="w-3 h-3 text-white/30 shrink-0" />
-                    <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100 truncate">{link.label}</span>
+                    <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100 truncate">{link.label}{link.version ? ` v${link.version}` : ''}</span>
                   </a>
                 ))}
              </div>

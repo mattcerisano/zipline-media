@@ -7,6 +7,7 @@ import { ALL_CATEGORIES, type InventoryItem } from '@/data/inventory';
 import { Search, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
+import { isBorrowed } from '@/lib/gear-owners';
 
 // Image paths come from the Supabase `inventory` table and can point at photos
 // that were never added to public/gear, which rendered as a broken-image icon.
@@ -45,7 +46,8 @@ export default function GearPage() {
       try {
         const { data, error } = await supabase.from('inventory').select('*');
         if (error) throw error;
-        setInventory((data || []) as InventoryItem[]);
+        // Gear borrowed from friends shares the table; it isn't ours to list.
+        setInventory(((data || []) as InventoryItem[]).filter(i => !isBorrowed(i)));
       } catch (err) {
         console.error('Error fetching inventory:', err);
         setLoadFailed(true);

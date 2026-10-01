@@ -5,6 +5,7 @@ import { ALL_CATEGORIES, INVENTORY, type InventoryItem } from '@/data/inventory'
 import { Search, ChevronRight, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
+import { isBorrowed } from '@/lib/gear-owners';
 import { useRealtime } from '@/lib/useRealtime';
 
 export default function EquipmentPage() {
@@ -20,7 +21,9 @@ export default function EquipmentPage() {
     try {
       const { data, error } = await supabase.from('inventory').select('*');
       if (error) throw error;
-      if (data && data.length > 0) setInventory(data as InventoryItem[]);
+      // Gear borrowed from friends shares the table; it isn't ours to list.
+      const owned = ((data || []) as InventoryItem[]).filter(i => !isBorrowed(i));
+      if (owned.length > 0) setInventory(owned);
     } catch (err) {
       console.error('Error fetching inventory:', err);
     } finally {

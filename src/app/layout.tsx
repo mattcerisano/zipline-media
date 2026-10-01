@@ -62,7 +62,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // The cached brand colour is applied to <html> before React hydrates (see
+    // src/lib/brand-theme.ts), so its style attribute legitimately differs
+    // from the server's. This only silences that element's own attributes.
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased bg-background text-foreground">
         <Navbar />
         <main>{children}</main>

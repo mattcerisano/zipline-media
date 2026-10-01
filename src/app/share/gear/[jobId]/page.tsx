@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import { toast } from '@/components/Feedback';
+import { parseOwnedName } from '@/lib/gear-owners';
 
 // Define structures matching the main catalog
 interface InventoryItem {
@@ -148,13 +149,18 @@ export default function ShareGearPage() {
         );
 
         if (missingKeys.length > 0) {
-          const generatedCustoms = missingKeys.map(name => ({
-            name,
-            category: 'Specialty',
-            qty: 100, // Safe default limit
-            replacement: 0,
-            owner: 'Custom'
-          }));
+          // Borrowed gear names its owner in brackets ("Sony A1 [Rob]");
+          // group it under that person rather than a made-up "Custom".
+          const generatedCustoms = missingKeys.map(name => {
+            const { owner } = parseOwnedName(name);
+            return {
+              name,
+              category: 'Specialty',
+              qty: 100, // Safe default limit
+              replacement: 0,
+              ...(owner ? { owner } : {}),
+            };
+          });
           setCustomGear(generatedCustoms);
         }
 
