@@ -88,7 +88,11 @@ export interface JobRole {
 export interface JobLink {
   label: string;
   url: string;
-  category?: 'Review' | 'Archive' | 'Discord' | 'Folder' | 'Other' | 'Creative';
+  category?: 'Review' | 'Archive' | 'Discord' | 'Folder' | 'Other' | 'Creative' | 'Draft';
+  // Draft links on an Edit Tracker card (see src/lib/drafts.ts).
+  version?: number;
+  added_at?: string;
+  added_by?: string;
 }
 
 export interface EditLabel {

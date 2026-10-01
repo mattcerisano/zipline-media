@@ -68,7 +68,7 @@ export function QuickStartGuideModal({
               </li>
               <li className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-accent rounded-full" />
-                Vimeo & Drive Embeds
+                Draft Links & Versions
               </li>
               <li className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-accent rounded-full" />
@@ -131,7 +131,7 @@ export function QuickStartGuideModal({
               <Scissors className="w-4 h-4 text-accent mt-0.5 shrink-0" />
               <div>
                 <h5 className="text-[10px] font-black uppercase text-white">Edit Tracker</h5>
-                <p className="text-[11px] text-white/60">Track status of active drafts (WIP, V1, Final), save review links, and coordinate notes.</p>
+                <p className="text-[11px] text-white/60">Track status of active drafts (WIP, V1, Final), post each cut's link with its version history, and coordinate notes.</p>
               </div>
             </div>
             <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
@@ -152,7 +152,7 @@ export function QuickStartGuideModal({
               <Library className="w-4 h-4 text-accent mt-0.5 shrink-0" />
               <div>
                 <h5 className="text-[10px] font-black uppercase text-white">Library</h5>
-                <p className="text-[11px] text-white/60">One place to browse, rename and tidy everything the rest of the app refers to: shoots, projects, clients and the gear catalogue.</p>
+                <p className="text-[11px] text-white/60">One place to browse, rename and tidy shoots, projects and clients. Gear is edited in the Gear Builder.</p>
               </div>
             </div>
           </div>
@@ -279,13 +279,13 @@ export function QuickStartGuideModal({
       content: (
         <div className="space-y-4 max-h-[350px] overflow-y-auto no-scrollbar pr-1">
           <p className="text-sm text-white/70 leading-relaxed">
-            Shoots, projects, clients and the gear catalogue in one place — for when you want to
-            tidy up, rename something, or add a lot at once.
+            Shoots, projects and clients in one place — for when you want to tidy up, rename
+            something, or add a lot at once. The gear catalogue is edited in the Gear Builder.
           </p>
           <ul className="text-xs text-white/60 space-y-2 list-disc list-inside">
-            <li>Search across all four at once. Looking for &ldquo;Hudson&rdquo; finds the client and the shoot together.</li>
+            <li>Search across all three at once. Looking for &ldquo;Hudson&rdquo; finds the client and the shoot together.</li>
             <li>Pick a record to see its details and what it&rsquo;s linked to — a client walks to its projects, and those to their shoots.</li>
-            <li>Sort gear by category, owner or quantity; sort shoots by date, client or status.</li>
+            <li>Sort shoots by date, client or status.</li>
             <li>Tick several rows to remove them together.</li>
           </ul>
           <div className="bg-amber-400/5 border border-amber-400/20 p-3 rounded-xl space-y-1.5">

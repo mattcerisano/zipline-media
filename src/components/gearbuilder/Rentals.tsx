@@ -29,7 +29,10 @@ import {
   Share2,
   Lock,
   UserPlus,
-  Loader2
+  Loader2,
+  Handshake,
+  Phone,
+  Mail
 } from 'lucide-react';
 
 import { jsPDF } from 'jspdf';
@@ -50,6 +53,8 @@ import { useRealtime } from '@/lib/useRealtime';
 import { caps } from '@/lib/format';
 import { toast, confirmAction } from '@/components/Feedback';
 import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
+import { formatLocalDate } from '@/lib/date';
+import { STUDIO_OWNER, buildRentalLog, isBorrowed, ownedName, parseOwnedName } from '@/lib/gear-owners';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -110,8 +115,11 @@ const GearItem = ({
       className="flex-1 min-w-0 pr-2 md:pr-4"
     >
       <h3 className="text-sm font-semibold tracking-tight mb-1 leading-tight">{item.name}</h3>
-      <p className="text-[10px] opacity-40 font-semibold leading-relaxed">
-        {item.category} • QTY: {item.qty} • ${item.replacement.toLocaleString()}
+      <p className="text-[10px] font-semibold leading-relaxed">
+        {isBorrowed(item) && (
+          <span className="text-amber-400/90 mr-1.5">{item.owner}&rsquo;s</span>
+        )}
+        <span className="opacity-40">{item.category} • QTY: {item.qty} • ${item.replacement.toLocaleString()}</span>
       </p>
     </div>
     
@@ -121,7 +129,8 @@ const GearItem = ({
           type="button"
           onClick={() => onEdit(item)}
           title="Edit gear record"
-          className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-white/25 hover:text-white hover:bg-white/10 md:opacity-0 md:group-hover:opacity-100 transition-all"
+          aria-label={`Edit ${item.name}`}
+          className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-white/25 hover:text-white hover:bg-white/10 transition-all"
         >
           <Pencil className="w-3 h-3" />
         </button>
@@ -204,7 +213,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const [isMobileManifestOpen, setIsMobileManifestOpen] = useState(false);
   const [isJobPickerOpen, setIsJobPickerOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'gear' | 'library' | 'templates'>('gear');
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'gear' | 'library' | 'templates' | 'rentals'>('gear');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   // Older shoots auto-drop out of the library so building a new list isn't
@@ -374,7 +383,10 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   };
 
   const allInventory = useMemo(() => {
-    return [...dbInventory, ...customGear].sort((a, b) => a.name.localeCompare(b.name));
+    // The catalog wins over a one-off of the same name — a list loaded before
+    // the catalog finished fetching would otherwise show every item twice.
+    const dbNames = new Set(dbInventory.map(i => i.name));
+    return [...dbInventory, ...customGear.filter(i => !dbNames.has(i.name))].sort((a, b) => a.name.localeCompare(b.name));
   }, [dbInventory, customGear]);
 
   // Standard categories plus any others already present in the catalog (e.g.
@@ -432,7 +444,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       if (count <= 0) return;
       const item = allInventory.find(i => i.name === name);
       if (!item) return;
-      const owner = item.owner || 'Zipline Media';
+      const owner = item.owner || STUDIO_OWNER;
       if (!byOwner[owner]) byOwner[owner] = {};
       if (!byOwner[owner][item.category]) byOwner[owner][item.category] = [];
       byOwner[owner][item.category].push({ name, count });
@@ -479,12 +491,18 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     setIsCustomModalOpen(true);
   };
 
+  const openAddModalFor = (owner: string) => {
+    openAddModal();
+    setCustomOwner(owner);
+  };
+
   const handleEdit = (item: InventoryItem) => {
-    let baseName = item.name;
-    const owner = item.owner || '';
-    if (owner && baseName.includes(`[${owner}]`)) {
-        baseName = baseName.replace(` [${owner}]`, '').trim();
-    }
+    // Older rows carry the owner only in the bracket, so read it from there
+    // when the column is empty.
+    const parsed = parseOwnedName(item.name);
+    const owner = item.owner || parsed.owner || '';
+    const sameOwner = !!parsed.owner && parsed.owner.toLowerCase() === owner.trim().toLowerCase();
+    const baseName = sameOwner ? parsed.base : item.name;
     setEditingItemName(item.name); 
     setEditingIsDbItem(dbInventory.some(i => i.name === item.name));
     setSaveToStudioInventory(false);
@@ -500,11 +518,16 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   };
 
   // The inventory table was created outside of migrations, so only send columns
-  // that actually came back from the API rather than guessing the schema.
-  const inventoryColumns = useMemo(
-    () => (dbInventory[0] ? Object.keys(dbInventory[0]) : null),
-    [dbInventory]
-  );
+  // that actually came back from the API rather than guessing the schema —
+  // read across every row, since one row can omit a key another carries.
+  // `owner` always goes: it's the whole record of whose gear it is, and a
+  // borrowed item saved without it would quietly become the studio's.
+  const inventoryColumns = useMemo(() => {
+    if (dbInventory.length === 0) return null;
+    const cols = new Set<string>(['owner']);
+    for (const row of dbInventory) for (const key of Object.keys(row)) cols.add(key);
+    return [...cols];
+  }, [dbInventory]);
 
   const toInventoryPayload = (item: InventoryItem) => {
     const full: Record<string, any> = {
@@ -533,9 +556,92 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     });
   };
 
+  // Saved gear lists and packages key items by name, so a rename in the
+  // catalog is carried through to every list that uses it — otherwise the old
+  // lists would fall back to a nameless one-off item. Returns how many were
+  // updated; a failed write is reported rather than rolled back, since the
+  // catalog rename itself already landed.
+  const propagateRename = async (from: string, to: string) => {
+    const rekey = (m: Record<string, number>) => {
+      const next = { ...m };
+      next[to] = (next[to] || 0) + (next[from] || 0);
+      delete next[from];
+      return next;
+    };
+    const hits = (m: unknown) => !!m && typeof m === 'object' && from in (m as Record<string, number>);
+    const jobHits = jobs.filter(j => hits(j.gear_manifest));
+    const tplHits = gearTemplates.filter(t => hits(t.items));
+    if (jobHits.length === 0 && tplHits.length === 0) return 0;
+
+    const results = await Promise.all([
+      ...jobHits.map(j =>
+        supabase.from('jobs').update({ gear_manifest: rekey(j.gear_manifest as Record<string, number>) }).eq('id', j.id)
+      ),
+      ...tplHits.map(t => supabase.from('gear_templates').update({ items: rekey(t.items) }).eq('id', t.id)),
+    ]);
+    const failed = results.filter(r => r.error).length;
+    setJobs(prev => prev.map(j => (hits(j.gear_manifest) ? { ...j, gear_manifest: rekey(j.gear_manifest as Record<string, number>) } : j)));
+    setGearTemplates(prev => prev.map(t => (hits(t.items) ? { ...t, items: rekey(t.items) } : t)));
+    if (failed) toast(`Renamed, but ${failed} saved list${failed === 1 ? '' : 's'} couldn't be updated.`);
+    return results.length - failed;
+  };
+
+  // How many saved gear lists name this item — shown before a delete.
+  const listsUsing = (name: string) =>
+    jobs.filter(j => (j.gear_manifest as Record<string, number> | undefined)?.[name]).length;
+
+  // Who has lent the studio what, built from the catalog and every saved list.
+  const rentalLog = useMemo(
+    () => buildRentalLog(dbInventory, jobs.map(j => ({ ...j, gear_manifest: j.gear_manifest as Record<string, number> | null }))),
+    [dbInventory, jobs]
+  );
+  const listOnlyRentals = useMemo(
+    () => rentalLog.flatMap(o => o.items.filter(i => !i.inCatalog).map(i => ({ ...i, owner: o.owner }))),
+    [rentalLog]
+  );
+  const [savingRentals, setSavingRentals] = useState(false);
+
+  // Borrowed gear that's only ever been on a gear list (from before it was
+  // saved automatically) goes into the catalog under its owner's name.
+  const saveListOnlyRentals = async () => {
+    if (listOnlyRentals.length === 0) return;
+    setSavingRentals(true);
+    try {
+      const rows = listOnlyRentals.map(i => toInventoryPayload({
+        name: i.name,
+        category: UNCATEGORIZED,
+        qty: Math.max(1, ...i.jobs.map(j => j.count)),
+        replacement: 0,
+        owner: i.owner,
+      }));
+      const { data, error } = await supabase.from('inventory').insert(rows).select();
+      if (error) throw error;
+      const saved = (data || []) as InventoryItem[];
+      const names = new Set(saved.map(i => i.name));
+      setDbInventory(prev => [...prev, ...saved]);
+      setCustomGear(prev => prev.filter(i => !names.has(i.name)));
+      toast(`Saved ${saved.length} borrowed item${saved.length === 1 ? '' : 's'} to the catalog.`);
+    } catch (err: any) {
+      toast(`Couldn't save them: ${err.message || 'unknown error'}`);
+    } finally {
+      setSavingRentals(false);
+    }
+  };
+
+  // One tap to borrow the same thing again.
+  const addToManifestByName = (name: string) => {
+    const item = allInventory.find(i => i.name === name);
+    if (!item) adoptMissingItems({ [name]: 1 });
+    if (item && (manifest[name] || 0) >= item.qty) {
+      toast(`All ${item.qty} already on this list.`);
+      return;
+    }
+    setManifest(prev => ({ ...prev, [name]: (prev[name] || 0) + 1 }));
+  };
+
   const addCustomItem = async () => {
     if (!customName.trim()) return;
-    const finalName = customOwner.trim() ? `${customName.trim()} [${customOwner.trim()}]` : customName.trim();
+    const finalName = ownedName(customName, customOwner);
     if (finalName !== editingItemName && allInventory.find(i => i.name.toLowerCase() === finalName.toLowerCase())) {
       toast('Item with this name already exists.');
       return;
@@ -551,7 +657,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       owner: customOwner.trim() || undefined
     };
 
-    const writesToDb = editingIsDbItem || (!editingItemName && saveToStudioInventory);
+    // Someone else's gear always goes in the catalog under their name, so the
+    // next time it's borrowed it's already there and the Rentals tab can keep
+    // a record of it. Studio gear can still be a one-off on this list.
+    const writesToDb = editingIsDbItem || !!newItem.owner || (!editingItemName && saveToStudioInventory);
+    let relinked = 0;
 
     if (writesToDb) {
       setSavingGearItem(true);
@@ -564,6 +674,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             .eq('name', editingItemName);
           if (error) throw error;
           setDbInventory(prev => prev.map(i => (i.name === editingItemName ? { ...i, ...newItem } : i)));
+          if (finalName !== editingItemName) relinked = await propagateRename(editingItemName, finalName);
         } else {
           const { data, error } = await supabase
             .from('inventory')
@@ -572,6 +683,8 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             .single();
           if (error) throw error;
           setDbInventory(prev => [...prev, (data as InventoryItem) || newItem]);
+          // A one-off item on this list just got promoted into the catalog.
+          if (editingItemName) setCustomGear(prev => prev.filter(i => i.name !== editingItemName));
         }
       } catch (err: any) {
         setGearItemError(err.message || 'Could not save to the studio inventory.');
@@ -587,6 +700,8 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     }
 
     renameInManifest(editingItemName, finalName, !editingItemName);
+    if (relinked > 0) toast(`Renamed. ${relinked} saved list${relinked === 1 ? '' : 's'} and package${relinked === 1 ? '' : 's'} now use the new name.`);
+    else if (!editingItemName && newItem.owner) toast(`Saved to ${newItem.owner}'s gear.`);
 
     // Save owner to list for autofill
     if (customOwner.trim()) {
@@ -609,7 +724,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     if (!editingItemName) return;
     const confirmed = await confirmAction({
       message: editingIsDbItem
-        ? `Permanently delete "${editingItemName}" from the studio inventory?`
+        ? `Permanently delete "${editingItemName}" from the gear catalog?${
+            listsUsing(editingItemName) > 0
+              ? ` It's on ${listsUsing(editingItemName)} saved gear list${listsUsing(editingItemName) === 1 ? '' : 's'}, which keep it as a one-off item.`
+              : ''
+          }`
         : `Remove "${editingItemName}" from this manifest?`,
       danger: true,
       confirmLabel: 'Delete',
@@ -863,6 +982,28 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     }
   };
 
+  // A saved list or package can name gear the catalog doesn't have — a one-off
+  // item, or a rename from before renames carried through. Rebuild those as
+  // one-off items so they still show on the manifest, keeping the owner from
+  // the bracket in the name rather than filing them under a made-up owner.
+  const adoptMissingItems = (items: Record<string, number>) => {
+    const missing = Object.keys(items).filter(name => !allInventory.some(i => i.name === name));
+    if (missing.length === 0) return;
+    setCustomGear(prev => [
+      ...prev.filter(p => !missing.includes(p.name)),
+      ...missing.map(name => {
+        const { owner } = parseOwnedName(name);
+        return {
+          name,
+          category: UNCATEGORIZED,
+          qty: Math.max(1, items[name] || 1),
+          replacement: 0,
+          ...(owner ? { owner } : {}),
+        };
+      }),
+    ]);
+  };
+
   const loadJob = (job: Job) => {
     setSelectedJobId(job.id);
     setJobTitle(job.title);
@@ -914,22 +1055,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     if (job.gear_manifest) {
       const manifestObj = job.gear_manifest as Record<string, number>;
       setManifest(manifestObj);
-      
-      // Auto-recreate missing custom items in customGear so they render correctly in the manifest list!
-      const missingKeys = Object.keys(manifestObj).filter(name => !allInventory.some(i => i.name === name));
-      if (missingKeys.length > 0) {
-        setCustomGear(prev => {
-          const newCustoms = missingKeys.map(name => ({
-            name,
-            category: 'Specialty',
-            qty: 100,
-            replacement: 0,
-            owner: 'Custom'
-          }));
-          const filtered = prev.filter(p => !missingKeys.includes(p.name));
-          return [...filtered, ...newCustoms];
-        });
-      }
+      adoptMissingItems(manifestObj);
     }
     setIsCalendarOpen(false);
   };
@@ -1012,6 +1138,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   };
 
   const loadGearTemplate = (template: GearTemplate, mode: 'overwrite' | 'merge') => {
+    adoptMissingItems(template.items);
     if (mode === 'overwrite') {
       setManifest(template.items);
     } else {
@@ -1464,6 +1591,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                       if (matchedJob.notes_general) setNotes(matchedJob.notes_general);
                       if (matchedJob.gear_manifest) {
                           setManifest(matchedJob.gear_manifest as Record<string, number>);
+                          adoptMissingItems(matchedJob.gear_manifest as Record<string, number>);
                       }
                   } else if (!val.trim()) {
                       setSelectedJobId(null);
@@ -1826,7 +1954,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                     onClick={() => setActiveSidebarTab('gear')}
                     className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'gear' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
                   >
-                    Gear Selection
+                    Gear
                   </button>
                   <button 
                     onClick={() => setActiveSidebarTab('library')}
@@ -1839,6 +1967,12 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                     className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'templates' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
                   >
                     Packages
+                  </button>
+                  <button 
+                    onClick={() => setActiveSidebarTab('rentals')}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'rentals' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
+                  >
+                    Rentals
                   </button>
                 </div>
 
@@ -1860,7 +1994,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                         className="bg-white text-black px-4 text-xs font-semibold hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-white/5 whitespace-nowrap flex items-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
-                        <span className="hidden md:inline">Custom</span>
+                        <span className="hidden md:inline">Add gear</span>
                       </button>
                     </div>
 
@@ -1887,6 +2021,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-semibold text-accent">Saved Production Slates</h3>
                     <p className="text-xs font-semibold opacity-40">{jobs.length} Total</p>
+                  </div>
+                ) : activeSidebarTab === 'rentals' ? (
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold text-accent">Borrowed gear, by owner</h3>
+                    <p className="text-xs font-semibold opacity-40">{rentalLog.length} {rentalLog.length === 1 ? 'person' : 'people'}</p>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
@@ -1998,6 +2137,100 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                           </button>
                         )}
                       </>
+                    )}
+                  </div>
+                ) : activeSidebarTab === 'rentals' ? (
+                  <div className="space-y-3 pb-8">
+                    {listOnlyRentals.length > 0 && (
+                      <div className="p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 flex items-center gap-3">
+                        <p className="flex-1 text-[11px] font-semibold text-amber-200/80 leading-snug">
+                          {listOnlyRentals.length} borrowed item{listOnlyRentals.length === 1 ? ' is' : 's are'} only on old gear lists, not in the catalog.
+                        </p>
+                        <button
+                          onClick={saveListOnlyRentals}
+                          disabled={savingRentals}
+                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-black text-xs font-semibold hover:bg-white disabled:opacity-50 transition-colors"
+                        >
+                          {savingRentals && <Loader2 className="w-3 h-3 animate-spin" />}
+                          Save to catalog
+                        </button>
+                      </div>
+                    )}
+
+                    {rentalLog.length === 0 ? (
+                      <div className="py-24 text-center opacity-40">
+                        <Handshake className="w-12 h-12 mx-auto mb-4" />
+                        <p className="text-xs font-semibold text-white/60">Nothing borrowed yet</p>
+                        <p className="text-[11px] text-white/40 mt-1 max-w-xs mx-auto">
+                          Add gear with an owner filled in and it&rsquo;s saved here under their name.
+                        </p>
+                      </div>
+                    ) : (
+                      rentalLog.map(o => {
+                        const contact = contacts.find(c => c.name.trim().toLowerCase() === o.owner.toLowerCase());
+                        return (
+                          <div key={o.owner} className="p-4 border border-white/5 bg-white/5 rounded-xl">
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="min-w-0">
+                                <h4 className="text-sm font-semibold tracking-tight text-white">{o.owner}</h4>
+                                <p className="text-[10px] font-semibold text-white/40 mt-0.5">
+                                  {o.items.length} item{o.items.length === 1 ? '' : 's'}
+                                  {' · '}borrowed for {o.jobCount} shoot{o.jobCount === 1 ? '' : 's'}
+                                  {o.lastDate && <> · latest {formatLocalDate(o.lastDate, { month: 'short', day: 'numeric', year: 'numeric' })}</>}
+                                </p>
+                                {(contact?.phone || contact?.email) && (
+                                  <div className="flex flex-wrap gap-3 mt-1.5">
+                                    {contact.phone && (
+                                      <a href={`tel:${contact.phone}`} className="flex items-center gap-1 text-[10px] font-semibold text-white/50 hover:text-white">
+                                        <Phone className="w-3 h-3" /> {contact.phone}
+                                      </a>
+                                    )}
+                                    {contact.email && (
+                                      <a href={`mailto:${contact.email}`} className="flex items-center gap-1 text-[10px] font-semibold text-white/50 hover:text-white truncate">
+                                        <Mail className="w-3 h-3" /> {contact.email}
+                                      </a>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => openAddModalFor(o.owner)}
+                                title={`Add more of ${o.owner}'s gear`}
+                                className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-white/10 text-[11px] font-semibold text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                              >
+                                <Plus className="w-3 h-3" /> Gear
+                              </button>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              {o.items.map(item => {
+                                const last = item.jobs[0];
+                                const onList = manifest[item.name] || 0;
+                                return (
+                                  <div key={item.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-black/30 border border-white/5">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-semibold text-white leading-snug">{item.base}</p>
+                                      <p className="text-[10px] text-white/40 font-medium mt-0.5">
+                                        {item.jobs.length === 0
+                                          ? 'Not used on a gear list yet'
+                                          : `${item.jobs.length}× · latest ${formatLocalDate(last.date, { month: 'short', day: 'numeric', year: 'numeric' }, 'undated')} — ${last.title}`}
+                                        {!item.inCatalog && <span className="text-amber-400/80"> · not in catalog</span>}
+                                      </p>
+                                    </div>
+                                    <button
+                                      onClick={() => addToManifestByName(item.name)}
+                                      title="Add to the current gear list"
+                                      className={`shrink-0 h-7 px-2.5 flex items-center gap-1 rounded-lg text-[11px] font-semibold transition-colors ${onList ? 'bg-accent/20 text-accent' : 'bg-white text-black hover:bg-accent hover:text-white'}`}
+                                    >
+                                      <Plus className="w-3 h-3" /> {onList ? onList : 'Add'}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 ) : (
@@ -2177,10 +2410,12 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               >
                 <div className="flex items-start justify-between mb-6 gap-4">
                   <div>
-                    <h2 className="text-lg font-bold text-white">{editingItemName ? 'Edit Gear Record' : 'Add Gear'}</h2>
+                    <h2 className="text-lg font-bold text-white">{editingItemName ? 'Edit gear' : 'Add gear'}</h2>
                     {editingItemName && (
-                      <p className="text-[10px] font-semibold mt-1 uppercase tracking-wider opacity-40">
-                        {editingIsDbItem ? 'Studio inventory · saves to database' : 'Local custom item · this session only'}
+                      <p className="text-[10px] font-semibold mt-1 opacity-40">
+                        {editingIsDbItem
+                          ? 'In the gear catalog. Changes apply everywhere, including saved lists.'
+                          : 'One-off item on this list only.'}
                       </p>
                     )}
                   </div>
@@ -2191,20 +2426,20 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold opacity-40 ml-1">Owner / Source <span className="opacity-50">(Optional)</span></label>
+                    <label className="text-xs font-semibold opacity-40 ml-1">Owner <span className="opacity-50">(leave blank if it&rsquo;s ours)</span></label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-40" />
                       <input
                         type="text"
                         value={customOwner}
                         onChange={(e) => { setCustomOwner(e.target.value); setOwnerContactMsg(null); setShowAddOwnerContact(false); }}
-                        placeholder="e.g. Rental House A"
+                        placeholder="e.g. Rob Douthat"
                         list="saved-owners"
                         className="w-full bg-black/50 border border-white/10 py-2.5 pl-10 pr-4 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-lg"
                       />
                       <datalist id="saved-owners">
                         {/* Existing Rolodex contacts + previously used owners */}
-                        {Array.from(new Set([...contacts.map(c => c.name), ...savedOwners])).map(owner => (
+                        {Array.from(new Set([...rentalLog.map(o => o.owner), ...savedOwners, ...contacts.map(c => c.name)])).map(owner => (
                           <option key={owner} value={owner} />
                         ))}
                       </datalist>
@@ -2334,7 +2569,14 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                     />
                   </div>
 
-                  {!editingItemName && (
+                  {customOwner.trim() ? (
+                    !editingIsDbItem && (
+                      <p className="flex items-start gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg text-[11px] font-semibold text-amber-200/80 leading-snug">
+                        <Handshake className="w-3.5 h-3.5 shrink-0 mt-px" />
+                        Saved to the catalog under {customOwner.trim()}&rsquo;s name, so it&rsquo;s ready next time and shows in Rentals.
+                      </p>
+                    )
+                  ) : !editingItemName && (
                     <button
                       type="button"
                       onClick={() => setSaveToStudioInventory(v => !v)}
@@ -2344,8 +2586,8 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                         {saveToStudioInventory && <Check className="w-3 h-3 text-white" />}
                       </span>
                       <span className="text-[11px] font-semibold text-white/70 leading-snug">
-                        Save to studio inventory database
-                        <span className="block text-[10px] opacity-40 font-medium">Off: the item stays on this manifest only.</span>
+                        Save to our gear catalog
+                        <span className="block text-[10px] opacity-40 font-medium">Off: the item stays on this list only.</span>
                       </span>
                     </button>
                   )}
@@ -2360,7 +2602,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                     className="w-full flex items-center justify-center gap-2 bg-accent text-white py-2.5 mt-4 font-semibold text-xs hover:bg-white hover:text-black disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl"
                   >
                     {savingGearItem && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    {editingItemName ? 'Save Changes' : (saveToStudioInventory ? 'Add to Inventory & Manifest' : 'Add to Manifest')}
+                    {editingItemName ? 'Save changes' : (saveToStudioInventory || customOwner.trim() ? 'Add to catalog & list' : 'Add to list')}
                   </button>
 
                   {editingItemName && (
@@ -2371,7 +2613,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                       className="w-full flex items-center justify-center gap-2 py-2.5 font-semibold text-xs text-red-400 border border-red-500/20 bg-red-500/5 hover:bg-red-500/15 disabled:opacity-50 transition-all rounded-xl"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      {editingIsDbItem ? 'Delete From Inventory' : 'Delete Custom Item'}
+                      {editingIsDbItem ? 'Delete from catalog' : 'Remove one-off item'}
                     </button>
                   )}
                 </div>

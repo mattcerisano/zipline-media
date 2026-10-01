@@ -92,6 +92,22 @@ describe('buildJobDescription', () => {
     expect(out).toContain('https://frame.io/x/abc');
   });
 
+  it('lists each draft once, at its newest cut, without repeating it as the review link', () => {
+    const out = buildJobDescription({
+      shoot_date: '2026-08-10',
+      review_link: 'https://vimeo.com/2',
+      links: [
+        { label: 'Hero cut', url: 'https://vimeo.com/1', category: 'Draft', version: 1 },
+        { label: 'Hero cut', url: 'https://vimeo.com/2', category: 'Draft', version: 2 },
+        { label: 'Deck', url: 'https://docs.example/deck', category: 'Creative' },
+      ],
+    });
+    expect(out).toContain('Hero cut v2 — https://vimeo.com/2');
+    expect(out).not.toContain('vimeo.com/1');
+    expect(out).not.toContain('Review —');
+    expect(out).toContain('Deck — https://docs.example/deck');
+  });
+
   it('always signs off, even with nothing to say', () => {
     expect(buildJobDescription({})).toBe('Zipline Studio OS');
   });
