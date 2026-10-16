@@ -141,17 +141,38 @@ export const inventory = [
   { id: 'i2', name: 'Aputure 600d Pro', category: 'Lighting', qty: 4, replacement: 1900 },
 ];
 
+// Drive Tracker. Dates are relative to the run so "overdue" stays overdue: an
+// editor holding three drives (one past its date), an agency sitting on a
+// transfer stick for a month, a long holder name, and one lost drive.
+const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+const dateAgo = (n: number) => daysAgo(n).slice(0, 10);
+const drive = (o: Record<string, unknown>) => ({
+  kind: 'editor', model: 'Samsung T9', capacity_tb: 2, serial: null, purchase_price: 230,
+  status: 'in_office', holder_name: null, holder_type: null, job_id: null,
+  checked_out_at: null, expected_back: null, notes: null, ...o,
+});
+export const drives = [
+  drive({ id: 'd1', label: 'ZM-01', capacity_tb: 4, purchase_price: 420, status: 'out', holder_name: 'Marcus Webb', holder_type: 'editor', job_id: 'j1', checked_out_at: daysAgo(41), expected_back: dateAgo(6) }),
+  drive({ id: 'd2', label: 'ZM-02', status: 'out', holder_name: 'Marcus Webb', holder_type: 'editor', job_id: 'j1', checked_out_at: daysAgo(41) }),
+  drive({ id: 'd3', label: 'ZM-03', model: 'Samsung T5', capacity_tb: 1, purchase_price: 110, status: 'out', holder_name: 'marcus webb', holder_type: 'editor', checked_out_at: daysAgo(3) }),
+  drive({ id: 'd4', label: 'Transfer 2', kind: 'transfer', model: 'Transfer stick', capacity_tb: 0.5, purchase_price: 60, status: 'out', holder_name: 'Moulin Rouge! The Musical — Broadway Company', holder_type: 'agency', checked_out_at: daysAgo(30) }),
+  drive({ id: 'd5', label: 'ZM-04', model: 'Samsung T7', capacity_tb: 1, status: 'out', holder_name: 'Jo', holder_type: 'editor', checked_out_at: daysAgo(0), expected_back: dateAgo(-21) }),
+  drive({ id: 'd6', label: 'ZM-05', notes: 'Orange sticker, in the grey Pelican' }),
+  drive({ id: 'd7', label: 'Transfer 1', kind: 'transfer', model: 'Transfer stick', capacity_tb: 0.25, purchase_price: 40 }),
+  drive({ id: 'd8', label: 'ZM-06', capacity_tb: 2, status: 'lost', notes: 'Last seen with a courier' }),
+];
+
 /** Tables the app queries that are legitimately empty in this scenario. */
 export const EMPTY = [
   'google_tokens', 'quickbooks_tokens', 'calendar_events', 'social_deliverables',
   'notification_channels', 'notification_events', 'job_shotlist', 'job_scenes',
   'vault_items', 'vault', 'vault_meta', 'social_posts', 'social_links',
   'social_campaigns', 'social_campaign_tasks', 'production_notes', 'budget_items',
-  'gear_templates', 'job_templates', 'usage_events', 'profiles',
+  'gear_templates', 'job_templates', 'usage_events', 'profiles', 'drive_events',
 ];
 
 export const TABLES: Record<string, unknown[]> = {
   jobs, clients, projects, contacts, job_roles, job_schedules, job_todos,
-  user_roles, organizations, inventory,
+  user_roles, organizations, inventory, drives,
   ...Object.fromEntries(EMPTY.map(t => [t, []])),
 };
