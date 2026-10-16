@@ -165,6 +165,7 @@ const STARTER_TOOLS: { id: string; label: string }[] = [
   { id: 'meeting_notes', label: 'Meeting Notes' },
   { id: 'review', label: 'Client Review' },
   { id: 'locations', label: 'Locations Scouting' },
+  { id: 'drives', label: 'Drive Tracker' },
   { id: 'intake', label: 'Client Onboarding' },
   { id: 'inbox', label: 'Studio Inbox' },
   { id: 'vault', label: 'Vault' },
@@ -204,6 +205,7 @@ const DEFAULT_TABS: CustomTab[] = [
   { id: 'meeting_notes', label: 'Meeting Notes', iconName: 'FileText', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'review', label: 'Client Review', iconName: 'Video', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
   { id: 'locations', label: 'Locations Scouting', iconName: 'MapPin', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
+  { id: 'drives', label: 'Drive Tracker', iconName: 'HardDrive', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'intake', label: 'Client Onboarding', iconName: 'ClipboardList', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
   { id: 'vault', label: 'Vault', iconName: 'Lock', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'library', label: 'Library', iconName: 'Library', type: 'system', isDefault: true, allowedRoles: ['admin'] },
@@ -1285,6 +1287,7 @@ export default function CommandCenterPage() {
                     activeTabObj.id === 'social' ? 'Social Rollout Management' :
                     activeTabObj.id === 'inbox' ? 'Messages & Requests' :
                     activeTabObj.id === 'vault' ? 'Secure Asset Storage' :
+                    activeTabObj.id === 'drives' ? 'Drives & Hand-offs' :
                     'Contacts & Clients'
                   ) : activeTabObj.type === 'embed' ? 'External Tool Integration' :
                       activeTabObj.type === 'notes' ? 'Production Notepad' : 'Custom Workspace Layout'

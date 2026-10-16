@@ -43,6 +43,11 @@ export const APP_FEATURES: AppFeature[] = [
   { id: 'gear-archive', title: 'Archived Gear Lists', description: 'Every saved manifest is kept and reloadable — restore last month\'s kit in one click.', keywords: 'archive gear lists history saved restore previous', tab: 'gear' },
   { id: 'gear-value', title: 'Replacement Value Totals', description: 'Running insurance/replacement value for everything on the manifest.', keywords: 'replacement value insurance total worth cost gear', tab: 'gear' },
 
+  // ---- Drive Tracker ----
+  { id: 'drives-who', title: 'Who Has Our Drives', description: 'See every SSD and transfer drive out of the office, grouped by the editor or agency holding it, with days out and overdue flags.', keywords: 'drive drives ssd hard drive t5 t7 t9 samsung transfer editor agency who has checked out borrowed missing tracker storage', tab: 'drives' },
+  { id: 'drives-checkout', title: 'Check a Drive Out or In', description: 'Log a drive going to an editor or agency with the project and a return date, then mark it returned when it comes back.', keywords: 'check out return returned drive ssd courier hand off editor agency project due date', tab: 'drives' },
+  { id: 'drives-remind', title: 'Drive Return Reminder', description: 'Copy a friendly reminder listing every drive someone still has, ready to paste into a text or email.', keywords: 'remind reminder nudge chase drive back return overdue text email', tab: 'drives' },
+
   // ---- Creative ----
   { id: 'creative-board', title: 'Creative Board', description: 'Concept, lighting, camera, and audio direction per production — exports into the Master Brief PDF.', keywords: 'creative brief concept moodboard lighting direction vision', tab: 'creative' },
   { id: 'creative-brief', title: 'Master Brief PDF', description: 'One PDF with the full production: creative, crew, schedule, shotlist, and gear.', keywords: 'master brief pdf export full document production bible', tab: 'creative' },

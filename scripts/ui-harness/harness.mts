@@ -168,14 +168,17 @@ async function audit(page: Page) {
  * Panels are reached by clicking the sidebar rather than by URL — Studio OS
  * keeps them all under /command-center. `nav` is the visible label to click.
  */
-const SCREENS: { name: string; path: string; nav?: string }[] = [
+const ONLY = arg('only', '');
+const SCREENS_ALL: { name: string; path: string; nav?: string }[] = [
   { name: 'dashboard', path: '/command-center' },
   { name: 'slate', path: '/command-center', nav: 'Slate' },
   { name: 'edit-tracker', path: '/command-center', nav: 'Edit Tracker' },
   { name: 'rolodex', path: '/command-center', nav: 'Rolodex' },
   { name: 'library', path: '/command-center', nav: 'Library' },
   { name: 'inbox', path: '/command-center', nav: 'Inbox' },
+  { name: 'drive-tracker', path: '/command-center', nav: 'Drive Tracker' },
 ];
+const SCREENS = ONLY ? SCREENS_ALL.filter(s => ONLY.split(',').includes(s.name)) : SCREENS_ALL;
 const WIDTHS = [390, 768, 1440];
 
 async function main() {

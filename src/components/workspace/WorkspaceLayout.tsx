@@ -37,6 +37,7 @@ import {
   UserCheck,
   Video,
   MapPin,
+  HardDrive,
   ClipboardList
 } from 'lucide-react';
 
@@ -59,6 +60,7 @@ import Vault from '@/components/workspace/Vault';
 import MeetingNotes from '@/components/workspace/MeetingNotes';
 import ClientReview from '@/components/workspace/ClientReview';
 import LocationsDatabase from '@/components/workspace/LocationsDatabase';
+import DriveTracker from '@/components/workspace/DriveTracker';
 import IntakeBriefs from '@/components/workspace/IntakeBriefs';
 import IntegrationsHub from '@/components/workspace/IntegrationsHub';
 import LibraryWidget from '@/components/workspace/LibraryWidget';
@@ -93,6 +95,7 @@ const WIDGET_ICONS: Record<string, any> = {
   meeting_notes: FileText,
   review: Video,
   locations: MapPin,
+  drives: HardDrive,
   intake: ClipboardList,
   script: Tv,
   clock: Timer,
@@ -121,6 +124,7 @@ const WIDGET_LABELS: Record<string, string> = {
   meeting_notes: 'Meeting Notes',
   review: 'Client Review',
   locations: 'Locations Scouting',
+  drives: 'Drive Tracker',
   intake: 'Client Onboarding',
   script: 'Script & Teleprompter',
   clock: 'Production Timer',
@@ -149,6 +153,7 @@ const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
   vault: { type: 'panel', id: 'vault-root', activeTab: 'vault', tabs: ['vault'] },
   integrations: { type: 'panel', id: 'integrations-root', activeTab: 'integrations', tabs: ['integrations'] },
   library: { type: 'panel', id: 'library-root', activeTab: 'library', tabs: ['library'] },
+  drives: { type: 'panel', id: 'drives-root', activeTab: 'drives', tabs: ['drives'] },
   usage: { type: 'panel', id: 'usage-root', activeTab: 'usage', tabs: ['usage'] }
 };
 
@@ -994,6 +999,8 @@ function WidgetMount({
       return <ClientReview />;
     case 'locations':
       return <LocationsDatabase />;
+    case 'drives':
+      return <DriveTracker />;
     case 'intake':
       return <IntakeBriefs />;
     case 'notes':
