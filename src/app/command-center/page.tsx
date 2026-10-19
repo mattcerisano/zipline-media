@@ -212,7 +212,7 @@ const SYSTEM_TAB_EYEBROWS: Record<string, string> = {
   drives: 'Drives & Hand-offs',
   intake: 'Project Intake',
   vault: 'Secure Asset Storage',
-  library: 'Shoots, Projects & Clients',
+  library: 'Projects & Shoots',
   usage: 'Team Activity',
   integrations: 'Connected Services',
 };

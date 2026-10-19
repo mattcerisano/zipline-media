@@ -52,6 +52,7 @@ import {
 } from '@/lib/duplicate-contacts';
 import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
 import { formatLocalDate, todayLocalISO } from '@/lib/date';
+import { pushJobToGoogleCalendar } from '@/lib/calendar-push';
 import {
   parseVCF,
   parseContactCSV,
@@ -88,6 +89,9 @@ export default function Rolodex() {
   const [secondaryRolesDraft, setSecondaryRolesDraft] = useState('');
   
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  // QuickBooks customers for the client form's link picker. Fetched the first
+  // time the form opens; an empty list means QuickBooks isn't connected.
+  const [qbCustomers, setQbCustomers] = useState<{ id: string; name: string }[] | null>(null);
   const [editingClient, setEditingClient] = useState<Partial<Client> | null>(null);
 
   // Import states
@@ -838,6 +842,27 @@ export default function Rolodex() {
     }
   };
 
+  useEffect(() => {
+    if (!isClientModalOpen || qbCustomers !== null) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        const res = await fetch('/api/integrations/quickbooks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'customers' }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled) setQbCustomers(data.connected ? (data.customers || []) : []);
+      } catch {
+        if (!cancelled) setQbCustomers([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isClientModalOpen, qbCustomers]);
+
   const handleClientSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingClient?.name) {
@@ -855,12 +880,35 @@ export default function Rolodex() {
       return;
     }
 
+    const prior = editingClient.id ? clients.find(c => c.id === editingClient.id) : undefined;
+
     try {
       const { error } = await supabase
         .from('clients')
         .upsert(editingClient);
       if (error) throw error;
-      
+
+      // Productions carry their client's name as well as the link, and that
+      // copy is what cards, call sheets and calendar events print. A rename
+      // here used to leave every shoot showing the old name.
+      if (prior && prior.name !== editingClient.name) {
+        const { data: linked, error: jobsErr } = await supabase
+          .from('jobs')
+          .update({ client_name: editingClient.name })
+          .eq('client_id', prior.id)
+          .select('id, shoot_date, google_event_id');
+        if (jobsErr) {
+          toast(`Renamed the client, but its productions still show the old name: ${jobsErr.message}`, 'error');
+        } else {
+          // Upcoming shoots on Google show the client too. Past ones are history.
+          const today = todayLocalISO();
+          const upcoming = (linked || []).filter(j => j.google_event_id && j.shoot_date && j.shoot_date >= today);
+          const results = await Promise.all(upcoming.map(j => pushJobToGoogleCalendar(j.id)));
+          const failed = results.filter(r => !r.ok).length;
+          if (failed > 0) toast(`Renamed. ${failed} upcoming Google Calendar ${failed === 1 ? 'event still shows' : 'events still show'} the old client name.`, 'error');
+        }
+      }
+
       setIsClientModalOpen(false);
       const { data } = await supabase.from('clients').select('*').order('name');
       if (data) setClients(data as Client[]);
@@ -2470,6 +2518,28 @@ export default function Rolodex() {
                     className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm h-32 text-white"
                   />
                 </div>
+
+                {/* QuickBooks link. Auto-matching is by identical name only and
+                    fails silently, so this is where you say which is which.
+                    Hidden when QuickBooks isn't connected. */}
+                {qbCustomers && qbCustomers.length > 0 && (
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-xs font-semibold text-white/50 ml-1">QuickBooks customer</label>
+                    <select
+                      value={editingClient?.quickbooks_customer_id || ''}
+                      onChange={(e) => setEditingClient({ ...editingClient!, quickbooks_customer_id: e.target.value || null })}
+                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white cursor-pointer"
+                    >
+                      <option value="">Not linked</option>
+                      {qbCustomers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <p className="text-[11px] text-white/35 ml-1">
+                      {editingClient?.quickbooks_customer_id
+                        ? 'Invoiced and quoted totals for this client come from here.'
+                        : 'Names are matched automatically when they’re identical. Pick one here when they aren’t.'}
+                    </p>
+                  </div>
+                )}
 
                 <div className="md:col-span-2 flex justify-end gap-4 mt-4">
                   <button 

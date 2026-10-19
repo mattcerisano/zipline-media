@@ -60,7 +60,7 @@ export const APP_FEATURES: AppFeature[] = [
   { id: 'inbox-link', title: 'Link an Email to a Job', description: 'Attach an email thread to a production so the conversation lives with the work.', keywords: 'link email job thread attach production connect', tab: 'inbox' },
 
   // ---- Contacts / Rolodex ----
-  { id: 'rolodex', title: 'Rolodex (Crew & Contacts)', description: 'Your address book of crew, vendors, and collaborators with roles, rates, and notes.', keywords: 'contacts crew people rolodex address book vendors freelancers phone', tab: 'rolodex' },
+  { id: 'rolodex', title: 'Rolodex (Crew, Contacts & Clients)', description: 'Your address book of crew, vendors and clients, with roles, rates, notes and each client\'s QuickBooks link.', keywords: 'contacts crew people rolodex address book vendors freelancers phone clients companies quickbooks rename', tab: 'rolodex' },
 
   // ---- Social ----
   { id: 'social', title: 'Social Media Planner', description: 'Plan and track social posts alongside your production schedule.', keywords: 'social media posts instagram planner content publish', tab: 'social' },
@@ -79,7 +79,7 @@ export const APP_FEATURES: AppFeature[] = [
   { id: 'cal-new-production', title: 'New Production from the Calendar', description: 'Click a date and open the full production form with that shoot date already set.', keywords: 'new production calendar date click create shoot full form details prefilled', tab: 'calendar' },
   { id: 'cal-agenda', title: 'Calendar Agenda View', description: 'On a phone the calendar opens as a running list with full titles and call times.', keywords: 'agenda list mobile phone calendar view month toggle upcoming schedule', tab: 'calendar' },
   { id: 'slate-location-search', title: 'Find a Location by Name', description: 'Search a venue by name in a production and have its address filled in from Google.', keywords: 'location venue name address search google places autocomplete lookup studio theatre', tab: 'slate' },
-  { id: 'lib-browse', title: 'Library — Shoots, Projects & Clients', description: 'Browse, search, rename and delete shoots, projects and clients in one place.', keywords: 'library database browser shoots projects clients manage rename delete clean up bulk', tab: 'library' },
+  { id: 'lib-browse', title: 'Library — Projects & Shoots', description: 'Browse, search, rename and delete shoots and projects in one place. Clients live in the Rolodex.', keywords: 'library database browser shoots projects manage rename delete clean up bulk', tab: 'library' },
   { id: 'int-google', title: 'Connect Google Account', description: 'Link Google for Calendar sync, the Drive browser, and the Gmail inbox.', keywords: 'connect google account oauth link integration calendar drive gmail setup', tab: 'integrations' },
   { id: 'int-drive', title: 'Google Drive Browser', description: 'Browse the connected account\'s Drive files from inside the app.', keywords: 'google drive files browser documents folders', tab: 'integrations' },
   { id: 'int-webhooks', title: 'Discord / Webhook Notifications', description: 'Announce bookings and status changes to your team channels automatically.', keywords: 'discord webhook notifications announce channel alerts slack', tab: 'integrations' },
