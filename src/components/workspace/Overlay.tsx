@@ -51,6 +51,17 @@ function useMounted() {
   return mounted;
 }
 
+/**
+ * Renders its children into the app shell, out of the panel that owns them.
+ * For a screen with its own full-page overlay that can't use <Modal> — the
+ * same stacking-context problem applies to it.
+ */
+export function Portal({ children }: { children: React.ReactNode }) {
+  const mounted = useMounted();
+  if (!mounted) return null;
+  return createPortal(children, portalTarget());
+}
+
 export interface ModalProps {
   open: boolean;
   onClose: () => void;
