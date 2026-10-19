@@ -283,7 +283,7 @@ export default function DriveTracker() {
     return (
       <div
         key={d.id}
-        className="flex items-center gap-3 px-3.5 py-3 rounded-xl border border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+        className="min-w-0 flex items-center gap-3 px-3 py-2.5 rounded-xl border border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
       >
         <div
           className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
@@ -484,8 +484,8 @@ export default function DriveTracker() {
             </button>
           </div>
         ) : view === 'holders' ? (
-          <div className="space-y-6 max-w-4xl">
-            <section>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start">
+            <section className="min-w-0">
               <SectionLabel>Out · {holderGroups.reduce((n, g) => n + g.drives.length, 0)}</SectionLabel>
               {holderGroups.length === 0 ? (
                 <p className="text-sm text-white/40 px-1 py-2">
@@ -522,9 +522,9 @@ export default function DriveTracker() {
               )}
             </section>
 
-            <section>
+            <section className="min-w-0">
               <SectionLabel>Available · {keeperGroups.reduce((n, g) => n + g.drives.length, 0)}</SectionLabel>
-              <div className="grid md:grid-cols-2 gap-3 items-start">
+              <div className="grid md:grid-cols-2 lg:grid-cols-1 gap-3 items-start">
                 {keeperGroups.map((g) => (
                   <div key={g.keeper ?? 'none'} className="min-w-0 rounded-2xl border border-white/[0.07] bg-white/[0.015] p-3">
                     <div className="px-1 pb-2.5">
@@ -545,9 +545,9 @@ export default function DriveTracker() {
             </section>
           </div>
         ) : (
-          <div className="space-y-1.5 max-w-4xl">
+          <div className="grid gap-1.5 xl:grid-cols-2 items-start">
             {listed.length === 0 ? (
-              <p className="text-sm text-white/40 py-6 text-center">No drives match.</p>
+              <p className="xl:col-span-2 text-sm text-white/40 py-6 text-center">No drives match.</p>
             ) : (
               listed.map((d) => renderRow(d, { showHolder: true, showStatus: true }))
             )}
