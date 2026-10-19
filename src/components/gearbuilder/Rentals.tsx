@@ -1612,14 +1612,14 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           </div>
           <datalist id="job-list">
             {jobsForClient.map(j => (
-                <option key={j.id} value={j.title}>{j.client_name ? `(${caps(j.client_name)})` : ''}</option>
+                <option key={j.id} value={j.title}>{j.client_name ? `(${j.client_name})` : ''}</option>
             ))}
           </datalist>
           {isJobListNarrowed && !selectedJobIdProp && (
             <p className="text-[10px] font-semibold text-white/30 ml-1 mt-0.5">
               {jobsForClient.length === 0
-                ? `No jobs yet for ${caps(clientName.trim())}`
-                : `${jobsForClient.length} job${jobsForClient.length === 1 ? '' : 's'} for ${caps(clientName.trim())}`}
+                ? `No jobs yet for ${clientName.trim()}`
+                : `${jobsForClient.length} job${jobsForClient.length === 1 ? '' : 's'} for ${clientName.trim()}`}
             </p>
           )}
         </div>

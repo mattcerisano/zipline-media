@@ -1072,7 +1072,7 @@ function WidgetMount({
     case 'docs':
       return <NotesLibraryWidget />;
     case 'vault':
-      return <Vault />;
+      return <Vault userRole={userRole} />;
     default:
       return (
         <div className="p-6 text-center text-xs text-white/40 uppercase tracking-widest">

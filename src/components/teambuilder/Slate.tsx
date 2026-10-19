@@ -1350,7 +1350,7 @@ export default function Slate({
             >
               <option value="All">All Clients</option>
               {clients.map(c => (
-                <option key={c.id} value={c.id}>{caps(c.name)}</option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
 
@@ -1363,7 +1363,7 @@ export default function Slate({
             >
               <option value="All">All Projects</option>
               {projectsForFilter.map(p => (
-                <option key={p.id} value={p.id}>{caps(p.name)}</option>
+                <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
 
@@ -1841,7 +1841,7 @@ export default function Slate({
                       {(() => {
                         const cId = resolveClientId(editingJob);
                         const opts = cId ? projects.filter(p => p.client_id === cId || p.id === editingJob.project_id) : projects;
-                        return opts.map(p => <option key={p.id} value={p.id}>{caps(p.name)}</option>);
+                        return opts.map(p => <option key={p.id} value={p.id}>{p.name}</option>);
                       })()}
                     </select>
                   </div>

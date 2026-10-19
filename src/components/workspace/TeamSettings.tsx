@@ -6,7 +6,6 @@ import { confirmAction } from '@/components/Feedback';
 import { APP_ROLES, ROLE_HINTS, ROLE_LABELS, type AppRole } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
 import { hasAnyRole, POST_ROLES } from '@/lib/crew-roles';
-import { caps } from '@/lib/format';
 
 // Admin-only team roster. Creates accounts with a temporary password the admin
 // hands over — no client-facing signup flow, matching how the tool is used.
@@ -254,7 +253,7 @@ export default function TeamSettings({ session, onMessage }: Props) {
                       >
                         <option value="">Not linked — sees nothing</option>
                         {contacts.map(c => (
-                          <option key={c.id} value={c.id}>{caps(c.name)}</option>
+                          <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     </div>
@@ -317,12 +316,12 @@ export default function TeamSettings({ session, onMessage }: Props) {
                 <option value={NEW_CONTACT}>＋ Create a new contact</option>
                 {postContacts.length > 0 && (
                   <optgroup label="Post crew">
-                    {postContacts.map(c => <option key={c.id} value={c.id}>{caps(c.name)}</option>)}
+                    {postContacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </optgroup>
                 )}
                 {otherContacts.length > 0 && (
                   <optgroup label="Everyone else">
-                    {otherContacts.map(c => <option key={c.id} value={c.id}>{caps(c.name)}</option>)}
+                    {otherContacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </optgroup>
                 )}
               </select>

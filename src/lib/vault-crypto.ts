@@ -87,3 +87,27 @@ export async function checkVerifier(verifier: string, key: CryptoKey): Promise<b
     return false;
   }
 }
+
+/**
+ * Re-encrypt items' secrets and notes from one key to another — what changing
+ * the shared vault's passphrase does. All-or-nothing: if any item fails to
+ * decrypt with the old key, this throws before anything is written, rather
+ * than handing back a batch that would leave that item unreadable forever.
+ */
+export async function reencryptItems(
+  items: { id: string; secret_cipher?: string | null; notes_cipher?: string | null }[],
+  oldKey: CryptoKey,
+  newKey: CryptoKey,
+): Promise<{ id: string; secret_cipher: string | null; notes_cipher: string | null }[]> {
+  const out: { id: string; secret_cipher: string | null; notes_cipher: string | null }[] = [];
+  for (const item of items) {
+    const swap = async (cipher?: string | null) =>
+      cipher ? encryptString(await decryptString(cipher, oldKey), newKey) : null;
+    try {
+      out.push({ id: item.id, secret_cipher: await swap(item.secret_cipher), notes_cipher: await swap(item.notes_cipher) });
+    } catch {
+      throw new Error('One of the shared items could not be decrypted with the current passphrase, so nothing was changed.');
+    }
+  }
+  return out;
+}
