@@ -1631,7 +1631,10 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 type="date" 
                 value={shootDate}
                 onChange={(e) => setShootDate(e.target.value)}
-                className="w-full min-w-0 bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
+                // The native picker icon is stretched invisibly over the whole
+                // field: in the manifest's half-width column it took the room
+                // the date needed and clipped it to "mm/dd/y".
+                className="relative w-full min-w-0 bg-black/50 border border-white/10 py-2.5 px-3 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
             />
             <button 
                 onClick={() => setIsCalendarOpen(true)}

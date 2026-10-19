@@ -137,7 +137,7 @@ function ContentCalendar({ clients }: { clients: Client[] }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <button onClick={() => setCursor(new Date(year, month - 1, 1))} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
-          <span className="text-sm font-black uppercase tracking-wider min-w-[180px] text-center">{monthLabel}</span>
+          <span className="text-sm font-black uppercase tracking-wider sm:min-w-[180px] text-center whitespace-nowrap">{monthLabel}</span>
           <button onClick={() => setCursor(new Date(year, month + 1, 1))} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
         </div>
         <div className="flex items-center gap-3">
@@ -146,7 +146,7 @@ function ContentCalendar({ clients }: { clients: Client[] }) {
               <span key={p.key} className="flex items-center gap-1 text-[11px] md:text-[8px] font-bold uppercase text-white/40"><span className={`w-2 h-2 rounded-full ${p.dot}`} />{p.label}</span>
             ))}
           </div>
-          <button onClick={() => newPost()} className="px-3 py-2 bg-accent/15 border border-accent/40 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Post</button>
+          <button onClick={() => newPost()} className="shrink-0 px-3 py-2 bg-accent/15 border border-accent/40 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Post</button>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Clock, Play, Square, Plus, X, Loader2, AlertTriangle } from 'lucide-react';
+import { Play, Square, Plus, X, Loader2, AlertTriangle } from 'lucide-react';
 import { authHeader } from '@/lib/api-client';
 import { toast } from '@/components/Feedback';
 import {
@@ -161,9 +161,7 @@ export default function CardTimeTracker({ jobId, canLog, onTotalChange }: Props)
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="flex items-center gap-2 text-base font-bold text-white">
-          <Clock className="w-4 h-4 text-white/40" /> Time
-        </h3>
+        <h3 className="text-base font-bold text-white">Time</h3>
         {total > 0 && (
           <span className="text-[10px] font-bold text-white/40 tabular-nums">
             {formatDuration(total)} logged
