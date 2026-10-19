@@ -190,14 +190,14 @@ export default function LocationsDatabase() {
   });
 
   return (
-    <div className="flex flex-col h-full bg-neutral-950 text-white overflow-hidden p-6">
+    <div className="flex flex-col h-full bg-neutral-950 text-white overflow-hidden p-4 md:p-6">
       {/* HEADER ACTION BAR */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 shrink-0">
         <div>
           <h1 className="text-xl font-black uppercase tracking-tighter text-white flex items-center gap-2">
             <Navigation className="w-5 h-5 text-accent" /> Location Scouting Database
           </h1>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mt-0.5">
+          <p className="hidden md:block text-[10px] font-bold text-white/40 uppercase tracking-wider mt-0.5">
             Log permit rules, power distribution, and parking clearances per location
           </p>
         </div>

@@ -560,7 +560,7 @@ function StatCard({
           }`}>{trend}</span>
         )}
       </div>
-      <h3 className="text-[11px] font-medium text-white/40 uppercase tracking-[0.12em] mb-0.5 truncate">{title}</h3>
+      <h3 className="text-[11px] font-medium text-white/40 uppercase tracking-[0.12em] mb-0.5 leading-tight line-clamp-2 md:truncate">{title}</h3>
       {isLoading ? (
         <div className="h-8 w-24 bg-white/10 rounded animate-pulse mt-1" />
       ) : (

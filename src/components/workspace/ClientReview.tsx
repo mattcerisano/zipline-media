@@ -9,6 +9,7 @@ import {
   MessageSquare, 
   Plus, 
   ChevronRight, 
+  ChevronLeft, 
   ChevronDown, 
   FileVideo, 
   Send, 
@@ -42,6 +43,8 @@ interface VideoReview {
 export default function ClientReview() {
   const [reviews, setReviews] = useState<VideoReview[]>([]);
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
+  // Phones show one column at a time: the list of cuts, or the open one.
+  const [mobilePane, setMobilePane] = useState<'list' | 'review'>('list');
   const [isLoading, setIsLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [useLocalStorage, setUseLocalStorage] = useState(false);
@@ -263,6 +266,7 @@ export default function ClientReview() {
     const updated = [newRev, ...reviews];
     setReviews(updated);
     setSelectedReviewId(newRev.id);
+    setMobilePane('review');
 
     if (useLocalStorage) {
       localStorage.setItem('studio_video_reviews_local', JSON.stringify(updated));
@@ -272,7 +276,7 @@ export default function ClientReview() {
   return (
     <div className="flex h-full bg-neutral-950 text-white overflow-hidden">
       {/* LEFT SIDEBAR: REVIEW CUTS TREE */}
-      <div className="w-80 border-r border-white/10 bg-zinc-900/30 flex flex-col h-full shrink-0">
+      <div className={`w-full md:w-80 border-r border-white/10 bg-zinc-900/30 flex-col h-full shrink-0 ${mobilePane === 'review' ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-black uppercase tracking-widest text-accent flex items-center gap-2">
@@ -304,7 +308,7 @@ export default function ClientReview() {
               return (
                 <div
                   key={rev.id}
-                  onClick={() => setSelectedReviewId(rev.id)}
+                  onClick={() => { setSelectedReviewId(rev.id); setMobilePane('review'); }}
                   className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 relative overflow-hidden ${
                     isSelected 
                       ? 'bg-accent/15 border-accent/25 text-white shadow-md shadow-accent/5' 
@@ -359,17 +363,24 @@ export default function ClientReview() {
       </div>
 
       {/* RIGHT WORKSPACE: VIDEO PLAYER & COMMENT TIMELINE */}
-      <div className="flex-grow flex overflow-hidden h-full">
+      <div className={`flex-grow flex-col overflow-hidden h-full ${mobilePane === 'list' ? 'hidden md:flex' : 'flex'}`}>
+        <button
+          onClick={() => setMobilePane('list')}
+          className="md:hidden flex items-center gap-1 px-4 py-3 border-b border-white/10 text-sm font-medium text-accent shrink-0"
+        >
+          <ChevronLeft className="w-4 h-4" /> All cuts
+        </button>
         {activeReview ? (
-          <div className="flex-grow flex overflow-hidden h-full">
+          // Phones stack the comments under the player and scroll the whole thing.
+          <div className="flex-grow flex flex-col md:flex-row overflow-y-auto md:overflow-hidden h-full custom-scrollbar">
             {/* COLUMN 1: INTERACTIVE PLAYER (65% Width) */}
-            <div className="flex-[5] flex flex-col border-r border-white/10 h-full overflow-hidden">
+            <div className="md:flex-[5] flex flex-col md:border-r border-white/10 md:h-full md:overflow-hidden">
               {/* Header Title */}
-              <div className="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
+              <div className="p-4 md:p-6 border-b border-white/10 flex items-center justify-between shrink-0">
                 <div>
                   <h1 className="text-lg font-black tracking-tight text-white">{activeReview.job_title}</h1>
                   <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mt-0.5">
-                    Job ID: {activeReview.job_id} | Version {activeReview.version_number}
+                    Version {activeReview.version_number}
                   </p>
                 </div>
 
@@ -458,7 +469,7 @@ export default function ClientReview() {
               </div>
 
               {/* Add Comment Bar */}
-              <div className="p-6 bg-zinc-900/25 flex gap-4 items-center shrink-0">
+              <div className="p-4 md:p-6 bg-zinc-900/25 flex gap-3 md:gap-4 items-center shrink-0">
                 <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-2xl px-3 py-1.5 shrink-0">
                   <Clock className="w-3.5 h-3.5 text-accent" />
                   <span className="text-[10px] font-mono font-black text-white/80">{formatSeconds(currentTime)}</span>
@@ -482,7 +493,7 @@ export default function ClientReview() {
             </div>
 
             {/* COLUMN 2: TIMESTAMPTED COMMENTS FEED (35% Width) */}
-            <div className="flex-[3] flex flex-col h-full overflow-hidden">
+            <div className="md:flex-[3] flex flex-col md:h-full md:overflow-hidden border-t md:border-t-0 border-white/10">
               <div className="p-6 border-b border-white/10 shrink-0">
                 <h3 className="text-xs font-black uppercase tracking-widest text-accent flex items-center gap-2">
                   <MessageSquare className="w-4 h-4" /> Review Timeline

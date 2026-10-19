@@ -247,14 +247,14 @@ export default function IntakeBriefs() {
   });
 
   return (
-    <div className="flex flex-col h-full bg-neutral-950 text-white overflow-hidden p-6">
+    <div className="flex flex-col h-full bg-neutral-950 text-white overflow-hidden p-4 md:p-6">
       {/* HEADER ACTION BAR */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6 shrink-0">
         <div>
           <h1 className="text-xl font-black uppercase tracking-tighter text-white flex items-center gap-2">
             <Inbox className="w-5 h-5 text-accent" /> Creative Briefs & Intake
           </h1>
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mt-0.5">
+          <p className="hidden md:block text-[10px] font-bold text-white/40 uppercase tracking-wider mt-0.5">
             Collect client requirements, creative mood briefs, and delivery aspect ratios
           </p>
         </div>
@@ -285,12 +285,12 @@ export default function IntakeBriefs() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40">Status:</span>
-          <div className="flex bg-zinc-900/40 border border-white/10 p-1 rounded-xl gap-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="hidden sm:inline text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40">Status:</span>
+          <div className="flex bg-zinc-900/40 border border-white/10 p-1 rounded-xl gap-1 overflow-x-auto no-scrollbar">
             <button
               onClick={() => setStatusFilter(null)}
-              className={`px-3 py-1.5 rounded-lg text-[11px] md:text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-[11px] md:text-[9px] font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer ${
                 statusFilter === null ? 'bg-accent text-white' : 'text-white/40 hover:text-white'
               }`}
             >
@@ -304,7 +304,7 @@ export default function IntakeBriefs() {
               <button
                 key={item.val}
                 onClick={() => setStatusFilter(item.val)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] md:text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-[11px] md:text-[9px] font-black uppercase tracking-wider whitespace-nowrap transition-all cursor-pointer ${
                   statusFilter === item.val ? 'bg-accent text-white' : 'text-white/40 hover:text-white'
                 }`}
               >
@@ -327,15 +327,17 @@ export default function IntakeBriefs() {
             {filteredIntakes.map(item => (
               <div 
                 key={item.id}
-                className="bg-zinc-900/30 border border-white/10 rounded-3xl p-6 flex flex-col gap-4 group transition-all relative overflow-hidden"
+                className="bg-zinc-900/30 border border-white/10 rounded-2xl md:rounded-3xl p-4 md:p-6 flex flex-col gap-4 group transition-all relative overflow-hidden"
               >
                 {/* Header info */}
                 <div className="flex items-start justify-between gap-3 border-b border-white/5 pb-4">
-                  <div>
-                    <span className="px-2.5 py-0.5 rounded bg-accent/10 border border-accent/20 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-accent">
-                      {item.client_name}
-                    </span>
-                    <h3 className="text-base font-bold tracking-tight text-white uppercase mt-2">{item.project_title}</h3>
+                  <div className="min-w-0">
+                    {item.client_name && (
+                      <span className="inline-block max-w-full truncate px-2.5 py-0.5 rounded bg-accent/10 border border-accent/20 text-[11px] md:text-[9px] font-semibold tracking-wide text-accent">
+                        {item.client_name}
+                      </span>
+                    )}
+                    <h3 className="text-base font-bold tracking-tight text-white mt-2">{item.project_title}</h3>
                   </div>
 
                   {/* Status Badges */}
@@ -343,7 +345,7 @@ export default function IntakeBriefs() {
                     <select
                       value={item.status}
                       onChange={(e) => handleUpdateStatus(item.id, e.target.value as any)}
-                      className={`text-[11px] md:text-[8px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border cursor-pointer outline-none ${
+                      className={`text-[11px] md:text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border cursor-pointer outline-none ${
                         item.status === 'pre_production' 
                           ? 'bg-blue-500/15 border-blue-500/20 text-blue-400' 
                           : item.status === 'approved'

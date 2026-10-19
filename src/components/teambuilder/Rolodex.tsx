@@ -917,8 +917,8 @@ export default function Rolodex() {
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex flex-row flex-wrap sm:flex-nowrap items-center gap-3 flex-1 w-full">
+      <div className="flex flex-wrap md:flex-nowrap justify-between items-center gap-3 md:gap-4">
+        <div className="flex flex-row flex-wrap sm:flex-nowrap items-center gap-3 flex-1 basis-full md:basis-auto">
           {/* Search leads — it's what the toolbar is for. The two filters sit
               behind a chip on a phone and inline from md up. */}
           <div className="relative flex-1 min-w-[160px]">
@@ -978,7 +978,7 @@ export default function Rolodex() {
           <>
             <button
               onClick={() => setIsImportOptionsOpen(true)}
-              className="bg-zinc-900 hover:bg-zinc-800 text-white/80 hover:text-white px-6 py-4 rounded-xl border border-white/10 rounded-xl font-semibold text-xs transition-all flex items-center gap-3 whitespace-nowrap cursor-pointer hover:border-accent/40"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white/80 hover:text-white px-4 md:px-6 py-3.5 md:py-4 rounded-xl border border-white/10 font-semibold text-xs transition-all flex items-center gap-3 whitespace-nowrap cursor-pointer hover:border-accent/40"
             >
               <Upload className="w-4 h-4 text-accent" /> Import
             </button>
@@ -1018,7 +1018,7 @@ export default function Rolodex() {
               setIsClientModalOpen(true);
             }
           }}
-          className="bg-accent text-white px-8 py-4 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center gap-3 whitespace-nowrap"
+          className="flex-1 md:flex-none justify-center bg-accent text-white px-6 md:px-8 py-3.5 md:py-4 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center gap-3 whitespace-nowrap"
         >
           <Plus className="w-4 h-4" /> Add {activeView === 'crew' ? 'Contact' : 'Client'}
         </button>
@@ -1029,7 +1029,7 @@ export default function Rolodex() {
           <thead>
             <tr className="border-b border-white/10 bg-white/5">
               <th 
-                className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 cursor-pointer hover:opacity-100 transition-opacity"
+                className="px-4 md:px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 cursor-pointer hover:opacity-100 transition-opacity"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center gap-2">
@@ -1038,7 +1038,7 @@ export default function Rolodex() {
               </th>
               {activeView === 'crew' && (
                 <th 
-                  className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 cursor-pointer hover:opacity-100 transition-opacity"
+                  className="px-4 md:px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 cursor-pointer hover:opacity-100 transition-opacity"
                   onClick={() => handleSort('primary_role')}
                 >
                   <div className="flex items-center gap-2">
@@ -1046,16 +1046,16 @@ export default function Rolodex() {
                   </div>
                 </th>
               )}
-              <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 hidden md:table-cell text-white">Contact Info</th>
-              {activeView === 'crew' && <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 hidden lg:table-cell text-white">Tags</th>}
-              <th className="px-6 py-4 text-right text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 text-white">Actions</th>
+              <th className="px-4 md:px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 hidden md:table-cell text-white">Contact Info</th>
+              {activeView === 'crew' && <th className="px-4 md:px-6 py-4 text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 hidden lg:table-cell text-white">Tags</th>}
+              <th className="px-4 md:px-6 py-4 text-right text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 text-white hidden md:table-cell">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {activeView === 'crew' ? (
               filteredContacts.slice(0, visibleCount).map(contact => (
                 <tr key={contact.id} onClick={() => openContactDetail(contact)} className="group hover:bg-white/[0.02] transition-colors text-white cursor-pointer">
-                  <td className="px-6 py-4">
+                  <td className="px-4 md:px-6 py-4">
                     <div className="flex items-center gap-3">
                       <button 
                         onClick={(e) => { e.stopPropagation(); toggleFavorite(contact); }}
@@ -1081,8 +1081,8 @@ export default function Rolodex() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="text-[10px] font-semibold text-accent">{contact.primary_role || '—'}</span>
+                  <td className="px-4 md:px-6 py-4">
+                    <span className="text-[11px] md:text-[10px] font-semibold text-accent">{contact.primary_role || '—'}</span>
                     {/* The other hats, muted: this column is sorted by the
                         primary role, so they read as extra rather than equal. */}
                     {(contact.secondary_roles?.length || 0) > 0 && (
@@ -1091,7 +1091,7 @@ export default function Rolodex() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 hidden md:table-cell">
+                  <td className="px-4 md:px-6 py-4 hidden md:table-cell">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 text-[10px] font-bold text-white/40">
                         <Mail className="w-3 h-3" />
@@ -1105,7 +1105,7 @@ export default function Rolodex() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 hidden lg:table-cell">
+                  <td className="px-4 md:px-6 py-4 hidden lg:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {contact.tags?.split(',').map(tag => (
                         <span key={tag} className="px-1.5 py-0.5 bg-white/5 rounded text-[10px] font-medium opacity-30 text-white">
@@ -1114,7 +1114,7 @@ export default function Rolodex() {
                       )) || '—'}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 md:px-6 py-4 text-right hidden md:table-cell">
                     <div className="flex justify-end gap-1">
                       <button 
                         onClick={(e) => { e.stopPropagation(); fetchContactHistory(contact.id); }}
@@ -1155,13 +1155,13 @@ export default function Rolodex() {
             ) : (
               filteredClients.map(client => (
                 <tr key={client.id} onClick={() => openClientDetail(client)} className="group hover:bg-white/[0.02] transition-colors text-white cursor-pointer">
-                  <td className="px-6 py-4">
+                  <td className="px-4 md:px-6 py-4">
                     <div className="flex items-center gap-3">
                       <Building2 className="w-4 h-4 text-accent/50" />
                       <span className="text-sm font-semibold tracking-tight">{client.name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 hidden md:table-cell">
+                  <td className="px-4 md:px-6 py-4 hidden md:table-cell">
                     <div className="space-y-1">
                       {client.email && (
                         <div className="flex items-center gap-2 text-[10px] font-bold text-white/40">
@@ -1177,7 +1177,7 @@ export default function Rolodex() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 md:px-6 py-4 text-right hidden md:table-cell">
                     <div className="flex justify-end gap-1">
                       <button 
                         onClick={(e) => { e.stopPropagation(); fetchClientHistory(client.name); }}

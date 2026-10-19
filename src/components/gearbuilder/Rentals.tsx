@@ -1973,37 +1973,37 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     </section>);
 
     return (
-    <div className="@container pt-8 pb-32 @4xl:pb-8 px-4 md:px-6">
+    <div className="@container pt-2 md:pt-8 pb-32 @4xl:pb-8 px-0 md:px-6">
         <div className="grid grid-cols-1 @4xl:grid-cols-12 gap-6 @4xl:gap-12 items-start">
           {/* self-stretch so the sticky catalog can travel the full height of
               the (now content-sized) manifest instead of scrolling away. */}
           <div className="@4xl:col-span-7 space-y-8 @4xl:self-stretch">
-            <section className="bg-neutral-900/50 border border-white/10 p-0 md:p-6 md:pb-0 rounded-2xl overflow-hidden flex flex-col h-fit max-h-[75vh] @4xl:max-h-none @4xl:h-[calc(100vh-140px)] @4xl:sticky @4xl:top-24">
+            <section className="md:bg-neutral-900/50 md:border border-white/10 p-0 md:p-6 md:pb-0 md:rounded-2xl md:overflow-hidden flex flex-col h-fit md:max-h-[75vh] @4xl:max-h-none @4xl:h-[calc(100vh-140px)] @4xl:sticky @4xl:top-24">
               
               <div className="bg-neutral-900/90 backdrop-blur-md p-4 md:p-0 z-20 sticky top-0 border-b md:border-b-0 border-white/10 space-y-4">
                 {/* Tab Toggle */}
-                <div className="flex gap-2 p-1 bg-black/40 border border-white/5 rounded-xl">
+                <div className="flex gap-1 md:gap-2 p-1 bg-black/40 border border-white/5 rounded-xl">
                   <button 
                     onClick={() => setActiveSidebarTab('gear')}
-                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'gear' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
+                    className={`flex-1 py-1.5 px-1 text-xs font-semibold whitespace-nowrap rounded-lg transition-all ${activeSidebarTab === 'gear' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
                   >
                     Gear
                   </button>
                   <button 
                     onClick={() => setActiveSidebarTab('library')}
-                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'library' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
+                    className={`flex-1 py-1.5 px-1 text-xs font-semibold whitespace-nowrap rounded-lg transition-all ${activeSidebarTab === 'library' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
                   >
                     Slate Library
                   </button>
                   <button 
                     onClick={() => setActiveSidebarTab('templates')}
-                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'templates' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
+                    className={`flex-1 py-1.5 px-1 text-xs font-semibold whitespace-nowrap rounded-lg transition-all ${activeSidebarTab === 'templates' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}
                   >
                     Packages
                   </button>
                   <button 
                     onClick={() => setActiveSidebarTab('rentals')}
-                    className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeSidebarTab === 'rentals' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
+                    className={`flex-1 py-1.5 px-1 text-xs font-semibold whitespace-nowrap rounded-lg transition-all ${activeSidebarTab === 'rentals' ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-white/40 hover:text-white'}`}
                   >
                     Rentals
                   </button>
@@ -2017,7 +2017,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                         onChange={(e) => setFilterCategory(e.target.value)}
                         className="flex-1 min-w-0 bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-xs font-semibold rounded-xl appearance-none cursor-pointer"
                       >
-                        <option value="All">ALL CATEGORIES</option>
+                        <option value="All">All categories</option>
                         {categoryOptions.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
@@ -2068,7 +2068,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 )}
               </div>
 
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 md:px-0 custom-scrollbar">
+              <div className="md:flex-1 md:min-h-0 md:overflow-y-auto p-4 md:px-0 custom-scrollbar">
                 {activeSidebarTab === 'gear' ? (
                   <>
                     {filteredGroupedItems ? (

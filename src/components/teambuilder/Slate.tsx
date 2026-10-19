@@ -137,7 +137,8 @@ export default function Slate({
     // Still stamped on every new job so the rentals side keeps working; it is
     // no longer a choice in the form, where nobody was picking "Rental Only".
     type: 'production',
-    shoot_date: new Date().toISOString().split('T')[0],
+    // Local day: the UTC one is already tomorrow on a New York evening.
+    shoot_date: todayLocalISO(),
     call_time: '',
     location_name: '',
     location_address: '',
@@ -2126,7 +2127,7 @@ function JobCard({
       className={`group bg-neutral-900/40 border border-white/5 p-6 rounded-2xl transition-all relative flex flex-col h-full overflow-hidden ${isClient ? '' : 'hover:border-accent/30 hover:bg-neutral-900/60'}`}
     >
       {/* Background Decor */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-accent/10 transition-colors pointer-events-none" />
+      <div className="hidden md:block absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-accent/10 transition-colors pointer-events-none" />
 
       <div className="flex justify-between items-start mb-5 relative z-10 gap-2">
         <div className="flex flex-wrap gap-2 items-center">

@@ -99,6 +99,12 @@ type Post = {
   platform?: string; status?: string; scheduled_at?: string | null; link_url?: string; asset_url?: string;
 };
 
+function toLocalInputValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function ContentCalendar({ clients }: { clients: Client[] }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [cursor, setCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
@@ -151,7 +157,38 @@ function ContentCalendar({ clients }: { clients: Client[] }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
+      {/* Phones: the month's posts as a list by day — seven columns of
+          50px cells can't show a title. */}
+      <div className="md:hidden space-y-4">
+        {cells.filter((day): day is number => !!day && postsForDay(day).length > 0).map((day) => (
+          <div key={day}>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-accent mb-1.5">
+              {new Date(year, month, day).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            </p>
+            <div className="space-y-1.5">
+              {postsForDay(day).map((p) => {
+                const pl = platform(p.platform);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setEditing(p)}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl bg-black/40 border ${pl.ring} cursor-pointer flex items-center gap-2`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${pl.dot} shrink-0`} />
+                    <span className="flex-1 min-w-0 text-sm font-medium truncate text-white/85">{p.title || p.caption || '(untitled)'}</span>
+                    <span className={`text-[11px] font-semibold capitalize ${p.status === 'posted' ? 'text-emerald-400' : 'text-white/40'}`}>{p.status}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        {!posts.some((p) => { if (!p.scheduled_at) return false; const d = new Date(p.scheduled_at); return d.getFullYear() === year && d.getMonth() === month; }) && (
+          <p className="py-10 text-center text-sm text-white/40">Nothing scheduled this month.</p>
+        )}
+      </div>
+
+      <div className="hidden md:grid grid-cols-7 gap-1.5">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
           <div key={d} className="text-center text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/30 py-1">{d}</div>
         ))}
@@ -197,7 +234,10 @@ function ContentCalendar({ clients }: { clients: Client[] }) {
 
 function PostModal({ post, clients, onClose, onSaved }: { post: Post; clients: Client[]; onClose: () => void; onSaved: () => void }) {
   const [draft, setDraft] = useState<Post>(post);
-  const dateValue = draft.scheduled_at ? new Date(draft.scheduled_at).toISOString().slice(0, 16) : '';
+  // datetime-local shows and returns wall-clock time, so fill it with local
+  // time too. `toISOString()` here showed UTC — noon in New York read 4:00 PM,
+  // and saving the form moved the post four hours.
+  const dateValue = draft.scheduled_at ? toLocalInputValue(draft.scheduled_at) : '';
 
   const save = async () => {
     const payload = {

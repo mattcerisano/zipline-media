@@ -281,6 +281,19 @@ button, a, [role="button"], input[type="checkbox"], select {
   }
 }
 
+/* Phones: nothing smaller than 11px, Apple's floor for legible text. The
+   desktop UI uses 7-10px for labels and meta lines, which on an iPhone reads
+   as specks. Unlayered and more specific, so it beats the Tailwind utility;
+   `md:` sizes live in their own media query and are untouched. */
+@media (max-width: 767px) {
+  .studio-os .text-\[7px\],
+  .studio-os .text-\[8px\],
+  .studio-os .text-\[9px\],
+  .studio-os .text-\[10px\] {
+    font-size: 11px;
+  }
+}
+
 /* Snappier taps: no 300ms double-tap-zoom wait on buttons/links, and no gray
    flash overlay on tap (the UI has its own hover/active states). */
 .studio-os button,
