@@ -182,6 +182,8 @@ interface WorkspaceLayoutProps {
   openEditCardId?: string | null;
   onClearOpenEditCard?: () => void;
   onSwitchTab: (tab: any) => void;
+  /** Layout controls (add tab, split, close) show only while editing. */
+  isLayoutEditing?: boolean;
 }
 
 export default function WorkspaceLayout({
@@ -195,7 +197,8 @@ export default function WorkspaceLayout({
   onClearNewProductionSeed,
   openEditCardId,
   onClearOpenEditCard,
-  onSwitchTab
+  onSwitchTab,
+  isLayoutEditing = false,
 }: WorkspaceLayoutProps) {
   const [layoutRoot, setLayoutRoot] = useState<LayoutNode | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -305,6 +308,7 @@ export default function WorkspaceLayout({
           openEditCardId={openEditCardId}
           onClearOpenEditCard={onClearOpenEditCard}
           onSwitchTab={onSwitchTab}
+          isLayoutEditing={isLayoutEditing}
         />
       </div>
     </div>
@@ -479,7 +483,8 @@ function WorkspacePanel({
   onClearNewProductionSeed,
   openEditCardId,
   onClearOpenEditCard,
-  onSwitchTab
+  onSwitchTab,
+  isLayoutEditing = false,
 }: { 
   node: LayoutNode & { type: 'panel' }; 
   onUpdate: (n: LayoutNode) => void;
@@ -575,7 +580,7 @@ function WorkspacePanel({
       {/* Desktop only. This strip is the split-panel chrome — tabs, add-tab,
           split controls — and a phone can't split anything, so it renders one
           tab, a plus, and ~110px of dead height above every screen. */}
-      <div className="hidden md:h-10 md:flex bg-black/40 border-b border-white/5 px-3 items-center justify-between shrink-0 select-none relative z-40">
+      <div className={`hidden md:h-10 ${isLayoutEditing || node.tabs.length > 1 ? 'md:flex' : ''} bg-black/40 border-b border-white/5 px-3 items-center justify-between shrink-0 select-none relative z-40`}>
         
         <div className="flex items-center gap-1.5 flex-grow min-w-0 h-full">
           {/* Tabs Bar */}
@@ -623,7 +628,7 @@ function WorkspacePanel({
                   {isJobBound && (
                     <Lock className="w-2.5 h-2.5 text-accent opacity-60 shrink-0" />
                   )}
-                  {node.tabs.length > 1 && (
+                  {isLayoutEditing && node.tabs.length > 1 && (
                     <button 
                       onClick={(e) => handleCloseTab(t, e)}
                       className="p-0.5 hover:bg-white/10 rounded text-white/30 hover:text-white transition-colors ml-1"
@@ -637,7 +642,7 @@ function WorkspacePanel({
           </div>
   
           {/* Plus Add Panel Tab button */}
-          <div className="relative pt-1 shrink-0" ref={menuRef}>
+          <div className={`relative pt-1 shrink-0 ${isLayoutEditing ? '' : 'hidden'}`} ref={menuRef}>
             <button 
               onClick={() => setShowAddMenu(!showAddMenu)}
               className="p-1.5 hover:bg-white/5 rounded-lg text-white/40 hover:text-white transition-colors cursor-pointer"
@@ -736,7 +741,7 @@ function WorkspacePanel({
         </div>
  
         {/* Panel splitting operations */}
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className={`items-center gap-1 ${isLayoutEditing ? 'flex' : 'hidden'}`}>
           <button 
             onClick={() => handleSplit('row')}
             className="p-1.5 hover:bg-white/5 rounded text-white/40 hover:text-white transition-colors"

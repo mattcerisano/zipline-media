@@ -20,7 +20,8 @@ import {
   HelpCircle,
   RotateCcw,
   Search,
-  AlertTriangle
+  AlertTriangle,
+  LayoutGrid
 } from 'lucide-react';
 
 // "2m ago" / "3h ago" / "Jul 12" for the sync-health chip.
@@ -541,6 +542,9 @@ export default function CommandCenterPage() {
 
   // UI State
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // Layout controls (sidebar edit/reset/reorder, panel tabs and splits) stay
+  // out of sight until someone asks to rearrange things.
+  const [isLayoutEditing, setIsLayoutEditing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isCalendarSyncOpen, setIsCalendarSyncOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -1151,7 +1155,7 @@ export default function CommandCenterPage() {
                         return (
                           // The sidebar order is the team's (saved to the org), so only
                           // an admin rearranges it — the same line as editing a tab.
-                          <Draggable key={tab.id} draggableId={tab.id} index={index} isDragDisabled={userRole !== 'admin'}>
+                          <Draggable key={tab.id} draggableId={tab.id} index={index} isDragDisabled={userRole !== 'admin' || !isLayoutEditing}>
                             {(provided, snapshot) => (
                               <div
                                 ref={provided.innerRef}
@@ -1171,7 +1175,7 @@ export default function CommandCenterPage() {
                                     // Room for the hover controls (edit, reset, grip) laid over
                                     // the right edge, so a long label truncates instead of
                                     // running under them. On a phone they are always shown.
-                                    isSidebarOpen && userRole === 'admin' ? 'max-md:pr-20 md:group-hover:pr-20' : ''
+                                    isSidebarOpen && userRole === 'admin' && isLayoutEditing ? 'pr-20' : ''
                                   } ${
                                     activeTab === tab.id
                                       ? 'bg-gradient-to-r from-accent/15 to-accent/5 text-white border-accent/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] shadow-accent/5'
@@ -1199,7 +1203,7 @@ export default function CommandCenterPage() {
                                     are unchanged. */}
 
                                 {/* Edit/Settings button for default/custom tabs on hover (admin only) */}
-                                {isSidebarOpen && userRole === 'admin' && (
+                                {isSidebarOpen && userRole === 'admin' && isLayoutEditing && (
                                   <>
                                     <button
                                       onClick={(e) => {
@@ -1212,14 +1216,14 @@ export default function CommandCenterPage() {
                                         setEditTabRoles(tab.allowedRoles || ['admin']);
                                         setIsEditModalOpen(true);
                                       }}
-                                      className="absolute right-14 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-accent transition-opacity z-30 cursor-pointer"
+                                      className="absolute right-14 top-1/2 -translate-y-1/2 opacity-50 hover:!opacity-100 p-1 text-white hover:text-accent transition-opacity z-30 cursor-pointer"
                                       title="Edit Workspace Settings"
                                     >
                                       <Settings className="w-3.5 h-3.5" />
                                     </button>
                                     <button
                                       onClick={(e) => resetWorkspaceForTab(tab.id, e)}
-                                      className="absolute right-9 top-1/2 -translate-y-1/2 max-md:opacity-50 opacity-0 group-hover:opacity-40 hover:!opacity-100 p-1 text-white hover:text-orange-400 transition-opacity z-30 cursor-pointer"
+                                      className="absolute right-9 top-1/2 -translate-y-1/2 opacity-50 hover:!opacity-100 p-1 text-white hover:text-orange-400 transition-opacity z-30 cursor-pointer"
                                       title="Reset panels to default view"
                                     >
                                       <RotateCcw className="w-3.5 h-3.5" />
@@ -1232,7 +1236,7 @@ export default function CommandCenterPage() {
                                     always exist in the DOM, so hide it with classes, not unmount. */}
                                 <div
                                   {...provided.dragHandleProps}
-                                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white hover:text-accent transition-opacity cursor-grab active:cursor-grabbing ${(!isSidebarOpen && !isMobile) || userRole !== 'admin' ? 'opacity-0 pointer-events-none' : 'max-md:opacity-40 opacity-0 group-hover:opacity-40 hover:opacity-100'}`}
+                                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white hover:text-accent transition-opacity cursor-grab active:cursor-grabbing ${(!isSidebarOpen && !isMobile) || userRole !== 'admin' || !isLayoutEditing ? 'opacity-0 pointer-events-none' : 'opacity-50 hover:opacity-100'}`}
                                   title="Drag to reorder"
                                   onClick={(e) => e.stopPropagation()}
                                 >
@@ -1246,7 +1250,7 @@ export default function CommandCenterPage() {
                     {provided.placeholder}
 
                     {/* Add Custom Tab Button */}
-                    {userRole === 'admin' && (
+                    {userRole === 'admin' && isLayoutEditing && (
                       <button
                         onClick={() => setIsCreateModalOpen(true)}
                         className={`w-full flex items-center gap-3 py-3 rounded-xl border border-dashed border-white/10 hover:border-accent/40 text-white/40 hover:text-white bg-transparent hover:bg-white/5 transition-all duration-300 mt-4 cursor-pointer group/add-tab ${(!isSidebarOpen && !isMobile) ? 'justify-center px-0' : 'px-4'}`}
@@ -1346,8 +1350,20 @@ export default function CommandCenterPage() {
                    <Search className="w-4 h-4" />
                 </button>
 
-                {/* Reset Layout — only for workspaces that use the panel layout */}
-                {activeTabObj && activeTabObj.type !== 'embed' && activeTabObj.type !== 'notes' && (
+                {/* Edit layout: one switch for every layout control. Desktop
+                    only — a phone shows one screen at a time. */}
+                <button
+                   onClick={() => setIsLayoutEditing(v => !v)}
+                   className={`hidden md:inline-flex items-center gap-1.5 px-2 py-2 rounded-md transition-colors cursor-pointer ${isLayoutEditing ? 'bg-accent/15 text-accent' : 'text-white/50 hover:text-white hover:bg-white/[0.06]'}`}
+                   title={isLayoutEditing ? 'Done editing the layout' : 'Edit layout: add, split and reorder panels and tabs'}
+                   aria-pressed={isLayoutEditing}
+                >
+                   <LayoutGrid className="w-4 h-4" />
+                   {isLayoutEditing && <span className="text-[12px] font-medium pr-0.5">Done</span>}
+                </button>
+
+                {/* Reset Layout — only while editing, and only for workspaces that use the panel layout */}
+                {isLayoutEditing && activeTabObj && activeTabObj.type !== 'embed' && activeTabObj.type !== 'notes' && (
                   <button
                      onClick={() => resetWorkspaceForTab(activeTab)}
                      className="hidden md:inline-flex p-2 rounded-md text-white/50 hover:text-orange-300 hover:bg-white/[0.06] transition-colors cursor-pointer"
@@ -1451,6 +1467,7 @@ export default function CommandCenterPage() {
                   onClearNewProductionSeed={() => setNewProductionSeed(null)}
                   openEditCardId={openEditCardId}
                   onClearOpenEditCard={clearOpenEditCard}
+                  isLayoutEditing={isLayoutEditing}
                   onSwitchTab={(target) => {
                     // The guide is a modal, not a tab — "System Guide" on the
                     // dashboard sent 'quickstart' here, which no tab answers,
