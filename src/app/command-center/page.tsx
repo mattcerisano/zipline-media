@@ -165,7 +165,6 @@ const STARTER_TOOLS: { id: string; label: string }[] = [
   { id: 'social', label: 'Social Media' },
   { id: 'rolodex', label: 'Rolodex' },
   { id: 'meeting_notes', label: 'Meeting Notes' },
-  { id: 'review', label: 'Client Review' },
   { id: 'locations', label: 'Locations Scouting' },
   { id: 'drives', label: 'Drive Tracker' },
   { id: 'intake', label: 'Client Onboarding' },
@@ -218,6 +217,12 @@ const SYSTEM_TAB_EYEBROWS: Record<string, string> = {
   integrations: 'Connected Services',
 };
 
+// Built-in tabs that have been retired. Saved tab lists (this browser's and
+// the team's) still name them, so they're dropped on load. Client Review went
+// because clients never log in and the Edit Tracker already keeps every draft
+// link; its saved reviews stay in the database.
+const RETIRED_SYSTEM_TABS = new Set(['review']);
+
 const DEFAULT_TABS: CustomTab[] = [
   { id: 'dashboard', label: 'Dashboard', iconName: 'LayoutDashboard', type: 'system', isDefault: true, allowedRoles: ['admin'] },
   { id: 'calendar', label: 'Calendar', iconName: 'Calendar', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
@@ -229,7 +234,6 @@ const DEFAULT_TABS: CustomTab[] = [
   { id: 'inbox', label: 'Inbox', iconName: 'Mail', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'rolodex', label: 'Rolodex', iconName: 'Users', type: 'system', isDefault: true, allowedRoles: ['admin'] },
   { id: 'meeting_notes', label: 'Meeting Notes', iconName: 'FileText', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
-  { id: 'review', label: 'Client Review', iconName: 'Video', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
   { id: 'locations', label: 'Locations Scouting', iconName: 'MapPin', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'drives', label: 'Drive Tracker', iconName: 'HardDrive', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'intake', label: 'Client Onboarding', iconName: 'ClipboardList', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
@@ -342,7 +346,8 @@ export default function CommandCenterPage() {
     // Merge in any newer built-in system tabs a saved list predates
     // (e.g. "social"), so existing users get them without losing custom
     // tabs or ordering.
-    const mergeSystemTabs = (parsed: CustomTab[]): CustomTab[] => {
+    const mergeSystemTabs = (saved: CustomTab[]): CustomTab[] => {
+      const parsed = saved.filter((t) => !(t.type === 'system' && RETIRED_SYSTEM_TABS.has(t.id)));
       const savedIds = new Set(parsed.map((t) => t.id));
       const missingSystemTabs = DEFAULT_TABS.filter((t) => t.type === 'system' && !savedIds.has(t.id));
       return missingSystemTabs.length ? [...parsed, ...missingSystemTabs] : parsed;
@@ -807,7 +812,7 @@ export default function CommandCenterPage() {
           } catch (e) {}
         }
         const activeTabObj = currentTabs.find(t => t.id === savedActiveTab);
-        const isValid = activeTabObj && canAccessTab(role, activeTabObj);
+        const isValid = activeTabObj && !RETIRED_SYSTEM_TABS.has(activeTabObj.id) && canAccessTab(role, activeTabObj);
         if (isValid) {
           setActiveTab(savedActiveTab);
           return true;

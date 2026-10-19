@@ -499,7 +499,9 @@ function WorkspacePanel({
   // The "+" menu is the other door into every tool in the OS: without this a
   // freelance editor could mount the Vault or the Rolodex inside their own
   // board. Scoped roles only ever see the widgets their role whitelists.
-  const addableWidgets = Object.keys(WIDGET_LABELS).filter(key => canUseWidget(userRole, key));
+  // Client Review is retired: a panel someone already saved still renders it,
+  // but it isn't offered for new panels.
+  const addableWidgets = Object.keys(WIDGET_LABELS).filter(key => key !== 'review' && canUseWidget(userRole, key));
   const canEmbed = canUseWidget(userRole, 'embed_new');
 
   useEffect(() => {
