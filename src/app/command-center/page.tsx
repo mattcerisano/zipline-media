@@ -986,7 +986,7 @@ export default function CommandCenterPage() {
 
   if (!session) {
     return (
-      <div className="studio-shell min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="studio-shell min-h-screen bg-black flex items-center justify-center p-4 relative overflow-clip">
         {/* Ambient Glows */}
         <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/10 rounded-full blur-[130px] pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-purple-500/10 rounded-full blur-[130px] pointer-events-none" />
@@ -1072,10 +1072,10 @@ export default function CommandCenterPage() {
     // The sidebar stretches to that row, which is what pushed "Sign Out" off the
     // bottom of every panel. Pinning the shell to the viewport lets <main>'s own
     // overflow-y-auto do the scrolling, as it was always meant to.
-    <div className="studio-shell h-dvh bg-black text-white flex overflow-hidden relative">
+    <div className="studio-shell h-dvh bg-black text-white flex overflow-clip relative">
       {/* Ambient Glows */}
-      <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-accent/5 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-500/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="hidden md:block absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-accent/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="hidden md:block absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-500/5 rounded-full blur-[150px] pointer-events-none" />
       
       {/* Subtle grid pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff01_1px,transparent_1px),linear-gradient(to_bottom,#ffffff01_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
@@ -1308,8 +1308,8 @@ export default function CommandCenterPage() {
       <main className="flex-1 overflow-y-auto relative custom-scrollbar flex flex-col z-10">
         {/* z-45 is not a Tailwind scale value, so this compiled to no z-index
             at all and the header's paint order was left to chance. */}
-        <header className="sticky top-0 z-30 bg-black/90 md:bg-black/40 backdrop-blur-xl border-b border-white/5 p-3 md:p-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 bg-black/90 md:bg-black/40 md:backdrop-blur-xl border-b border-white/5 p-3 md:p-6 flex items-center justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             {isMobile && (
               <button
                 onClick={() => setIsSidebarOpen(true)}
@@ -1319,7 +1319,7 @@ export default function CommandCenterPage() {
                 <Menu className="w-4 h-4" />
               </button>
             )}
-            <div>
+            <div className="min-w-0">
               <h2 className="hidden sm:block text-[11px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-accent/80 mb-1 truncate max-w-[200px] sm:max-w-none">
                 {activeTabObj ? (
                   activeTabObj.type === 'system' ? (SYSTEM_TAB_EYEBROWS[activeTabObj.id] || 'Studio OS')
@@ -1327,13 +1327,13 @@ export default function CommandCenterPage() {
                       activeTabObj.type === 'notes' ? 'Production Notepad' : 'Custom Workspace Layout'
                 ) : 'Workspace Overview'}
               </h2>
-              <h1 className="text-lg md:text-[26px] font-semibold tracking-tight text-white truncate max-w-[200px] sm:max-w-none">
+              <h1 className="text-lg md:text-[26px] font-semibold tracking-tight text-white truncate">
                 {activeTabObj ? activeTabObj.label : 'Command Center'}
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-nowrap justify-end">
+          <div className="flex items-center gap-2 flex-nowrap justify-end shrink-0">
              {/* Live database status — a quiet macOS-style menu-bar indicator */}
              <div
                 title="Live database sync is active"
@@ -1362,7 +1362,7 @@ export default function CommandCenterPage() {
                 {activeTabObj && activeTabObj.type !== 'embed' && activeTabObj.type !== 'notes' && (
                   <button
                      onClick={() => resetWorkspaceForTab(activeTab)}
-                     className="p-2 rounded-md text-white/50 hover:text-orange-300 hover:bg-white/[0.06] transition-colors cursor-pointer"
+                     className="hidden md:inline-flex p-2 rounded-md text-white/50 hover:text-orange-300 hover:bg-white/[0.06] transition-colors cursor-pointer"
                      title="Reset this workspace's panels to the default layout"
                      aria-label="Reset layout"
                   >
@@ -1396,11 +1396,11 @@ export default function CommandCenterPage() {
                 {!isScopedRole(userRole) && (
                   <button
                      onClick={() => setIsCalendarSyncOpen(true)}
-                     className="p-2 rounded-md text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
+                     className="hidden md:inline-flex p-2 rounded-md text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
                      title="Google Calendar sync"
                      aria-label="Calendar sync"
                   >
-                     <RefreshCw className="w-4 h-4 text-accent animate-spin-slow" />
+                     <RefreshCw className="w-4 h-4 text-accent" />
                   </button>
                 )}
 

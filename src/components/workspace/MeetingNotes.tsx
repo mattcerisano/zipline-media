@@ -17,6 +17,7 @@ import {
   FileText, 
   ChevronDown, 
   ChevronRight, 
+  ChevronLeft,
   Clock, 
   Save, 
   Cloud, 
@@ -63,6 +64,8 @@ export default function MeetingNotes() {
   const [clients, setClients] = useState<Client[]>([]);
   const [notes, setNotes] = useState<MeetingNote[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  // Phones show one column at a time, like Mail: the list, or the open note.
+  const [mobilePane, setMobilePane] = useState<'list' | 'note'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -299,6 +302,7 @@ export default function MeetingNotes() {
     const updatedNotes = [newNote, ...notes];
     setNotes(updatedNotes);
     setSelectedNoteId(newNote.id);
+    setMobilePane('note');
 
     // Expand the client in sidebar
     setExpandedClients(prev => ({ ...prev, [newNote.client_id]: true }));
@@ -321,6 +325,7 @@ export default function MeetingNotes() {
 
     if (selectedNoteId === id) {
       setSelectedNoteId(updatedNotes.length > 0 ? updatedNotes[0].id : null);
+      setMobilePane('list');
     }
 
     if (useLocalStorage) {
@@ -551,7 +556,7 @@ export default function MeetingNotes() {
   return (
     <div className="flex h-full bg-neutral-950 text-white font-sans overflow-hidden">
       {/* ═══════════════════════ SIDEBAR: CLIENTS & NOTES ═══════════════════════ */}
-      <div className="w-80 border-r border-white/10 bg-zinc-900/30 flex flex-col h-full shrink-0">
+      <div className={`w-full md:w-80 border-r border-white/10 bg-zinc-900/30 flex-col h-full shrink-0 ${mobilePane === 'note' ? 'hidden md:flex' : 'flex'}`}>
         {/* Search & Action Area */}
         <div className="p-4 border-b border-white/10 space-y-3">
           <div className="relative">
@@ -629,7 +634,7 @@ export default function MeetingNotes() {
                               return (
                                 <div
                                   key={note.id}
-                                  onClick={() => setSelectedNoteId(note.id)}
+                                  onClick={() => { setSelectedNoteId(note.id); setMobilePane('note'); }}
                                   className={`group w-full px-3 py-2.5 rounded-lg flex items-center justify-between transition-all cursor-pointer ${
                                     isSelected 
                                       ? 'bg-accent/15 border border-accent/25 text-white' 
@@ -690,13 +695,20 @@ export default function MeetingNotes() {
       </div>
 
       {/* ═══════════════════════ MAIN NOTE WORKSPACE AREA ═══════════════════════ */}
-      <div className="flex-1 flex flex-col h-full bg-neutral-950 overflow-hidden relative">
+      <div className={`flex-1 flex-col h-full bg-neutral-950 overflow-hidden relative ${mobilePane === 'list' ? 'hidden md:flex' : 'flex'}`}>
+        <button
+          onClick={() => setMobilePane('list')}
+          className="md:hidden flex items-center gap-1 px-4 py-3 border-b border-white/10 text-sm font-medium text-accent shrink-0"
+        >
+          <ChevronLeft className="w-4 h-4" /> All notes
+        </button>
         {activeNote ? (
-          <div className="flex-1 flex overflow-hidden">
+          // Phones stack the details under the note and scroll the whole thing.
+          <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden custom-scrollbar">
             {/* COLUMN 1: MARKDOWN NOTE EDITOR (60% Width) */}
-            <div className="flex-1 flex flex-col border-r border-white/10 h-full overflow-hidden">
+            <div className="md:flex-1 flex flex-col md:border-r border-white/10 md:h-full md:overflow-hidden">
               {/* Editor Header */}
-              <div className="p-6 border-b border-white/10 flex flex-col gap-3 shrink-0">
+              <div className="p-4 md:p-6 border-b border-white/10 flex flex-col gap-3 shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-accent/15 border border-accent/20 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-accent shrink-0">
                     {clients.find(c => c.id === activeNote.client_id)?.name || 'Client'}
@@ -766,7 +778,7 @@ export default function MeetingNotes() {
               </div>
 
               {/* Text Writing Area */}
-              <div className="flex-1 p-6 overflow-y-auto custom-scrollbar flex flex-col bg-neutral-900/10">
+              <div className="min-h-[50vh] md:min-h-0 flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar flex flex-col bg-neutral-900/10">
                 <textarea
                   ref={editorRef}
                   value={activeNote.content}
@@ -777,7 +789,7 @@ export default function MeetingNotes() {
               </div>
 
               {/* Editor Footer / Info */}
-              <div className="px-6 py-3 border-t border-white/10 bg-black/20 flex items-center justify-between text-[10px] font-bold text-white/40 uppercase tracking-widest shrink-0">
+              <div className="hidden md:flex px-6 py-3 border-t border-white/10 bg-black/20 items-center justify-between text-[10px] font-bold text-white/40 uppercase tracking-widest shrink-0">
                 <div className="flex items-center gap-4">
                   <span>Words: {getWordCount(activeNote.content)}</span>
                   <span>Characters: {getCharacterCount(activeNote.content)}</span>
@@ -787,7 +799,7 @@ export default function MeetingNotes() {
             </div>
 
             {/* COLUMN 2: WIDGETS STACK (40% Width) */}
-            <div className="w-96 flex flex-col h-full overflow-y-auto custom-scrollbar p-6 bg-zinc-900/15 divide-y divide-white/10 shrink-0">
+            <div className="w-full md:w-96 flex flex-col md:h-full md:overflow-y-auto custom-scrollbar p-4 md:p-6 bg-zinc-900/15 divide-y divide-white/10 shrink-0 border-t md:border-t-0 border-white/10">
               
               {/* WIDGET 1: MEETING METADATA & SENTIMENT */}
               <div className="pb-6 space-y-4">

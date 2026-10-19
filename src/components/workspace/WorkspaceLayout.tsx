@@ -289,7 +289,7 @@ export default function WorkspaceLayout({
       {/* No z-index here: positioned and later in the DOM is already enough to
           paint over the ambient layer, and a z-index would make this a
           stacking context that traps every tab's pop-ups under the header. */}
-      <div className="relative flex-1 p-4 md:p-6 lg:p-8 flex flex-col min-h-0">
+      <div className="relative flex-1 md:p-6 lg:p-8 flex flex-col min-h-0">
         <WorkspaceNode 
           node={layoutRoot} 
           onUpdate={saveLayout}
@@ -570,7 +570,7 @@ function WorkspacePanel({
     // panel into the containing block for `position: fixed` descendants,
     // trapping every widget modal (Add Contact, Add Production, …) inside the
     // panel instead of centering it in the viewport.
-    <div className="panel-rise flex-1 bg-zinc-950/60 border border-white/10 rounded-2xl flex flex-col overflow-hidden min-h-0 min-w-0 shadow-xl m-1 group relative">
+    <div className="panel-rise flex-1 bg-zinc-950/60 md:border md:border-white/10 md:rounded-2xl flex flex-col overflow-hidden min-h-0 min-w-0 md:shadow-xl md:m-1 group relative">
       {/* Panel Header */}
       {/* Desktop only. This strip is the split-panel chrome — tabs, add-tab,
           split controls — and a phone can't split anything, so it renders one
