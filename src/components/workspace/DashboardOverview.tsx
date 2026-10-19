@@ -16,9 +16,12 @@ import {
 import { supabase } from '@/lib/supabase';
 import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
+import { todayLocalISO } from '@/lib/date';
+import ThisWeek from '@/components/workspace/ThisWeek';
 
 export interface DashboardOverviewProps {
-  onSwitchTab: (tab: string) => void;
+  /** A tab id, or a hand-off object ({ selectCalendarJob }, { openEditCard }). */
+  onSwitchTab: (target: any) => void;
 }
 
 // Per-item dashboard customization: every stat card, quick action, and
@@ -28,9 +31,18 @@ const DASHBOARD_ITEMS: { group: string; items: { id: string; label: string }[] }
   {
     group: 'Stat Cards',
     items: [
-      { id: 'stat_booked', label: 'Jobs Booked' },
+      { id: 'stat_booked', label: 'Booked Ahead' },
       { id: 'stat_edits', label: 'Edits in Progress' },
       { id: 'stat_contacts', label: 'Total Contacts' },
+    ],
+  },
+  {
+    group: 'This Week',
+    items: [
+      { id: 'week_shoots', label: 'Coming up' },
+      { id: 'week_edits', label: 'Edits due' },
+      { id: 'week_closeout', label: 'Close out past shoots' },
+      { id: 'week_drives', label: 'Drives out longest' },
     ],
   },
   {
@@ -51,16 +63,34 @@ const DASHBOARD_ITEMS: { group: string; items: { id: string; label: string }[] }
     ],
   },
 ];
+// Everything starts shown except the webhook test box and the integration
+// diagnostics — setup tools, not something to open the day on. Both are a
+// tick away in Customize.
+const OFF_BY_DEFAULT = new Set(['panel_gateway', 'panel_telemetry']);
 const DEFAULT_WIDGETS: Record<string, boolean> = Object.fromEntries(
-  DASHBOARD_ITEMS.flatMap(g => g.items.map(i => [i.id, true]))
+  DASHBOARD_ITEMS.flatMap(g => g.items.map(i => [i.id, !OFF_BY_DEFAULT.has(i.id)]))
 );
-const WIDGETS_STORAGE_KEY = 'studio_dashboard_widgets_v2';
+// v3: "This week" arrived and the two setup panels went off by default. A v2
+// choice carries over for everything except those two, which take the new
+// default — keeping them would have hidden the change from everyone who had
+// ever opened Customize.
+const WIDGETS_STORAGE_KEY = 'studio_dashboard_widgets_v3';
+const V2_WIDGETS_KEY = 'studio_dashboard_widgets_v2';
 const LEGACY_WIDGETS_KEY = 'studio_dashboard_widgets';
 
 // Users on the old section-level prefs keep their choices: a hidden section
 // maps to all of its items hidden.
 function migrateLegacyPrefs(): Record<string, boolean> | null {
   try {
+    const v2 = localStorage.getItem(V2_WIDGETS_KEY);
+    if (v2) {
+      const prior = JSON.parse(v2) as Record<string, boolean>;
+      const next = { ...DEFAULT_WIDGETS, ...prior };
+      OFF_BY_DEFAULT.forEach(k => { next[k] = DEFAULT_WIDGETS[k]; });
+      localStorage.removeItem(V2_WIDGETS_KEY);
+      localStorage.setItem(WIDGETS_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    }
     const raw = localStorage.getItem(LEGACY_WIDGETS_KEY);
     if (!raw) return null;
     const legacy = JSON.parse(raw) as Record<string, boolean>;
@@ -108,6 +138,7 @@ export default function DashboardOverview({
     setWidgets(DEFAULT_WIDGETS);
     try {
       localStorage.removeItem(WIDGETS_STORAGE_KEY);
+      localStorage.removeItem(V2_WIDGETS_KEY);
       localStorage.removeItem(LEGACY_WIDGETS_KEY);
     } catch { /* ignore */ }
     setShowCustomize(false);
@@ -117,7 +148,8 @@ export default function DashboardOverview({
   const showStats = widgets.stat_booked || widgets.stat_edits || widgets.stat_contacts;
   const showActions = widgets.action_slate || widgets.action_gear || widgets.action_crew || widgets.action_calendar || widgets.action_guide;
   const showIntegrations = widgets.panel_gateway || widgets.panel_telemetry;
-  const allHidden = !showStats && !showActions && !showIntegrations;
+  const showWeek = widgets.week_shoots || widgets.week_edits || widgets.week_closeout || widgets.week_drives;
+  const allHidden = !showStats && !showActions && !showIntegrations && !showWeek;
 
   // Real integration status (replaces the old hardcoded "Active" rows).
   const [telemetry, setTelemetry] = useState<{ google: boolean | null; webhooks: number | null }>({ google: null, webhooks: null });
@@ -164,13 +196,20 @@ export default function DashboardOverview({
   const fetchStats = useCallback(async () => {
       try {
         const [jobsRes, contactsRes, clientsRes] = await Promise.all([
-          supabase.from('jobs').select('job_status, edit_status'),
+          supabase.from('jobs').select('job_status, edit_status, shoot_date, end_date'),
           supabase.from('contacts').select('id', { count: 'exact', head: true }),
           supabase.from('clients').select('id', { count: 'exact', head: true })
         ]);
 
         const jobs = jobsRes.data || [];
-        const booked = jobs.filter(j => j.job_status === 'Booked').length;
+        // Booked shoots still to come. Counting every Booked row ever kept
+        // shoots nobody closed out in the total long after they wrapped.
+        const today = todayLocalISO();
+        const booked = jobs.filter(j => {
+          if (j.job_status !== 'Booked' || !j.shoot_date) return false;
+          const last = j.end_date && j.end_date > j.shoot_date ? j.end_date : j.shoot_date;
+          return last >= today;
+        }).length;
         const planning = jobs.filter(j => j.job_status === 'Planning').length;
         
         // Edits in progress: Not Cancelled, has edit_status, and is one of the active edit stages
@@ -280,7 +319,7 @@ export default function DashboardOverview({
         <div className="grid grid-cols-3 gap-2 md:contents">
       {widgets.stat_booked && (
       <StatCard
-        title="Jobs Booked"
+        title="Booked Ahead"
         value={stats.bookedJobs.toString()}
         trend={`${stats.planningJobs} planning`}
         icon={Briefcase}
@@ -306,6 +345,18 @@ export default function DashboardOverview({
       />
       )}
         </div>
+      )}
+
+      {showWeek && (
+        <ThisWeek
+          show={{
+            shoots: !!widgets.week_shoots,
+            edits: !!widgets.week_edits,
+            closeOut: !!widgets.week_closeout,
+            drives: !!widgets.week_drives,
+          }}
+          onSwitchTab={onSwitchTab}
+        />
       )}
 
       {showActions && (

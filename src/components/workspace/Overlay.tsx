@@ -204,18 +204,27 @@ export function DropdownMenu({ trigger, items, align = 'right' }: {
   const [rect, setRect] = useState<DOMRect | null>(null);
   const btnRef = React.useRef<HTMLButtonElement>(null);
 
+  const isOpen = !!rect;
   useEffect(() => {
-    if (!rect) return;
+    if (!isOpen) return;
     const close = () => setRect(null);
-    // Any scroll or resize invalidates the anchor position — close rather
-    // than let the menu drift away from its button.
-    window.addEventListener('scroll', close, true);
+    // A scroll moves the anchor, so the menu follows its button — and closes
+    // only once the button has scrolled out of sight. Closing on any scroll
+    // broke menus near the bottom of a scrolling panel: the click itself
+    // focused the button, the panel scrolled it into view, and the menu shut
+    // the moment it opened.
+    const follow = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (!r || r.bottom < 0 || r.top > window.innerHeight) setRect(null);
+      else setRect(r);
+    };
+    window.addEventListener('scroll', follow, true);
     window.addEventListener('resize', close);
     return () => {
-      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('scroll', follow, true);
       window.removeEventListener('resize', close);
     };
-  }, [rect]);
+  }, [isOpen]);
   // Escape closes the menu alone, not the sheet the menu was opened from.
   useEscapeToClose(!!rect, () => setRect(null));
 
