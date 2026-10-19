@@ -68,6 +68,20 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Job not found' }, { status: 404 });
       }
 
+      // A cancelled shoot comes off the studio calendar rather than being
+      // republished with "Status — Cancelled" buried in its description, where
+      // it still read as a shoot to anyone glancing at their week. The backfill
+      // already skips cancelled jobs, and the pull ignores deleted events, so
+      // it stays off; setting the status back republishes it (pushJobEvent
+      // recreates an event Google reports as gone).
+      if (job.job_status === 'Cancelled') {
+        if (job.google_event_id) {
+          const removed = await deleteEventFrom(token, job.google_event_id);
+          if (!removed) await reapOrphanedEvent(job.google_event_id, job.google_calendar_user_id, studio?.userId ?? null);
+        }
+        return NextResponse.json({ success: true, message: 'Cancelled — removed from Google Calendar.' });
+      }
+
       // Building the event and writing it back are shared with the backfill
       // pass, so a production reaches Google identically however it got there.
       const googleEventId = await pushJobEvent(token, job, studio?.userId ?? null);

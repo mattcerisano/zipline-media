@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
 import { useRealtime } from '@/lib/useRealtime';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
-import { formatLocalDate } from '@/lib/date';
+import { formatLocalDate, todayLocalISO } from '@/lib/date';
 
 /**
  * Library — the reference data behind everything else.
@@ -456,6 +456,27 @@ export default function LibraryWidget() {
     if (entity === 'jobs' && row.raw.google_event_id) {
       const res = await pushJobToGoogleCalendar(row.id);
       if (!res.ok) toast(`Renamed here, but Google Calendar still shows the old title. ${res.message}`);
+    }
+
+    // Productions carry their client's name as well as the link, and that copy
+    // is what the cards, call sheets and calendar events print. Renaming the
+    // client alone left every one of its shoots showing the old name.
+    if (entity === 'clients') {
+      const { data: linked, error: jobsErr } = await supabase
+        .from('jobs')
+        .update({ client_name: next })
+        .eq('client_id', row.id)
+        .select('id, shoot_date, google_event_id');
+      if (jobsErr) {
+        toast(`Renamed the client, but its productions still show the old name: ${jobsErr.message}`);
+        return;
+      }
+      // Upcoming shoots on Google show the client too. Past ones are history.
+      const today = todayLocalISO();
+      const upcoming = (linked || []).filter(j => j.google_event_id && j.shoot_date && j.shoot_date >= today);
+      const results = await Promise.all(upcoming.map(j => pushJobToGoogleCalendar(j.id)));
+      const failed = results.filter(r => !r.ok).length;
+      if (failed > 0) toast(`Renamed. ${failed} upcoming Google Calendar ${failed === 1 ? 'event still shows' : 'events still show'} the old client name.`);
     }
   };
 

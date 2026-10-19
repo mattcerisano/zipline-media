@@ -192,6 +192,30 @@ const ICON_TOOL_SUGGESTIONS: Record<string, string[]> = {
   Star: ['mywork'], Flag: ['mywork'], Lock: ['vault'], Settings: ['dashboard'],
 };
 
+// The small line above each built-in tab's title. A chain of ternaries that
+// ended in 'Contacts & Clients' labelled every tab it didn't list — Library,
+// Usage, Integrations, Meeting Notes and the rest — as the Rolodex.
+const SYSTEM_TAB_EYEBROWS: Record<string, string> = {
+  dashboard: 'Studio Overview',
+  calendar: 'Monthly Schedule',
+  slate: 'Production Schedule',
+  edits: 'Post-Production Pipeline',
+  gear: 'Inventory & Manifests',
+  creative: 'Creative Pre-Production',
+  social: 'Social Rollout Management',
+  inbox: 'Messages & Requests',
+  rolodex: 'Contacts & Clients',
+  meeting_notes: 'Agendas & Minutes',
+  review: 'Client Feedback',
+  locations: 'Location Database',
+  drives: 'Drives & Hand-offs',
+  intake: 'Project Intake',
+  vault: 'Secure Asset Storage',
+  library: 'Shoots, Projects & Clients',
+  usage: 'Team Activity',
+  integrations: 'Connected Services',
+};
+
 const DEFAULT_TABS: CustomTab[] = [
   { id: 'dashboard', label: 'Dashboard', iconName: 'LayoutDashboard', type: 'system', isDefault: true, allowedRoles: ['admin'] },
   { id: 'calendar', label: 'Calendar', iconName: 'Calendar', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
@@ -373,10 +397,20 @@ export default function CommandCenterPage() {
   };
 
   const onDragEnd = (result: any) => {
-    if (!result.destination) return;
-    const items = Array.from(tabs);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    if (!result.destination || userRole !== 'admin') return;
+    const from = result.source.index;
+    const to = result.destination.index;
+    if (from === to) return;
+    // The indexes are positions in the list this account *sees*, which skips
+    // any tab its role can't open. Splicing the full list with them moved the
+    // wrong tabs. Reorder the visible ones, then put them back into the slots
+    // visible tabs held, leaving hidden tabs exactly where they were.
+    const reordered = [...visibleTabs];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved);
+    const visibleIds = new Set(visibleTabs.map(t => t.id));
+    let next = 0;
+    const items = tabs.map(t => (visibleIds.has(t.id) ? reordered[next++] : t));
     setTabs(items);
     persistTabs(items);
   };
@@ -1111,7 +1145,9 @@ export default function CommandCenterPage() {
                       .map((tab, index) => {
                         const Icon = getIconComponent(tab.iconName);
                         return (
-                          <Draggable key={tab.id} draggableId={tab.id} index={index}>
+                          // The sidebar order is the team's (saved to the org), so only
+                          // an admin rearranges it — the same line as editing a tab.
+                          <Draggable key={tab.id} draggableId={tab.id} index={index} isDragDisabled={userRole !== 'admin'}>
                             {(provided, snapshot) => (
                               <div
                                 ref={provided.innerRef}
@@ -1131,7 +1167,7 @@ export default function CommandCenterPage() {
                                     // Room for the hover controls (edit, reset, grip) laid over
                                     // the right edge, so a long label truncates instead of
                                     // running under them. On a phone they are always shown.
-                                    isSidebarOpen ? (userRole === 'admin' ? 'max-md:pr-20 md:group-hover:pr-20' : 'max-md:pr-10 md:group-hover:pr-10') : ''
+                                    isSidebarOpen && userRole === 'admin' ? 'max-md:pr-20 md:group-hover:pr-20' : ''
                                   } ${
                                     activeTab === tab.id
                                       ? 'bg-gradient-to-r from-accent/15 to-accent/5 text-white border-accent/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] shadow-accent/5'
@@ -1192,7 +1228,7 @@ export default function CommandCenterPage() {
                                     always exist in the DOM, so hide it with classes, not unmount. */}
                                 <div
                                   {...provided.dragHandleProps}
-                                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white hover:text-accent transition-opacity cursor-grab active:cursor-grabbing ${(!isSidebarOpen && !isMobile) ? 'opacity-0 pointer-events-none' : 'max-md:opacity-40 opacity-0 group-hover:opacity-40 hover:opacity-100'}`}
+                                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white hover:text-accent transition-opacity cursor-grab active:cursor-grabbing ${(!isSidebarOpen && !isMobile) || userRole !== 'admin' ? 'opacity-0 pointer-events-none' : 'max-md:opacity-40 opacity-0 group-hover:opacity-40 hover:opacity-100'}`}
                                   title="Drag to reorder"
                                   onClick={(e) => e.stopPropagation()}
                                 >
@@ -1280,21 +1316,10 @@ export default function CommandCenterPage() {
               </button>
             )}
             <div>
-              <h2 className="hidden sm:block text-[11px] md:text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-accent/80 mb-1 truncate max-w-[200px] sm:max-w-none">
+              <h2 className="hidden sm:block text-[11px] md:text-[10px] font-semibold uppercase tracking-[0.2em] text-accent/80 mb-1 truncate max-w-[200px] sm:max-w-none">
                 {activeTabObj ? (
-                  activeTabObj.type === 'system' ? (
-                    activeTabObj.id === 'dashboard' ? 'Studio Overview' :
-                    activeTabObj.id === 'calendar' ? 'Monthly Schedule' :
-                    activeTabObj.id === 'slate' ? 'Production Schedule' :
-                    activeTabObj.id === 'edits' ? 'Post-Production Pipeline' :
-                    activeTabObj.id === 'gear' ? 'Inventory & Manifests' :
-                    activeTabObj.id === 'creative' ? 'Creative Pre-Production' :
-                    activeTabObj.id === 'social' ? 'Social Rollout Management' :
-                    activeTabObj.id === 'inbox' ? 'Messages & Requests' :
-                    activeTabObj.id === 'vault' ? 'Secure Asset Storage' :
-                    activeTabObj.id === 'drives' ? 'Drives & Hand-offs' :
-                    'Contacts & Clients'
-                  ) : activeTabObj.type === 'embed' ? 'External Tool Integration' :
+                  activeTabObj.type === 'system' ? (SYSTEM_TAB_EYEBROWS[activeTabObj.id] || 'Studio OS')
+                  : activeTabObj.type === 'embed' ? 'External Tool Integration' :
                       activeTabObj.type === 'notes' ? 'Production Notepad' : 'Custom Workspace Layout'
                 ) : 'Workspace Overview'}
               </h2>
@@ -1433,6 +1458,13 @@ export default function CommandCenterPage() {
                   newProductionSeed={newProductionSeed}
                   onClearNewProductionSeed={() => setNewProductionSeed(null)}
                   onSwitchTab={(target) => {
+                    // The guide is a modal, not a tab — "System Guide" on the
+                    // dashboard sent 'quickstart' here, which no tab answers,
+                    // so the guard above bounced it straight back.
+                    if (target === 'quickstart') {
+                      setIsQuickStartOpen(true);
+                      return;
+                    }
                     if (typeof target === 'string') {
                       setActiveTab(target);
                       localStorage.setItem('studio_active_tab', target);
@@ -1869,7 +1901,7 @@ export default function CommandCenterPage() {
                     })}
                   </div>
                   <p className="text-[11px] md:text-[9px] text-white/25 mt-2 leading-relaxed">
-                    {ROLE_LABELS.editor} accounts are locked to the Edit Tracker and aren&apos;t affected by this setting.
+                    {ROLE_LABELS.editor} accounts are locked to the Edit Tracker and Drive Tracker and aren&apos;t affected by this setting.
                   </p>
                 </div>
 
@@ -2022,7 +2054,7 @@ export default function CommandCenterPage() {
                     })}
                   </div>
                   <p className="text-[11px] md:text-[9px] text-white/25 mt-2 leading-relaxed">
-                    {ROLE_LABELS.editor} accounts are locked to the Edit Tracker and aren&apos;t affected by this setting.
+                    {ROLE_LABELS.editor} accounts are locked to the Edit Tracker and Drive Tracker and aren&apos;t affected by this setting.
                   </p>
                 </div>
 

@@ -154,8 +154,20 @@ const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
   integrations: { type: 'panel', id: 'integrations-root', activeTab: 'integrations', tabs: ['integrations'] },
   library: { type: 'panel', id: 'library-root', activeTab: 'library', tabs: ['library'] },
   drives: { type: 'panel', id: 'drives-root', activeTab: 'drives', tabs: ['drives'] },
-  usage: { type: 'panel', id: 'usage-root', activeTab: 'usage', tabs: ['usage'] }
+  usage: { type: 'panel', id: 'usage-root', activeTab: 'usage', tabs: ['usage'] },
+  // These four shipped in #74 with sidebar tabs but no entry here, so each one
+  // opened on the unknown-tab fallback — a blank Scratch Notes pad — and the
+  // tool itself was only reachable through a panel's + menu, which phones
+  // don't have. Ids differ from that fallback's `${tab}-root` on purpose; see
+  // isBlankFallback below.
+  meeting_notes: { type: 'panel', id: 'meeting-notes-root', activeTab: 'meeting_notes', tabs: ['meeting_notes'] },
+  review: { type: 'panel', id: 'client-review-root', activeTab: 'review', tabs: ['review'] },
+  locations: { type: 'panel', id: 'locations-scouting-root', activeTab: 'locations', tabs: ['locations'] },
+  intake: { type: 'panel', id: 'client-onboarding-root', activeTab: 'intake', tabs: ['intake'] },
 };
+
+/** Built-in tabs that went without a default layout until it was added above. */
+const LATE_DEFAULT_TABS = new Set(['meeting_notes', 'review', 'locations', 'intake']);
 
 interface WorkspaceLayoutProps {
   activeTab: string;
@@ -221,16 +233,28 @@ export default function WorkspaceLayout({
       return node.children.some(isContaminated);
     };
 
+    // A built-in tab that once had no default layout may have saved the blank
+    // notes fallback it was shown (any click in the panel persists it). That
+    // is a stand-in, not a choice anyone made, so the real default replaces it.
+    const isBlankFallback = (node: LayoutNode): boolean =>
+      LATE_DEFAULT_TABS.has(activeTab) &&
+      node.type === 'panel' &&
+      node.id === `${activeTab}-root` &&
+      node.tabs.length === 1 &&
+      node.tabs[0] === 'notes';
+
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as LayoutNode;
-        if (!DEFAULT_LAYOUTS[activeTab] && isContaminated(parsed)) {
+        if (isBlankFallback(parsed)) {
           localStorage.removeItem(storageKey);
           // eslint-disable-next-line react-hooks/set-state-in-effect
           setLayoutRoot(fallback);
+        } else if (!DEFAULT_LAYOUTS[activeTab] && isContaminated(parsed)) {
+          localStorage.removeItem(storageKey);
+          setLayoutRoot(fallback);
         } else {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
           setLayoutRoot(parsed);
         }
       } catch (e) {
