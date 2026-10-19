@@ -33,7 +33,8 @@ import {
   Loader2,
   Handshake,
   Phone,
-  Mail
+  Mail,
+  AlertTriangle,
 } from 'lucide-react';
 
 import { jsPDF } from 'jspdf';
@@ -57,6 +58,7 @@ import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
 import { formatLocalDate } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
 import { STUDIO_OWNER, buildRentalLog, isBorrowed, ownedName, parseOwnedName } from '@/lib/gear-owners';
+import { gearShortfalls } from '@/lib/conflicts';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -460,6 +462,22 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       return total + (item?.replacement || 0) * count;
     }, 0);
   }, [manifest, allInventory]);
+
+  // Studio gear this list can't have on its date because overlapping shoots
+  // already claim it. Borrowed gear is rented per shoot, so it isn't judged.
+  const gearClashes = useMemo(() => {
+    if (!shootDate) return [];
+    const existing = jobs.find(j => j.id === selectedJobId);
+    const target = {
+      ...(existing && existing.shoot_date === shootDate ? existing : {}),
+      id: selectedJobId || '__draft__',
+      title: jobTitle,
+      shoot_date: shootDate,
+    };
+    const owned: Record<string, number> = {};
+    for (const item of allInventory) if (!isBorrowed(item) && item.qty) owned[item.name] = item.qty;
+    return gearShortfalls(target, manifest, jobs, owned);
+  }, [shootDate, jobs, selectedJobId, jobTitle, manifest, allInventory]);
 
   const updateManifest = (name: string, dir: number) => {
     const item = allInventory.find(i => i.name === name);
@@ -1795,6 +1813,19 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg resize-none"
         />
       </div>
+
+      {gearClashes.length > 0 && (
+        <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 space-y-1.5">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-300">
+            <AlertTriangle className="w-3.5 h-3.5" /> Not enough on this date
+          </p>
+          {gearClashes.map(c => (
+            <p key={c.item} className="text-[11px] leading-snug text-amber-200/80">
+              {c.item}: you own {c.owned}, {c.elsewhere.map(e => `${e.count} on ${e.job.title}`).join(', ')}, and this list wants {c.wanted}.
+            </p>
+          ))}
+        </div>
+      )}
 
       <div className="mb-6 pr-2">
         <AnimatePresence mode="popLayout">

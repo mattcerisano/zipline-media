@@ -51,6 +51,7 @@ import {
   type DuplicateGroup,
 } from '@/lib/duplicate-contacts';
 import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
+import { formatLocalDate, todayLocalISO } from '@/lib/date';
 import {
   parseVCF,
   parseContactCSV,
@@ -112,7 +113,7 @@ export default function Rolodex() {
   // Contact Detail Card
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isContactDetailOpen, setIsContactDetailOpen] = useState(false);
-  const [contactDetailHistory, setContactDetailHistory] = useState<{type: 'On-Set' | 'Post', job_title: string, shoot_date: string, position: string, rate?: number, notes?: string}[]>([]);
+  const [contactDetailHistory, setContactDetailHistory] = useState<{type: 'On-Set' | 'Post', job_title: string, shoot_date: string, end_date?: string, call_time?: string, status?: string, position: string, rate?: number, notes?: string}[]>([]);
   const [isDetailHistoryLoading, setIsDetailHistoryLoading] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -402,7 +403,7 @@ export default function Rolodex() {
     try {
       const { data: rolesData, error: rolesError } = await supabase
         .from('job_roles')
-        .select(`position, day_rate, notes, job:jobs(title, shoot_date)`)
+        .select(`position, day_rate, notes, job:jobs(title, shoot_date, end_date, call_time, job_status)`)
         .eq('contact_id', contact.id);
       if (rolesError) throw rolesError;
 
@@ -416,6 +417,9 @@ export default function Rolodex() {
         type: 'On-Set' as const,
         job_title: r.job?.title || 'Unknown',
         shoot_date: r.job?.shoot_date,
+        end_date: r.job?.end_date,
+        call_time: r.job?.call_time,
+        status: r.job?.job_status,
         position: r.position,
         rate: r.day_rate,
         notes: r.notes
@@ -435,6 +439,15 @@ export default function Rolodex() {
       setIsDetailHistoryLoading(false);
     }
   }, []);
+
+  // The detail card splits a person's jobs into shoots they're booked on from
+  // today forward (soonest first) and everything else. Edits stay in history:
+  // a future shoot date on an edit isn't a day they're booked.
+  const today = todayLocalISO();
+  const upcomingBookings = contactDetailHistory
+    .filter(e => e.type === 'On-Set' && e.status !== 'Cancelled' && (e.end_date || e.shoot_date || '') >= today)
+    .sort((a, b) => a.shoot_date.localeCompare(b.shoot_date));
+  const pastHistory = contactDetailHistory.filter(e => !upcomingBookings.includes(e));
 
   // Open client detail card
   const openClientDetail = useCallback(async (client: Client) => {
@@ -1395,6 +1408,33 @@ export default function Rolodex() {
                   </div>
                 )}
 
+                {/* Booked Section */}
+                {upcomingBookings.length > 0 && (
+                  <div className="bg-white/[0.03] rounded-2xl border border-white/5 overflow-hidden">
+                    <div className="flex items-center gap-2 p-4 border-b border-white/5">
+                      <Calendar className="w-3.5 h-3.5 text-accent" />
+                      <p className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/40">Booked</p>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                      {upcomingBookings.map((entry, i) => (
+                        <div key={i} className="flex items-center gap-3 p-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-semibold tracking-tight text-white truncate">{entry.job_title}</p>
+                            <p className="text-[11px] md:text-[9px] font-semibold text-white/30">{entry.position}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-[11px] md:text-[10px] font-semibold text-white/70">
+                              {formatLocalDate(entry.shoot_date, { weekday: 'short', month: 'short', day: 'numeric' })}
+                              {entry.end_date && entry.end_date > entry.shoot_date && ` – ${formatLocalDate(entry.end_date, { month: 'short', day: 'numeric' })}`}
+                            </p>
+                            {entry.call_time && <p className="text-[11px] md:text-[9px] font-semibold text-white/30">Call {entry.call_time}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Work History Section */}
                 <div className="bg-white/[0.03] rounded-2xl border border-white/5 overflow-hidden">
                   <div className="flex items-center justify-between p-4 border-b border-white/5">
@@ -1403,7 +1443,7 @@ export default function Rolodex() {
                       <p className="text-[11px] md:text-[9px] font-medium uppercase tracking-[0.12em] text-white/40">Work History</p>
                     </div>
                     <span className="text-[10px] font-semibold tracking-tight text-accent">
-                      {contactDetailHistory.length} Jobs
+                      {pastHistory.length} Jobs
                     </span>
                   </div>
                   <div className="max-h-56 overflow-y-auto custom-scrollbar">
@@ -1411,9 +1451,9 @@ export default function Rolodex() {
                       <div className="flex items-center justify-center py-8">
                         <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                       </div>
-                    ) : contactDetailHistory.length > 0 ? (
+                    ) : pastHistory.length > 0 ? (
                       <div className="divide-y divide-white/5">
-                        {contactDetailHistory.map((entry, i) => (
+                        {pastHistory.map((entry, i) => (
                           <div key={i} className="flex items-center gap-3 p-3 hover:bg-white/[0.02] transition-colors">
                             <span className={`px-1.5 py-0.5 rounded text-[11px] md:text-[8px] font-semibold tracking-wide shrink-0 ${
                               entry.type === 'On-Set' ? 'bg-blue-500/15 text-blue-400' : 'bg-purple-500/15 text-purple-400'
