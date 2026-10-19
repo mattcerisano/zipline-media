@@ -586,57 +586,85 @@ export default function EditTracker({
 
   return (
     <div className="space-y-6 h-full flex flex-col p-4 md:p-6">
-      {/* The title block had no shrink-0, so once the controls filled the row it
-          was squeezed into a narrow column and "Post-Production Pipeline" broke
-          across three lines. It now holds its width, and the controls below all
-          share one height and one gap instead of five of each. */}
-      <div className={`flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-5 ${TOOLBAR_CARD} shrink-0`}>
-        {/* Active Edits lives here rather than at the end of the control row.
-            It is a readout, not a control, and trailing ten controls it was the
-            one item that kept getting stranded alone on a wrapped second line.
-            Beside the title it also fills the gap that made this header read as
-            two disconnected halves. */}
-        {/* The page header already says Edit Tracker; on a phone this block
-            was a second title above controls that filled the first screen. */}
-        <div className="hidden md:flex items-center gap-4 shrink-0">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight text-white">Post-Production Pipeline</h2>
-            <p className="text-[12px] font-medium tracking-tight opacity-50 text-white mt-1">Trello-style edit tracking</p>
-          </div>
-          <div className={`${CONTROL_H} hidden md:inline-flex items-center gap-2 px-4 bg-white/5 rounded-xl border border-white/5`}>
-            <span className="text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 text-white">Active Edits</span>
-            <span className="text-sm font-semibold text-white tabular-nums">{filteredJobs.filter(j => j.edit_status !== 'Wrapped').length}</span>
-          </div>
+      {/* One row: view, my cards, filters, then the two board actions. The
+          page header already names the screen, so the second title and the
+          Active Edits readout (each column shows its own count) are gone, and
+          client/project/year live behind one Filters button. */}
+      <div className={`flex flex-wrap items-center ${CONTROL_GAP} ${TOOLBAR_CARD} shrink-0`}>
+        <div className={`flex items-center gap-1 p-1 bg-black/50 border border-white/10 rounded-xl ${CONTROL_H}`}>
+          <button
+            onClick={() => setViewMode('board')}
+            className={`h-full px-3.5 text-[13px] font-medium tracking-tight rounded-lg transition-colors ${viewMode === 'board' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+            title="Kanban board grouped by stage"
+          >
+            Board
+          </button>
+          <button
+            onClick={() => setViewMode('timeline')}
+            className={`h-full px-3.5 text-[13px] font-medium tracking-tight rounded-lg transition-colors ${viewMode === 'timeline' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+            title="Agenda view grouped by due date"
+          >
+            Timeline
+          </button>
         </div>
-        <div className={`flex flex-wrap items-center ${CONTROL_GAP}`}>
-          <div className={`flex items-center gap-1 p-1 bg-black/50 border border-white/10 rounded-xl ${CONTROL_H}`}>
-            <button
-              onClick={() => setViewMode('board')}
-              className={`h-full px-3.5 text-[13px] font-medium tracking-tight rounded-lg transition-colors ${viewMode === 'board' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
-              title="Kanban board grouped by stage"
-            >
-              Board
-            </button>
-            <button
-              onClick={() => setViewMode('timeline')}
-              className={`h-full px-3.5 text-[13px] font-medium tracking-tight rounded-lg transition-colors ${viewMode === 'timeline' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
-              title="Agenda view grouped by due date"
-            >
-              Timeline
-            </button>
-          </div>
+        {canManageBoard && myEmail && (
+          <button
+            onClick={() => setMyCardsOnly(v => !v)}
+            className={`inline-flex items-center justify-center gap-2 border ${CONTROL_H} rounded-xl px-4 text-[13px] font-medium tracking-tight transition-colors ${
+              myCardsOnly
+                ? 'bg-accent/15 border-accent/40 text-accent'
+                : 'bg-black/50 border-white/10 text-white/60 hover:text-white hover:border-white/25'
+            }`}
+            title="Show only cards where the assigned editor matches your account email"
+          >
+            <UserCheck className="w-3.5 h-3.5" /> My cards
+          </button>
+        )}
+        <FilterSheet
+          collapsed
+          activeCount={
+            (clientFilter !== 'All' ? 1 : 0) +
+            (projectFilter !== 'All' ? 1 : 0) +
+            (yearFilter !== 'All' ? 1 : 0)
+          }
+        >
+          <select
+            value={clientFilter}
+            onChange={(e) => { setClientFilter(e.target.value); setProjectFilter('All'); }}
+            className={`${CONTROL_SELECT} ${CONTROL_SELECT_MAX} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px]`}
+          >
+            <option value="All">All clients</option>
+            {uniqueClients.map(c => <option key={c as string} value={c as string}>{c as string}</option>)}
+          </select>
+          <select
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            disabled={projectsForFilter.length === 0}
+            className={`${CONTROL_SELECT} ${CONTROL_SELECT_MAX} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px] disabled:opacity-30`}
+          >
+            <option value="All">All projects</option>
+            {projectsForFilter.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <select
+            value={yearFilter}
+            onChange={(e) => setYearFilter(e.target.value)}
+            className={`${CONTROL_SELECT} ${CONTROL_SELECT_MAX} min-w-[110px]`}
+          >
+            <option value="All">All years</option>
+            {uniqueYears.map(y => <option key={y as string} value={y as string}>{y}</option>)}
+          </select>
+        </FilterSheet>
+        <div className={`flex items-center ${CONTROL_GAP} ml-auto`}>
           {canManageBoard && availableJobs.length > 0 && (
             <select
               value=""
               onChange={(e) => {
                 if (e.target.value) updateJobEditStatus(e.target.value, firstStageId);
               }}
-              /* Was unbounded inside a wrapping row, so it stretched to fill
-                 whatever space was left and dwarfed everything beside it. */
-              className={`${CONTROL_H} rounded-xl border border-accent/30 bg-accent/10 text-accent px-4 text-[13px] font-medium tracking-tight outline-none focus:border-accent transition-colors cursor-pointer appearance-none w-full sm:w-auto sm:min-w-[210px] sm:max-w-[240px]`}
+              className={`${CONTROL_H} rounded-xl border border-accent/30 bg-accent/10 text-accent px-4 text-[13px] font-medium tracking-tight outline-none focus:border-accent transition-colors cursor-pointer appearance-none w-full sm:w-auto sm:min-w-[190px] sm:max-w-[240px]`}
               title="Pull a Slate production onto the post-production board"
             >
-              <option value="">+ Add Production to Board</option>
+              <option value="">+ Add production</option>
               {availableJobs.map(j => (
                 <option key={j.id} value={j.id}>
                   {j.title}{j.client_name ? ` — ${j.client_name}` : ''}
@@ -644,64 +672,15 @@ export default function EditTracker({
               ))}
             </select>
           )}
-          {/* Filters fold behind one chip on a phone, as on Slate. Inline they
-              stacked five full-width controls above the first card. */}
-          <FilterSheet
-            activeCount={
-              (clientFilter !== 'All' ? 1 : 0) +
-              (projectFilter !== 'All' ? 1 : 0) +
-              (yearFilter !== 'All' ? 1 : 0) +
-              (myCardsOnly ? 1 : 0)
-            }
-          >
-            {canManageBoard && myEmail && (
-              <button
-                onClick={() => setMyCardsOnly(v => !v)}
-                className={`inline-flex items-center justify-center gap-2 border ${CONTROL_H} rounded-xl px-4 text-[13px] font-medium tracking-tight transition-colors ${
-                  myCardsOnly
-                    ? 'bg-accent/15 border-accent/40 text-accent'
-                    : 'bg-black/50 border-white/10 text-white/60 hover:text-white hover:border-white/25'
-                }`}
-                title="Show only cards where the assigned editor matches your account email"
-              >
-                <UserCheck className="w-3.5 h-3.5" /> My Cards
-              </button>
-            )}
-            {canManageBoard && (
-              <button
-                onClick={() => setIsColumnsModalOpen(true)}
-                className={`${CONTROL_BUTTON} hover:border-white/25`}
-                title="Rename, recolor, add, or remove board columns"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" /> Columns
-              </button>
-            )}
-            <select
-              value={clientFilter}
-              onChange={(e) => { setClientFilter(e.target.value); setProjectFilter('All'); }}
-              className={`${CONTROL_SELECT} ${CONTROL_SELECT_MAX} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px]`}
+          {canManageBoard && (
+            <button
+              onClick={() => setIsColumnsModalOpen(true)}
+              className={`${CONTROL_BUTTON} hover:border-white/25`}
+              title="Rename, recolor, add, or remove board columns"
             >
-              <option value="All">All Clients</option>
-              {uniqueClients.map(c => <option key={c as string} value={c as string}>{c as string}</option>)}
-            </select>
-            <select
-              value={projectFilter}
-              onChange={(e) => setProjectFilter(e.target.value)}
-              disabled={projectsForFilter.length === 0}
-              className={`${CONTROL_SELECT} ${CONTROL_SELECT_MAX} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px] disabled:opacity-30`}
-            >
-              <option value="All">All Projects</option>
-              {projectsForFilter.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <select
-              value={yearFilter}
-              onChange={(e) => setYearFilter(e.target.value)}
-              className={`${CONTROL_SELECT} ${CONTROL_SELECT_MAX} min-w-[110px]`}
-            >
-              <option value="All">All Years</option>
-              {uniqueYears.map(y => <option key={y as string} value={y as string}>{y}</option>)}
-            </select>
-          </FilterSheet>
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Columns
+            </button>
+          )}
         </div>
       </div>
 

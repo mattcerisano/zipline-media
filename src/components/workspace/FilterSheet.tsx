@@ -20,12 +20,16 @@ import { SlidersHorizontal, X } from 'lucide-react';
 export function FilterSheet({
   activeCount,
   title = 'Filters',
+  collapsed = false,
   children,
 }: {
   /** How many filters are set. Shown on the chip, because a hidden filter with
    *  no indicator reads as missing data rather than as a filter. */
   activeCount: number;
   title?: string;
+  /** Keep the controls behind the chip on desktop too, for toolbars where
+   *  inline filters crowd out the things people use every day. */
+  collapsed?: boolean;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -36,7 +40,7 @@ export function FilterSheet({
         type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className={`md:hidden flex items-center gap-2 px-3 py-3 rounded-xl border text-[13px] font-medium tracking-tight transition-colors shrink-0 ${
+        className={`${collapsed ? '' : 'md:hidden '}flex items-center gap-2 px-3 py-3 rounded-xl border text-[13px] font-medium tracking-tight transition-colors shrink-0 ${
           activeCount > 0 || open
             ? 'bg-accent/15 border-accent/40 text-accent'
             : 'bg-black/50 border-white/10 text-white/60'
@@ -54,7 +58,9 @@ export function FilterSheet({
       {/* One instance of the controls. `hidden` below md unless expanded;
           always a flex row from md up. */}
       <div
-        className={`${open ? 'flex' : 'hidden'} w-full flex-col gap-3 md:flex md:w-auto md:flex-row md:flex-wrap md:items-center`}
+        className={collapsed
+          ? `${open ? 'flex' : 'hidden'} w-full flex-col gap-3 md:flex-row md:flex-wrap md:items-center`
+          : `${open ? 'flex' : 'hidden'} w-full flex-col gap-3 md:flex md:w-auto md:flex-row md:flex-wrap md:items-center`}
       >
         {children}
       </div>
