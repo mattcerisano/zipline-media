@@ -178,6 +178,9 @@ interface WorkspaceLayoutProps {
   onClearPreselectedJobId: () => void;
   newProductionSeed?: NewProductionSeed | null;
   onClearNewProductionSeed?: () => void;
+  /** An Edit Tracker card another screen asked to open (My Work). */
+  openEditCardId?: string | null;
+  onClearOpenEditCard?: () => void;
   onSwitchTab: (tab: any) => void;
 }
 
@@ -190,6 +193,8 @@ export default function WorkspaceLayout({
   onClearPreselectedJobId,
   newProductionSeed,
   onClearNewProductionSeed,
+  openEditCardId,
+  onClearOpenEditCard,
   onSwitchTab
 }: WorkspaceLayoutProps) {
   const [layoutRoot, setLayoutRoot] = useState<LayoutNode | null>(null);
@@ -294,6 +299,8 @@ export default function WorkspaceLayout({
           onClearPreselectedJobId={onClearPreselectedJobId}
           newProductionSeed={newProductionSeed}
           onClearNewProductionSeed={onClearNewProductionSeed}
+          openEditCardId={openEditCardId}
+          onClearOpenEditCard={onClearOpenEditCard}
           onSwitchTab={onSwitchTab}
         />
       </div>
@@ -467,6 +474,8 @@ function WorkspacePanel({
   onClearPreselectedJobId,
   newProductionSeed,
   onClearNewProductionSeed,
+  openEditCardId,
+  onClearOpenEditCard,
   onSwitchTab
 }: { 
   node: LayoutNode & { type: 'panel' }; 
@@ -764,6 +773,8 @@ function WorkspacePanel({
           onClearPreselectedJobId={onClearPreselectedJobId}
           newProductionSeed={newProductionSeed}
           onClearNewProductionSeed={onClearNewProductionSeed}
+          openEditCardId={openEditCardId}
+          onClearOpenEditCard={onClearOpenEditCard}
           onSwitchTab={onSwitchTab}
         />
       </div>
@@ -939,6 +950,8 @@ function WidgetMount({
   onClearPreselectedJobId,
   newProductionSeed,
   onClearNewProductionSeed,
+  openEditCardId,
+  onClearOpenEditCard,
   onSwitchTab
 }: { 
   type: string;
@@ -1002,7 +1015,14 @@ function WidgetMount({
         />
       );
     case 'edits':
-      return <EditTracker userRole={userRole || undefined} selectedJobId={boundJobId || undefined} />;
+      return (
+        <EditTracker
+          userRole={userRole || undefined}
+          selectedJobId={boundJobId || undefined}
+          openCardId={openEditCardId}
+          onCardOpened={onClearOpenEditCard}
+        />
+      );
     case 'gear':
       return (
         <Rentals 
@@ -1048,7 +1068,7 @@ function WidgetMount({
     case 'tasks':
       return <TasksWidget />;
     case 'mywork':
-      return <MyWorkWidget />;
+      return <MyWorkWidget onSwitchTab={onSwitchTab} />;
     case 'docs':
       return <NotesLibraryWidget />;
     case 'vault':

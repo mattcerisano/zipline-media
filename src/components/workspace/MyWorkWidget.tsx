@@ -5,11 +5,13 @@ import { Scissors, Clapperboard, ListTodo, Loader2, UserCheck, Calendar } from '
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { formatLocalDate, parseLocalDate } from '@/lib/date';
+import { DEFAULT_STAGE_DEFS, sanitizeStageDefs, stageLabel, type EditStageDef } from '@/lib/edit-stages';
 
 // "My Work" — everything assigned to the signed-in user in one place:
 // edit cards where they're the editor, upcoming shoots where they're on the
-// crew, and open tasks. Identity is matched to the Rolodex by the account's
-// email, so it works with the data the team already keeps.
+// crew, and the open to-dos on those productions. Identity is matched to the
+// Rolodex by the account's email, so it works with the data the team already
+// keeps. Every row opens the thing it's about.
 
 interface MyCard {
   id: string;
@@ -31,15 +33,17 @@ interface MyCall {
 interface OpenTask {
   id: string;
   task: string;
+  job_id?: string | null;
   job_title?: string | null;
   due_date?: string | null;
 }
 
-export default function MyWorkWidget() {
+export default function MyWorkWidget({ onSwitchTab }: { onSwitchTab?: (target: unknown) => void } = {}) {
   const [email, setEmail] = useState<string | null>(null);
   const [cards, setCards] = useState<MyCard[]>([]);
   const [calls, setCalls] = useState<MyCall[]>([]);
   const [tasks, setTasks] = useState<OpenTask[]>([]);
+  const [stageDefs, setStageDefs] = useState<EditStageDef[]>(DEFAULT_STAGE_DEFS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,7 +62,7 @@ export default function MyWorkWidget() {
         .ilike('email', email);
       const myIds = (myContacts || []).map(c => c.id);
 
-      const [cardsRes, rolesRes, tasksRes] = await Promise.all([
+      const [cardsRes, rolesRes, orgRes] = await Promise.all([
         myIds.length > 0
           ? supabase
               .from('jobs')
@@ -73,20 +77,19 @@ export default function MyWorkWidget() {
               .select('position, job:jobs(id, title, shoot_date, call_time, location_name, job_status)')
               .in('contact_id', myIds)
           : Promise.resolve({ data: [] } as any),
-        supabase
-          .from('job_todos')
-          .select('id, task, due_date, job:jobs(title)')
-          .eq('completed', false)
-          .order('due_date', { ascending: true, nullsFirst: false })
-          .limit(25),
+        // The board's own column names, so a card reads "Work in Progress"
+        // here as it does there rather than the stored id "WIP".
+        supabase.from('organizations').select('edit_stages').order('created_at', { ascending: true }).limit(1).maybeSingle(),
       ]);
 
-      setCards(((cardsRes.data as any[]) || []).filter(c => !['Delivered', 'Wrapped'].includes(c.edit_status)));
+      const myCards = ((cardsRes.data as any[]) || []).filter(c => !['Delivered', 'Wrapped'].includes(c.edit_status));
+      setCards(myCards);
+      setStageDefs(sanitizeStageDefs((orgRes.data as any)?.edit_stages) || DEFAULT_STAGE_DEFS);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const upcoming: MyCall[] = ((rolesRes.data as any[]) || [])
-        .filter(r => r.job && r.job.job_status !== 'Cancelled')
+      const myRoles = ((rolesRes.data as any[]) || []).filter(r => r.job && r.job.job_status !== 'Cancelled');
+      const upcoming: MyCall[] = myRoles
         .map(r => ({
           jobId: r.job.id,
           title: r.job.title,
@@ -103,12 +106,32 @@ export default function MyWorkWidget() {
         .slice(0, 10);
       setCalls(upcoming);
 
-      setTasks(((tasksRes.data as any[]) || []).map(t => ({
-        id: t.id,
-        task: t.task,
-        due_date: t.due_date,
-        job_title: t.job?.title || null,
-      })));
+      // To-dos aren't assigned to a person, so "mine" means the ones on the
+      // productions this account cuts or crews. This section used to list
+      // every open to-do in the studio under a heading that said they were
+      // yours.
+      const myJobIds = Array.from(new Set([
+        ...myCards.map(c => c.id as string),
+        ...myRoles.map(r => r.job.id as string),
+      ]));
+      if (myJobIds.length === 0) {
+        setTasks([]);
+      } else {
+        const { data: taskRows } = await supabase
+          .from('job_todos')
+          .select('id, task, due_date, job_id, job:jobs(title)')
+          .eq('completed', false)
+          .in('job_id', myJobIds)
+          .order('due_date', { ascending: true, nullsFirst: false })
+          .limit(25);
+        setTasks(((taskRows as any[]) || []).map(t => ({
+          id: t.id,
+          task: t.task,
+          due_date: t.due_date,
+          job_id: t.job_id,
+          job_title: t.job?.title || null,
+        })));
+      }
     } catch (err) {
       console.error('My Work load failed:', err);
     } finally {
@@ -152,16 +175,22 @@ export default function MyWorkWidget() {
         ) : (
           <div className="space-y-1.5">
             {cards.map(c => (
-              <div key={c.id} className="flex items-center gap-3 bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5">
+              <button
+                type="button"
+                key={c.id}
+                onClick={() => onSwitchTab?.({ openEditCard: c.id })}
+                title="Open this card on the Edit Tracker"
+                className="w-full text-left flex items-center gap-3 bg-white/[0.03] border border-white/5 hover:border-accent/30 hover:bg-white/[0.06] rounded-xl px-3 py-2.5 transition-colors"
+              >
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-white truncate">{c.title}</p>
                   <p className="text-[11px] md:text-[9px] text-white/35 truncate">{c.client_name || 'Internal'}</p>
                 </div>
-                <span className="shrink-0 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-accent bg-accent/10 px-2 py-1 rounded-full">{c.edit_status}</span>
+                <span className="shrink-0 text-[11px] md:text-[10px] font-semibold text-accent bg-accent/10 px-2 py-1 rounded-full">{stageLabel(stageDefs, c.edit_status)}</span>
                 {c.due_date && (
                   <span className="shrink-0 text-[11px] md:text-[9px] font-bold text-white/40">{formatLocalDate(c.due_date, { month: 'short', day: 'numeric' })}</span>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -175,7 +204,13 @@ export default function MyWorkWidget() {
         ) : (
           <div className="space-y-1.5">
             {calls.map((c, i) => (
-              <div key={`${c.jobId}-${i}`} className="flex items-center gap-3 bg-white/[0.03] border border-white/5 rounded-xl px-3 py-2.5">
+              <button
+                type="button"
+                key={`${c.jobId}-${i}`}
+                onClick={() => onSwitchTab?.({ selectCalendarJob: c.jobId })}
+                title="Open this production on the Slate"
+                className="w-full text-left flex items-center gap-3 bg-white/[0.03] border border-white/5 hover:border-accent/30 hover:bg-white/[0.06] rounded-xl px-3 py-2.5 transition-colors"
+              >
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-white truncate">{c.title}</p>
                   <p className="text-[11px] md:text-[9px] text-white/35 truncate">{c.position}{c.location_name ? ` · ${c.location_name}` : ''}</p>
@@ -186,7 +221,7 @@ export default function MyWorkWidget() {
                   </p>
                   {c.call_time && <p className="text-[11px] md:text-[9px] text-accent font-bold mt-0.5">Call {c.call_time}</p>}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -194,23 +229,33 @@ export default function MyWorkWidget() {
 
       {/* Open tasks */}
       <section>
-        <h3 className={sectionTitle}><ListTodo className="w-3.5 h-3.5 text-accent" /> Open Tasks ({tasks.length})</h3>
+        <h3 className={sectionTitle}><ListTodo className="w-3.5 h-3.5 text-accent" /> Open Tasks on My Productions ({tasks.length})</h3>
         {tasks.length === 0 ? (
-          <p className="text-[11px] text-white/25 px-1">No open tasks. Nice.</p>
+          <p className="text-[11px] text-white/25 px-1">No open to-dos on your productions.</p>
         ) : (
           <div className="space-y-1">
             {tasks.map(t => (
-              <label key={t.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer">
+              <div key={t.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
                 <input
                   type="checkbox"
                   checked={false}
                   onChange={() => toggleTask(t.id)}
+                  aria-label={`Mark "${t.task}" done`}
                   className="w-4 h-4 rounded border-white/20 text-accent focus:ring-accent bg-black cursor-pointer shrink-0"
                 />
                 <span className="flex-1 min-w-0 text-xs text-white/80 truncate">{t.task}</span>
-                {t.job_title && <span className="text-[11px] md:text-[9px] font-bold text-accent/60 truncate max-w-[110px] shrink-0">{t.job_title}</span>}
+                {t.job_title && t.job_id && (
+                  <button
+                    type="button"
+                    onClick={() => onSwitchTab?.({ selectCalendarJob: t.job_id })}
+                    title="Open this production on the Slate"
+                    className="text-[11px] md:text-[9px] font-bold text-accent/60 hover:text-accent truncate max-w-[110px] shrink-0 transition-colors"
+                  >
+                    {t.job_title}
+                  </button>
+                )}
                 {t.due_date && <span className="text-[11px] md:text-[9px] text-white/30 shrink-0">{formatLocalDate(t.due_date, { month: 'short', day: 'numeric' })}</span>}
-              </label>
+              </div>
             ))}
           </div>
         )}

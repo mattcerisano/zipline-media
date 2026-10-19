@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EscapeToClose } from '@/components/workspace/Overlay';
 import { X, User as UserIcon, Building2, Upload, Loader2, Save, Palette, SwatchBook, Bell, RotateCcw, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/components/gearbuilder/types';
@@ -205,6 +206,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
         className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-black/75 backdrop-blur-sm md:p-4"
         onClick={onClose}
       >
+        <EscapeToClose onClose={onClose} />
         <motion.div
           initial={{ y: 30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

@@ -34,6 +34,7 @@ import {
   Merge
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EscapeToClose } from '@/components/workspace/Overlay';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { Contact, Client } from '@/components/gearbuilder/types';
@@ -1200,6 +1201,7 @@ export default function Rolodex() {
             onClick={(e) => { if (e.target === e.currentTarget) setIsContactDetailOpen(false); }}
             className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg cursor-pointer"
           >
+            <EscapeToClose onClose={() => setIsContactDetailOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1473,6 +1475,7 @@ export default function Rolodex() {
             onClick={(e) => { if (e.target === e.currentTarget) setIsClientDetailOpen(false); }}
             className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg cursor-pointer"
           >
+            <EscapeToClose onClose={() => setIsClientDetailOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.92, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1671,6 +1674,7 @@ export default function Rolodex() {
             }}
             className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-pointer"
           >
+            <EscapeToClose onClose={() => setIsHistoryOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1748,6 +1752,7 @@ export default function Rolodex() {
       <AnimatePresence>
         {isImportOptionsOpen && (
           <div className="fixed inset-0 z-[150] overflow-y-auto bg-black/80 backdrop-blur-sm p-4 flex justify-center">
+            <EscapeToClose onClose={() => setIsImportOptionsOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1856,6 +1861,7 @@ export default function Rolodex() {
             }}
             className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md cursor-pointer"
           >
+            <EscapeToClose onClose={() => setIsImportModalOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -2078,6 +2084,7 @@ export default function Rolodex() {
       <AnimatePresence>
         {isClientImportOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <EscapeToClose onClose={() => setIsClientImportOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -2165,6 +2172,7 @@ export default function Rolodex() {
             }}
             className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
           >
+            <EscapeToClose onClose={() => setIsModalOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -2360,6 +2368,7 @@ export default function Rolodex() {
             }}
             className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
           >
+            <EscapeToClose onClose={() => setIsClientModalOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -2454,6 +2463,7 @@ export default function Rolodex() {
             }}
             className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-pointer"
           >
+            <EscapeToClose onClose={() => setIsClientHistoryOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}

@@ -56,7 +56,7 @@ let pushPrompt: ((r: PromptRequest) => void) | null = null;
 /** Show a transient toast. Type defaults to error when the message reads like a failure. */
 export function toast(message: string, type?: ToastType) {
   const resolved: ToastType =
-    type ?? (/fail|error|could not|couldn't|unable|denied|invalid|missing/i.test(message) ? 'error' : 'success');
+    type ?? (/fail|error|could not|couldn't|unable|denied|invalid|missing|not connected|expired/i.test(message) ? 'error' : 'success');
   if (pushToast) pushToast({ message, type: resolved });
   else if (typeof window !== 'undefined') window.alert(message); // host not mounted — never swallow feedback
 }
@@ -127,15 +127,17 @@ export default function FeedbackHost() {
     });
   }, []);
 
-  // Escape cancels the confirm.
+  // Escape cancels the confirm. Caught on the way down and stopped there: the
+  // confirm sits above every other overlay, so the sheet that raised it (a
+  // card, a production form) must not also take the Escape and close.
   useEffect(() => {
     if (!confirmReq) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') settle(false);
-      if (e.key === 'Enter') settle(true);
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); settle(false); }
+      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); settle(true); }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   }, [confirmReq, settle]);
 
   const toastStyle: Record<ToastType, { icon: React.ReactNode; classes: string }> = {
@@ -144,8 +146,13 @@ export default function FeedbackHost() {
     info: { icon: <AlertCircle className="w-4 h-4 shrink-0" />, classes: 'bg-zinc-800/95 border-white/15' },
   };
 
+  // The host mounts in the root layout, outside the app shell, so the brand
+  // site's "LuloClean caps on every heading and button" rule reached these
+  // dialogs: "Cancel production?" rendered as a shouted all-caps title and
+  // buttons. They're written for the calm sentence-case look; .studio-shell is
+  // what switches that rule off. It carries no layout of its own.
   return (
-    <>
+    <div className="studio-shell" data-feedback-host="">
       {/* Toast stack */}
       <div className="fixed bottom-6 inset-x-0 z-[9500] flex flex-col items-center gap-2 px-4 pointer-events-none">
         <AnimatePresence>
@@ -196,7 +203,7 @@ export default function FeedbackHost() {
                     autoFocus
                     value={promptValue}
                     onChange={(e) => setPromptValue(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Escape') settlePrompt(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); settlePrompt(null); } }}
                     placeholder={promptReq.placeholder}
                     className="w-full bg-black/50 border border-white/10 px-3 py-2.5 rounded-xl outline-none focus:border-accent text-sm font-semibold text-white"
                   />
@@ -272,6 +279,6 @@ export default function FeedbackHost() {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }
