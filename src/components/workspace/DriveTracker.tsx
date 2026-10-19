@@ -13,8 +13,6 @@ import {
   AlertTriangle,
   Archive,
   Trash2,
-  Copy,
-  Check,
   Users,
   List,
   RotateCcw,
@@ -22,21 +20,20 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { Modal, DropdownMenu, type MenuItem } from '@/components/workspace/Overlay';
-import { formatLocalDate, todayLocalISO, addDays } from '@/lib/date';
+import { formatLocalDate, todayLocalISO } from '@/lib/date';
 import {
   DRIVE_MODELS,
-  GRACE_DAYS,
+  OWNERS,
   daysOut,
-  daysOverdue,
   describeDrive,
   driveTotals,
   formatCapacity,
+  groupAvailable,
   groupByHolder,
-  reminderMessage,
+  keeperOf,
   type Drive,
   type DriveAction,
   type DriveEvent,
-  type DriveKind,
   type DriveStatus,
   type HolderType,
 } from '@/lib/drives';
@@ -48,11 +45,10 @@ interface JobOption {
 }
 
 type View = 'holders' | 'all';
-type StatusFilter = 'all' | 'out' | 'overdue' | 'in_office' | 'lost' | 'retired';
-type KindFilter = 'all' | DriveKind;
+type StatusFilter = 'all' | 'out' | 'in_office' | 'lost' | 'retired';
 
 const STATUS_LABEL: Record<DriveStatus, string> = {
-  in_office: 'In office',
+  in_office: 'Available',
   out: 'Out',
   lost: 'Lost',
   retired: 'Retired',
@@ -100,13 +96,11 @@ export default function DriveTracker() {
 
   const [view, setView] = useState<View>('holders');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [kindFilter, setKindFilter] = useState<KindFilter>('all');
   const [query, setQuery] = useState('');
 
   const [editing, setEditing] = useState<Drive | 'new' | null>(null);
   const [checkingOut, setCheckingOut] = useState<Drive | null>(null);
   const [historyFor, setHistoryFor] = useState<Drive | null>(null);
-  const [copiedHolder, setCopiedHolder] = useState<string | null>(null);
 
   const applyDrives = useCallback(({ data, error }: { data: unknown[] | null; error: { code?: string; message: string } | null }) => {
     if (error) {
@@ -156,13 +150,12 @@ export default function DriveTracker() {
 
   const matches = useCallback(
     (d: Drive) => {
-      if (kindFilter !== 'all' && d.kind !== kindFilter) return false;
       const q = query.trim().toLowerCase();
       if (!q) return true;
       return [d.label, d.model, d.serial, d.holder_name, d.notes, d.job_id ? jobTitles[d.job_id] : '']
         .some((v) => (v || '').toLowerCase().includes(q));
     },
-    [kindFilter, query, jobTitles]
+    [query, jobTitles]
   );
 
   const listed = useMemo(() => {
@@ -171,15 +164,11 @@ export default function DriveTracker() {
       .filter((d) => {
         switch (statusFilter) {
           case 'all': return d.status !== 'retired';
-          case 'overdue': return daysOverdue(d) !== null;
           default: return d.status === statusFilter;
         }
       })
       .sort((a, b) => {
-        // Overdue first, then out (longest first), then the rest by label.
-        const oa = daysOverdue(a) ?? -1;
-        const ob = daysOverdue(b) ?? -1;
-        if (oa !== ob) return ob - oa;
+        // Out first (longest first), then the rest by label.
         const da = daysOut(a) ?? -1;
         const db = daysOut(b) ?? -1;
         if (da !== db) return db - da;
@@ -188,6 +177,7 @@ export default function DriveTracker() {
   }, [drives, matches, statusFilter]);
 
   const holderGroups = useMemo(() => groupByHolder(drives.filter(matches)), [drives, matches]);
+  const keeperGroups = useMemo(() => groupAvailable(drives.filter(matches)), [drives, matches]);
 
   // ---- Writes ------------------------------------------------------------
 
@@ -214,21 +204,28 @@ export default function DriveTracker() {
     await logEvent(drive, action, extra);
   };
 
-  const clearHolder: Partial<Drive> = { holder_name: null, holder_type: null, job_id: null, checked_out_at: null, expected_back: null };
+  /** Back in the studio and free to hand out, with whichever owner has it. */
+  const withOwner = (owner: string | null): Partial<Drive> => ({
+    status: 'in_office', holder_name: owner, holder_type: null, job_id: null, checked_out_at: null, expected_back: null,
+  });
 
-  const markReturned = (drive: Drive) =>
-    patchDrive(drive, { status: 'in_office', ...clearHolder }, 'returned', { holder_name: drive.holder_name, job_id: drive.job_id });
+  const markReturned = (drive: Drive, owner: string) =>
+    patchDrive(drive, withOwner(owner), 'returned', { holder_name: drive.holder_name, job_id: drive.job_id, note: `Back with ${owner}` });
+
+  const moveTo = (drive: Drive, owner: string) =>
+    patchDrive(drive, { holder_name: owner }, 'note', { holder_name: owner, note: `Moved to ${owner}` });
 
   const markLost = (drive: Drive) => {
     if (!confirm(`Mark ${drive.label} as lost? It stays in the tracker so you can mark it found later.`)) return;
     patchDrive(drive, { status: 'lost' }, 'lost');
   };
 
-  const markFound = (drive: Drive) => patchDrive(drive, { status: 'in_office', ...clearHolder }, 'found');
+  const markFound = (drive: Drive, owner: string) =>
+    patchDrive(drive, withOwner(owner), 'found', { holder_name: owner, job_id: null, note: `With ${owner}` });
 
   const retire = (drive: Drive) => {
     if (!confirm(`Retire ${drive.label}? Use this for a drive that died or was given away. It drops out of the totals.`)) return;
-    patchDrive(drive, { status: 'retired', ...clearHolder }, 'retired');
+    patchDrive(drive, { ...withOwner(null), status: 'retired' }, 'retired');
   };
 
   const remove = async (drive: Drive) => {
@@ -241,20 +238,8 @@ export default function DriveTracker() {
     }
   };
 
-  const returnAll = async (holder: string, list: Drive[]) => {
-    if (!confirm(`Mark all ${list.length} drives from ${holder} as returned?`)) return;
-    for (const d of list) await markReturned(d);
-  };
-
-  const copyReminder = async (holder: string, list: Drive[]) => {
-    const text = reminderMessage(holder, list, jobTitles);
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedHolder(holder);
-      setTimeout(() => setCopiedHolder((h) => (h === holder ? null : h)), 2000);
-    } catch {
-      prompt('Copy this reminder:', text);
-    }
+  const returnAll = async (list: Drive[], owner: string) => {
+    for (const d of list) await markReturned(d, owner);
   };
 
   // ---- Render ------------------------------------------------------------
@@ -265,38 +250,45 @@ export default function DriveTracker() {
       { label: 'History', icon: <History className="w-3.5 h-3.5" />, onSelect: () => setHistoryFor(d), hint: 'Everyone who has had it' },
     ];
     if (d.status === 'out') {
-      items.push({ label: 'Change holder or date', icon: <ArrowUpRight className="w-3.5 h-3.5" />, onSelect: () => setCheckingOut(d) });
+      items.push({ label: 'Change who has it', icon: <ArrowUpRight className="w-3.5 h-3.5" />, onSelect: () => setCheckingOut(d) });
     }
-    if (d.status === 'lost') {
-      items.push({ label: 'Mark found', icon: <RotateCcw className="w-3.5 h-3.5" />, onSelect: () => markFound(d) });
-    } else if (d.status !== 'retired') {
+    if (d.status === 'in_office') {
+      for (const o of OWNERS) {
+        if (keeperOf(d) !== o) items.push({ label: `Move to ${o}`, icon: <Users className="w-3.5 h-3.5" />, onSelect: () => moveTo(d, o) });
+      }
+    }
+    if (d.status === 'lost' || d.status === 'retired') {
+      for (const o of OWNERS) {
+        items.push({
+          label: d.status === 'lost' ? `Found, with ${o}` : `Back in service, with ${o}`,
+          icon: <RotateCcw className="w-3.5 h-3.5" />,
+          onSelect: () => markFound(d, o),
+        });
+      }
+    }
+    if (d.status !== 'lost' && d.status !== 'retired') {
       items.push({ label: 'Mark lost', icon: <AlertTriangle className="w-3.5 h-3.5" />, onSelect: () => markLost(d) });
     }
-    if (d.status === 'retired') {
-      items.push({ label: 'Bring back into service', icon: <RotateCcw className="w-3.5 h-3.5" />, onSelect: () => markFound(d) });
-    } else {
+    if (d.status !== 'retired') {
       items.push({ label: 'Retire', icon: <Archive className="w-3.5 h-3.5" />, onSelect: () => retire(d), hint: 'Dead, wiped for good, or given away' });
     }
     items.push({ label: 'Delete', icon: <Trash2 className="w-3.5 h-3.5" />, onSelect: () => remove(d), danger: true });
     return items;
   };
 
-  const renderRow = (d: Drive, opts: { showHolder: boolean }) => {
+  const renderRow = (d: Drive, opts: { showHolder: boolean; showStatus?: boolean }) => {
     const out = daysOut(d);
-    const late = daysOverdue(d);
+    const keeper = keeperOf(d);
     const spec = describeDrive(d);
     return (
       <div
         key={d.id}
-        className={`flex items-center gap-3 px-3.5 py-3 rounded-xl border transition-colors ${
-          late !== null ? 'border-red-500/25 bg-red-500/[0.04]' : 'border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.04]'
-        }`}
+        className="flex items-center gap-3 px-3.5 py-3 rounded-xl border border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
       >
         <div
           className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-            d.kind === 'transfer' ? 'bg-sky-500/10 text-sky-300' : 'bg-accent/10 text-accent'
+            d.status === 'in_office' ? 'bg-emerald-500/10 text-emerald-300' : d.status === 'out' ? 'bg-accent/10 text-accent' : 'bg-white/5 text-white/40'
           }`}
-          title={d.kind === 'transfer' ? 'Transfer drive' : 'Editor drive'}
         >
           <HardDrive className="w-4 h-4" />
         </div>
@@ -305,38 +297,41 @@ export default function DriveTracker() {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold tracking-tight text-white">{d.label}</span>
             {spec && <span className="hidden sm:inline text-[11px] text-white/40">{spec}</span>}
-            {d.status !== 'out' && <StatusPill status={d.status} />}
+            {opts.showStatus && d.status !== 'out' && <StatusPill status={d.status} />}
             {out !== null && (
-              <span className={`sm:hidden px-1.5 py-0.5 rounded text-[10px] font-medium tabular-nums ${
-                late !== null ? 'bg-red-500/10 text-red-400' : 'bg-white/5 text-white/55'
-              }`}>
-                {late !== null ? `${late}d overdue` : `${out}d out`}
+              <span className="sm:hidden px-1.5 py-0.5 rounded text-[10px] font-medium tabular-nums bg-white/5 text-white/55">
+                {out}d out
               </span>
             )}
           </div>
           {spec && <div className="sm:hidden text-[11px] text-white/40 truncate">{spec}</div>}
-          <div className="text-[11px] text-white/45 mt-0.5 truncate">
-            {d.status === 'out' ? (
-              <>
-                {opts.showHolder && <span className="text-white/75 font-medium">{d.holder_name || 'Unknown'}</span>}
-                {opts.showHolder && d.job_id && jobTitles[d.job_id] && ' · '}
-                {d.job_id && jobTitles[d.job_id] && <span>{jobTitles[d.job_id]}</span>}
-                {d.expected_back && <span>{(opts.showHolder || d.job_id) ? ' · ' : ''}due {formatLocalDate(d.expected_back, { month: 'short', day: 'numeric' })}</span>}
-              </>
-            ) : (
-              d.notes || (d.serial ? `S/N ${d.serial}` : d.kind === 'transfer' ? 'Transfer drive' : 'Editor drive')
-            )}
-          </div>
+          {(() => {
+            const sub = d.status === 'out' ? null : [
+              opts.showHolder && d.status === 'in_office' ? (keeper ? `With ${keeper}` : 'In the office') : '',
+              d.notes || (d.serial ? `S/N ${d.serial}` : ''),
+            ].filter(Boolean).join(' · ');
+            if (d.status !== 'out' && !sub) return null;
+            return (
+              <div className="text-[11px] text-white/45 mt-0.5 truncate">
+                {d.status === 'out' ? (
+                  <>
+                    {opts.showHolder && <span className="text-white/75 font-medium">{d.holder_name || 'Unknown'}</span>}
+                    {opts.showHolder && d.job_id && jobTitles[d.job_id] && ' · '}
+                    {d.job_id && jobTitles[d.job_id] && <span>{jobTitles[d.job_id]}</span>}
+                    {d.checked_out_at && <span>{(opts.showHolder || (d.job_id && jobTitles[d.job_id])) ? ' · ' : ''}since {formatLocalDate(d.checked_out_at, { month: 'short', day: 'numeric' })}</span>}
+                  </>
+                ) : sub}
+              </div>
+            );
+          })()}
         </div>
 
         {out !== null && (
           <div className="text-right shrink-0 hidden sm:block">
-            <div className={`text-xs font-semibold tabular-nums ${late !== null ? 'text-red-400' : 'text-white/70'}`}>
+            <div className="text-xs font-semibold tabular-nums text-white/70">
               {out === 0 ? 'Today' : `${out} day${out === 1 ? '' : 's'}`}
             </div>
-            <div className={`text-[10px] ${late !== null ? 'text-red-400/80' : 'text-white/35'}`}>
-              {late !== null ? `${late} day${late === 1 ? '' : 's'} overdue` : 'out'}
-            </div>
+            <div className="text-[10px] text-white/35">out</div>
           </div>
         )}
 
@@ -350,13 +345,11 @@ export default function DriveTracker() {
           </button>
         )}
         {d.status === 'out' && (
-          <button
-            onClick={() => markReturned(d)}
-            aria-label={`Mark ${d.label} returned`}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.06] hover:bg-emerald-500 hover:text-white text-white/80 transition-colors"
-          >
-            <CornerDownLeft className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Returned</span>
-          </button>
+          <ReturnButton
+            label="Returned"
+            ariaLabel={`Mark ${d.label} returned`}
+            onReturn={(owner) => markReturned(d, owner)}
+          />
         )}
 
         <DropdownMenu
@@ -379,8 +372,6 @@ export default function DriveTracker() {
     );
   };
 
-  const inOfficeShelf = drives.filter((d) => d.status === 'in_office' && matches(d));
-
   return (
     <div className="flex flex-col h-full bg-neutral-950 text-white overflow-hidden">
       {/* Header */}
@@ -391,7 +382,7 @@ export default function DriveTracker() {
               <HardDrive className="w-5 h-5 text-accent" /> Drive tracker
             </h1>
             <p className="text-xs text-white/40 mt-0.5">
-              Every SSD and transfer drive, who has it, and since when.
+              Who has each drive, and which ones are free to go out.
             </p>
           </div>
           <button
@@ -403,25 +394,24 @@ export default function DriveTracker() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4">
+          <Stat
+            className="col-span-2 md:col-span-1"
+            label="Available"
+            value={String(totals.available)}
+            detail={[
+              ...OWNERS.map((o) => `${o} ${totals.availableBy[o]}`),
+              ...(totals.available > Object.values(totals.availableBy).reduce((a, b) => a + b, 0)
+                ? [`${totals.available - Object.values(totals.availableBy).reduce((a, b) => a + b, 0)} unset`]
+                : []),
+            ].join(' · ')}
+            onClick={() => { setView('all'); setStatusFilter('in_office'); }}
+          />
           <Stat
             label="Out now"
             value={String(totals.out)}
-            detail={totals.tbOut ? `${formatCapacity(totals.tbOut)} of storage` : 'No storage out'}
+            detail={totals.tbOut ? `${formatCapacity(totals.tbOut)} of storage` : 'Nothing out'}
             onClick={() => { setView('all'); setStatusFilter('out'); }}
-          />
-          <Stat
-            label="Overdue"
-            value={String(totals.overdue)}
-            detail={totals.overdue ? 'Worth a nudge' : 'All on time'}
-            tone={totals.overdue ? 'danger' : undefined}
-            onClick={() => { setView('all'); setStatusFilter('overdue'); }}
-          />
-          <Stat
-            label="In the office"
-            value={String(totals.inOffice)}
-            detail="Ready to hand out"
-            onClick={() => { setView('all'); setStatusFilter('in_office'); }}
           />
           <Stat
             label="Value out"
@@ -442,28 +432,19 @@ export default function DriveTracker() {
               { value: 'all', label: 'All drives', icon: <List className="w-3.5 h-3.5" /> },
             ]}
           />
-          <Segmented
-            value={kindFilter}
-            onChange={(v) => setKindFilter(v as KindFilter)}
-            options={[
-              { value: 'all', label: 'All types' },
-              { value: 'editor', label: 'Editor SSDs' },
-              { value: 'transfer', label: 'Transfer' },
-            ]}
-          />
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search label, person, agency, project, serial…"
+              placeholder="Search drive, person, agency, project…"
               className="w-full bg-white/[0.04] border border-white/10 pl-9 pr-3 py-2 rounded-lg text-sm outline-none focus:border-accent placeholder:text-white/30"
             />
           </div>
         </div>
         {view === 'all' && (
           <div className="flex gap-1.5 mt-2 overflow-x-auto no-scrollbar">
-            {(['all', 'out', 'overdue', 'in_office', 'lost', 'retired'] as StatusFilter[]).map((s) => (
+            {(['all', 'in_office', 'out', 'lost', 'retired'] as StatusFilter[]).map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
@@ -471,7 +452,7 @@ export default function DriveTracker() {
                   statusFilter === s ? 'bg-white text-black' : 'bg-white/[0.05] text-white/55 hover:text-white'
                 }`}
               >
-                {s === 'all' ? 'Active' : s === 'overdue' ? 'Overdue' : STATUS_LABEL[s as DriveStatus]}
+                {s === 'all' ? 'Active' : STATUS_LABEL[s as DriveStatus]}
               </button>
             ))}
           </div>
@@ -493,7 +474,7 @@ export default function DriveTracker() {
             <HardDrive className="w-10 h-10 text-white/15 mx-auto" />
             <h3 className="text-sm font-semibold">No drives yet</h3>
             <p className="text-xs text-white/40 max-w-xs mx-auto">
-              Add each SSD and transfer drive once with the name written on it. Then check it out whenever it leaves the office.
+              Add each drive once with the name written on it. Then check it out whenever it leaves the office.
             </p>
             <button
               onClick={() => setEditing('new')}
@@ -503,66 +484,72 @@ export default function DriveTracker() {
             </button>
           </div>
         ) : view === 'holders' ? (
-          <div className="space-y-5 max-w-4xl">
-            {holderGroups.length === 0 ? (
-              <p className="text-sm text-white/40 py-6 text-center">
-                {query || kindFilter !== 'all' ? 'No drives out match that.' : 'Every drive is home. Nice.'}
-              </p>
-            ) : (
-              holderGroups.map((g) => (
-                <section key={g.holder} className="rounded-2xl border border-white/[0.07] bg-white/[0.015] p-3">
-                  <div className="flex items-center justify-between gap-3 px-1 pb-2.5">
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-semibold tracking-tight truncate">
-                        {g.holder}
-                        {g.holderType && <span className="ml-2 text-[11px] font-normal text-white/35">{HOLDER_TYPE_LABEL[g.holderType]}</span>}
-                      </h3>
-                      <p className={`text-[11px] ${g.overdue ? 'text-red-400' : 'text-white/40'}`}>
+          <div className="space-y-6 max-w-4xl">
+            <section>
+              <SectionLabel>Out · {holderGroups.reduce((n, g) => n + g.drives.length, 0)}</SectionLabel>
+              {holderGroups.length === 0 ? (
+                <p className="text-sm text-white/40 px-1 py-2">
+                  {query ? 'No drives out match that.' : 'Nothing is out. Every drive is with Matt or Tommy.'}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {holderGroups.map((g) => (
+                    <div key={g.holder} className="rounded-2xl border border-white/[0.07] bg-white/[0.015] p-3">
+                      <div className="flex items-center justify-between gap-3 px-1 pb-2.5">
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-semibold tracking-tight truncate">
+                            {g.holder}
+                            {g.holderType && <span className="ml-2 text-[11px] font-normal text-white/35">{HOLDER_TYPE_LABEL[g.holderType]}</span>}
+                          </h3>
+                          <p className="text-[11px] text-white/40">
+                            {g.drives.length} drive{g.drives.length === 1 ? '' : 's'}
+                            {' · '}
+                            {formatCapacity(g.drives.reduce((s, d) => s + (Number(d.capacity_tb) || 0), 0)) || 'capacity not logged'}
+                          </p>
+                        </div>
+                        {g.drives.length > 1 && (
+                          <ReturnButton
+                            label="All returned"
+                            ariaLabel={`Mark all of ${g.holder}'s drives returned`}
+                            onReturn={(owner) => returnAll(g.drives, owner)}
+                          />
+                        )}
+                      </div>
+                      <div className="space-y-1.5">{g.drives.map((d) => renderRow(d, { showHolder: false }))}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section>
+              <SectionLabel>Available · {keeperGroups.reduce((n, g) => n + g.drives.length, 0)}</SectionLabel>
+              <div className="grid md:grid-cols-2 gap-3 items-start">
+                {keeperGroups.map((g) => (
+                  <div key={g.keeper ?? 'none'} className="min-w-0 rounded-2xl border border-white/[0.07] bg-white/[0.015] p-3">
+                    <div className="px-1 pb-2.5">
+                      <h3 className="text-sm font-semibold tracking-tight">{g.keeper ? `With ${g.keeper}` : 'In the office, nobody set'}</h3>
+                      <p className="text-[11px] text-white/40">
                         {g.drives.length} drive{g.drives.length === 1 ? '' : 's'}
-                        {' · '}
-                        {formatCapacity(g.drives.reduce((s, d) => s + (Number(d.capacity_tb) || 0), 0)) || 'capacity not logged'}
-                        {g.overdue ? ` · ${g.overdue} overdue` : ''}
+                        {g.drives.length > 0 && ` · ${formatCapacity(g.drives.reduce((s, d) => s + (Number(d.capacity_tb) || 0), 0)) || 'capacity not logged'}`}
                       </p>
                     </div>
-                    <div className="flex gap-1.5 shrink-0">
-                      <button
-                        onClick={() => copyReminder(g.holder, g.drives)}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-white/[0.06] hover:bg-white/[0.12] text-white/80 transition-colors"
-                        title="Copy a friendly reminder to paste into a text or email"
-                      >
-                        {copiedHolder === g.holder ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span className="hidden sm:inline">{copiedHolder === g.holder ? 'Copied' : 'Copy reminder'}</span>
-                      </button>
-                      {g.drives.length > 1 && (
-                        <button
-                          onClick={() => returnAll(g.holder, g.drives)}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-white/[0.06] hover:bg-emerald-500 hover:text-white text-white/80 transition-colors"
-                        >
-                          <CornerDownLeft className="w-3.5 h-3.5" /> <span className="hidden sm:inline">All returned</span>
-                        </button>
-                      )}
-                    </div>
+                    {g.drives.length > 0 ? (
+                      <div className="space-y-1.5">{g.drives.map((d) => renderRow(d, { showHolder: false }))}</div>
+                    ) : (
+                      <p className="text-xs text-white/30 px-1 pb-1">{query ? 'None match.' : 'None right now.'}</p>
+                    )}
                   </div>
-                  <div className="space-y-1.5">{g.drives.map((d) => renderRow(d, { showHolder: false }))}</div>
-                </section>
-              ))
-            )}
-
-            {inOfficeShelf.length > 0 && (
-              <section>
-                <h3 className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/35 px-1 mb-2">
-                  On the shelf · {inOfficeShelf.length}
-                </h3>
-                <div className="space-y-1.5">{inOfficeShelf.map((d) => renderRow(d, { showHolder: true }))}</div>
-              </section>
-            )}
+                ))}
+              </div>
+            </section>
           </div>
         ) : (
           <div className="space-y-1.5 max-w-4xl">
             {listed.length === 0 ? (
               <p className="text-sm text-white/40 py-6 text-center">No drives match.</p>
             ) : (
-              listed.map((d) => renderRow(d, { showHolder: true }))
+              listed.map((d) => renderRow(d, { showHolder: true, showStatus: true }))
             )}
           </div>
         )}
@@ -609,6 +596,36 @@ export default function DriveTracker() {
 
 // ---- Pieces ---------------------------------------------------------------
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/35 px-1 mb-2">{children}</h2>;
+}
+
+/** "Returned" asks who has it now, so the drive lands with Matt or Tommy. */
+function ReturnButton({ label, ariaLabel, onReturn }: { label: string; ariaLabel: string; onReturn: (owner: string) => void }) {
+  return (
+    <DropdownMenu
+      align="right"
+      items={OWNERS.map((o) => ({
+        label: `Back with ${o}`,
+        icon: <CornerDownLeft className="w-3.5 h-3.5" />,
+        onSelect: () => onReturn(o),
+      }))}
+      trigger={({ onClick, ref, ...aria }) => (
+        <button
+          ref={ref}
+          onClick={onClick}
+          {...aria}
+          aria-haspopup="menu"
+          aria-label={ariaLabel}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.06] hover:bg-emerald-500 hover:text-white text-white/80 transition-colors"
+        >
+          <CornerDownLeft className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{label}</span>
+        </button>
+      )}
+    />
+  );
+}
+
 function StatusPill({ status }: { status: DriveStatus }) {
   const tone: Record<DriveStatus, string> = {
     in_office: 'bg-emerald-500/10 text-emerald-300',
@@ -619,7 +636,8 @@ function StatusPill({ status }: { status: DriveStatus }) {
   return <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${tone[status]}`}>{STATUS_LABEL[status]}</span>;
 }
 
-function Stat({ label, value, detail, tone, onClick }: {
+function Stat({ label, value, detail, tone, onClick, className = '' }: {
+  className?: string;
   label: string;
   value: string;
   detail: string;
@@ -633,7 +651,7 @@ function Stat({ label, value, detail, tone, onClick }: {
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className="text-left rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5 enabled:hover:bg-white/[0.05] transition-colors"
+      className={`min-w-0 text-left rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5 enabled:hover:bg-white/[0.05] transition-colors ${className}`}
     >
       <div className="text-[11px] text-white/40">{label}</div>
       <div className={`text-xl font-semibold tracking-tight tabular-nums ${color}`}>{value}</div>
@@ -672,7 +690,7 @@ function DriveForm({ drive, existingLabels, onClose, onSaved }: {
   onSaved: (drive: Drive, isNew: boolean) => void;
 }) {
   const [label, setLabel] = useState(drive?.label ?? '');
-  const [kind, setKind] = useState<DriveKind>(drive?.kind ?? 'editor');
+  const [keeper, setKeeper] = useState<string>(OWNERS[0]);
   const [model, setModel] = useState(drive?.model ?? 'Samsung T9');
   const [capacity, setCapacity] = useState(drive?.capacity_tb != null ? String(drive.capacity_tb) : '2');
   const [serial, setSerial] = useState(drive?.serial ?? '');
@@ -690,7 +708,8 @@ function DriveForm({ drive, existingLabels, onClose, onSaved }: {
     setSaving(true);
     const row = {
       label: label.trim(),
-      kind,
+      // A new drive starts available, with whichever owner has it.
+      ...(drive ? {} : { status: 'in_office' as const, holder_name: keeper }),
       model: model.trim() || null,
       capacity_tb: capacity ? Number(capacity) : null,
       serial: serial.trim() || null,
@@ -734,26 +753,12 @@ function DriveForm({ drive, existingLabels, onClose, onSaved }: {
           <input autoFocus value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. ZM-07" className={inputClass} />
           {duplicate && <p className="text-[11px] text-amber-300 mt-1">Another drive already has this label.</p>}
         </div>
-        <div>
-          <label className={labelClass}>Type</label>
-          <Segmented
-            value={kind}
-            onChange={(v) => {
-              setKind(v as DriveKind);
-              if (v === 'transfer' && model.startsWith('Samsung')) setModel('Transfer stick');
-              if (v === 'editor' && model === 'Transfer stick') setModel('Samsung T9');
-            }}
-            options={[
-              { value: 'editor', label: 'Editor SSD' },
-              { value: 'transfer', label: 'Transfer drive' },
-            ]}
-          />
-          <p className="text-[11px] text-white/35 mt-1.5">
-            {kind === 'transfer'
-              ? `Should come straight back. Flagged after ${GRACE_DAYS.transfer} days if no return date is set.`
-              : `Stays with an editor for the job. Flagged after ${GRACE_DAYS.editor} days if no return date is set.`}
-          </p>
-        </div>
+        {!drive && (
+          <div>
+            <label className={labelClass}>Who has it now</label>
+            <Segmented value={keeper} onChange={setKeeper} options={OWNERS.map((o) => ({ value: o, label: o }))} />
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>Model</label>
@@ -801,15 +806,13 @@ function CheckoutForm({ drive, jobs, holderSuggestions, knownHolders, onClose, o
   onClose: () => void;
   onSubmit: (patch: Pick<Drive, 'holder_name' | 'holder_type' | 'job_id' | 'checked_out_at' | 'expected_back'>, note: string | null) => void;
 }) {
-  const [holder, setHolder] = useState(drive.holder_name ?? '');
-  const [holderType, setHolderType] = useState<HolderType>(drive.holder_type ?? (drive.kind === 'transfer' ? 'agency' : 'editor'));
+  const editingExisting = drive.status === 'out';
+  // An available drive's holder_name is the owner keeping it, not who it's going to.
+  const [holder, setHolder] = useState(editingExisting ? drive.holder_name ?? '' : '');
+  const [holderType, setHolderType] = useState<HolderType>(drive.holder_type ?? 'editor');
   const [jobId, setJobId] = useState(drive.job_id ?? '');
   const [outDate, setOutDate] = useState(drive.checked_out_at ? todayLocalISO(new Date(drive.checked_out_at)) : todayLocalISO());
-  // Transfer drives should bounce straight back, so they default to a week.
-  const [expected, setExpected] = useState(drive.expected_back ?? (drive.kind === 'transfer' ? addDays(todayLocalISO(), 7) : ''));
   const [note, setNote] = useState('');
-
-  const editingExisting = drive.status === 'out';
 
   // Names that have held a drive before come first; they're the likely ones.
   const names = useMemo(() => {
@@ -825,7 +828,7 @@ function CheckoutForm({ drive, jobs, holderSuggestions, knownHolders, onClose, o
         holder_type: holderType,
         job_id: jobId || null,
         checked_out_at: new Date(`${outDate}T12:00:00`).toISOString(),
-        expected_back: expected || null,
+        expected_back: null,
       },
       note.trim() || null
     );
@@ -837,7 +840,7 @@ function CheckoutForm({ drive, jobs, holderSuggestions, knownHolders, onClose, o
       onClose={onClose}
       maxWidth="max-w-md"
       title={`${editingExisting ? 'Update' : 'Check out'} ${drive.label}`}
-      subtitle={describeDrive(drive) || undefined}
+      subtitle={[describeDrive(drive), keeperOf(drive) && `From ${keeperOf(drive)}`].filter(Boolean).join(' · ') || undefined}
       footer={
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/5">Cancel</button>
@@ -879,21 +882,10 @@ function CheckoutForm({ drive, jobs, holderSuggestions, knownHolders, onClose, o
             ))}
           </select>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelClass}>Went out</label>
-            <input type="date" value={outDate} max={todayLocalISO()} onChange={(e) => setOutDate(e.target.value)} className={inputClass} />
-          </div>
-          <div>
-            <label className={labelClass}>Expected back</label>
-            <input type="date" value={expected} min={outDate} onChange={(e) => setExpected(e.target.value)} className={inputClass} />
-          </div>
+        <div>
+          <label className={labelClass}>Went out</label>
+          <input type="date" value={outDate} max={todayLocalISO()} onChange={(e) => setOutDate(e.target.value)} className={inputClass} />
         </div>
-        <p className="text-[11px] text-white/35 -mt-2">
-          {expected
-            ? 'It’s flagged overdue the day after this date.'
-            : `No date: flagged after ${GRACE_DAYS[drive.kind]} days out.`}
-        </p>
         <div>
           <label className={labelClass}>Note</label>
           <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Couriered via Uber, has A-cam card dumps" className={inputClass} />

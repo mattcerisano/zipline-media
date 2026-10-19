@@ -1,15 +1,16 @@
 /**
  * Drive Tracker rules. The studio hands SSDs to editors and agencies around
- * the city and forgets who has them; these helpers decide which drives to
- * chase and how much storage is sitting outside the office.
+ * the city and forgets who has them; these helpers answer the two questions
+ * the tracker exists for: who has each drive, and which drives are free.
  *
- * A drive is overdue when its expected-back date has passed. Without a date it
- * still gets flagged after a grace period: transfer drives are meant to come
- * straight back once an agency has copied the footage, so two weeks is long;
- * editor drives stay out for a whole edit, so they get three months.
+ * A drive that isn't out is available, and it is always with one of the
+ * studio's owners (Matt or Tommy), so "available" also says where to grab it.
+ * That keeper is stored in `holder_name`, the same field that names who has a
+ * drive while it's out.
  */
-import { parseLocalDate, formatLocalDate } from './date';
+import { parseLocalDate } from './date';
 
+/** Kept in the table for older rows; the tracker no longer splits drives by kind. */
 export type DriveKind = 'editor' | 'transfer';
 export type DriveStatus = 'in_office' | 'out' | 'lost' | 'retired';
 export type HolderType = 'editor' | 'agency' | 'client' | 'other';
@@ -23,10 +24,12 @@ export interface Drive {
   serial: string | null;
   purchase_price: number | null;
   status: DriveStatus;
+  /** Who has it: the editor or agency while out, Matt or Tommy while available. */
   holder_name: string | null;
   holder_type: HolderType | null;
   job_id: string | null;
   checked_out_at: string | null;
+  /** No longer set by the tracker; return dates were dropped. */
   expected_back: string | null;
   notes: string | null;
   created_at?: string;
@@ -46,8 +49,8 @@ export interface DriveEvent {
   created_at: string;
 }
 
-/** Days a drive with no expected-back date may stay out before it's flagged. */
-export const GRACE_DAYS: Record<DriveKind, number> = { editor: 90, transfer: 14 };
+/** The studio's owners. An available drive is always with one of them. */
+export const OWNERS = ['Matt', 'Tommy'] as const;
 
 /** The drives the studio buys, offered as quick picks in the form. */
 export const DRIVE_MODELS = ['Samsung T5', 'Samsung T7', 'Samsung T9', 'Transfer stick'];
@@ -66,36 +69,19 @@ export function daysOut(drive: Pick<Drive, 'status' | 'checked_out_at'>, now: Da
   return Math.max(0, Math.round((startOfDay(now) - startOfDay(out)) / DAY_MS));
 }
 
-/** Days past the date it should have been back (0 or more), or null if it isn't overdue. */
-export function daysOverdue(
-  drive: Pick<Drive, 'status' | 'checked_out_at' | 'expected_back' | 'kind'>,
-  now: Date = new Date()
-): number | null {
-  if (drive.status !== 'out') return null;
-  const today = startOfDay(now);
-  const due = parseLocalDate(drive.expected_back);
-  if (due) {
-    const late = Math.round((today - startOfDay(due)) / DAY_MS);
-    return late > 0 ? late : null;
-  }
-  const out = daysOut(drive, now);
-  if (out === null) return null;
-  const late = out - GRACE_DAYS[drive.kind];
-  return late > 0 ? late : null;
-}
-
-export function isOverdue(
-  drive: Pick<Drive, 'status' | 'checked_out_at' | 'expected_back' | 'kind'>,
-  now: Date = new Date()
-): boolean {
-  return daysOverdue(drive, now) !== null;
+/** Which owner an available drive is with, or null if nobody was recorded. */
+export function keeperOf(drive: Pick<Drive, 'status' | 'holder_name'>): string | null {
+  if (drive.status !== 'in_office') return null;
+  const name = (drive.holder_name || '').trim().toLowerCase();
+  return OWNERS.find((o) => o.toLowerCase() === name) ?? null;
 }
 
 export interface DriveTotals {
   total: number;
-  inOffice: number;
+  available: number;
+  /** Available drives per owner, in OWNERS order. */
+  availableBy: Record<string, number>;
   out: number;
-  overdue: number;
   lost: number;
   /** Terabytes currently out of the office. */
   tbOut: number;
@@ -105,12 +91,19 @@ export interface DriveTotals {
   valueLost: number;
 }
 
-export function driveTotals(drives: Drive[], now: Date = new Date()): DriveTotals {
-  const t: DriveTotals = { total: 0, inOffice: 0, out: 0, overdue: 0, lost: 0, tbOut: 0, valueOut: 0, valueLost: 0 };
+export function driveTotals(drives: Drive[]): DriveTotals {
+  const t: DriveTotals = {
+    total: 0, available: 0, availableBy: Object.fromEntries(OWNERS.map((o) => [o, 0])),
+    out: 0, lost: 0, tbOut: 0, valueOut: 0, valueLost: 0,
+  };
   for (const d of drives) {
     if (d.status === 'retired') continue;
     t.total++;
-    if (d.status === 'in_office') t.inOffice++;
+    if (d.status === 'in_office') {
+      t.available++;
+      const k = keeperOf(d);
+      if (k) t.availableBy[k]++;
+    }
     if (d.status === 'lost') {
       t.lost++;
       t.valueLost += Number(d.purchase_price) || 0;
@@ -119,7 +112,6 @@ export function driveTotals(drives: Drive[], now: Date = new Date()): DriveTotal
       t.out++;
       t.tbOut += Number(d.capacity_tb) || 0;
       t.valueOut += Number(d.purchase_price) || 0;
-      if (isOverdue(d, now)) t.overdue++;
     }
   }
   return t;
@@ -129,13 +121,13 @@ export interface HolderGroup {
   holder: string;
   holderType: HolderType | null;
   drives: Drive[];
-  overdue: number;
 }
 
+const byLabel = (a: Drive, b: Drive) => a.label.localeCompare(b.label, undefined, { numeric: true });
+
 /**
- * Drives that are out, grouped by who has them — the "who do I need to call"
- * view. Holders with an overdue drive come first, then by most drives held.
- * Names are matched case-insensitively so "Acme Agency" and "acme agency" merge.
+ * Drives that are out, grouped by who has them, most drives first. Names are
+ * matched case-insensitively so "Acme Agency" and "acme agency" merge.
  */
 export function groupByHolder(drives: Drive[], now: Date = new Date()): HolderGroup[] {
   const groups = new Map<string, HolderGroup>();
@@ -145,17 +137,39 @@ export function groupByHolder(drives: Drive[], now: Date = new Date()): HolderGr
     const key = name.toLowerCase();
     let g = groups.get(key);
     if (!g) {
-      g = { holder: name, holderType: d.holder_type, drives: [], overdue: 0 };
+      g = { holder: name, holderType: d.holder_type, drives: [] };
       groups.set(key, g);
     }
     g.drives.push(d);
-    if (isOverdue(d, now)) g.overdue++;
   }
   const list = [...groups.values()];
   for (const g of list) {
-    g.drives.sort((a, b) => (daysOut(b, now) ?? 0) - (daysOut(a, now) ?? 0));
+    g.drives.sort((a, b) => (daysOut(b, now) ?? 0) - (daysOut(a, now) ?? 0) || byLabel(a, b));
   }
-  return list.sort((a, b) => b.overdue - a.overdue || b.drives.length - a.drives.length || a.holder.localeCompare(b.holder));
+  return list.sort((a, b) => b.drives.length - a.drives.length || a.holder.localeCompare(b.holder));
+}
+
+export interface KeeperGroup {
+  /** An owner's name, or null for available drives nobody was recorded against. */
+  keeper: string | null;
+  drives: Drive[];
+}
+
+/**
+ * Available drives by which owner has them. Every owner gets a group, even an
+ * empty one, so "Tommy has none" is visible rather than missing.
+ */
+export function groupAvailable(drives: Drive[]): KeeperGroup[] {
+  const groups: KeeperGroup[] = OWNERS.map((o) => ({ keeper: o, drives: [] }));
+  const unassigned: KeeperGroup = { keeper: null, drives: [] };
+  for (const d of drives) {
+    if (d.status !== 'in_office') continue;
+    const k = keeperOf(d);
+    (k ? groups.find((g) => g.keeper === k)! : unassigned).drives.push(d);
+  }
+  for (const g of groups) g.drives.sort(byLabel);
+  unassigned.drives.sort(byLabel);
+  return unassigned.drives.length ? [...groups, unassigned] : groups;
 }
 
 /** "2 TB", "500 GB", or '' when no capacity was logged. */
@@ -169,29 +183,4 @@ export function formatCapacity(tb: number | null | undefined): string {
 /** "Samsung T9 · 2 TB" */
 export function describeDrive(drive: Pick<Drive, 'model' | 'capacity_tb'>): string {
   return [drive.model?.trim(), formatCapacity(drive.capacity_tb)].filter(Boolean).join(' · ');
-}
-
-/**
- * A friendly chaser to paste into a text or email. One message covers every
- * drive the person has, so an editor holding three drives gets one nudge.
- */
-export function reminderMessage(
-  holder: string,
-  drives: Pick<Drive, 'label' | 'model' | 'capacity_tb' | 'checked_out_at' | 'job_id'>[],
-  jobTitles: Record<string, string> = {}
-): string {
-  const first = holder.trim().split(/\s+/)[0] || 'there';
-  const lines = drives.map((d) => {
-    const bits = [describeDrive(d)];
-    if (d.job_id && jobTitles[d.job_id]) bits.push(`from ${jobTitles[d.job_id]}`);
-    if (d.checked_out_at) bits.push(`out since ${formatLocalDate(d.checked_out_at, { month: 'short', day: 'numeric' })}`);
-    return `• ${d.label}${bits.filter(Boolean).length ? ` (${bits.filter(Boolean).join(', ')})` : ''}`;
-  });
-  const which = drives.length === 1 ? 'a drive' : `${drives.length} drives`;
-  const it = drives.length === 1 ? 'it' : 'them';
-  return [
-    `Hi ${first}, quick check from Zipline: our records show you still have ${which} of ours:`,
-    ...lines,
-    `If you're done with ${it}, could we arrange to get ${it} back? If you still need ${it}, no problem, just let us know roughly when. Thanks!`,
-  ].join('\n');
 }
