@@ -978,11 +978,11 @@ function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: 
                     phone: contact?.phone
                   });
                 }}
-                className={`w-full bg-transparent border-none p-0 focus:ring-0 text-[10px] font-black uppercase tracking-tight cursor-pointer appearance-none ${!localRole.contact_id ? 'text-accent' : 'text-white'}`}
+                className={`w-full bg-transparent border-none p-0 focus:ring-0 text-[11px] font-semibold tracking-tight cursor-pointer appearance-none ${!localRole.contact_id ? 'text-accent' : 'text-white'}`}
               >
-                <option value="">+ UNASSIGNED</option>
+                <option value="">+ Unassigned</option>
                 {contacts.map(c => (
-                  <option key={c.id} value={c.id}>{caps(c.name)}</option>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>

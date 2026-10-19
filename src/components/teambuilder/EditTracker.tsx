@@ -8,7 +8,6 @@ import { Job, Contact, EditLabel, JobLink, Client, Project } from '@/components/
 import { sanitizeUrl } from '@/lib/sanitize';
 import { parseLocalDate, formatLocalDate } from '@/lib/date';
 import { extractDraftUrl, groupDrafts, isDraft, latestDraftLinks, makeDraft, nextDraftVersion, withPostedDraft } from '@/lib/drafts';
-import { caps } from '@/lib/format';
 import { hasAnyRole, POST_ROLES } from '@/lib/crew-roles';
 import { authHeader } from '@/lib/api-client';
 import { formatDuration } from '@/lib/edit-time';
@@ -683,7 +682,7 @@ export default function EditTracker({
               className={`${CONTROL_SELECT} ${CONTROL_SELECT_MAX} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px]`}
             >
               <option value="All">All Clients</option>
-              {uniqueClients.map(c => <option key={c as string} value={c as string}>{caps(c as string)}</option>)}
+              {uniqueClients.map(c => <option key={c as string} value={c as string}>{c as string}</option>)}
             </select>
             <select
               value={projectFilter}
@@ -692,7 +691,7 @@ export default function EditTracker({
               className={`${CONTROL_SELECT} ${CONTROL_SELECT_MAX} flex-1 min-w-[120px] sm:flex-none sm:min-w-[130px] disabled:opacity-30`}
             >
               <option value="All">All Projects</option>
-              {projectsForFilter.map(p => <option key={p.id} value={p.id}>{caps(p.name)}</option>)}
+              {projectsForFilter.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
             <select
               value={yearFilter}
@@ -2070,7 +2069,7 @@ function CardDetailModal({
                       className="w-full bg-white/5 border border-white/10 py-1.5 pl-9 pr-3 rounded-lg text-xs font-bold text-white outline-none focus:border-accent appearance-none cursor-pointer"
                     >
                       <option value="">No project</option>
-                      {projectsForClient.map(p => <option key={p.id} value={p.id}>{caps(p.name)}</option>)}
+                      {projectsForClient.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       <option value={NEW_PROJECT}>+ New project…</option>
                     </select>
                   </div>
@@ -2117,7 +2116,7 @@ function CardDetailModal({
                           the select can't silently blank itself. */}
                       {contacts
                         .filter(c => hasAnyRole(c, POST_ROLES) || c.id === job.editor_id)
-                        .map(c => <option key={c.id} value={c.id}>{caps(c.name)}</option>)}
+                        .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </div>
                 </div>
