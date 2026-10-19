@@ -286,7 +286,10 @@ export default function WorkspaceLayout({
   return (
     <div className="flex-grow flex flex-col h-full overflow-hidden select-none relative bg-neutral-950/20">
       <div aria-hidden className="workspace-ambient" />
-      <div className="relative z-10 flex-1 p-4 md:p-6 lg:p-8 flex flex-col min-h-0">
+      {/* No z-index here: positioned and later in the DOM is already enough to
+          paint over the ambient layer, and a z-index would make this a
+          stacking context that traps every tab's pop-ups under the header. */}
+      <div className="relative flex-1 p-4 md:p-6 lg:p-8 flex flex-col min-h-0">
         <WorkspaceNode 
           node={layoutRoot} 
           onUpdate={saveLayout}

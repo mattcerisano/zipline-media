@@ -33,6 +33,7 @@ import { supabase } from '@/lib/supabase';
 import { caps } from '@/lib/format';
 import { contactRoles } from '@/lib/crew-roles';
 import { formatLocalDate } from '@/lib/date';
+import { crewConflicts, overlappingShoots, type BookingJob } from '@/lib/conflicts';
 import { Contact, Job, JobRole, DEPARTMENTS, JobTemplate, JobSchedule, JobTodo } from '@/components/gearbuilder/types';
 import { toast, confirmAction } from '@/components/Feedback';
 import { CONTROL_H, CONTROL_GAP, TAB_STRIP_TEXT } from '@/lib/controls';
@@ -135,6 +136,26 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
   }, [selectedJobId]);
 
   const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId), [jobs, selectedJobId]);
+
+  // Who on the Rolodex is already crewed on another shoot that overlaps this
+  // one. Nothing stopped a DP being booked on two shoots the same morning;
+  // now the clash shows on their row, in the picker and in Quick Search.
+  const [clashes, setClashes] = useState<Record<string, BookingJob[]>>({});
+  useEffect(() => {
+    if (!selectedJob) { setClashes({}); return; }
+    const overlapping = overlappingShoots(selectedJob, jobs);
+    if (overlapping.length === 0) { setClashes({}); return; }
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from('job_roles')
+        .select('contact_id, job_id')
+        .in('job_id', overlapping.map(j => j.id))
+        .not('contact_id', 'is', null);
+      if (!cancelled) setClashes(crewConflicts(selectedJob, (data || []) as { contact_id: string; job_id: string }[], jobs));
+    })();
+    return () => { cancelled = true; };
+  }, [selectedJob, jobs]);
 
   const addRole = () => {
     const maxSortOrder = jobRoles.reduce((max, r) => Math.max(max, r.sort_order ?? -1), -1);
@@ -646,6 +667,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                     onMoveUp={index > 0 ? () => moveRole(index, -1) : undefined}
                     onMoveDown={index < jobRoles.length - 1 ? () => moveRole(index, 1) : undefined}
                     contacts={contacts}
+                    clashes={clashes}
                   />
                 ))}
                 {jobRoles.length === 0 && (
@@ -821,6 +843,11 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                     <button type="button" onClick={() => addInRole(roles[0] || 'Crew')} className="w-full text-left">
                       <p className="text-[10px] font-black uppercase tracking-tight group-hover:text-accent transition-colors text-white">{contact.name}</p>
                       <p className="text-[11px] md:text-[8px] font-bold uppercase tracking-widest opacity-40 text-white">{roles[0] || 'No Role Set'}</p>
+                      {clashes[contact.id] && (
+                        <p className="mt-1 text-[11px] font-medium text-amber-300/90 normal-case tracking-normal">
+                          Booked on {clashes[contact.id].map(j => j.title).join(', ')}
+                        </p>
+                      )}
                     </button>
 
                     {/* Their other hats. Someone booked as a producer today and
@@ -917,13 +944,15 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
   );
 }
 
-function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: {
+function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts, clashes = {} }: {
   role: JobRole,
   onUpdate: (role: JobRole) => void,
   onDelete: () => void,
   onMoveUp?: () => void,
   onMoveDown?: () => void,
-  contacts: Contact[]
+  contacts: Contact[],
+  /** Contact id → other overlapping shoots they're already crewed on. */
+  clashes?: Record<string, BookingJob[]>
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [localRole, setLocalRole] = useState(role);
@@ -970,10 +999,13 @@ function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: 
                 value={localRole.contact_id || ''}
                 onChange={(e) => {
                   const contact = contacts.find(c => c.id === e.target.value);
-                  handleChange('contact_id', e.target.value);
+                  // "+ Unassigned" is an empty string, which the uuid column
+                  // rejects — so unassigning someone used to fail outright.
+                  const contactId = e.target.value || null;
+                  handleChange('contact_id', contactId);
                   onUpdate({ 
                     ...localRole, 
-                    contact_id: e.target.value,
+                    contact_id: contactId as unknown as string,
                     email: contact?.email,
                     phone: contact?.phone
                   });
@@ -982,10 +1014,18 @@ function RoleItem({ role, onUpdate, onDelete, onMoveUp, onMoveDown, contacts }: 
               >
                 <option value="">+ Unassigned</option>
                 {contacts.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>{c.name}{clashes[c.id] && c.id !== localRole.contact_id ? ' · booked elsewhere' : ''}</option>
                 ))}
               </select>
             </div>
+            {localRole.contact_id && clashes[localRole.contact_id] && (
+              <p className="text-[11px] font-medium text-amber-300/90 leading-snug">
+                Also on {clashes[localRole.contact_id].map(j => {
+                  const when = formatLocalDate(j.shoot_date, { month: 'short', day: 'numeric' });
+                  return `${j.title} (${when}${j.call_time ? `, call ${j.call_time}` : ''})`;
+                }).join('; ')}
+              </p>
+            )}
           </div>
         </div>
 
