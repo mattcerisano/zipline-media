@@ -50,6 +50,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { toast, confirmAction } from '@/components/Feedback';
+import { Portal } from '@/components/workspace/Overlay';
 import { CONTROL_H, CONTROL_SELECT, CONTROL_SELECT_MAX, CONTROL_BUTTON, CONTROL_GAP, TOOLBAR_CARD } from '@/lib/controls';
 
 // Columns are customizable: definitions are { id, label, color } where color
@@ -1544,9 +1545,10 @@ function ColumnsEditorModal({
   };
 
   return (
+    <Portal>
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[160] flex justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto cursor-pointer"
+      className="fixed inset-0 z-[9010] flex justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto cursor-pointer"
     >
       <motion.div
         onClick={(e) => e.stopPropagation()}
@@ -1638,6 +1640,7 @@ function ColumnsEditorModal({
         </div>
       </motion.div>
     </div>
+    </Portal>
   );
 }
 
@@ -1846,10 +1849,14 @@ function CardDetailModal({
     onUpdate({ ...job, due_date: date });
   };
 
+  // Portalled out of the workspace panel: rendered in place, the panel's
+  // stacking context kept it under the sticky page header, which then
+  // covered the top of the card however high its z-index went.
   return (
+    <Portal>
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-[150] flex justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto cursor-pointer"
+      className="fixed inset-0 z-[9000] flex justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto cursor-pointer"
     >
       <motion.div
         onClick={(e) => e.stopPropagation()}
@@ -2188,5 +2195,6 @@ function CardDetailModal({
         </div>
       </motion.div>
     </div>
+    </Portal>
   );
 }
