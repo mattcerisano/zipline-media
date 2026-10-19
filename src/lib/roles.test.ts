@@ -20,8 +20,9 @@ const EDITS_TAB = { id: 'edits', allowedRoles: ['admin', 'staff', 'client'] };
 const VAULT_TAB = { id: 'vault', allowedRoles: ['admin', 'staff'] };
 
 describe('canAccessTab', () => {
-  it('gives a freelance editor the Edit Tracker and nothing else', () => {
+  it('gives a freelance editor the Edit Tracker, the Drive Tracker and nothing else', () => {
     expect(canAccessTab('editor', EDITS_TAB)).toBe(true);
+    expect(canAccessTab('editor', { id: 'drives', allowedRoles: ['admin', 'staff'] })).toBe(true);
     expect(canAccessTab('editor', VAULT_TAB)).toBe(false);
     expect(canAccessTab('editor', { id: 'slate', allowedRoles: ['admin', 'staff', 'client'] })).toBe(false);
     expect(canAccessTab('editor', { id: 'rolodex', allowedRoles: ['admin'] })).toBe(false);
@@ -66,6 +67,7 @@ describe('canUseWidget', () => {
 
   it('keeps the personal scratch pad, which a split panel falls back to', () => {
     expect(canUseWidget('editor', 'notes')).toBe(true);
+    expect(canUseWidget('editor', 'drives')).toBe(true);
   });
 
   it('does not restrict the configurable roles', () => {

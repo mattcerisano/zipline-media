@@ -8,9 +8,11 @@
 //
 // `editor` is the first of those: a freelance editor gets an account that opens
 // straight onto the Edit Tracker and can do everything on that board (drag
-// cards between stages, edit notes, labels, checklists, columns) — but the rest
-// of the OS (Slate, Gear, Rolodex, Vault, Inbox, Budget, Library, Settings)
-// simply is not reachable, whatever a saved or shared tab layout happens to say.
+// cards between stages, edit notes, labels, checklists, columns), plus the
+// Drive Tracker, since most of the studio's drives sit with editors — but the
+// rest of the OS (Slate, Gear, Rolodex, Vault, Inbox, Budget, Library,
+// Settings) simply is not reachable, whatever a saved or shared tab layout
+// happens to say.
 
 export type AppRole = 'admin' | 'staff' | 'client' | 'editor';
 
@@ -31,7 +33,7 @@ export const ROLE_HINTS: Record<AppRole, string> = {
   admin: 'Full access, settings & team management',
   staff: 'Everything except admin settings',
   client: 'Limited view (calendar, slate, tracker)',
-  editor: 'Edit Tracker only — full editing on the board, nothing else',
+  editor: 'Edit Tracker and Drive Tracker only — full editing on both, nothing else',
 };
 
 interface ScopedRole {
@@ -46,7 +48,8 @@ interface ScopedRole {
 const SCOPED_ROLES: Partial<Record<AppRole, ScopedRole>> = {
   // 'notes' is the per-user scratch pad — it is what a split panel falls back
   // to, and holds nothing but the editor's own text, so it stays available.
-  editor: { tabs: ['edits'], widgets: ['edits', 'notes'], home: 'edits' },
+  // 'drives' lets them log the SSDs they're holding (20261019000000).
+  editor: { tabs: ['edits', 'drives'], widgets: ['edits', 'drives', 'notes'], home: 'edits' },
 };
 
 const scopeFor = (role: string | null | undefined): ScopedRole | undefined =>

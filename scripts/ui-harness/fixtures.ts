@@ -128,8 +128,9 @@ export const job_todos = [
   { id: 't2', job_id: 'j1', task: 'Battery check + media format', completed: false, sort_order: 1 },
 ];
 
+// HARNESS_ROLE=editor renders the app as a freelance editor sees it.
 export const user_roles = [
-  { id: 'ur1', user_id: 'harness-user', email: 'harness@zipline.local', role: 'admin', org_id: 'org1' },
+  { id: 'ur1', user_id: 'harness-user', email: 'harness@zipline.local', role: process.env.HARNESS_ROLE || 'admin', org_id: 'org1' },
 ];
 
 export const organizations = [
