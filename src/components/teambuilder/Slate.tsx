@@ -1665,7 +1665,7 @@ export default function Slate({
                 {/* Call Time. A free time input, like the calendar's, so a
                     7:15 or 6:45 call can be set — the old half-hour dropdown
                     couldn't. Cleared means TBD. */}
-                <div className="md:col-span-1 space-y-1">
+                <div className="md:col-span-3 space-y-1">
                   <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Call Time</label>
                   <input
                     type="time"
@@ -1676,7 +1676,7 @@ export default function Slate({
                 </div>
 
                 {/* Wrap Time */}
-                <div className="md:col-span-1 space-y-1">
+                <div className="md:col-span-3 space-y-1">
                   <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1 text-white">Wrap Time</label>
                   <input
                     type="time"

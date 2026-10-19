@@ -1128,6 +1128,11 @@ export default function CommandCenterPage() {
                                     }
                                   }}
                                   className={`w-full flex items-center gap-3 py-3 rounded-xl transition-all duration-300 relative border ${(!isSidebarOpen && !isMobile) ? 'justify-center px-0' : 'px-4'} ${
+                                    // Room for the hover controls (edit, reset, grip) laid over
+                                    // the right edge, so a long label truncates instead of
+                                    // running under them. On a phone they are always shown.
+                                    isSidebarOpen ? (userRole === 'admin' ? 'max-md:pr-20 md:group-hover:pr-20' : 'max-md:pr-10 md:group-hover:pr-10') : ''
+                                  } ${
                                     activeTab === tab.id
                                       ? 'bg-gradient-to-r from-accent/15 to-accent/5 text-white border-accent/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] shadow-accent/5'
                                       : 'text-white/40 hover:text-white hover:bg-white/5 border-transparent'
@@ -1143,7 +1148,7 @@ export default function CommandCenterPage() {
                                   
                                   <Icon className={`w-5 h-5 shrink-0 transition-colors duration-300 ${activeTab === tab.id ? 'text-accent' : ''}`} />
                                   
-                                  <span className={`font-medium tracking-tight text-[13px] text-left transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
+                                  <span className={`min-w-0 truncate font-medium tracking-tight text-[13px] text-left transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`} title={tab.label}>
                                     {tab.label}
                                   </span>
                                 </button>

@@ -838,7 +838,7 @@ function CardDeliverables({
   return (
     <div className="flex gap-4">
       <Film className="w-6 h-6 text-white/40 shrink-0" />
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-base font-bold text-white">Deliverables</h3>
           {items.length > 0 && (
@@ -852,7 +852,9 @@ function CardDeliverables({
 
         <div className="space-y-1">
           {items.map(d => (
-            <div key={d.id} className="group flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
+            // On a phone the name takes its own line; inline it was squeezed
+            // to a few characters by the format, status and remove controls.
+            <div key={d.id} className="group flex flex-wrap sm:flex-nowrap items-center gap-x-2.5 gap-y-1 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
               {canManage ? (
                 <input
                   // Keyed on the saved label so a rolled-back rename resets
@@ -866,10 +868,10 @@ function CardDeliverables({
                     if (value !== (d.label || '')) void patch(d.id, { label: value });
                   }}
                   onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-                  className="flex-1 min-w-0 bg-transparent outline-none text-sm text-white/80 rounded px-1.5 py-0.5 -my-0.5 focus:bg-white/10 placeholder:text-white/25"
+                  className="basis-full sm:basis-auto flex-1 min-w-0 bg-transparent outline-none text-sm text-white/80 rounded px-1.5 py-0.5 -my-0.5 focus:bg-white/10 placeholder:text-white/25"
                 />
               ) : (
-                <span className="flex-1 min-w-0 text-sm text-white/80 truncate">{d.label || 'Untitled'}</span>
+                <span className="basis-full sm:basis-auto flex-1 min-w-0 text-sm text-white/80 truncate">{d.label || 'Untitled'}</span>
               )}
 
               {canManage ? (
@@ -1902,8 +1904,9 @@ function CardDetailModal({
 
         <div className="flex flex-col md:flex-row flex-1 p-6 pt-2 gap-8">
           
-          {/* Main Content Column */}
-          <div className="flex-1 space-y-8">
+          {/* Main Content Column. min-w-0 so a long draft link truncates
+              instead of widening the column and shoving the sidebar out. */}
+          <div className="flex-1 min-w-0 space-y-8">
 
             {/* Client + project, on new cards only. A card started here is
                 post-production work that may have no shoot behind it, so it
@@ -2087,7 +2090,7 @@ function CardDetailModal({
             {!isCreatingNew && (
               <div className="flex gap-4">
                 <CheckCircle2 className="w-6 h-6 text-white/40 shrink-0" />
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <CardChecklist jobId={job.id} isClient={isClient} />
                 </div>
               </div>
@@ -2099,7 +2102,7 @@ function CardDetailModal({
             {!isCreatingNew && !isClient && (
               <div className="flex gap-4">
                 <Timer className="w-6 h-6 text-white/40 shrink-0" />
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <CardTimeTracker
                     jobId={job.id}
                     canLog
@@ -2117,7 +2120,7 @@ function CardDetailModal({
           </div>
 
           {/* Right Sidebar (Actions) */}
-          <div className="w-full md:w-48 space-y-6">
+          <div className="w-full md:w-48 md:shrink-0 space-y-6">
              <div className="space-y-2">
                <h4 className="text-xs font-bold text-white/60 mb-2">Add to card</h4>
                
