@@ -66,7 +66,7 @@ export const APP_FEATURES: AppFeature[] = [
   { id: 'social', title: 'Social Media Planner', description: 'Plan and track social posts alongside your production schedule.', keywords: 'social media posts instagram planner content publish', tab: 'social' },
 
   // ---- Vault ----
-  { id: 'vault', title: 'Vault', description: 'Store shared credentials and sensitive team info in one place.', keywords: 'vault passwords credentials secrets logins secure', tab: 'vault' },
+  { id: 'vault', title: 'Vault', description: 'Passwords, licenses and keys, encrypted in your browser — your own, plus a shared vault for the members an admin picks.', keywords: 'vault passwords credentials secrets logins secure shared team members passphrase', tab: 'vault' },
 
   // ---- Dashboard ----
   { id: 'dash-overview', title: 'Dashboard Overview', description: 'At-a-glance widgets: upcoming shoots, tasks, budget, notes, and your work queue.', keywords: 'dashboard home overview widgets summary today', tab: 'dashboard' },
