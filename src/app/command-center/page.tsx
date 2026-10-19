@@ -1334,18 +1334,6 @@ export default function CommandCenterPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-nowrap justify-end shrink-0">
-             {/* Live database status — a quiet macOS-style menu-bar indicator */}
-             <div
-                title="Live database sync is active"
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 shrink-0"
-             >
-                <span className="relative flex w-1.5 h-1.5">
-                   <span className="absolute inline-flex w-full h-full rounded-full bg-green-500/60 animate-ping" />
-                   <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-green-500" />
-                </span>
-                <span className="text-[10px] font-medium tracking-wide text-white/45">Live</span>
-             </div>
-
              {/* Toolbar group — utility actions grouped into one segmented control */}
              <div className="flex items-center gap-0.5 p-0.5 bg-white/[0.03] border border-white/10 rounded-lg shrink-0">
                 {/* Smart Search (Cmd/Ctrl+K) */}
