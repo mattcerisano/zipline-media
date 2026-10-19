@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { isSameOrigin } from '@/lib/api-guard';
 import { getAuthedUserId } from '@/lib/api-auth';
+import { resolveEventTemplate } from '@/lib/notify-defaults';
 
 // Service-role client so the route can read org channel/event config and
 // dispatch regardless of which user triggered the event.
@@ -171,7 +172,10 @@ export async function POST(request: Request) {
       .eq('event_key', event_key)
       .maybeSingle();
 
-    if (!eventRule || !eventRule.enabled || !eventRule.message_template) {
+    // A saved rule decides; without one, only the default-on Edit Tracker
+    // alerts send (see src/lib/notify-defaults.ts).
+    const template = resolveEventTemplate(event_key, eventRule);
+    if (!template) {
       return NextResponse.json({ skipped: true, reason: 'event disabled or not configured' });
     }
 
@@ -186,7 +190,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ skipped: true, reason: 'no enabled channels' });
     }
 
-    const text = renderTemplate(eventRule.message_template, variables);
+    const text = renderTemplate(template, variables);
     const results = await Promise.all(usable.map((c) => dispatch(c, text)));
 
     return NextResponse.json({ success: true, results });

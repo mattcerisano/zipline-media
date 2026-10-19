@@ -15,6 +15,7 @@ import {
   Navigation
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EscapeToClose } from '@/components/workspace/Overlay';
 import { supabase } from '@/lib/supabase';
 
 interface ScoutingLocation {
@@ -343,6 +344,7 @@ export default function LocationsDatabase() {
             onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}
             className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
           >
+            <EscapeToClose onClose={() => setIsModalOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}

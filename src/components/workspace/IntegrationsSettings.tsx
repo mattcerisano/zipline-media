@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, Save, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { postNotify } from '@/lib/notify';
+import { DEFAULT_EVENT_TEMPLATES } from '@/lib/notify-defaults';
 import type { NotificationChannel, NotificationEvent, NotificationPlatform } from '@/components/gearbuilder/types';
 
 // Display metadata for the three supported platforms.
@@ -21,9 +22,13 @@ const EVENT_META: { key: string; label: string }[] = [
   { key: 'status_planning', label: 'Status → Planning' },
   { key: 'status_wrapped', label: 'Status → Wrapped' },
   { key: 'status_cancelled', label: 'Status → Cancelled' },
+  // Edit Tracker. On by default with a built-in message until saved here —
+  // see DEFAULT_EVENT_TEMPLATES in the notify route.
+  { key: 'edit_review', label: 'Edit → ready for review (V1)' },
+  { key: 'edit_delivered', label: 'Edit → delivered' },
 ];
 
-const PLACEHOLDERS = '{title} · {client} · {production_company} · {shoot_date} · {location} · {old_status} · {new_status}';
+const PLACEHOLDERS = '{title} · {client} · {production_company} · {shoot_date} · {location} · {old_status} · {new_status} · Edit Tracker: {editor} · {review_link} · {stage}';
 
 const inputClass = 'w-full bg-black/50 border border-white/10 py-2.5 px-3 rounded-lg outline-none focus:border-accent text-sm text-white transition-colors';
 const labelClass = 'block text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40 mb-1.5';
@@ -86,7 +91,14 @@ export default function IntegrationsSettings({ isAdmin, onMessage }: Props) {
     setEvents((prev) => {
       const existing = prev.find((e) => e.event_key === key);
       if (existing) return prev.map((e) => (e.event_key === key ? { ...e, ...patch } : e));
-      return [...prev, { id: '', event_key: key, enabled: false, ...patch }];
+      // First edit to an alert with no row yet starts from what it does now.
+      return [...prev, {
+        id: '',
+        event_key: key,
+        enabled: key in DEFAULT_EVENT_TEMPLATES,
+        message_template: DEFAULT_EVENT_TEMPLATES[key],
+        ...patch,
+      }];
     });
   };
 
@@ -273,7 +285,13 @@ export default function IntegrationsSettings({ isAdmin, onMessage }: Props) {
         <p className="text-[11px] md:text-[9px] text-white/30 mb-3 font-mono break-words">{PLACEHOLDERS}</p>
         <div className="space-y-3">
           {EVENT_META.map(({ key, label }) => {
-            const ev = events.find((e) => e.event_key === key) || { id: '', event_key: key, enabled: false };
+            // No saved row: off, unless this alert ships switched on.
+            const ev = events.find((e) => e.event_key === key) || {
+              id: '',
+              event_key: key,
+              enabled: key in DEFAULT_EVENT_TEMPLATES,
+              message_template: DEFAULT_EVENT_TEMPLATES[key],
+            };
             return (
               <div key={key} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
                 <label className="flex items-center justify-between mb-2 cursor-pointer">

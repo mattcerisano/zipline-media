@@ -27,6 +27,7 @@ import {
   AlignLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EscapeToClose } from '@/components/workspace/Overlay';
 import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
 import { caps } from '@/lib/format';
@@ -861,6 +862,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
             }}
             className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
           >
+            <EscapeToClose onClose={() => setIsTemplateModalOpen(false)} />
              <motion.div
                initial={{ opacity: 0, scale: 0.95 }}
                animate={{ opacity: 1, scale: 1 }}

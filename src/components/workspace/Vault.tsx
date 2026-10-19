@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EscapeToClose } from '@/components/workspace/Overlay';
 import {
   Lock, Unlock, Plus, Eye, EyeOff, Copy, Trash2, X, Loader2, ShieldCheck,
   KeyRound, CreditCard, FileText, Paperclip, Calendar, Search, Download
@@ -397,6 +398,7 @@ export default function Vault() {
             className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-black/75 backdrop-blur-sm md:p-4"
             onClick={() => !busy && setEditing(null)}
           >
+            <EscapeToClose onClose={() => { if (!busy) setEditing(null); }} />
             <motion.div
               initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 360, damping: 32 }}

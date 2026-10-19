@@ -14,6 +14,7 @@ import {
 } from '@/lib/deliverables';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { confirmAction } from '@/components/Feedback';
+import { useEscapeToClose } from '@/components/workspace/Overlay';
 
 /* ------------------------------------------------------------------ */
 /* Shared constants                                                    */
@@ -557,6 +558,7 @@ function Empty({ icon: Icon, text }: { icon: React.ElementType; text: string }) 
 }
 
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  useEscapeToClose(true, onClose);
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-lg bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>

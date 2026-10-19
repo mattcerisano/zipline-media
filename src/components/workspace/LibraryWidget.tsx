@@ -455,7 +455,7 @@ export default function LibraryWidget() {
     // calendar keeps the old name and the two quietly disagree.
     if (entity === 'jobs' && row.raw.google_event_id) {
       const res = await pushJobToGoogleCalendar(row.id);
-      if (!res.ok) toast(`Renamed here, but Google Calendar still shows the old title. ${res.message}`);
+      if (!res.ok) toast(`Renamed here, but Google Calendar still shows the old title. ${res.message}`, 'error');
     }
 
     // Productions carry their client's name as well as the link, and that copy
@@ -468,7 +468,7 @@ export default function LibraryWidget() {
         .eq('client_id', row.id)
         .select('id, shoot_date, google_event_id');
       if (jobsErr) {
-        toast(`Renamed the client, but its productions still show the old name: ${jobsErr.message}`);
+        toast(`Renamed the client, but its productions still show the old name: ${jobsErr.message}`, 'error');
         return;
       }
       // Upcoming shoots on Google show the client too. Past ones are history.
@@ -476,7 +476,7 @@ export default function LibraryWidget() {
       const upcoming = (linked || []).filter(j => j.google_event_id && j.shoot_date && j.shoot_date >= today);
       const results = await Promise.all(upcoming.map(j => pushJobToGoogleCalendar(j.id)));
       const failed = results.filter(r => !r.ok).length;
-      if (failed > 0) toast(`Renamed. ${failed} upcoming Google Calendar ${failed === 1 ? 'event still shows' : 'events still show'} the old client name.`);
+      if (failed > 0) toast(`Renamed. ${failed} upcoming Google Calendar ${failed === 1 ? 'event still shows' : 'events still show'} the old client name.`, 'error');
     }
   };
 

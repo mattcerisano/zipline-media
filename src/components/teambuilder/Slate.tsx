@@ -596,7 +596,7 @@ export default function Slate({
       if (savedJobData?.id) {
         pushJobToGoogleCalendar(savedJobData.id).then(result => {
           if (!result.ok && result.message) {
-            toast(result.message);
+            toast(result.message, 'error');
           }
         });
       }
@@ -629,7 +629,7 @@ export default function Slate({
     sendNotification(`status_${status.toLowerCase()}`, { ...job, job_status: status }, previous);
     if (job.shoot_date) {
       pushJobToGoogleCalendar(job.id).then(result => {
-        if (!result.ok && result.message) toast(result.message);
+        if (!result.ok && result.message) toast(result.message, 'error');
       });
     }
   };
@@ -745,7 +745,7 @@ export default function Slate({
       // pin them to today, and the calendar sync skips undated jobs too.
       if (data.shoot_date) {
         pushJobToGoogleCalendar(data.id).then(result => {
-          if (!result.ok && result.message) toast(result.message);
+          if (!result.ok && result.message) toast(result.message, 'error');
         });
       }
     } catch (err: any) {
@@ -1078,7 +1078,7 @@ export default function Slate({
     const job = jobs.find(j => j.id === manageJobId);
     if (job?.shoot_date) {
       pushJobToGoogleCalendar(job.id).then(result => {
-        if (!result.ok && result.message) toast(result.message);
+        if (!result.ok && result.message) toast(result.message, 'error');
       });
     }
     setManageJobId(null);

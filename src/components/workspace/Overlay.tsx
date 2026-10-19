@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -33,7 +33,9 @@ import { X } from 'lucide-react';
  */
 function portalTarget(): HTMLElement {
   return (
-    document.querySelector<HTMLElement>('.studio-shell') ||
+    // Not the toast/confirm host, which borrows the class for its typography
+    // but sits outside the themed app root.
+    document.querySelector<HTMLElement>('.studio-shell:not([data-feedback-host])') ||
     document.getElementById('studio-os-root') ||
     document.body
   );
@@ -62,6 +64,53 @@ export function Portal({ children }: { children: React.ReactNode }) {
   return createPortal(children, portalTarget());
 }
 
+/**
+ * Escape closes the top-most overlay, and only that one.
+ *
+ * Most of the app's sheets are hand-built rather than <Modal>, and none of
+ * those listened for Escape at all. The ones that did each added their own
+ * window listener, so with a menu open inside a sheet one keypress closed
+ * both. Overlays register here as they open; the last one registered is the
+ * one on top, and it alone answers. An input that wants Escape for itself
+ * (cancelling an inline edit) stops propagation and keeps it.
+ */
+const escapeStack: { current: () => void }[] = [];
+
+function onEscapeKey(e: KeyboardEvent) {
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  const top = escapeStack[escapeStack.length - 1];
+  if (!top) return;
+  e.preventDefault();
+  top.current();
+}
+
+/** Register a close handler while `active`. Returns nothing; unregisters on cleanup. */
+export function useEscapeToClose(active: boolean, onClose: () => void) {
+  const handler = useRef(onClose);
+  useEffect(() => { handler.current = onClose; });
+  useEffect(() => {
+    if (!active) return;
+    const entry = { current: () => handler.current() };
+    if (escapeStack.length === 0) window.addEventListener('keydown', onEscapeKey);
+    escapeStack.push(entry);
+    return () => {
+      const i = escapeStack.lastIndexOf(entry);
+      if (i !== -1) escapeStack.splice(i, 1);
+      if (escapeStack.length === 0) window.removeEventListener('keydown', onEscapeKey);
+    };
+  }, [active]);
+}
+
+/**
+ * The same, as an element, for overlays that are conditionally rendered deep
+ * in JSX where a hook can't go: drop it inside the overlay's markup and it is
+ * registered exactly as long as the overlay is on screen.
+ */
+export function EscapeToClose({ onClose }: { onClose: () => void }) {
+  useEscapeToClose(true, onClose);
+  return null;
+}
+
 export interface ModalProps {
   open: boolean;
   onClose: () => void;
@@ -77,18 +126,17 @@ export interface ModalProps {
 export function Modal({ open, onClose, title, subtitle, footer, maxWidth = 'max-w-2xl', children }: ModalProps) {
   const mounted = useMounted();
 
-  // Escape closes; the page behind stops scrolling while the sheet is open.
+  // Escape closes (when this is the top-most overlay); the page behind stops
+  // scrolling while the sheet is open.
+  useEscapeToClose(open, onClose);
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!mounted || !open) return null;
 
@@ -163,14 +211,13 @@ export function DropdownMenu({ trigger, items, align = 'right' }: {
     // than let the menu drift away from its button.
     window.addEventListener('scroll', close, true);
     window.addEventListener('resize', close);
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
-    window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('scroll', close, true);
       window.removeEventListener('resize', close);
-      window.removeEventListener('keydown', onKey);
     };
   }, [rect]);
+  // Escape closes the menu alone, not the sheet the menu was opened from.
+  useEscapeToClose(!!rect, () => setRect(null));
 
   const open = (e: React.MouseEvent) => {
     e.stopPropagation();

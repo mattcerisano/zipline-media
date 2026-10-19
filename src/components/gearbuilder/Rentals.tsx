@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EscapeToClose } from '@/components/workspace/Overlay';
 import { 
   Search, 
   Plus, 
@@ -965,7 +966,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         );
         if ('client_name' in changes && !resolvedClientId) changes.client_id = null;
         if (Object.keys(changes).length === 0) {
-          toast('Nothing new to save — this list matches Slate.');
+          toast('Nothing new to save — this list matches Slate.', 'info');
           return;
         }
         calendarChanged = Object.keys(changes).some(key => key !== 'gear_manifest');
@@ -1002,7 +1003,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       // A manifest-only change isn't, so it skips the round trip.
       if (calendarChanged && saved.shoot_date) {
         pushJobToGoogleCalendar(saved.id).then(result => {
-          if (!result.ok && result.message) toast(result.message);
+          if (!result.ok && result.message) toast(result.message, 'error');
         });
       }
     } catch (err: any) {
@@ -1119,7 +1120,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
       if (googleEventId) {
         const removed = await removeJobFromGoogleCalendar(googleEventId);
         if (!removed.ok) {
-          toast(`${removed.message} The job was kept so it doesn't come back on the next sync.`);
+          toast(`${removed.message} The job was kept so it doesn't come back on the next sync.`, 'error');
           return;
         }
       }
@@ -2313,6 +2314,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed inset-0 z-[110] bg-neutral-950 @4xl:hidden flex flex-col"
             >
+              <EscapeToClose onClose={() => setIsMobileManifestOpen(false)} />
               <div className="flex items-center justify-between p-6 border-b border-white/10 bg-neutral-900/50 backdrop-blur-lg sticky top-0 z-20">
                 <div className="flex items-center gap-3">
                   <Package className="w-5 h-5 text-accent" />
@@ -2358,6 +2360,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         <AnimatePresence>
           {isCalendarOpen && (
             <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 md:p-8">
+              <EscapeToClose onClose={() => setIsCalendarOpen(false)} />
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -2396,6 +2399,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         <AnimatePresence>
           {isCustomModalOpen && (
             <div className="fixed inset-0 z-[130] flex items-start md:items-center justify-center p-4 overflow-y-auto">
+              <EscapeToClose onClose={() => setIsCustomModalOpen(false)} />
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -2628,6 +2632,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         <AnimatePresence>
           {isSaveTemplateModalOpen && (
             <div className="fixed inset-0 z-[130] flex items-start md:items-center justify-center p-4 overflow-y-auto">
+              <EscapeToClose onClose={() => setIsSaveTemplateModalOpen(false)} />
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

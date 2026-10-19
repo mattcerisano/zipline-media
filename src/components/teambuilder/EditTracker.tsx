@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
@@ -51,18 +51,10 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { toast, confirmAction } from '@/components/Feedback';
-import { Portal } from '@/components/workspace/Overlay';
+import { Portal, EscapeToClose } from '@/components/workspace/Overlay';
 import { CONTROL_H, CONTROL_SELECT, CONTROL_SELECT_MAX, CONTROL_BUTTON, CONTROL_GAP, TOOLBAR_CARD } from '@/lib/controls';
-
-// Columns are customizable: definitions are { id, label, color } where color
-// is a token from STAGE_COLORS. Custom definitions live org-wide in
-// organizations.edit_stages (JSONB, see migration 20260706000001) with a
-// localStorage fallback for deployments that haven't run the migration yet.
-export interface EditStageDef {
-  id: string;
-  label: string;
-  color: string;
-}
+import { FilterSheet } from '@/components/workspace/FilterSheet';
+import { DEFAULT_STAGE_DEFS, sanitizeStageDefs, type EditStageDef } from '@/lib/edit-stages';
 
 // Literal class strings (including the top-border variants) so Tailwind's
 // scanner compiles every color a custom column can use.
@@ -88,15 +80,6 @@ const STAGE_ICONS: Record<string, any> = {
   Wrapped: Archive,
 };
 
-const DEFAULT_STAGE_DEFS: EditStageDef[] = [
-  { id: 'Filmed', label: 'Filmed / Raw', color: 'blue' },
-  { id: 'WIP', label: 'Work in Progress', color: 'yellow' },
-  { id: 'V1', label: 'V1 / Review', color: 'purple' },
-  { id: 'Revisions', label: 'Revisions', color: 'orange' },
-  { id: 'Delivered', label: 'Delivered', color: 'green' },
-  { id: 'Wrapped', label: 'Wrapped', color: 'neutral' },
-];
-
 const STAGES_STORAGE_KEY = 'studio_edit_stages';
 
 export interface ResolvedStage extends EditStageDef {
@@ -114,14 +97,6 @@ function resolveStages(defs: EditStageDef[]): ResolvedStage[] {
   });
 }
 
-function sanitizeStageDefs(raw: unknown): EditStageDef[] | null {
-  if (!Array.isArray(raw) || raw.length === 0) return null;
-  const defs = raw.filter(
-    (d: any) => d && typeof d.id === 'string' && d.id && typeof d.label === 'string' && d.label
-  ).map((d: any) => ({ id: d.id, label: d.label, color: typeof d.color === 'string' ? d.color : 'neutral' }));
-  return defs.length > 0 ? defs : null;
-}
-
 const AVAILABLE_LABEL_COLORS = [
   { id: 'red', class: 'bg-red-500' },
   { id: 'orange', class: 'bg-orange-500' },
@@ -132,7 +107,19 @@ const AVAILABLE_LABEL_COLORS = [
   { id: 'pink', class: 'bg-pink-500' },
 ];
 
-export default function EditTracker({ userRole, selectedJobId }: { userRole?: string; selectedJobId?: string } = {}) {
+export default function EditTracker({
+  userRole,
+  selectedJobId,
+  openCardId,
+  onCardOpened,
+}: {
+  userRole?: string;
+  /** A tab bound to one production: its card opens when the board loads. */
+  selectedJobId?: string;
+  /** A card another screen (My Work) asked to open, once. */
+  openCardId?: string | null;
+  onCardOpened?: () => void;
+} = {}) {
   const isClient = userRole === 'client';
   // A freelance editor's board is already filtered before it reaches the
   // browser — row-level security hands their account the cards assigned to them
@@ -217,14 +204,27 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
   // saved anything, this tab's own saves included (they echo back here).
   useRealtime(['jobs', 'contacts', 'clients', 'projects'], () => fetchData({ background: true }));
 
+  // A tab bound to one production opens its card once. This ran on every
+  // change to `jobs`, so after closing the card any refresh — a teammate's
+  // save, this tab's own — popped it open again.
+  const openedBoundCard = useRef<string | null>(null);
   useEffect(() => {
-    if (selectedJobId && jobs.length > 0) {
-      const match = jobs.find(j => j.id === selectedJobId);
-      if (match) {
-        setActiveJob(match);
-      }
+    if (!selectedJobId || openedBoundCard.current === selectedJobId || jobs.length === 0) return;
+    const match = jobs.find(j => j.id === selectedJobId);
+    if (match) {
+      openedBoundCard.current = selectedJobId;
+      setActiveJob(match);
     }
   }, [selectedJobId, jobs]);
+
+  // Same, for a card handed over from another screen; the hand-off is cleared
+  // once used so closing the card keeps it closed.
+  useEffect(() => {
+    if (!openCardId || jobs.length === 0) return;
+    const match = jobs.find(j => j.id === openCardId);
+    if (match) setActiveJob(match);
+    onCardOpened?.();
+  }, [openCardId, jobs, onCardOpened]);
 
   const fetchData = async ({ background = false }: { background?: boolean } = {}) => {
     if (!background) setIsLoading(true);
@@ -347,8 +347,9 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
     const oldStatus = job?.edit_status || firstStageId;
 
     try {
-      // Optimistic update for UI feel
+      // Optimistic update for UI feel — the board and, when it's open, the card.
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, edit_status: newStatus as any } : j));
+      setActiveJob(cur => (cur && cur.id === jobId ? { ...cur, edit_status: newStatus as any } : cur));
       
       const { error } = await supabase
         .from('jobs')
@@ -357,38 +358,31 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
 
       if (error) throw error;
 
-      // Trigger Discord Webhook on key stage changes
+      // Tell the team when a cut is ready for review or delivered. These went
+      // straight to one Discord webhook from the server's environment — which
+      // had been deleted, so every alert failed quietly — instead of the
+      // channels the studio configures under Integrations. They now go through
+      // the same dispatch as every other alert, as events that can be switched
+      // off or reworded there.
       if (job && oldStatus !== newStatus && (newStatus === 'V1' || newStatus === 'Delivered')) {
-        let message = '';
-        if (newStatus === 'V1') message = `✂️ **Edit Ready for Review:** ${job.title}`;
-        if (newStatus === 'Delivered') message = `✅ **Final Delivery Complete:** ${job.title}`;
-
-        const { data: { session } } = await supabase.auth.getSession();
-        await fetch('/api/integrations/discord', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        const stageLabel = stages.find(st => st.id === newStatus)?.label || newStatus;
+        postNotify({
+          event_key: newStatus === 'V1' ? 'edit_review' : 'edit_delivered',
+          variables: {
+            title: job.title || '',
+            client: job.client_name || job.production_company || 'Internal',
+            editor: job.editor?.name || 'Unassigned',
+            review_link: job.review_link || '',
+            stage: stageLabel,
           },
-          body: JSON.stringify({
-            message,
-            embed: {
-              title: 'View Project Details',
-              url: job.review_link || undefined,
-              color: newStatus === 'V1' ? 10181046 : 3066993, // Purple for V1, Green for Delivered
-              fields: [
-                { name: 'Client', value: job.client_name || job.production_company || 'Internal', inline: true },
-                { name: 'Editor', value: job.editor?.name || 'Unassigned', inline: true }
-              ]
-            }
-          })
-        }).catch(err => console.error('Failed to send Discord alert:', err));
+        }).catch(err => console.error('Failed to send the edit alert:', err));
       }
     } catch (err) {
       console.error('Error updating status:', err);
       // Put the card back where it was. Left in the new column, a failed move
       // looked done until the next refresh quietly moved it back.
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, edit_status: (job?.edit_status ?? null) as any } : j));
+      setActiveJob(cur => (cur && cur.id === jobId ? { ...cur, edit_status: (job?.edit_status ?? null) as any } : cur));
       toast("Couldn't move that card — it's back where it was.");
     }
   };
@@ -410,7 +404,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
     setJobs(prev => prev.filter(j => j.id !== job.id));
     if (job.shoot_date) {
       pushJobToGoogleCalendar(job.id).then(result => {
-        if (!result.ok && result.message) toast(result.message);
+        if (!result.ok && result.message) toast(result.message, 'error');
       });
     }
   };
@@ -603,7 +597,9 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
             one item that kept getting stranded alone on a wrapped second line.
             Beside the title it also fills the gap that made this header read as
             two disconnected halves. */}
-        <div className="flex items-center gap-4 shrink-0">
+        {/* The page header already says Edit Tracker; on a phone this block
+            was a second title above controls that filled the first screen. */}
+        <div className="hidden md:flex items-center gap-4 shrink-0">
           <div>
             <h2 className="text-lg font-semibold tracking-tight text-white">Post-Production Pipeline</h2>
             <p className="text-[12px] font-medium tracking-tight opacity-50 text-white mt-1">Trello-style edit tracking</p>
@@ -630,28 +626,6 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               Timeline
             </button>
           </div>
-          {canManageBoard && myEmail && (
-            <button
-              onClick={() => setMyCardsOnly(v => !v)}
-              className={`inline-flex items-center justify-center gap-2 border ${CONTROL_H} rounded-xl px-4 text-[13px] font-medium tracking-tight transition-colors ${
-                myCardsOnly
-                  ? 'bg-accent/15 border-accent/40 text-accent'
-                  : 'bg-black/50 border-white/10 text-white/60 hover:text-white hover:border-white/25'
-              }`}
-              title="Show only cards where the assigned editor matches your account email"
-            >
-              <UserCheck className="w-3.5 h-3.5" /> My Cards
-            </button>
-          )}
-          {canManageBoard && (
-            <button
-              onClick={() => setIsColumnsModalOpen(true)}
-              className={`${CONTROL_BUTTON} hover:border-white/25`}
-              title="Rename, recolor, add, or remove board columns"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" /> Columns
-            </button>
-          )}
           {canManageBoard && availableJobs.length > 0 && (
             <select
               value=""
@@ -671,7 +645,38 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               ))}
             </select>
           )}
-          <div className={`flex items-center flex-wrap w-full sm:w-auto ${CONTROL_GAP}`}>
+          {/* Filters fold behind one chip on a phone, as on Slate. Inline they
+              stacked five full-width controls above the first card. */}
+          <FilterSheet
+            activeCount={
+              (clientFilter !== 'All' ? 1 : 0) +
+              (projectFilter !== 'All' ? 1 : 0) +
+              (yearFilter !== 'All' ? 1 : 0) +
+              (myCardsOnly ? 1 : 0)
+            }
+          >
+            {canManageBoard && myEmail && (
+              <button
+                onClick={() => setMyCardsOnly(v => !v)}
+                className={`inline-flex items-center justify-center gap-2 border ${CONTROL_H} rounded-xl px-4 text-[13px] font-medium tracking-tight transition-colors ${
+                  myCardsOnly
+                    ? 'bg-accent/15 border-accent/40 text-accent'
+                    : 'bg-black/50 border-white/10 text-white/60 hover:text-white hover:border-white/25'
+                }`}
+                title="Show only cards where the assigned editor matches your account email"
+              >
+                <UserCheck className="w-3.5 h-3.5" /> My Cards
+              </button>
+            )}
+            {canManageBoard && (
+              <button
+                onClick={() => setIsColumnsModalOpen(true)}
+                className={`${CONTROL_BUTTON} hover:border-white/25`}
+                title="Rename, recolor, add, or remove board columns"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" /> Columns
+              </button>
+            )}
             <select
               value={clientFilter}
               onChange={(e) => { setClientFilter(e.target.value); setProjectFilter('All'); }}
@@ -697,7 +702,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
               <option value="All">All Years</option>
               {uniqueYears.map(y => <option key={y as string} value={y as string}>{y}</option>)}
             </select>
-          </div>
+          </FilterSheet>
         </div>
       </div>
 
@@ -794,6 +799,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
             onUpdate={handleJobUpdate}
             onRemoveFromBoard={removeFromBoard}
             onCancelJob={cancelJob}
+            onMoveStage={updateJobEditStatus}
             stages={stages}
             isCreatingNew={isCreatingNew}
             isClient={isClient}
@@ -994,6 +1000,8 @@ function CardDrafts({
   isClient,
   isEditor,
   myName,
+  stages,
+  onMoveStage,
 }: {
   job: Job;
   /** Resolves false when the save failed (and was rolled back). */
@@ -1001,8 +1009,17 @@ function CardDrafts({
   isClient: boolean;
   isEditor: boolean;
   myName?: string | null;
+  stages: ResolvedStage[];
+  onMoveStage: (jobId: string, stageId: string) => void;
 }) {
   const [title, setTitle] = useState('');
+  // Set right after a post when the card is still short of the review stage.
+  // Posting a cut and moving the card were two separate steps, and only the
+  // move tells the producer (V1 is what sends the "ready for review" alert).
+  const [offerReview, setOfferReview] = useState(false);
+  const reviewIndex = stages.findIndex(st => st.id === 'V1');
+  const reviewStage = reviewIndex === -1 ? null : stages[reviewIndex];
+  const currentIndex = stages.findIndex(st => st.id === job.edit_status);
   const [link, setLink] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [openHistory, setOpenHistory] = useState<Record<string, boolean>>({});
@@ -1069,6 +1086,7 @@ function CardDrafts({
     if ((await onUpdate({ ...job, ...withPostedDraft(job.links, job.review_link, draft) })) === false) return;
     setLink('');
     setTitle('');
+    if (reviewStage && currentIndex !== -1 && currentIndex < reviewIndex) setOfferReview(true);
   };
 
   const removeVersion = async (target: JobLink) => {
@@ -1228,6 +1246,28 @@ function CardDrafts({
           </form>
         )}
         {error && <p className="text-[11px] text-red-400 mt-1.5 ml-1">{error}</p>}
+
+        {offerReview && reviewStage && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 px-3 py-2.5 rounded-xl bg-accent/10 border border-accent/25">
+            <span className="flex-1 min-w-[160px] text-xs text-white/80">
+              Draft posted. Move this card to {reviewStage.label} and let the team know it&apos;s ready?
+            </span>
+            <button
+              type="button"
+              onClick={() => { onMoveStage(job.id, reviewStage.id); setOfferReview(false); }}
+              className="px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-semibold hover:opacity-90 transition-opacity"
+            >
+              Move to {reviewStage.label}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOfferReview(false)}
+              className="px-2 py-1.5 rounded-lg text-xs text-white/50 hover:text-white transition-colors"
+            >
+              Not now
+            </button>
+          </div>
+        )}
 
         {otherLinks.length > 0 && (
           <div className="mt-5">
@@ -1606,6 +1646,7 @@ function ColumnsEditorModal({
       onClick={onClose}
       className="fixed inset-0 z-[9010] flex justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto cursor-pointer"
     >
+      <EscapeToClose onClose={onClose} />
       <motion.div
         onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.96 }}
@@ -1789,6 +1830,7 @@ function CardDetailModal({
   onUpdate,
   onRemoveFromBoard,
   onCancelJob,
+  onMoveStage,
   stages,
   isCreatingNew,
   isClient,
@@ -1804,6 +1846,7 @@ function CardDetailModal({
   onUpdate: (job: Job, opts?: { newProjectName?: string }) => void | Promise<boolean | void>,
   onRemoveFromBoard: (jobId: string) => void,
   onCancelJob: (job: Job) => void,
+  onMoveStage: (jobId: string, stageId: string) => void,
   stages: ResolvedStage[],
   isCreatingNew?: boolean,
   isClient: boolean,
@@ -1916,6 +1959,7 @@ function CardDetailModal({
       onClick={onClose}
       className="fixed inset-0 z-[9000] flex justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto cursor-pointer"
     >
+      <EscapeToClose onClose={onClose} />
       <motion.div
         onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, y: 50 }}
@@ -1941,9 +1985,26 @@ function CardDetailModal({
               disabled={isBoardOnly}
               className="w-full bg-transparent text-xl font-bold text-white outline-none border-2 border-transparent focus:border-accent focus:bg-black/20 rounded px-2 py-1 -ml-2 disabled:bg-transparent disabled:border-transparent disabled:-ml-2"
             />
-            <p className="text-[11px] text-white/40 mt-1 pl-1">
-              in list <span className="underline">{currentStage?.label}</span>
-            </p>
+            {/* A stage control inside the card. Dragging between columns was the
+                only way to move one, which on a phone means dragging across a
+                stack of full-width lists. Same move as a drop on the board. */}
+            {isCreatingNew || isClient ? (
+              <p className="text-[11px] text-white/40 mt-1 pl-1">
+                in list <span className="underline">{currentStage?.label}</span>
+              </p>
+            ) : (
+              <label className="flex items-center gap-1.5 mt-1 pl-1 text-[11px] text-white/40">
+                Stage
+                <select
+                  value={currentStage?.id || ''}
+                  onChange={(e) => onMoveStage(job.id, e.target.value)}
+                  aria-label="Move this card to a stage"
+                  className="bg-white/5 border border-white/10 rounded-md px-2 py-1 text-[11px] font-semibold text-white outline-none focus:border-accent cursor-pointer"
+                >
+                  {stages.map(st => <option key={st.id} value={st.id} className="bg-zinc-900">{st.label}</option>)}
+                </select>
+              </label>
+            )}
           </div>
           {isCreatingNew && (
             <button 
@@ -2179,7 +2240,7 @@ function CardDetailModal({
 
             {/* Drafts — the cut links editors used to post in Discord */}
             {!isCreatingNew && (
-              <CardDrafts job={job} onUpdate={onUpdate} isClient={isClient} isEditor={!!isEditor} myName={myName} />
+              <CardDrafts job={job} onUpdate={onUpdate} isClient={isClient} isEditor={!!isEditor} myName={myName} stages={stages} onMoveStage={onMoveStage} />
             )}
 
           </div>

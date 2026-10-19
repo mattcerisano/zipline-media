@@ -45,6 +45,7 @@ import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
 import type { NewProductionSeed } from '@/components/gearbuilder/ProductionCalendar';
 import ProfileSettings from '@/components/workspace/ProfileSettings';
 import SearchPalette from '@/components/workspace/SearchPalette';
+import { EscapeToClose } from '@/components/workspace/Overlay';
 import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
 import { QuickStartGuideModal } from '@/components/workspace/QuickStartGuide';
 import {
@@ -602,6 +603,9 @@ export default function CommandCenterPage() {
   // a hold being promoted to a booked shoot. Slate opens its production form
   // seeded from it, then clears it.
   const [newProductionSeed, setNewProductionSeed] = useState<NewProductionSeed | null>(null);
+  // An Edit Tracker card to open on arrival — My Work's edit rows hand one over.
+  const [openEditCardId, setOpenEditCardId] = useState<string | null>(null);
+  const clearOpenEditCard = useCallback(() => setOpenEditCardId(null), []);
   const [userRole, setUserRole] = useState<AppRole | null>(null);
 
   // One source of truth for "what can this account open". Everything that
@@ -1457,6 +1461,8 @@ export default function CommandCenterPage() {
                   onClearPreselectedJobId={() => setPreselectedJobId(null)}
                   newProductionSeed={newProductionSeed}
                   onClearNewProductionSeed={() => setNewProductionSeed(null)}
+                  openEditCardId={openEditCardId}
+                  onClearOpenEditCard={clearOpenEditCard}
                   onSwitchTab={(target) => {
                     // The guide is a modal, not a tab — "System Guide" on the
                     // dashboard sent 'quickstart' here, which no tab answers,
@@ -1478,6 +1484,11 @@ export default function CommandCenterPage() {
                         setNewProductionSeed(target.newProductionSeed);
                         setActiveTab('slate');
                         localStorage.setItem('studio_active_tab', 'slate');
+                      }
+                      if (target.openEditCard) {
+                        setOpenEditCardId(target.openEditCard);
+                        setActiveTab('edits');
+                        localStorage.setItem('studio_active_tab', 'edits');
                       }
                       if (target.gearJob) {
                         setPreloadedJob(target.gearJob);
@@ -1533,6 +1544,7 @@ export default function CommandCenterPage() {
       <AnimatePresence>
         {isCalendarSyncOpen && (
           <div className="fixed inset-0 z-[110] flex justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+            <EscapeToClose onClose={() => setIsCalendarSyncOpen(false)} />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1707,6 +1719,7 @@ export default function CommandCenterPage() {
       <AnimatePresence>
         {isCreateModalOpen && (
           <div className="fixed inset-0 z-[110] flex justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+            <EscapeToClose onClose={() => setIsCreateModalOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1932,6 +1945,7 @@ export default function CommandCenterPage() {
       <AnimatePresence>
         {isEditModalOpen && selectedTabToEdit && (
           <div className="fixed inset-0 z-[110] flex justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+            <EscapeToClose onClose={() => setIsEditModalOpen(false)} />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}

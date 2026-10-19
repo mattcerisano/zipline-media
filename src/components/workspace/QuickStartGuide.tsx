@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EscapeToClose } from './Overlay';
 import { 
   X, 
   ChevronLeft, 
@@ -348,6 +349,7 @@ export function QuickStartGuideModal({
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <EscapeToClose onClose={onClose} />
           {/* Main Modal Box */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 15 }}

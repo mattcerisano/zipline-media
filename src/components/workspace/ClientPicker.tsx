@@ -124,7 +124,9 @@ export default function ClientPicker({
           }}
           onFocus={() => setIsOpen(true)}
           onKeyDown={e => {
-            if (e.key === 'Escape') setIsOpen(false);
+            // Closing the list is all Escape does here; stopped so the form
+            // the picker sits in doesn't close along with it.
+            if (e.key === 'Escape' && isOpen) { e.stopPropagation(); setIsOpen(false); }
             // Enter takes the top match rather than leaving a half-typed name
             // that looks chosen but carries no client link.
             if (e.key === 'Enter' && isOpen && matches.length > 0) {

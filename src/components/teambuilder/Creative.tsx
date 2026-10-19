@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Palette,
   Film,
   Plus,
   Trash2,
   Save,
+  Check,
+  AlertCircle,
   X,
   Sparkles,
   Link2,
@@ -40,8 +42,49 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
   });
   
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Autosave. The board used to save only on its button, so picking another
+  // production — or another tab — dropped everything typed since, and the
+  // brief PDF printed whatever was last saved. Edits now save themselves a
+  // moment after typing stops, and any pending save is flushed before a
+  // switch, an export, or the board closing.
+  type BriefData = { concept: string; lighting: string; camera: string; audio: string; palette: string[] };
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  /** What the database holds for the loaded production, to tell an edit from a load. */
+  const savedSnapshot = useRef<{ jobId: string; json: string } | null>(null);
+  /** The edit waiting out the debounce, tied to the production it was made on. */
+  const pendingSave = useRef<{ jobId: string; data: BriefData } | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const persistBrief = useCallback(async (jobId: string, data: BriefData) => {
+    setSaveState('saving');
+    const { error } = await supabase
+      .from('jobs')
+      .update({
+        creative_brief: JSON.stringify({ concept: data.concept, lighting: data.lighting, camera: data.camera, audio: data.audio }),
+        color_palette: data.palette,
+      })
+      .eq('id', jobId);
+    if (error) {
+      console.error('Error saving brief:', error);
+      setSaveState('error');
+      return false;
+    }
+    if (savedSnapshot.current?.jobId === jobId) savedSnapshot.current = { jobId, json: JSON.stringify(data) };
+    setSaveState('saved');
+    return true;
+  }, []);
+
+  /** Save whatever is waiting now, rather than when the debounce ends. */
+  const flushSave = useCallback(async () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    const pending = pendingSave.current;
+    pendingSave.current = null;
+    if (pending) return persistBrief(pending.jobId, pending.data);
+    return true;
+  }, [persistBrief]);
   
   // Creative State
   const [briefConcept, setBriefConcept] = useState('');
@@ -100,6 +143,10 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
   };
 
   const handleSelectTab = (jobId: string) => {
+    // The pending save carries its own production id, so it lands on the
+    // board it was typed on even though the switch happens first.
+    void flushSave();
+    setSaveState('idle');
     setSelectedJobId(jobId);
     localStorage.setItem('creative_active_job_id', jobId);
   };
@@ -142,6 +189,10 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
           setBriefCamera(camera);
           setBriefAudio(audio);
           setColorPalette(job.color_palette || []);
+          savedSnapshot.current = {
+            jobId: selectedJobId,
+            json: JSON.stringify({ concept, lighting, camera, audio, palette: job.color_palette || [] }),
+          };
           setJobLinks(Array.isArray(job.links) ? job.links : []);
         }
         // Shotlist data is loaded by <ShotlistGrid/> itself.
@@ -153,35 +204,42 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
     fetchCreativeData();
   }, [selectedJobId]);
 
-  const saveCreativeBoard = async () => {
-    setIsSaving(true);
-    try {
-      const briefData = JSON.stringify({
-        concept: briefConcept,
-        lighting: briefLighting,
-        camera: briefCamera,
-        audio: briefAudio
-      });
+  // Queue an edit. Skipped until the production's saved brief has loaded,
+  // and when the fields still match it, so a load is never mistaken for an edit.
+  useEffect(() => {
+    const snapshot = savedSnapshot.current;
+    if (!selectedJobId || !snapshot || snapshot.jobId !== selectedJobId) return;
+    const data: BriefData = { concept: briefConcept, lighting: briefLighting, camera: briefCamera, audio: briefAudio, palette: colorPalette };
+    if (JSON.stringify(data) === snapshot.json) return;
+    pendingSave.current = { jobId: selectedJobId, data };
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => { void flushSave(); }, 1200);
+  }, [briefConcept, briefLighting, briefCamera, briefAudio, colorPalette, selectedJobId, flushSave]);
 
-      const { error } = await supabase
-        .from('jobs')
-        .update({ creative_brief: briefData, color_palette: colorPalette })
-        .eq('id', selectedJobId);
-      
-      if (error) throw error;
-      toast('Creative Board saved successfully!');
-    } catch (err) {
-      console.error('Error saving brief:', err);
-      toast('Failed to save Creative Board.');
-    } finally {
-      setIsSaving(false);
-    }
+  // Leaving the board (another tab, closing the panel) saves what's pending.
+  useEffect(() => () => { void flushSave(); }, [flushSave]);
+
+  // The button now means "save this right now", or "try again" after a failure.
+  const saveCreativeBoard = async () => {
+    if (!selectedJobId) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = null;
+    pendingSave.current = null;
+    const ok = await persistBrief(selectedJobId, {
+      concept: briefConcept, lighting: briefLighting, camera: briefCamera, audio: briefAudio, palette: colorPalette,
+    });
+    if (!ok) toast('Failed to save Creative Board.');
   };
 
   const handleExportPDF = async () => {
     if (!selectedJobId) return;
     setIsExporting(true);
     try {
+      // The PDF is built from the database, so unsaved typing has to land first.
+      if (!(await flushSave())) {
+        toast('Could not save the latest edits, so the brief was not exported.');
+        return;
+      }
       await generateMasterBrief(selectedJobId);
     } catch (err) {
       console.error(err);
@@ -341,13 +399,23 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
             {isExporting ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FileText className="w-3.5 h-3.5 text-accent" />}
             Export Production Brief (PDF)
           </button>
-          <button 
+          {/* Saves itself; the button reports where that stands and saves on
+              demand — or retries, after a failure. */}
+          <button
             onClick={saveCreativeBoard}
-            disabled={isSaving}
-            className="bg-accent text-white px-8 py-4 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 flex items-center gap-2.5 justify-center cursor-pointer disabled:opacity-50"
+            disabled={saveState === 'saving' || !selectedJobId}
+            title="Changes save automatically"
+            className={`px-6 py-4 rounded-xl font-semibold text-xs transition-all flex items-center gap-2.5 justify-center cursor-pointer disabled:cursor-default ${
+              saveState === 'error'
+                ? 'bg-red-500/15 border border-red-500/30 text-red-300 hover:bg-red-500/25'
+                : 'bg-zinc-900 border border-white/10 text-white/70 hover:text-white hover:border-white/25'
+            }`}
           >
-            {isSaving ? <Sparkles className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            Save Creative Board
+            {saveState === 'saving' ? <Sparkles className="w-3.5 h-3.5 animate-spin" />
+              : saveState === 'error' ? <AlertCircle className="w-3.5 h-3.5" />
+              : saveState === 'saved' ? <Check className="w-3.5 h-3.5 text-green-400" />
+              : <Save className="w-3.5 h-3.5" />}
+            {saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Not saved — retry' : saveState === 'saved' ? 'All changes saved' : 'Saves automatically'}
           </button>
         </div>
       </div>

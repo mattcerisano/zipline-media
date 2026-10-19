@@ -31,6 +31,7 @@ import {
   SmilePlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EscapeToClose } from '@/components/workspace/Overlay';
 import { supabase } from '@/lib/supabase';
 
 // Note Type Definition
@@ -1160,6 +1161,7 @@ export default function MeetingNotes() {
             onClick={(e) => e.target === e.currentTarget && setIsNewNoteModalOpen(false)}
             className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-pointer"
           >
+            <EscapeToClose onClose={() => setIsNewNoteModalOpen(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1239,6 +1241,7 @@ export default function MeetingNotes() {
             onClick={(e) => e.target === e.currentTarget && setShowTranscriptModal(false)}
             className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm cursor-pointer"
           >
+            <EscapeToClose onClose={() => setShowTranscriptModal(false)} />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
