@@ -6,12 +6,13 @@ import {
   ChevronLeft, ChevronRight, Calendar as CalendarIcon,
   Clock, AlertCircle, X, Save, Loader2, RefreshCw, Plus
 } from 'lucide-react';
-import { Job, CalendarEvent, CalendarEventPreset } from './types';
+import { Job, Client, CalendarEvent, CalendarEventPreset } from './types';
 import { supabase } from '@/lib/supabase';
 import { todayLocalISO, formatLocalDate, toTimeInputValue, fromTimeInputValue } from '@/lib/date';
 import { useRealtime } from '@/lib/useRealtime';
 import { pushJobToGoogleCalendar, pushEventToGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
 import { Modal } from '@/components/workspace/Overlay';
+import ClientPicker from '@/components/workspace/ClientPicker';
 import { toast } from '@/components/Feedback';
 import { trackAction } from '@/lib/usage';
 
@@ -133,6 +134,8 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  // Clients for the editor's picker, loaded the first time it opens.
+  const [clients, setClients] = useState<Client[]>([]);
 
   // Detect mobile viewport
   React.useEffect(() => {
@@ -159,7 +162,9 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
         .or(`end_date.gte.${start},and(end_date.is.null,shoot_date.gte.${start})`);
       if (error) throw error;
       if (data) {
-        setJobs(data as Job[]);
+        // A cancelled shoot isn't happening; drawing it in production orange
+        // claimed a day that is actually free. It stays in Slate.
+        setJobs((data as Job[]).filter(j => j.job_status !== 'Cancelled'));
       }
     } catch (err) {
       console.error('Error fetching jobs for calendar:', err);
@@ -375,9 +380,15 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     setSaveError(null);
     setSyncMsg(null);
     setEditingJob(job);
+    if (clients.length === 0) {
+      supabase.from('clients').select('*').order('name').then(({ data }) => {
+        if (data) setClients(data as Client[]);
+      });
+    }
     setEditForm({
       title: job.title || '',
       client_name: job.client_name || '',
+      client_id: job.client_id || undefined,
       job_status: job.job_status,
       shoot_date: job.shoot_date || '',
       end_date: job.end_date || '',
@@ -396,19 +407,41 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     setSaveError(null);
     setSyncMsg(null);
 
-    // Clean empty strings to null so we don't overwrite with blanks unintentionally
-    const updates: Partial<Job> = {
+    // An emptied field goes as null, which clears it. These used to become
+    // undefined, which the request drops — so a wrong end date or wrap time
+    // could never be removed from here. A title can't be emptied, and a shoot
+    // always keeps a date.
+    const text = (v?: string | null) => v?.trim() || null;
+    const fields: Record<string, unknown> = {
       title: editForm.title?.trim() || editingJob.title,
-      client_name: editForm.client_name?.trim() || undefined,
-      job_status: editForm.job_status,
-      shoot_date: editForm.shoot_date || undefined,
-      end_date: editForm.end_date || undefined,
-      call_time: editForm.call_time?.trim() || undefined,
-      wrap_time: editForm.wrap_time?.trim() || undefined,
-      location_name: editForm.location_name?.trim() || undefined,
-      location_address: editForm.location_address?.trim() || undefined,
-      notes_general: editForm.notes_general?.trim() || undefined,
+      client_name: text(editForm.client_name),
+      // The link travels with the name. Editing only the name left the job
+      // filed under its old client for every filter, bill and deliverable.
+      client_id: editForm.client_name?.trim()
+        ? editForm.client_id ||
+          clients.find(c => c.name.trim().toLowerCase() === editForm.client_name!.trim().toLowerCase())?.id ||
+          null
+        : null,
+      job_status: editForm.job_status || null,
+      shoot_date: editForm.shoot_date || editingJob.shoot_date || null,
+      end_date: editForm.end_date || null,
+      call_time: text(editForm.call_time),
+      wrap_time: text(editForm.wrap_time),
+      location_name: text(editForm.location_name),
+      location_address: text(editForm.location_address),
+      notes_general: text(editForm.notes_general),
     };
+    // Only what changed, so the rest of the row — touched elsewhere since this
+    // opened, perhaps — is left as it is.
+    const same = (a: unknown, b: unknown) => (a ?? null) === (b ?? null) || (a ?? '') === (b ?? '');
+    const updates = Object.fromEntries(
+      Object.entries(fields).filter(([key, value]) => !same(value, (editingJob as any)[key]))
+    );
+    if (Object.keys(updates).length === 0) {
+      setIsSaving(false);
+      setEditingJob(null);
+      return;
+    }
 
     try {
       const { error } = await supabase.from('jobs').update(updates).eq('id', editingJob.id);
@@ -434,7 +467,9 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
 
   // Initialize selectedDate to today when loaded
   React.useEffect(() => {
-    setSelectedDate(new Date().toISOString().split('T')[0]);
+    // Local, not toISOString: after 8 PM in New York the UTC date is already
+    // tomorrow, so the phone's day drawer opened on the wrong day.
+    setSelectedDate(todayLocalISO());
   }, []);
 
   const monthYear = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -580,7 +615,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
   const goToToday = () => {
     const today = new Date();
     setCurrentDate(today);
-    setSelectedDate(today.toISOString().split('T')[0]);
+    setSelectedDate(todayLocalISO());
   };
 
   /**
@@ -1302,11 +1337,13 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-semibold text-white/40 mb-1.5">Client</label>
-                    <input
-                      type="text"
+                    <ClientPicker
+                      clients={clients}
                       value={editForm.client_name || ''}
-                      onChange={(e) => setEditForm(f => ({ ...f, client_name: e.target.value }))}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:border-accent focus:outline-none transition-colors"
+                      clientId={editForm.client_id || null}
+                      onChange={({ name, clientId }) => setEditForm(f => ({ ...f, client_name: name, client_id: clientId || undefined }))}
+                      onClientCreated={c => setClients(prev => [...prev, c])}
+                      inputClassName="w-full bg-white/5 border border-white/10 rounded-lg pl-3 pr-9 py-2.5 text-sm text-white focus:border-accent focus:outline-none transition-colors"
                     />
                   </div>
                   <div>

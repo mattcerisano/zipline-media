@@ -12,6 +12,7 @@ import { caps } from '@/lib/format';
 import { hasAnyRole, POST_ROLES } from '@/lib/crew-roles';
 import { authHeader } from '@/lib/api-client';
 import { formatDuration } from '@/lib/edit-time';
+import { pushJobToGoogleCalendar } from '@/lib/calendar-push';
 import CardTimeTracker from './CardTimeTracker';
 import {
   type Deliverable,
@@ -210,8 +211,11 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
     fetchData();
   }, []);
 
-  // Live team sync: refetch the board when teammates change relevant data
-  useRealtime(['jobs', 'contacts', 'clients', 'projects'], () => fetchData());
+  // Live team sync: refetch the board when teammates change relevant data.
+  // In the background — the spinner replaces the whole board, which unmounted
+  // an open card and threw away a half-typed description every time anyone
+  // saved anything, this tab's own saves included (they echo back here).
+  useRealtime(['jobs', 'contacts', 'clients', 'projects'], () => fetchData({ background: true }));
 
   useEffect(() => {
     if (selectedJobId && jobs.length > 0) {
@@ -222,8 +226,8 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
     }
   }, [selectedJobId, jobs]);
 
-  const fetchData = async () => {
-    setIsLoading(true);
+  const fetchData = async ({ background = false }: { background?: boolean } = {}) => {
+    if (!background) setIsLoading(true);
     try {
       const [jobsRes, contactsRes, clientsRes, projectsRes] = await Promise.all([
         supabase.from('jobs').select('*, editor:contacts(*)').order('shoot_date', { ascending: false }),
@@ -238,6 +242,13 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
       // Filter out jobs that are completely dead/cancelled from the tracker
       const activeJobs = (jobsRes.data as Job[]).filter(j => j.job_status !== 'Cancelled');
       setJobs(activeJobs);
+      // Keep an open card on the fresh row, so the next change on it is made
+      // against what's saved now rather than what was there when it opened.
+      // A card still being created has no row yet and is left alone.
+      setActiveJob(cur => {
+        if (!cur || cur.id.startsWith('draft-')) return cur;
+        return activeJobs.find(j => j.id === cur.id) ?? cur;
+      });
       setContacts(contactsRes.data as Contact[]);
       if (!clientsRes.error && clientsRes.data) setClients(clientsRes.data as Client[]);
       // projects table may not exist on older deployments — fail soft
@@ -375,7 +386,32 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
       }
     } catch (err) {
       console.error('Error updating status:', err);
-      // Revert if error (omitted for brevity, but good practice)
+      // Put the card back where it was. Left in the new column, a failed move
+      // looked done until the next refresh quietly moved it back.
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, edit_status: (job?.edit_status ?? null) as any } : j));
+      toast("Couldn't move that card — it's back where it was.");
+    }
+  };
+
+  // Cancelling is a Slate status change with consequences beyond this board:
+  // the card leaves, and the shoot comes off the studio's Google Calendar. It
+  // used to be one unconfirmed click in the card's sidebar.
+  const cancelJob = async (job: Job) => {
+    const ok = await confirmAction({
+      title: `Cancel "${job.title}"?`,
+      message: 'The production is marked Cancelled in Slate, leaves this board, and comes off Google Calendar. You can set its status back from Slate.',
+      confirmLabel: 'Cancel production',
+      cancelLabel: 'Keep it',
+      danger: true,
+    });
+    if (!ok) return;
+    if ((await handleJobUpdate({ ...job, job_status: 'Cancelled' })) === false) return;
+    setActiveJob(null);
+    setJobs(prev => prev.filter(j => j.id !== job.id));
+    if (job.shoot_date) {
+      pushJobToGoogleCalendar(job.id).then(result => {
+        if (!result.ok && result.message) toast(result.message);
+      });
     }
   };
 
@@ -456,18 +492,33 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
        return;
     }
 
-    // Update local state immediately for existing jobs
-    const before = jobs.find(j => j.id === updatedJob.id);
-    setJobs(prev => prev.map(j => j.id === updatedJob.id ? updatedJob : j));
-    setActiveJob(updatedJob);
+    // Every change on the card arrives as "the card, with one thing different".
+    // Only that difference is written: sending the whole row put back whatever
+    // the card held when it opened, undoing a teammate's edit to the same
+    // production — and for a freelance editor it tripped the column guard on
+    // fields they never touched, so the save failed outright.
+    const base = activeJob && activeJob.id === updatedJob.id ? activeJob : jobs.find(j => j.id === updatedJob.id);
+    const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+    const changes: Record<string, unknown> = Object.fromEntries(
+      Object.entries(updatedJob)
+        .filter(([key, value]) => key !== 'editor' && !same(value, base ? (base as any)[key] : undefined))
+        // A cleared date input hands back "", which a DATE column rejects, and
+        // undefined is dropped from the request — both mean "clear it".
+        .map(([key, value]) => [key, value === undefined || (value === '' && /_date$/.test(key)) ? null : value])
+    );
+    if (Object.keys(changes).length === 0) return true;
 
-    // Filter out hydrated fields before saving to Supabase
-    const { editor, ...dbData } = updatedJob;
+    // Update local state immediately for existing jobs, merging the change
+    // into the freshest copy rather than replacing it with the card's.
+    const before = jobs.find(j => j.id === updatedJob.id);
+    const merge = (j: Job): Job => ({ ...j, ...changes, ...('editor_id' in changes ? { editor: updatedJob.editor } : {}) } as Job);
+    setJobs(prev => prev.map(j => j.id === updatedJob.id ? merge(j) : j));
+    setActiveJob(cur => (cur && cur.id === updatedJob.id ? merge(cur) : cur));
 
     try {
       const { error } = await supabase
         .from('jobs')
-        .update(dbData)
+        .update(changes)
         .eq('id', updatedJob.id);
 
       if (error) throw error;
@@ -742,6 +793,7 @@ export default function EditTracker({ userRole, selectedJobId }: { userRole?: st
             }}
             onUpdate={handleJobUpdate}
             onRemoveFromBoard={removeFromBoard}
+            onCancelJob={cancelJob}
             stages={stages}
             isCreatingNew={isCreatingNew}
             isClient={isClient}
@@ -1420,11 +1472,15 @@ function TimelineView({
       { key: 'next', label: 'Next Week', accentClass: 'text-accent', jobs: [] },
       { key: 'later', label: 'Later', accentClass: 'text-white/50', jobs: [] },
       { key: 'none', label: 'No Due Date', accentClass: 'text-white/30', jobs: [] },
+      { key: 'done', label: 'Done', accentClass: 'text-green-400/70', jobs: [] },
     ];
     const byKey = Object.fromEntries(groups.map(g => [g.key, g]));
 
     const sorted = [...jobs].sort((a, b) => (a.due_date || '9999').localeCompare(b.due_date || '9999'));
     for (const job of sorted) {
+      // Delivered and wrapped work is done, not late or upcoming — the board's
+      // own card badge already says so; this list filed it under Overdue.
+      if (job.edit_status === 'Delivered' || job.edit_status === 'Wrapped') { byKey.done.jobs.push(job); continue; }
       const due = parseLocalDate(job.due_date);
       if (!due) { byKey.none.jobs.push(job); continue; }
       const d = startOfDay(due);
@@ -1732,6 +1788,7 @@ function CardDetailModal({
   onClose,
   onUpdate,
   onRemoveFromBoard,
+  onCancelJob,
   stages,
   isCreatingNew,
   isClient,
@@ -1746,6 +1803,7 @@ function CardDetailModal({
   onClose: () => void,
   onUpdate: (job: Job, opts?: { newProjectName?: string }) => void | Promise<boolean | void>,
   onRemoveFromBoard: (jobId: string) => void,
+  onCancelJob: (job: Job) => void,
   stages: ResolvedStage[],
   isCreatingNew?: boolean,
   isClient: boolean,
@@ -2185,7 +2243,7 @@ function CardDetailModal({
                  <p className="text-[10px] text-white/30 leading-snug px-0.5">
                    Clears post-production status only. The shoot stays in Slate with all its details.
                  </p>
-                 <button onClick={() => onUpdate({ ...job, job_status: 'Cancelled' })} className="w-full flex items-center gap-2 bg-white/10 hover:bg-red-500/20 hover:text-red-500 text-white p-2 rounded transition-colors text-sm font-medium">
+                 <button onClick={() => onCancelJob(job)} className="w-full flex items-center gap-2 bg-white/10 hover:bg-red-500/20 hover:text-red-500 text-white p-2 rounded transition-colors text-sm font-medium">
                    <Archive className="w-4 h-4" /> Cancel Job
                  </button>
                </div>

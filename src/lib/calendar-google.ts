@@ -59,12 +59,20 @@ export function buildJobEventBody(job: any, crew: any[]): Record<string, any> {
  *  sheet. Ordered the way the manifest is, and failing soft: a roles lookup
  *  that errors must not block the calendar push. */
 async function crewForJob(jobId: string): Promise<any[]> {
+  // A crew row assigned from the Rolodex carries contact_id, not a name — the
+  // `name` column is only the fallback for someone typed in by hand. Reading
+  // it alone listed every Rolodex hire as a bare position with nobody in it.
+  // Same preference the call sheet PDF uses: the contact's own details first.
   const { data } = await supabaseAdmin
     .from('job_roles')
-    .select('name, position, department, phone, call_time, sort_order')
+    .select('name, position, department, phone, call_time, sort_order, contact:contacts(name, phone)')
     .eq('job_id', jobId)
     .order('sort_order', { ascending: true, nullsFirst: false });
-  return data || [];
+  return (data || []).map(({ contact, ...role }: any) => ({
+    ...role,
+    name: contact?.name || role.name || null,
+    phone: contact?.phone || role.phone || null,
+  }));
 }
 
 /**

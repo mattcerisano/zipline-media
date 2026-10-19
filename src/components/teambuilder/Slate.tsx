@@ -535,9 +535,26 @@ export default function Slate({
         : null;
 
       if (editingJob.id) {
+        // Only the fields edited in this form. The modal holds a snapshot of
+        // the whole row from when it opened; writing all of it back reverted
+        // anything a teammate changed meanwhile — an editor's draft link, a
+        // stage move on the Edit Tracker, a gear list.
+        const baseline = JSON.parse(jobModalBaseline || '{}') as Record<string, unknown>;
+        const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+        const changes = Object.fromEntries(
+          Object.entries(jobPayload)
+            .filter(([key, value]) => !same(value, baseline[key]))
+            // Undefined is dropped from the request, so a cleared project or
+            // client link has to go as null to clear anything.
+            .map(([key, value]) => [key, value === undefined ? null : value])
+        );
+        if (Object.keys(changes).length === 0) {
+          setIsJobModalOpen(false);
+          return;
+        }
         const { data, error } = await supabase
           .from('jobs')
-          .update(jobPayload)
+          .update(changes)
           .eq('id', editingJob.id)
           .select()
           .single();
@@ -594,8 +611,9 @@ export default function Slate({
   /**
    * Change a production's status straight from its card. Hold → Booked is the
    * most frequent edit on this board and used to require opening the full
-   * 13-field modal and saving it. Optimistic, with the Google Calendar push
-   * left to the modal — a status change doesn't alter the event's timing.
+   * 13-field modal and saving it. Optimistic. The Google event is pushed too:
+   * its description states the status, and a cancelled shoot comes off the
+   * calendar altogether — skipping the push left both stale on Google.
    */
   const updateJobStatus = async (job: Job, status: Job['job_status']) => {
     if (!status || status === job.job_status) return;
@@ -609,6 +627,11 @@ export default function Slate({
       return;
     }
     sendNotification(`status_${status.toLowerCase()}`, { ...job, job_status: status }, previous);
+    if (job.shoot_date) {
+      pushJobToGoogleCalendar(job.id).then(result => {
+        if (!result.ok && result.message) toast(result.message);
+      });
+    }
   };
 
   const deleteJob = async (id: string) => {
@@ -1049,6 +1072,15 @@ export default function Slate({
   const [crewVersion, setCrewVersion] = useState(0);
 
   const closeCrewManager = () => {
+    // The Google event lists the crew, so a change made in the manager has to
+    // reach it — until now only saving the production form did that, and the
+    // calendar kept the crew as it stood at the last form save.
+    const job = jobs.find(j => j.id === manageJobId);
+    if (job?.shoot_date) {
+      pushJobToGoogleCalendar(job.id).then(result => {
+        if (!result.ok && result.message) toast(result.message);
+      });
+    }
     setManageJobId(null);
     setCrewVersion(v => v + 1);
   };
