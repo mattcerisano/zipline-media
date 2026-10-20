@@ -625,14 +625,14 @@ export default function EditTracker({
         <div className={`flex items-center gap-1 p-1 bg-black/50 border border-white/10 rounded-xl ${CONTROL_H}`}>
           <button
             onClick={() => setViewMode('board')}
-            className={`h-full px-3.5 text-[13px] font-medium tracking-tight rounded-lg transition-colors ${viewMode === 'board' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+            className={`h-full px-3 sm:px-3.5 text-[13px] font-medium tracking-tight rounded-lg transition-colors ${viewMode === 'board' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
             title="Kanban board grouped by stage"
           >
             Board
           </button>
           <button
             onClick={() => setViewMode('timeline')}
-            className={`h-full px-3.5 text-[13px] font-medium tracking-tight rounded-lg transition-colors ${viewMode === 'timeline' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+            className={`h-full px-3 sm:px-3.5 text-[13px] font-medium tracking-tight rounded-lg transition-colors ${viewMode === 'timeline' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
             title="Agenda view grouped by due date"
           >
             Timeline

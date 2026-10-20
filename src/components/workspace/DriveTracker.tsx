@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
-import { toast } from '@/components/Feedback';
+import { toast, confirmAction } from '@/components/Feedback';
 import { Modal, DropdownMenu, type MenuItem } from '@/components/workspace/Overlay';
 import { formatLocalDate, todayLocalISO } from '@/lib/date';
 import {
@@ -201,7 +201,7 @@ export default function DriveTracker() {
     setDrives((prev) => prev.map((d) => (d.id === drive.id ? { ...d, ...patch } : d)));
     const { error } = await supabase.from('drives').update(patch).eq('id', drive.id);
     if (error) {
-      alert(`Couldn’t update ${drive.label}: ${error.message}`);
+      toast(`Couldn’t update ${drive.label}: ${error.message}`, 'error');
       load();
       return;
     }
@@ -219,25 +219,38 @@ export default function DriveTracker() {
   const moveTo = (drive: Drive, owner: string) =>
     patchDrive(drive, { holder_name: owner }, 'note', { holder_name: owner, note: `Moved to ${owner}` });
 
-  const markLost = (drive: Drive) => {
-    if (!confirm(`Mark ${drive.label} as lost? It stays in the tracker so you can mark it found later.`)) return;
+  const markLost = async (drive: Drive) => {
+    if (!(await confirmAction({
+      title: `Mark ${drive.label} as lost?`,
+      message: 'It stays in the tracker so you can mark it found later.',
+      confirmLabel: 'Mark lost',
+    }))) return;
     patchDrive(drive, { status: 'lost' }, 'lost');
   };
 
   const markFound = (drive: Drive, owner: string) =>
     patchDrive(drive, withOwner(owner), 'found', { holder_name: owner, job_id: null, note: `With ${owner}` });
 
-  const retire = (drive: Drive) => {
-    if (!confirm(`Retire ${drive.label}? Use this for a drive that died or was given away. It drops out of the totals.`)) return;
+  const retire = async (drive: Drive) => {
+    if (!(await confirmAction({
+      title: `Retire ${drive.label}?`,
+      message: 'Use this for a drive that died or was given away. It drops out of the totals.',
+      confirmLabel: 'Retire',
+    }))) return;
     patchDrive(drive, { ...withOwner(null), status: 'retired' }, 'retired');
   };
 
   const remove = async (drive: Drive) => {
-    if (!confirm(`Delete ${drive.label} and its whole history? Retire it instead if it ever existed.`)) return;
+    if (!(await confirmAction({
+      title: `Delete ${drive.label}?`,
+      message: 'This removes the drive and its whole history. Retire it instead if it ever existed.',
+      confirmLabel: 'Delete',
+      danger: true,
+    }))) return;
     setDrives((prev) => prev.filter((d) => d.id !== drive.id));
     const { error } = await supabase.from('drives').delete().eq('id', drive.id);
     if (error) {
-      alert(`Couldn’t delete ${drive.label}: ${error.message}`);
+      toast(`Couldn’t delete ${drive.label}: ${error.message}`, 'error');
       load();
     }
   };
@@ -736,7 +749,7 @@ function DriveForm({ drive, existingLabels, onClose, onSaved }: {
       : await supabase.from('drives').insert(row).select().single();
     setSaving(false);
     if (res.error) {
-      alert(`Couldn’t save the drive: ${res.error.message}`);
+      toast(`Couldn’t save the drive: ${res.error.message}`, 'error');
       return;
     }
     onSaved(res.data as Drive, !drive);

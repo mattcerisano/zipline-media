@@ -33,8 +33,14 @@ export function nextDeliverableStatus(current?: string | null): string {
   return DELIVERABLE_STATUS[(i + 1) % DELIVERABLE_STATUS.length];
 }
 
-/** "in_progress" → "in progress". Stored value stays snake_case. */
-export const deliverableStatusLabel = (s?: string | null) => (s || 'todo').replace('_', ' ');
+const STATUS_LABELS: Record<string, string> = { todo: 'To do', in_progress: 'In progress', delivered: 'Delivered' };
+
+/** "in_progress" → "In progress". Stored value stays snake_case. The chip
+ *  shows this as written — it used to print the raw "todo". */
+export const deliverableStatusLabel = (s?: string | null) => {
+  const key = s || 'todo';
+  return STATUS_LABELS[key] ?? key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+};
 
 /** Chip colours, shared so a deliverable reads the same on either screen. */
 export function deliverableStatusTone(status?: string | null): string {

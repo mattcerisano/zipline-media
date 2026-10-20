@@ -70,6 +70,8 @@ export const CONTROL_GAP = 'gap-2.5';
  */
 export const TAB_STRIP_TEXT = 'text-lg font-black uppercase tracking-tighter';
 
-/** The card a toolbar row sits in. */
+/** The card a toolbar row sits in. 16px inside on phones: at 20px the Edit
+ *  Tracker row (view, my cards, filters) missed fitting a 375px screen by
+ *  14px and dropped Filters onto a line of its own. */
 export const TOOLBAR_CARD =
-  'bg-neutral-900/40 border border-white/10 rounded-2xl p-5 md:p-6';
+  'bg-neutral-900/40 border border-white/10 rounded-2xl p-4 md:p-6';

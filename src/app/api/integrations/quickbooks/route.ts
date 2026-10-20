@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthedUserId } from '@/lib/api-auth';
 import { getQuickBooksToken, describeQbFailure, quickbooksQuery } from '@/lib/quickbooks-auth';
+import { todayInZone } from '@/lib/date';
 
 // Read-only QuickBooks surface. Returns a billing summary per client so the
 // Slate board can show what has been invoiced and what is still outstanding.
@@ -178,7 +179,9 @@ export async function POST(request: Request) {
         ),
       ]);
 
-      const today = new Date().toISOString().split('T')[0];
+      // The studio's date, not the server's UTC one, or invoices due today
+      // read as overdue for the last few hours of every New York evening.
+      const today = todayInZone();
       const summaries: Record<string, BillingSummary> = {};
 
       for (const r of resolved) {

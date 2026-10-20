@@ -571,7 +571,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
               <select 
                 value={selectedJobId}
                 onChange={(e) => setSelectedJobId(e.target.value)}
-                className="w-full bg-black/50 border border-white/10 p-4 outline-none focus:border-accent transition-colors uppercase text-sm font-bold rounded-xl appearance-none text-white"
+                className="w-full bg-black/50 border border-white/10 p-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-xl appearance-none text-white"
               >
                 {jobs.map(job => (
                   <option key={job.id} value={job.id}>
@@ -676,7 +676,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                 ))}
                 {jobRoles.length === 0 && (
                   <div className="text-center py-20 bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40 text-white">
-                    <p className="font-bold uppercase tracking-widest text-xs">No roles assigned to this job yet.</p>
+                    <p className="font-semibold text-sm">No roles assigned to this job yet.</p>
                     <button 
                       onClick={() => setIsTemplateModalOpen(true)}
                       className="mt-4 text-accent text-[10px] font-black uppercase tracking-widest hover:underline"
@@ -700,7 +700,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                 ))}
                 {jobSchedules.length === 0 && (
                   <div className="text-center py-20 bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40 text-white">
-                    <p className="font-bold uppercase tracking-widest text-xs">Schedule is empty.</p>
+                    <p className="font-semibold text-sm">Schedule is empty.</p>
                     <p className="text-[10px] mt-2 italic">Build the day's timeline here to include it in the Call Sheet export.</p>
                   </div>
                 )}
@@ -785,7 +785,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                     ))}
                     {jobTodos.length === 0 && (
                       <div className="text-center py-20 bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40 text-white">
-                        <p className="font-bold uppercase tracking-widest text-xs">No prep tasks defined for this job.</p>
+                        <p className="font-semibold text-sm">No prep tasks defined for this job.</p>
                         <p className="text-[10px] mt-2 italic">Get started by loading standard prep tasks or adding custom ones.</p>
                         <button 
                           onClick={handleLoadPresets}
@@ -927,7 +927,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                   ))}
                   {templates.length === 0 && (
                     <div className="text-center py-12 opacity-30 border border-dashed border-white/10 rounded-2xl text-white">
-                      <p className="text-xs font-bold uppercase tracking-widest">No templates created yet.</p>
+                      <p className="text-sm font-semibold">No templates created yet.</p>
                       <p className="text-[10px] mt-2 italic">Save a live job as a template from the Slate tab.</p>
                     </div>
                   )}

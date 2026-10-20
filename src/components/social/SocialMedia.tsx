@@ -14,7 +14,7 @@ import {
   deliverableStatusTone,
 } from '@/lib/deliverables';
 import { sanitizeUrl } from '@/lib/sanitize';
-import { confirmAction } from '@/components/Feedback';
+import { confirmAction, promptAction } from '@/components/Feedback';
 import { Portal, useEscapeToClose } from '@/components/workspace/Overlay';
 
 /* ------------------------------------------------------------------ */
@@ -339,7 +339,12 @@ function RolloutTracker({ clients }: { clients: Client[] }) {
   useEffect(() => { void (async () => { await loadTasks(); })(); }, [loadTasks]);
 
   const addCampaign = async () => {
-    const name = prompt('Campaign / release name (e.g. "If I Believed — Single"):');
+    const name = await promptAction({
+      title: 'New campaign',
+      message: 'Name the campaign or release.',
+      placeholder: 'e.g. If I Believed — Single',
+      confirmLabel: 'Create',
+    });
     if (!name) return;
     const res = await saved(supabase.from('social_campaigns').insert([{ name }]).select().single(), 'create the campaign');
     if (res?.data) { setCampaigns((c) => [res.data as Campaign, ...c]); setActiveId((res.data as Campaign).id); }
