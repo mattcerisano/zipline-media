@@ -188,6 +188,8 @@ interface WorkspaceLayoutProps {
   onSwitchTab: (tab: any) => void;
   /** Layout controls (add tab, split, close) show only while editing. */
   isLayoutEditing?: boolean;
+  /** A custom workspace's starting tools, used when there's no saved layout. */
+  starterTools?: string[];
 }
 
 export default function WorkspaceLayout({
@@ -205,6 +207,7 @@ export default function WorkspaceLayout({
   onClearRolodexRecord,
   onSwitchTab,
   isLayoutEditing = false,
+  starterTools,
 }: WorkspaceLayoutProps) {
   const [layoutRoot, setLayoutRoot] = useState<LayoutNode | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -233,9 +236,10 @@ export default function WorkspaceLayout({
     // dashboard — falling through to the dashboard made every new custom tab
     // look like a broken dashboard clone. Freshly created tabs normally have
     // a seeded layout in localStorage already (written at creation time).
+    const startTools = starterTools && starterTools.length > 0 ? starterTools : ['notes'];
     const fallback: LayoutNode =
       DEFAULT_LAYOUTS[activeTab] ||
-      ({ type: 'panel', id: `${activeTab}-root`, activeTab: 'notes', tabs: ['notes'] } as LayoutNode);
+      ({ type: 'panel', id: `${activeTab}-root`, activeTab: startTools[0], tabs: startTools } as LayoutNode);
 
     // Layouts saved by the old dashboard-fallback bug are permanently
     // contaminated: interacting with a custom tab back then persisted the
@@ -301,7 +305,7 @@ export default function WorkspaceLayout({
       setLayoutRoot(fallback);
     }
     return () => { cancelled = true; };
-  }, [activeTab, storageKey]);
+  }, [activeTab, storageKey, starterTools]);
 
   const saveLayout = (newLayout: LayoutNode) => {
     setLayoutRoot(newLayout);
