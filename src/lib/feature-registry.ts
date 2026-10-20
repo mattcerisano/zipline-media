@@ -21,13 +21,14 @@ export const APP_FEATURES: AppFeature[] = [
   // ---- Slate ----
   { id: 'slate-create', title: 'Create a Production', description: 'Spin up a new job with client, dates, location, and crew on the Slate.', keywords: 'new job production create shoot add slate booking', tab: 'slate' },
   { id: 'slate-callsheet', title: 'Export a Call Sheet PDF', description: 'One-click branded call sheet with logistics, schedule, crew (in your chosen order), weather, hospital, and parking.', keywords: 'call sheet pdf export print crew list logistics day sheet', tab: 'slate' },
+  { id: 'slate-archive', title: 'Archive a Production', description: 'Keep a production with everything on it but move it into the Archived folder at the bottom of the Slate. Unarchive brings it back.', keywords: 'archive archived folder keep hide old no date saved store unarchive', tab: 'slate' },
   { id: 'slate-duplicate', title: 'Duplicate a Shoot Day', description: 'Copy a production to the next day — crew, gear, and logistics carry over, post-production starts clean.', keywords: 'duplicate copy multi-day day 2 repeat shoot', tab: 'slate' },
   { id: 'slate-templates', title: 'Crew Templates', description: 'Save a job\'s role structure as a reusable template and apply it to future productions.', keywords: 'template crew roles reuse structure apply save', tab: 'slate' },
   { id: 'slate-budget', title: 'Budgets & Day Rates', description: 'Track day rates, flat fees, overtime, and total spend per production.', keywords: 'budget money day rate fees cost financials spend overtime', tab: 'slate' },
   { id: 'slate-crew', title: 'Crew Manifest & Ordering', description: 'Assign crew to roles, set call times, and reorder how they appear on the exported call sheet.', keywords: 'crew manifest roles assign order reorder call time positions', tab: 'slate' },
   { id: 'slate-schedule', title: 'Day Schedule Builder', description: 'Build the shoot day timeline that prints on the call sheet.', keywords: 'schedule timeline day plan hours tasks builder', tab: 'slate' },
   { id: 'slate-prep', title: 'Preproduction Checklist', description: 'Per-job prep to-do list with progress tracking.', keywords: 'checklist todo prep tasks preproduction progress', tab: 'slate' },
-  { id: 'slate-safety', title: 'Weather, Hospital & Parking Lookup', description: 'Auto-find the forecast, nearest hospital, and parking for the shoot location — printed on the call sheet.', keywords: 'weather hospital parking safety location forecast nearest logistics', tab: 'gear' },
+  { id: 'slate-safety', title: 'Weather, Hospital & Parking Lookup', description: 'Auto-find the forecast, nearest hospital, and parking for the shoot location — printed on the call sheet.', keywords: 'weather hospital parking safety location forecast nearest logistics', tab: 'slate' },
 
   // ---- Edit Tracker ----
   { id: 'edits-board', title: 'Edit Tracker Board', description: 'Kanban board for post-production: drag deliverables through your custom pipeline stages.', keywords: 'edit tracker post production kanban board pipeline stages deliverables', tab: 'edits' },
@@ -36,6 +37,7 @@ export const APP_FEATURES: AppFeature[] = [
   { id: 'edits-add', title: 'Add a Production to Post', description: 'Productions stay off the board until you deliberately add them via the Add-to-Board picker.', keywords: 'add to board post pipeline pull in production picker', tab: 'edits' },
 
   // ---- Gear Builder ----
+  { id: 'gear-oneoff', title: 'One-off Gear List', description: 'A quick gear list that isn\'t tied to a production — name it, export a PDF, and save a draft on this device.', keywords: 'one-off one off quick gear list draft temporary rental pickup not on slate', tab: 'gear' },
   { id: 'gear-manifest', title: 'Build a Gear Manifest', description: 'Pick from inventory, add custom items, and assemble the kit list for a shoot.', keywords: 'gear equipment manifest kit list build cameras lenses pack', tab: 'gear' },
   { id: 'gear-catalog', title: 'Edit the Gear Catalog', description: 'Add, rename or remove gear from the Gear Builder. Renames carry through to saved lists.', keywords: 'gear inventory catalog edit rename delete add library manage', tab: 'gear' },
   { id: 'gear-rentals', title: 'Rental Log', description: 'Gear borrowed from friends and rental houses, saved under each owner with every shoot it was used on.', keywords: 'rental rent borrow borrowed owner friend lender rental house log history gear', tab: 'gear' },
