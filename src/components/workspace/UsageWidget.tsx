@@ -279,7 +279,7 @@ export default function UsageWidget() {
             <button
               type="button"
               onClick={clearAll}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-semibold hover:bg-red-500/20 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" /> Clear log
             </button>

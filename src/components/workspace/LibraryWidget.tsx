@@ -639,7 +639,7 @@ export default function LibraryWidget() {
               type="button"
               onClick={removeSelected}
               disabled={busy}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-semibold hover:bg-red-500/20 transition-colors disabled:opacity-50"
             >
               <Trash2 className="w-3.5 h-3.5" /> Delete {selected.size}
             </button>
@@ -648,7 +648,7 @@ export default function LibraryWidget() {
             type="button"
             onClick={add}
             disabled={busy}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/40 text-accent text-[10px] font-black uppercase tracking-widest hover:bg-accent/25 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/40 text-accent text-[10px] font-semibold hover:bg-accent/25 transition-colors disabled:opacity-50"
           >
             <Plus className="w-3.5 h-3.5" /> {meta.addLabel}
           </button>
@@ -668,7 +668,7 @@ export default function LibraryWidget() {
           <button
             type="button"
             onClick={selectStrays}
-            className="shrink-0 px-2.5 py-1 rounded-lg bg-white/5 border border-white/15 text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white hover:border-white/30 transition-colors"
+            className="shrink-0 px-2.5 py-1 rounded-lg bg-white/5 border border-white/15 text-[10px] font-semibold text-white/70 hover:text-white hover:border-white/30 transition-colors"
           >
             Select {strays.length}
           </button>

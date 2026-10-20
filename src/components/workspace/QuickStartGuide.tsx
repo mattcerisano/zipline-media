@@ -132,28 +132,28 @@ export function QuickStartGuideModal({
               <Scissors className="w-4 h-4 text-accent mt-0.5 shrink-0" />
               <div>
                 <h5 className="text-[10px] font-black uppercase text-white">Edit Tracker</h5>
-                <p className="text-[11px] text-white/60">Track status of active drafts (WIP, V1, Final), post each cut's link with its version history, and coordinate notes.</p>
+                <p className="text-[11px] text-white/60">Track each edit through your stages, post each cut&apos;s link with its version history, and coordinate notes. S / M / L sets how big the cards are.</p>
               </div>
             </div>
             <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
               <Package className="w-4 h-4 text-accent mt-0.5 shrink-0" />
               <div>
                 <h5 className="text-[10px] font-black uppercase text-white">Gear Builder</h5>
-                <p className="text-[11px] text-white/60">Draft custom gear manifests, calculate rental weights/costs, and coordinate transport sheets.</p>
+                <p className="text-[11px] text-white/60">Pick a production and build its gear list, or make a one-off list that never touches the Slate. Export a PDF or share a live link; it warns when another shoot that day needs the same gear.</p>
               </div>
             </div>
             <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
               <Users className="w-4 h-4 text-accent mt-0.5 shrink-0" />
               <div>
                 <h5 className="text-[10px] font-black uppercase text-white">Rolodex CRM</h5>
-                <p className="text-[11px] text-white/60">A directory of clients, crew members, talent, and vendors with day rates and contact info.</p>
+                <p className="text-[11px] text-white/60">Crew, vendors and clients with day rates and contact info, plus who&apos;s booked when. Searching a name opens their card.</p>
               </div>
             </div>
             <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
               <Library className="w-4 h-4 text-accent mt-0.5 shrink-0" />
               <div>
                 <h5 className="text-[10px] font-black uppercase text-white">Library</h5>
-                <p className="text-[11px] text-white/60">One place to browse, rename and tidy shoots, projects and clients. Gear is edited in the Gear Builder.</p>
+                <p className="text-[11px] text-white/60">One place to browse, rename and tidy projects and shoots. Clients live in the Rolodex; gear is edited in the Gear Builder.</p>
               </div>
             </div>
           </div>
@@ -179,7 +179,7 @@ export function QuickStartGuideModal({
             <div className="flex gap-4 items-center bg-white/5 p-3 rounded-xl border border-white/5">
               <div className="p-2 bg-white/10 rounded shrink-0"><Plus className="w-4 h-4 text-accent" /></div>
               <p className="text-xs text-white/60">
-                Click <strong className="text-white">Create Workspace</strong> at the bottom of the sidebar to add a custom tab accessible specifically to your staff or clients.
+                Click <strong className="text-white">Edit layout</strong> in the header, then <strong className="text-white">Create Workspace</strong> at the bottom of the sidebar to add a custom tab for your team. The sidebar keeps the tabs the team opens most at the top; the order you set in Edit layout breaks ties.
               </p>
             </div>
           </div>
@@ -202,7 +202,7 @@ export function QuickStartGuideModal({
               <h4 className="text-[10px] font-black uppercase text-accent">Sync</h4>
               <button
                 onClick={onOpenCalendarSync}
-                className="px-3 py-1 bg-accent/20 hover:bg-accent border border-accent/30 rounded-lg text-[11px] md:text-[9px] font-black uppercase text-white transition-colors cursor-pointer"
+                className="px-3 py-1 bg-accent/20 hover:bg-accent border border-accent/30 rounded-lg text-[11px] md:text-[9px] font-semibold text-white transition-colors cursor-pointer"
               >
                 Configure Now
               </button>
@@ -267,8 +267,10 @@ export function QuickStartGuideModal({
             </div>
           </div>
           <p className="text-[11px] text-white/45 leading-relaxed">
-            The menu on each card holds the rest: crew &amp; schedule, gear list, call sheet and
-            production brief exports, duplicating a shoot for the next day, and deleting it.
+            <span className="text-white/70">Crew &amp; schedule</span> at the bottom of the card opens the crew manager. The menu holds
+            the rest: gear list, links, call sheet and production brief exports, duplicating a shoot
+            for the next day, archiving it (kept, in the Archived folder at the bottom of the Slate),
+            and deleting it.
           </p>
         </div>
       )
@@ -280,19 +282,19 @@ export function QuickStartGuideModal({
       content: (
         <div className="space-y-4 max-h-[350px] overflow-y-auto no-scrollbar pr-1">
           <p className="text-sm text-white/70 leading-relaxed">
-            Shoots, projects and clients in one place — for when you want to tidy up, rename
-            something, or add a lot at once. The gear catalogue is edited in the Gear Builder.
+            Projects and shoots in one place — for when you want to tidy up, rename something,
+            or add a lot at once. Clients are kept in the Rolodex; the gear catalogue in the Gear Builder.
           </p>
           <ul className="text-xs text-white/60 space-y-2 list-disc list-inside">
-            <li>Search across all three at once. Looking for &ldquo;Hudson&rdquo; finds the client and the shoot together.</li>
-            <li>Pick a record to see its details and what it&rsquo;s linked to — a client walks to its projects, and those to their shoots.</li>
+            <li>Search across both at once. Looking for &ldquo;Hudson&rdquo; finds the project and the shoot together.</li>
+            <li>Pick a record to see its details and what it&rsquo;s linked to — a project walks to its shoots.</li>
             <li>Sort shoots by date, client or status.</li>
             <li>Tick several rows to remove them together.</li>
           </ul>
           <div className="bg-amber-400/5 border border-amber-400/20 p-3 rounded-xl space-y-1.5">
             <h4 className="text-[10px] font-black uppercase text-amber-300/90">Before you delete</h4>
             <p className="text-[11px] text-white/60 leading-relaxed">
-              Removing a client or project <span className="text-white">unlinks</span> its shoots — they stay.
+              Removing a project <span className="text-white">unlinks</span> its shoots — they stay.
               Deleting a <span className="text-white">shoot</span> is different: its crew, schedule, shot list
               and budget go with it, and it&rsquo;s cleared from Google Calendar. The confirmation always says which.
             </p>
@@ -301,28 +303,28 @@ export function QuickStartGuideModal({
       )
     },
     {
-      title: "Discord Crew Notifications",
-      subtitle: "Real-time automated telemetry updates",
+      title: "Team Channel Alerts",
+      subtitle: "Discord, Slack or Teams",
       icon: MessageSquare,
       content: (
         <div className="space-y-4">
           <p className="text-sm text-white/70 leading-relaxed">
-            Keep your team aligned on shooting schedules. Studio OS connects directly with your Discord webhook gateway.
+            Keep the team aligned without anyone having to check the app. Studio OS posts to the channels you add — Discord, Slack or Microsoft Teams.
           </p>
           <div className="bg-white/5 border border-white/15 p-4 rounded-xl space-y-3">
             <h4 className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping" />
-              Webhook Alerts Trigger on:
+              Alerts you can switch on
             </h4>
-            <div className="grid grid-cols-2 gap-2.5 text-xs text-white/60 font-bold uppercase tracking-wider">
-              <div className="flex items-center gap-1.5">✓ New Booked Job</div>
-              <div className="flex items-center gap-1.5">✓ Edit Stage Shift</div>
-              <div className="flex items-center gap-1.5">✓ Budget Approvals</div>
-              <div className="flex items-center gap-1.5">✓ System Alerts</div>
+            <div className="grid grid-cols-2 gap-2.5 text-xs text-white/60 font-semibold">
+              <div className="flex items-center gap-1.5">✓ New production</div>
+              <div className="flex items-center gap-1.5">✓ Status changes</div>
+              <div className="flex items-center gap-1.5">✓ Edit ready for review</div>
+              <div className="flex items-center gap-1.5">✓ Edit delivered</div>
             </div>
           </div>
           <p className="text-[10px] text-white/40 italic">
-            Configure the Discord gateway in the Overview tab to test delivery logs.
+            Add channels and choose which alerts go where under Settings → Integrations.
           </p>
         </div>
       )
@@ -417,7 +419,7 @@ export function QuickStartGuideModal({
                 {currentStep > 0 && (
                   <button
                     onClick={handleBack}
-                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white rounded-xl text-[11px] md:text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white rounded-xl text-[11px] md:text-[9px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" /> Back
                   </button>
@@ -425,7 +427,7 @@ export function QuickStartGuideModal({
                 
                 <button
                   onClick={handleNext}
-                  className="px-5 py-2.5 bg-accent hover:bg-white hover:text-black text-white rounded-xl text-[11px] md:text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-accent/15"
+                  className="px-5 py-2.5 bg-accent hover:bg-white hover:text-black text-white rounded-xl text-[11px] md:text-[9px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-accent/15"
                 >
                   {currentStep === steps.length - 1 ? 'Finish Tour' : 'Next'} <ChevronRight className="w-3.5 h-3.5" />
                 </button>

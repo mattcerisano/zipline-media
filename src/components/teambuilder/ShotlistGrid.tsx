@@ -235,7 +235,7 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
                   <Cell value={scene.setup_number} onCommit={(v) => patchScene(scene.id, { setup_number: v })} placeholder="#" className="text-center font-black text-accent" />
                 </div>
                 <div className="min-w-[140px] flex-1 border border-white/10 rounded">
-                  <Cell value={scene.name} onCommit={(v) => patchScene(scene.id, { name: v })} placeholder="SCENE NAME" className="font-black uppercase tracking-wide" />
+                  <Cell value={scene.name} onCommit={(v) => patchScene(scene.id, { name: v })} placeholder="Scene name" className="font-semibold" />
                 </div>
                 <div className="w-32 shrink-0 border border-white/10 rounded">
                   <Cell value={scene.timecode} onCommit={(v) => patchScene(scene.id, { timecode: v })} placeholder="TIMECODE" mono />
@@ -349,7 +349,7 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
         );
       })}
 
-      <button onClick={addScene} className="w-full py-3 border border-dashed border-white/15 hover:border-accent/40 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-accent flex items-center justify-center gap-2 cursor-pointer transition-colors">
+      <button onClick={addScene} className="w-full py-3 border border-dashed border-white/15 hover:border-accent/40 rounded-2xl text-[10px] font-semibold text-white/40 hover:text-accent flex items-center justify-center gap-2 cursor-pointer transition-colors">
         <Plus className="w-4 h-4" /> Add Scene / Setup
       </button>
 

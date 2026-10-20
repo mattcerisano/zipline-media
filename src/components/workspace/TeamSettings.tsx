@@ -134,7 +134,9 @@ export default function TeamSettings({ session, onMessage }: Props) {
       const data = await res.json();
       if (res.ok) {
         onMessage(
-          newRole === 'editor'
+          data.existingAccount
+            ? `${newEmail} already had an account (they'd signed in before being added). They now have access and keep their own password — the temporary one wasn't used.`
+            : newRole === 'editor'
             ? `Account created. Share the temporary password with ${newEmail} — they sign in at /command-center, land on the Edit Tracker, and see the cards assigned to their linked contact.`
             : `Account created. Share the temporary password with ${newEmail} — they sign in at /command-center.`
         );
@@ -363,7 +365,7 @@ export default function TeamSettings({ session, onMessage }: Props) {
           <button
             type="button"
             onClick={generatePassword}
-            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-colors"
+            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[11px] md:text-[9px] font-semibold text-white/60 hover:text-white transition-colors"
           >
             Generate
           </button>
@@ -375,7 +377,7 @@ export default function TeamSettings({ session, onMessage }: Props) {
           <button
             onClick={addMember}
             disabled={busy || !newEmail.trim() || newPassword.length < 8 || !contactReady}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-white text-[10px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
             Create Account

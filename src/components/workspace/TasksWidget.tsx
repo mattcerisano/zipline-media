@@ -153,7 +153,7 @@ export default function TasksWidget() {
         <button
           onClick={addTask}
           disabled={!newTask.trim()}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-40"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-accent text-white text-[10px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
         >
           <Plus className="w-3.5 h-3.5" /> Add
         </button>

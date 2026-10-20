@@ -176,6 +176,24 @@ export async function POST(request: Request) {
     password,
     email_confirm: true,
   });
+  // Someone who signed in before being added already has an account (and,
+  // since unknown sign-ins no longer get a role, no access). Give that
+  // account the role instead of failing; their password stays their own.
+  if (createErr?.message?.includes('already')) {
+    const existingId = await findUserIdByEmail(gate.admin, email);
+    if (existingId) {
+      const { error: linkErr } = await gate.admin
+        .from('user_roles')
+        .upsert({ id: existingId, email, role, contact_id: contactId }, { onConflict: 'id' });
+      if (!linkErr) {
+        return NextResponse.json({
+          success: true,
+          existingAccount: true,
+          member: { id: existingId, email, role, contact_id: contactId },
+        });
+      }
+    }
+  }
   if (createErr || !created?.user) {
     // Roll back a Rolodex entry made a moment ago for an account that then
     // couldn't be created — otherwise retrying a duplicate email leaves a
@@ -199,6 +217,18 @@ export async function POST(request: Request) {
     success: true,
     member: { id: created.user.id, email, role, contact_id: contactId },
   });
+}
+
+/** The auth account with this email, if one exists. Small teams: a few pages at most. */
+async function findUserIdByEmail(admin: any, email: string): Promise<string | null> {
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data?.users?.length) return null;
+    const hit = data.users.find((u: { email?: string }) => (u.email || '').toLowerCase() === email);
+    if (hit) return hit.id;
+    if (data.users.length < 200) return null;
+  }
+  return null;
 }
 
 export async function PATCH(request: Request) {

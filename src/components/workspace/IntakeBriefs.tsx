@@ -571,7 +571,7 @@ export default function IntakeBriefs() {
                     type="button"
                     onClick={handleAddBrief}
                     disabled={!selectedClientId || !newTitle.trim() || !newBrief.trim()}
-                    className="bg-accent text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="bg-accent text-white px-8 py-3 rounded-xl font-semibold text-[10px] hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Save Brief
                   </button>

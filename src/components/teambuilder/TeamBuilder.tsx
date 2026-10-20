@@ -583,7 +583,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                   hierarchy. Flush left now, as a block, with real space beneath
                   it instead of the 4px that glued it to the title. */}
               <span className="block text-[10px] font-bold uppercase tracking-[0.3em] opacity-40">Managing Job:</span>
-              <h2 className="text-2xl font-black uppercase tracking-tighter text-white mt-2 leading-tight">{selectedJob?.title}</h2>
+              <h2 className="text-2xl font-semibold tracking-tight text-white mt-2 leading-tight">{selectedJob?.title}</h2>
             </div>
           )}
         </div>
@@ -599,14 +599,14 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
           {activeTab === 'preprod' && jobTodos.length === 0 && (
             <button 
               onClick={handleLoadPresets}
-              className={`flex-1 md:flex-none whitespace-nowrap ${CONTROL_H} px-4 md:px-5 bg-white/5 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-colors border border-white/10 flex items-center justify-center gap-2`}
+              className={`flex-1 md:flex-none whitespace-nowrap ${CONTROL_H} px-4 md:px-5 bg-white/5 text-white rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-colors border border-white/10 flex items-center justify-center gap-2`}
             >
               <LayoutTemplate className="w-4 h-4" /> Load Presets
             </button>
           )}
           <button 
             onClick={activeTab === 'crew' ? addRole : activeTab === 'schedule' ? addScheduleItem : addTodoItem}
-            className={`flex-1 md:flex-none whitespace-nowrap ${CONTROL_H} px-4 md:px-6 bg-accent text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-colors shadow-lg shadow-accent/20 flex items-center justify-center gap-2`}
+            className={`flex-1 md:flex-none whitespace-nowrap ${CONTROL_H} px-4 md:px-6 bg-accent text-white rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-colors shadow-lg shadow-accent/20 flex items-center justify-center gap-2`}
           >
             <Plus className="w-4 h-4" /> {activeTab === 'crew' ? 'Add Role' : activeTab === 'schedule' ? 'Add Item' : 'Add Task'}
           </button>
@@ -785,7 +785,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                         <p className="text-[10px] mt-2 italic">Get started by loading standard prep tasks or adding custom ones.</p>
                         <button 
                           onClick={handleLoadPresets}
-                          className="mt-4 bg-accent/10 hover:bg-accent hover:text-black text-accent text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl border border-accent/20 hover:border-transparent transition-all"
+                          className="mt-4 bg-accent/10 hover:bg-accent hover:text-black text-accent text-[10px] font-semibold px-4 py-2.5 rounded-xl border border-accent/20 hover:border-transparent transition-all"
                         >
                           Load Standard Prep Tasks
                         </button>
@@ -841,7 +841,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                     className="p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all group"
                   >
                     <button type="button" onClick={() => addInRole(roles[0] || 'Crew')} className="w-full text-left">
-                      <p className="text-[10px] font-black uppercase tracking-tight group-hover:text-accent transition-colors text-white">{contact.name}</p>
+                      <p className="text-[12px] font-semibold tracking-tight group-hover:text-accent transition-colors text-white">{contact.name}</p>
                       <p className="text-[11px] md:text-[8px] font-bold uppercase tracking-widest opacity-40 text-white">{roles[0] || 'No Role Set'}</p>
                       {clashes[contact.id] && (
                         <p className="mt-1 text-[11px] font-medium text-amber-300/90 normal-case tracking-normal">
@@ -914,7 +914,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
                       className="w-full text-left p-6 bg-white/5 border border-white/5 rounded-2xl hover:border-accent/30 transition-all group flex justify-between items-center"
                     >
                       <div>
-                        <p className="text-sm font-black uppercase tracking-tight group-hover:text-accent transition-colors text-white">{template.name}</p>
+                        <p className="text-sm font-semibold tracking-tight group-hover:text-accent transition-colors text-white">{template.name}</p>
                         <p className="text-[10px] font-bold uppercase tracking-widest opacity-40 text-white">{template.roles.length} Roles defined</p>
                       </div>
                       <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-accent" />

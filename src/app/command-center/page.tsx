@@ -41,6 +41,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { supabase } from '@/lib/supabase';
 import { trackView, trackAction, loadTabOpens } from '@/lib/usage';
 import { rankTabsByUse } from '@/lib/tab-ranking';
+import { saveUserPref } from '@/lib/user-prefs';
 import { getBranding } from '@/lib/branding';
 import { applyAccent } from '@/lib/brand-theme';
 import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
@@ -293,6 +294,8 @@ export default function CommandCenterPage() {
     if (e) e.stopPropagation();
     const storageKey = `studio_workspace_layout_${tabId}`;
     localStorage.removeItem(storageKey);
+    // And your account's copy, or the next device would bring it back.
+    saveUserPref(`layout:${tabId}`, null, 0);
     // Force a clean single remount of the active workspace so it reloads the
     // default layout. Bumping a nonce in the render key is deterministic —
     // unlike toggling activeTab through '', which AnimatePresence (mode="wait")
@@ -616,7 +619,13 @@ export default function CommandCenterPage() {
   // An Edit Tracker card to open on arrival — My Work's edit rows hand one over.
   const [openEditCardId, setOpenEditCardId] = useState<string | null>(null);
   const clearOpenEditCard = useCallback(() => setOpenEditCardId(null), []);
+  // A Rolodex person or client search asked to open.
+  const [openRolodexRecord, setOpenRolodexRecord] = useState<{ kind: 'contact' | 'client'; id: string } | null>(null);
+  const clearRolodexRecord = useCallback(() => setOpenRolodexRecord(null), []);
   const [userRole, setUserRole] = useState<AppRole | null>(null);
+  // 'none': signed in, but nobody has given this account a role. 'error': the
+  // role couldn't be read (offline). Either way the workspace stays closed.
+  const [accessState, setAccessState] = useState<'ok' | 'none' | 'error'>('ok');
 
   // One source of truth for "what can this account open". Everything that
   // navigates — the sidebar, the search palette, the guard below — reads this,
@@ -883,18 +892,17 @@ export default function CommandCenterPage() {
         }
       }
 
-      // 3. If still not found, create a new client role
+      // 3. Still nothing: this account hasn't been given access. It used to
+      // grant itself the client role here, which meant anyone who managed to
+      // sign in got in. Outside clients never log in, so an unknown account
+      // now waits for an admin to add it under Settings → Team.
       if (!role) {
-        const { data: newRole, error: insertError } = await supabase
-          .from('user_roles')
-          .insert({ id: userId, email: email, role: 'client' })
-          .select('role')
-          .single();
-
-        if (insertError) throw insertError;
-        role = newRole?.role || 'client';
+        setUserRole(null);
+        setAccessState('none');
+        return;
       }
 
+      setAccessState('ok');
       setUserRole(role as AppRole);
       if (setDefaultTab) {
         if (!checkPersistedTab(role as AppRole)) {
@@ -905,13 +913,9 @@ export default function CommandCenterPage() {
       }
     } catch (err: any) {
       console.error('[Studio OS] Error fetching user role:', err);
-      setUserRole('client'); // Default fallback
-      if (setDefaultTab) {
-        if (!checkPersistedTab('client')) {
-          setActiveTab('calendar');
-          localStorage.setItem('studio_active_tab', 'calendar');
-        }
-      }
+      // Not knowing your role is not a reason to hand you one.
+      setUserRole(null);
+      setAccessState('error');
     } finally {
       setIsLoading(false);
     }
@@ -999,6 +1003,7 @@ export default function CommandCenterPage() {
   };
 
   const handleLogout = async () => {
+    setAccessState('ok');
     await supabase.auth.signOut();
   };
 
@@ -1087,6 +1092,34 @@ export default function CommandCenterPage() {
               Authorized access only · All sessions are logged
             </p>
           </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (accessState !== 'ok' && !userRole) {
+    return (
+      <div className="studio-shell min-h-dvh bg-black text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-zinc-950 border border-white/10 rounded-2xl p-6 space-y-4 text-center">
+          <h1 className="text-lg font-semibold">
+            {accessState === 'none' ? 'You don’t have access yet' : 'Couldn’t check your access'}
+          </h1>
+          <p className="text-sm text-white/60 leading-relaxed">
+            {accessState === 'none'
+              ? <>You’re signed in as <span className="text-white">{session.user.email}</span>, but this account hasn’t been added to Studio OS. Ask an admin to add you under Settings → Team with this same email.</>
+              : 'Something went wrong reading your account. Check your connection and try again.'}
+          </p>
+          <div className="flex gap-2 justify-center pt-1">
+            <button
+              onClick={() => { setIsLoading(true); fetchUserRole(session.user.id, session.user.email || '', true); }}
+              className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium"
+            >
+              Try again
+            </button>
+            <button onClick={handleLogout} className="px-4 py-2 rounded-lg border border-white/10 text-sm font-medium text-white/70">
+              Sign out
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -1495,6 +1528,8 @@ export default function CommandCenterPage() {
                   onClearNewProductionSeed={() => setNewProductionSeed(null)}
                   openEditCardId={openEditCardId}
                   onClearOpenEditCard={clearOpenEditCard}
+                  openRolodexRecord={openRolodexRecord}
+                  onClearRolodexRecord={clearRolodexRecord}
                   isLayoutEditing={isLayoutEditing}
                   onSwitchTab={(target) => {
                     // The guide is a modal, not a tab — "System Guide" on the
@@ -1550,6 +1585,11 @@ export default function CommandCenterPage() {
           localStorage.setItem('studio_active_tab', target);
         }}
         onOpenContacts={() => {
+          setActiveTab('rolodex');
+          localStorage.setItem('studio_active_tab', 'rolodex');
+        }}
+        onOpenRecord={(kind, id) => {
+          setOpenRolodexRecord({ kind, id });
           setActiveTab('rolodex');
           localStorage.setItem('studio_active_tab', 'rolodex');
         }}
@@ -1675,7 +1715,7 @@ export default function CommandCenterPage() {
                         <button
                           onClick={handleClaimStudioCalendar}
                           disabled={isClaimingStudio}
-                          className="w-full py-2 bg-white/10 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          className="w-full py-2 bg-white/10 border border-white/10 text-white text-[10px] font-semibold hover:bg-white/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {isClaimingStudio ? 'Setting...' : 'Use this as the studio calendar'}
                         </button>
@@ -1687,7 +1727,7 @@ export default function CommandCenterPage() {
                     {!isGoogleConnected ? (
                       <button
                         onClick={handleConnectGoogle}
-                        className="flex-1 py-2.5 bg-accent text-white text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black rounded-xl transition-all cursor-pointer"
+                        className="flex-1 py-2.5 bg-accent text-white text-xs font-semibold hover:bg-white hover:text-black rounded-xl transition-all cursor-pointer"
                       >
                         Connect Google Account
                       </button>
@@ -1696,13 +1736,13 @@ export default function CommandCenterPage() {
                         <button
                           onClick={handleTriggerSync}
                           disabled={isSyncing}
-                          className="flex-1 py-2.5 bg-green-600 text-white text-xs font-black uppercase tracking-widest hover:bg-green-500 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          className="flex-1 py-2.5 bg-green-600 text-white text-xs font-semibold hover:bg-green-500 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {isSyncing ? 'Syncing...' : 'Run Two-Way Sync'}
                         </button>
                         <button
                           onClick={handleConnectGoogle}
-                          className="py-2.5 px-3 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 rounded-xl transition-all cursor-pointer"
+                          className="py-2.5 px-3 bg-white/5 border border-white/10 text-white text-[10px] font-semibold hover:bg-white/10 rounded-xl transition-all cursor-pointer"
                           title="Reconnect Account"
                         >
                           Reconnect
@@ -1963,7 +2003,7 @@ export default function CommandCenterPage() {
                     type="button"
                     onClick={handleCreateTab}
                     disabled={!newTabLabel.trim() || (newTabType === 'embed' && !newTabUrl.trim())}
-                    className="flex-grow py-3 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="flex-grow py-3 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Create Workspace
                   </button>
@@ -2110,7 +2150,7 @@ export default function CommandCenterPage() {
                     <button 
                       type="button"
                       onClick={handleDeleteTab}
-                      className="py-3 px-4 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer font-bold"
+                      className="py-3 px-4 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 rounded-xl text-[10px] font-semibold transition-all cursor-pointer font-bold"
                     >
                       Delete Tab
                     </button>
@@ -2126,7 +2166,7 @@ export default function CommandCenterPage() {
                     type="button"
                     onClick={handleSaveEditTab}
                     disabled={!editTabLabel.trim() || (editTabType === 'embed' && !editTabUrl.trim())}
-                    className="flex-grow py-3 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-bold"
+                    className="flex-grow py-3 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-bold"
                   >
                     Save
                   </button>

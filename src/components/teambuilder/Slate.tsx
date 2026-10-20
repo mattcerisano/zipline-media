@@ -1429,7 +1429,7 @@ export default function Slate({
           {groupedJobs.map(cg => (
             <section key={cg.key} className="space-y-6">
               <div className="flex items-center gap-4">
-                <h2 className="text-xs font-black uppercase tracking-[0.3em] text-accent whitespace-nowrap">{cg.name}</h2>
+                <h2 className="text-sm font-semibold tracking-tight text-accent whitespace-nowrap">{cg.name}</h2>
                 <div className="h-px bg-accent/20 flex-1" />
                 <span className="text-[11px] font-medium opacity-40 tracking-tight text-white">
                   {cg.projects.reduce((n, p) => n + p.jobs.length, 0)} Jobs
@@ -1443,7 +1443,7 @@ export default function Slate({
                         className="w-2 h-2 rounded-full shrink-0"
                         style={{ backgroundColor: pg.color || 'var(--accent)' }}
                       />
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-white/70 whitespace-nowrap">{pg.name}</h3>
+                      <h3 className="text-xs font-semibold tracking-tight text-white/70 whitespace-nowrap">{pg.name}</h3>
                       <div className="h-px bg-white/5 flex-1" />
                       <span className="text-[10px] font-medium opacity-40 tracking-tight text-white">{pg.jobs.length}</span>
                     </div>
@@ -1939,7 +1939,7 @@ export default function Slate({
                          type="button"
                          onClick={handleAutoFillLogistics}
                          disabled={isAutoFillingLogistics}
-                         className="px-2 py-0.5 bg-accent/20 border border-accent/30 text-accent hover:bg-accent hover:text-white rounded-md text-[11px] md:text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                         className="px-2 py-0.5 bg-accent/20 border border-accent/30 text-accent hover:bg-accent hover:text-white rounded-md text-[11px] md:text-[8px] font-semibold transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
                        >
                          {isAutoFillingLogistics ? (
                            <>
@@ -2024,7 +2024,7 @@ export default function Slate({
       <Modal
         open={!!linkModalJob}
         onClose={() => setLinkModalJob(null)}
-        title="Add Vault Link"
+        title="Add Link"
         subtitle={linkModalJob?.title}
         maxWidth="max-w-md"
       >
@@ -2265,7 +2265,7 @@ function JobCard({
             items={[
               { label: 'Edit production', icon: <Settings2 className="w-3.5 h-3.5" />, onSelect: onEdit },
               { label: 'Build gear list', icon: <Package className="w-3.5 h-3.5" />, onSelect: () => onBuildGear?.() },
-              { label: 'Add vault link', icon: <LinkIcon className="w-3.5 h-3.5" />, onSelect: onAddLink },
+              { label: 'Add link', hint: 'Drive folder, review, reference', icon: <LinkIcon className="w-3.5 h-3.5" />, onSelect: onAddLink },
               {
                 label: 'Add deliverable',
                 hint: 'Cutdown, version or platform cut',
@@ -2487,7 +2487,7 @@ function JobCard({
 
         {/* QuickBooks, read-only. Only rendered once the client has actually
             been billed something — an empty billing block on every card would
-            be the "No vault links" placeholder all over again. */}
+            be the "No links" placeholder all over again. */}
         {billing && (billing.invoiced > 0 || billing.estimateCount > 0) && (
           <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
             <div className="flex items-center justify-between mb-2">
@@ -2519,13 +2519,14 @@ function JobCard({
           </div>
         )}
 
-        {/* Project Vault — rendered only when there is something in it. The
+        {/* Links — rendered only when there is something in it. Called
+            "Project Vault" before, which read as the password Vault. The
             empty "No vault links" placeholder used to occupy a block on every
             card that had no links, which was most of them. */}
         {hasVaultLinks && (
           <div className="space-y-2 mb-6">
              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/30 flex items-center gap-2 mb-3">
-               <LinkIcon className="w-3 h-3" /> Project Vault
+               <LinkIcon className="w-3 h-3" /> Links
              </p>
              <div className="grid grid-cols-2 gap-2">
                 {job.review_link && !reviewIsDraft && (

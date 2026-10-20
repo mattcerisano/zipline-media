@@ -434,7 +434,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                     <button
                       type="button"
                       onClick={handleResetBranding}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-semibold text-white/50 hover:text-red-400 hover:border-red-500/30 transition-colors"
                     >
                       <RotateCcw className="w-3.5 h-3.5" /> Reset Branding to Defaults
                     </button>
@@ -460,14 +460,14 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
           {/* Footer */}
           {!loading && (
             <div className="sticky bottom-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-white/10 bg-zinc-950">
-              <button onClick={onClose} className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white transition-colors">
+              <button onClick={onClose} className="px-4 py-2.5 text-[10px] font-semibold text-white/50 hover:text-white transition-colors">
                 Close
               </button>
               {tab !== 'appearance' && tab !== 'integrations' && tab !== 'team' && (
                 <button
                   onClick={tab === 'profile' ? handleSaveProfile : handleSaveBranding}
                   disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-white text-[10px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
                   style={{ backgroundColor: 'var(--accent)' }}
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}

@@ -267,7 +267,7 @@ export default function LocationsDatabase() {
                 {/* Header */}
                 <div className="flex items-start justify-between gap-3 border-b border-white/5 pb-4">
                   <div className="min-w-0">
-                    <h3 className="text-base font-bold tracking-tight truncate text-white uppercase">{loc.name}</h3>
+                    <h3 className="text-base font-bold tracking-tight truncate text-white">{loc.name}</h3>
                     <p className="text-[10px] text-white/40 font-medium truncate flex items-center gap-1 mt-1">
                       <MapPin className="w-3.5 h-3.5 text-accent shrink-0" /> {loc.address}
                     </p>
@@ -452,7 +452,7 @@ export default function LocationsDatabase() {
                     type="button"
                     onClick={handleAddLocation}
                     disabled={!newName.trim() || !newAddress.trim()}
-                    className="bg-accent text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="bg-accent text-white px-8 py-3 rounded-xl font-semibold text-[10px] hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Save Location
                   </button>

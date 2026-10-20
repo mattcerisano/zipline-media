@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
+import { loadUserPref, saveUserPref } from '@/lib/user-prefs';
 import { loadMyScratchNotes, saveMyScratchNotes } from '@/lib/team-prefs';
 import { canUseWidget, type AppRole } from '@/lib/roles';
 import { Job } from '@/components/gearbuilder/types';
@@ -181,6 +182,9 @@ interface WorkspaceLayoutProps {
   /** An Edit Tracker card another screen asked to open (My Work). */
   openEditCardId?: string | null;
   onClearOpenEditCard?: () => void;
+  /** A Rolodex person or client to open (from search). */
+  openRolodexRecord?: { kind: 'contact' | 'client'; id: string } | null;
+  onClearRolodexRecord?: () => void;
   onSwitchTab: (tab: any) => void;
   /** Layout controls (add tab, split, close) show only while editing. */
   isLayoutEditing?: boolean;
@@ -197,6 +201,8 @@ export default function WorkspaceLayout({
   onClearNewProductionSeed,
   openEditCardId,
   onClearOpenEditCard,
+  openRolodexRecord,
+  onClearRolodexRecord,
   onSwitchTab,
   isLayoutEditing = false,
 }: WorkspaceLayoutProps) {
@@ -251,6 +257,29 @@ export default function WorkspaceLayout({
       node.tabs.length === 1 &&
       node.tabs[0] === 'notes';
 
+    // Your account's copy of this layout, so a layout set up on the laptop
+    // is there on the phone and the studio machine. It replaces this
+    // device's copy when they differ; a layout only this device has (from
+    // before layouts synced) is sent up instead.
+    let cancelled = false;
+    const prefKey = `layout:${activeTab}`;
+    const usable = (node: LayoutNode) =>
+      !isBlankFallback(node) && !(!DEFAULT_LAYOUTS[activeTab] && isContaminated(node));
+    loadUserPref<LayoutNode>(prefKey).then(remote => {
+      if (cancelled) return;
+      const local = localStorage.getItem(storageKey);
+      if (remote && usable(remote)) {
+        if (local === JSON.stringify(remote)) return;
+        localStorage.setItem(storageKey, JSON.stringify(remote));
+        setLayoutRoot(remote);
+      } else if (!remote && local) {
+        try {
+          const parsed = JSON.parse(local) as LayoutNode;
+          if (usable(parsed)) saveUserPref(prefKey, parsed, 0);
+        } catch { /* unreadable local copy — leave it */ }
+      }
+    });
+
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
@@ -271,11 +300,13 @@ export default function WorkspaceLayout({
     } else {
       setLayoutRoot(fallback);
     }
+    return () => { cancelled = true; };
   }, [activeTab, storageKey]);
 
   const saveLayout = (newLayout: LayoutNode) => {
     setLayoutRoot(newLayout);
     localStorage.setItem(storageKey, JSON.stringify(newLayout));
+    saveUserPref(`layout:${activeTab}`, newLayout);
   };
 
   if (!layoutRoot) {
@@ -307,6 +338,8 @@ export default function WorkspaceLayout({
           onClearNewProductionSeed={onClearNewProductionSeed}
           openEditCardId={openEditCardId}
           onClearOpenEditCard={onClearOpenEditCard}
+          openRolodexRecord={openRolodexRecord}
+          onClearRolodexRecord={onClearRolodexRecord}
           onSwitchTab={onSwitchTab}
           isLayoutEditing={isLayoutEditing}
         />
@@ -483,6 +516,8 @@ function WorkspacePanel({
   onClearNewProductionSeed,
   openEditCardId,
   onClearOpenEditCard,
+  openRolodexRecord,
+  onClearRolodexRecord,
   onSwitchTab,
   isLayoutEditing = false,
 }: { 
@@ -605,11 +640,8 @@ function WorkspacePanel({
                 Icon = WIDGET_ICONS[widgetType] || Layout;
                 
                 const job = jobs.find(j => j.id === jobId);
-                const catPrefix = widgetType === 'gear' ? 'GEAR' :
-                                  widgetType === 'creative' ? 'CREATIVE' :
-                                  widgetType === 'slate' ? 'SLATE' :
-                                  widgetType === 'edits' ? 'EDITS' : widgetType.toUpperCase();
-                label = job ? `${catPrefix}: ${job.title}` : `${catPrefix}: LOADING...`;
+                const catPrefix = WIDGET_LABELS[widgetType] || widgetType;
+                label = job ? `${catPrefix}: ${job.title}` : `${catPrefix}: loading…`;
               } else {
                 Icon = WIDGET_ICONS[t] || Layout;
                 label = WIDGET_LABELS[t] || t;
@@ -661,7 +693,7 @@ function WorkspacePanel({
                         <button
                           key={job.id}
                           onClick={() => handleAddJobTab(job.id)}
-                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
+                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2 text-[12px] font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left"
                         >
                           {/* Proportional rather than fixed pixel caps: 150px +
                               50px was tuned for 7px text and overflows the 224px
@@ -719,7 +751,7 @@ function WorkspacePanel({
                         <button
                           key={key}
                           onClick={() => handleAddTab(key)}
-                          className="w-full flex items-center gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
+                          className="w-full flex items-center gap-2 px-2.5 py-2 text-[12px] font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left"
                         >
                           <Icon className="w-3.5 h-3.5 text-accent" />
                           <span>{WIDGET_LABELS[key]}</span>
@@ -729,7 +761,7 @@ function WorkspacePanel({
                     {canEmbed && (
                       <button
                         onClick={() => handleAddTab('embed_' + Date.now())}
-                        className="w-full flex items-center gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider border-t border-white/5"
+                        className="w-full flex items-center gap-2 px-2.5 py-2 text-[12px] font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left border-t border-white/5"
                       >
                         <Link className="w-3.5 h-3.5 text-accent" />
                         <span>Web Embed</span>
@@ -785,6 +817,8 @@ function WorkspacePanel({
           onClearNewProductionSeed={onClearNewProductionSeed}
           openEditCardId={openEditCardId}
           onClearOpenEditCard={onClearOpenEditCard}
+          openRolodexRecord={openRolodexRecord}
+          onClearRolodexRecord={onClearRolodexRecord}
           onSwitchTab={onSwitchTab}
         />
       </div>
@@ -906,7 +940,7 @@ function EmbedWidget({
             <button 
               onClick={handleSave}
               disabled={!urlInput.trim()}
-              className="flex-grow py-2.5 bg-accent hover:bg-white hover:text-black text-white text-[11px] md:text-[9px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-grow py-2.5 bg-accent hover:bg-white hover:text-black text-white text-[11px] md:text-[9px] font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Save Embed
             </button>
@@ -962,6 +996,8 @@ function WidgetMount({
   onClearNewProductionSeed,
   openEditCardId,
   onClearOpenEditCard,
+  openRolodexRecord,
+  onClearRolodexRecord,
   onSwitchTab
 }: { 
   type: string;
@@ -1046,7 +1082,7 @@ function WidgetMount({
     case 'social':
       return <SocialMedia />;
     case 'rolodex':
-      return <Rolodex />;
+      return <Rolodex openRecord={openRolodexRecord} onRecordOpened={onClearRolodexRecord} />;
     case 'meeting_notes':
       return <MeetingNotes />;
     case 'review':
@@ -1425,14 +1461,14 @@ function ClockWidget() {
             {stopwatchRunning && (
               <button 
                 onClick={handleLap}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/80 border border-white/5 rounded-lg text-[11px] md:text-[8px] font-black uppercase tracking-widest transition-all"
+                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/80 border border-white/5 rounded-lg text-[11px] md:text-[8px] font-semibold transition-all"
               >
                 Lap
               </button>
             )}
             <button 
               onClick={handleResetStopwatch}
-              className="px-2 py-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-lg text-[11px] md:text-[8px] font-black uppercase tracking-widest transition-all"
+              className="px-2 py-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-lg text-[11px] md:text-[8px] font-semibold transition-all"
             >
               Reset
             </button>

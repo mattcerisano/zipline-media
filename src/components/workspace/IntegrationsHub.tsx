@@ -257,7 +257,7 @@ export default function IntegrationsHub() {
               <button
                 onClick={handleConnect}
                 disabled={busy !== null}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-semibold text-white/70 hover:text-white transition-colors disabled:opacity-50"
               >
                 {busy === 'connect' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plug className="w-3.5 h-3.5" />}
                 Reconnect
@@ -265,7 +265,7 @@ export default function IntegrationsHub() {
               <button
                 onClick={handleDisconnect}
                 disabled={busy !== null}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-[10px] font-semibold text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
               >
                 {busy === 'disconnect' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unplug className="w-3.5 h-3.5" />}
                 Disconnect
@@ -275,7 +275,7 @@ export default function IntegrationsHub() {
             <button
               onClick={handleConnect}
               disabled={busy !== null}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-white text-[10px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {busy === 'connect' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plug className="w-3.5 h-3.5" />}
               Connect Google Account
@@ -342,7 +342,7 @@ export default function IntegrationsHub() {
             <button
               onClick={disconnectQuickBooks}
               disabled={qbBusy !== null}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors disabled:opacity-40"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-semibold text-white/70 hover:text-white transition-colors disabled:opacity-40"
             >
               {qbBusy === 'disconnect' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Unplug className="w-3.5 h-3.5" />}
               Disconnect
@@ -351,7 +351,7 @@ export default function IntegrationsHub() {
             <button
               onClick={connectQuickBooks}
               disabled={qbBusy !== null || qb?.configured === false}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-40"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-white text-[10px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
             >
               {qbBusy === 'connect' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plug className="w-3.5 h-3.5" />}
               Connect QuickBooks
@@ -399,7 +399,7 @@ export default function IntegrationsHub() {
           </div>
           <button
             onClick={copyFeed}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors shrink-0"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] font-semibold text-white/70 hover:text-white transition-colors shrink-0"
           >
             {copiedFeed ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
             {copiedFeed ? 'Copied' : 'Copy Feed URL'}
