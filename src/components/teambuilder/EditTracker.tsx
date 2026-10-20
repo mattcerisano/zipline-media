@@ -111,7 +111,7 @@ const CARD_SIZE_KEY = 'edit_board_card_size';
 // Columns share the board's width and wrap onto another row before they get
 // narrower than this — no sideways scrolling to find a stage.
 const COLUMN_MIN: Record<CardSize, string> = {
-  compact: 'md:min-w-[180px] md:basis-[180px]',
+  compact: 'md:min-w-[150px] md:basis-[150px]',
   regular: 'md:min-w-[240px] md:basis-[240px]',
   large: 'md:min-w-[320px] md:basis-[320px]',
 };

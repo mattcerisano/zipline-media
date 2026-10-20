@@ -100,7 +100,9 @@ const ModalPortal = ({ children }: { children: React.ReactNode }) => {
   if (!mounted) return null;
   // Inside the Studio OS root (which carries the light/dark theme), but
   // outside the scrolling panel.
-  return createPortal(children, document.getElementById('studio-os-root') || document.body);
+  // .studio-shell carries the app's calm type; without it headings and
+  // buttons fall back to the site's all-caps display font.
+  return createPortal(<div className="studio-shell">{children}</div>, document.getElementById('studio-os-root') || document.body);
 };
 
 
