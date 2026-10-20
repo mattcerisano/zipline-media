@@ -163,8 +163,9 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       if (error) throw error;
       if (data) {
         // A cancelled shoot isn't happening; drawing it in production orange
-        // claimed a day that is actually free. It stays in Slate.
-        setJobs((data as Job[]).filter(j => j.job_status !== 'Cancelled'));
+        // claimed a day that is actually free. It stays in Slate. Archived
+        // productions are kept out of the way here too.
+        setJobs((data as Job[]).filter(j => j.job_status !== 'Cancelled' && !j.archived_at));
       }
     } catch (err) {
       console.error('Error fetching jobs for calendar:', err);
