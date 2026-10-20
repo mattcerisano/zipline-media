@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { countOpens, USAGE_RANK_DAYS } from '@/lib/tab-ranking';
 
 /**
  * Usage tracking — which surfaces get opened and which actions get taken.
@@ -82,4 +83,34 @@ export function trackView(surface: string): void {
 /** Something was done. `surface` is where from, `label` is what. */
 export function trackAction(surface: string, label: UsageLabel): void {
   void record('action', surface, label);
+}
+
+/**
+ * How often each surface was opened by the whole team in the last `days`
+ * days — totals only, never who. Reading events is admin-only, so everyone
+ * else gets these through `tab_usage_counts`, which returns one number per
+ * surface. Before that function exists an admin reads the events directly;
+ * anyone else gets no counts and keeps the saved order. Null when nothing
+ * could be read.
+ */
+export async function loadTabOpens(days = USAGE_RANK_DAYS): Promise<Record<string, number> | null> {
+  try {
+    const { data, error } = await supabase.rpc('tab_usage_counts', { days });
+    if (!error && Array.isArray(data)) {
+      return Object.fromEntries(
+        (data as { surface: string; opens: number | string }[]).map(r => [r.surface, Number(r.opens) || 0]),
+      );
+    }
+    const since = new Date(Date.now() - days * 86_400_000).toISOString();
+    const { data: rows, error: readError } = await supabase
+      .from('usage_events')
+      .select('surface')
+      .eq('kind', 'view')
+      .gte('created_at', since)
+      .limit(20000);
+    if (readError || !rows) return null;
+    return countOpens(rows as { surface: string | null }[]);
+  } catch {
+    return null;
+  }
 }
