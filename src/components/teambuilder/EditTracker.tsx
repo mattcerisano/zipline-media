@@ -1868,6 +1868,11 @@ function CardDetailModal({
   const currentStage = stages.find(s => s.id === job.edit_status) || stages[0];
 
   const saveTitle = () => {
+    // A new card is written once, by Create Card. Saving the title on blur
+    // here created it early — leaving the title for the Client field made a
+    // card with no client and closed the form, and clicking Create Card
+    // (which blurs the title first) made a second one.
+    if (isCreatingNew) return;
     if (title.trim() && title !== job.title) {
       onUpdate({ ...job, title: title.trim() });
     }
