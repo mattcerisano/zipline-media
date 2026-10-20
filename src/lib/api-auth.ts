@@ -1,12 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
+import { isOwnerEmail } from '@/lib/api-owner';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Admin client is only used to validate the caller's JWT. A service key isn't
-// strictly required for auth.getUser(jwt), so fall back to the anon key so the
-// helper still works in environments where only the public key is configured.
+// Admin client validates the caller's JWT and, in isTeamMember, reads their
+// role. A service key isn't strictly required for auth.getUser(jwt), so fall
+// back to the anon key so sign-in checks still work where only the public key
+// is configured (role lookups then find nothing and fail closed).
 const authClient = createClient(
   supabaseUrl || 'https://placeholder-url.supabase.co',
   supabaseServiceKey || supabaseAnonKey || 'placeholder-key',
@@ -45,4 +47,18 @@ export async function getAuthedUser(request: Request): Promise<{ id: string; ema
   } catch {
     return null;
   }
+}
+
+/** The studio's own people, as opposed to freelance editors and clients. */
+const TEAM_ROLES = new Set(['admin', 'staff']);
+
+/**
+ * True for admin and staff accounts (and the owner, who can predate
+ * user_roles). Signed in is not enough for actions that reach past the
+ * caller's own data — a freelance editor's session is just as valid.
+ */
+export async function isTeamMember(user: { id: string; email: string | null }): Promise<boolean> {
+  if (isOwnerEmail(user.email)) return true;
+  const { data } = await authClient.from('user_roles').select('role').eq('id', user.id).maybeSingle();
+  return !!data?.role && TEAM_ROLES.has(data.role as string);
 }

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { isSameOrigin } from '@/lib/api-guard';
 import { getAuthedUserId } from '@/lib/api-auth';
 import { resolveEventTemplate } from '@/lib/notify-defaults';
+import { isAllowedWebhookUrl } from '@/lib/webhook-hosts';
 
 // Service-role client so the route can read org channel/event config and
 // dispatch regardless of which user triggered the event.
@@ -52,6 +53,11 @@ function buildPayload(platform: Platform, text: string): Record<string, unknown>
 async function dispatch(channel: Channel, text: string): Promise<{ platform: Platform; ok: boolean; error?: string }> {
   if (!channel.webhook_url) {
     return { platform: channel.platform, ok: false, error: 'No webhook URL configured' };
+  }
+  // Only the platform's own webhook hosts — see webhook-hosts.ts. Checked here
+  // so it covers saved channels and the direct "Send test" URL alike.
+  if (!isAllowedWebhookUrl(channel.webhook_url, channel.platform)) {
+    return { platform: channel.platform, ok: false, error: `That isn’t a ${channel.platform} webhook address` };
   }
   try {
     const res = await fetch(channel.webhook_url, {

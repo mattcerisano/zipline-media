@@ -5,24 +5,53 @@ import { pullGoogleCalendarForUser, pushMissingJobsToStudioCalendar, describeBac
 import { pushJobEvent, deleteEventFrom, reapOrphanedEvent } from '@/lib/calendar-google';
 import { pushMarkerToAllCalendars, removeMarkerFromAllCalendars } from '@/lib/marker-sync';
 import { getStudioCalendarToken } from '@/lib/studio-calendar';
-import { getAuthedUserId } from '@/lib/api-auth';
+import { getAuthedUser, isTeamMember } from '@/lib/api-auth';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+const TEAM_ONLY_ACTIONS = new Set(['delete', 'delete_event', 'sync', 'pull']);
+
 export async function POST(request: Request) {
   try {
     // Identity is derived from the verified session, not the request body, so a
     // user can only sync their own connected Google Calendar.
-    const userId = await getAuthedUserId(request);
-    if (!userId) {
+    const user = await getAuthedUser(request);
+    if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
+    const userId = user.id;
 
     const body = await request.json();
     const { action, jobId } = body;
+
+    // Removing events, bulk syncing, and importing someone's calendar into the
+    // studio's are team actions. Any signed-in account used to be able to run
+    // them — a freelance editor could clear events off the studio calendar.
+    // `push` and `push_event` stay open: they only copy what the database
+    // already says onto Google, and editors trigger them from the Edit Tracker.
+    if (TEAM_ONLY_ACTIONS.has(action) && !(await isTeamMember(user))) {
+      return NextResponse.json({ success: false, message: 'Only admin and staff accounts can do that.' }, { status: 403 });
+    }
+
+    // A job's Google event can only be deleted while it belongs to a job. This
+    // used to delete any id it was handed — and, failing to find it on the
+    // studio calendar, go on to sweep everyone's connected calendars for it.
+    // Every caller clears Google before deleting the job row, so a real
+    // request always matches. Checked before any Google token is fetched.
+    if (action === 'delete' && typeof body.googleEventId === 'string' && body.googleEventId) {
+      const { data: owner } = await supabaseAdmin
+        .from('jobs')
+        .select('id')
+        .eq('google_event_id', body.googleEventId)
+        .limit(1)
+        .maybeSingle();
+      if (!owner) {
+        return NextResponse.json({ success: false, message: 'That Google event isn’t linked to a production.' }, { status: 404 });
+      }
+    }
 
     // Which Google account a request touches depends on its direction.
     //
