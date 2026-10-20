@@ -298,8 +298,8 @@ function PostModal({ post, clients, onClose, onSaved }: { post: Post; clients: C
           <input className={inputCls} value={draft.link_url || ''} onChange={(e) => setDraft({ ...draft, link_url: e.target.value })} placeholder="https://…" />
         </div>
         <div className="flex items-center justify-between pt-2">
-          {draft.id ? <button onClick={remove} className="text-[10px] font-black uppercase tracking-widest text-red-400/70 hover:text-red-400 flex items-center gap-1 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /> Delete</button> : <span />}
-          <button onClick={save} className="px-6 py-2.5 bg-accent text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all cursor-pointer">Save</button>
+          {draft.id ? <button onClick={remove} className="text-[10px] font-semibold text-red-400/70 hover:text-red-400 flex items-center gap-1 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /> Delete</button> : <span />}
+          <button onClick={save} className="px-6 py-2.5 bg-accent text-white rounded-xl text-[10px] font-semibold hover:bg-white hover:text-black transition-all cursor-pointer">Save</button>
         </div>
       </div>
     </ModalShell>
@@ -369,8 +369,8 @@ function RolloutTracker({ clients }: { clients: Client[] }) {
           <option value="">— Select campaign —</option>
           {campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <button onClick={addCampaign} className="px-3 py-2 bg-accent/15 border border-accent/40 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Campaign</button>
-        {active && <button aria-label="Delete campaign" title="Delete campaign" onClick={deleteCampaign} className="px-3 py-2 bg-white/5 border border-white/10 text-red-400/70 hover:text-red-400 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>}
+        <button onClick={addCampaign} className="px-3 py-2 bg-accent/15 border border-accent/40 text-accent rounded-xl text-[10px] font-semibold flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Campaign</button>
+        {active && <button aria-label="Delete campaign" title="Delete campaign" onClick={deleteCampaign} className="px-3 py-2 bg-white/5 border border-white/10 text-red-400/70 hover:text-red-400 rounded-xl text-[10px] font-semibold flex items-center gap-1.5 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>}
       </div>
 
       {!active ? (
@@ -462,7 +462,7 @@ function Deliverables({ clients }: { clients: Client[] }) {
     <div>
       <div className="flex justify-between items-center mb-3">
         <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Cutdowns &amp; platform versions</p>
-        <button onClick={add} className="px-3 py-2 bg-accent/15 border border-accent/40 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Deliverable</button>
+        <button onClick={add} className="px-3 py-2 bg-accent/15 border border-accent/40 text-accent rounded-xl text-[10px] font-semibold flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Deliverable</button>
       </div>
       {rows.length === 0 ? (
         <Empty icon={Film} text="Track each cutdown (9:16 Reel, 1:1, 16:9 YouTube…) and its delivery status." />

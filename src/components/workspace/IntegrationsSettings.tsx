@@ -320,7 +320,7 @@ export default function IntegrationsSettings({ isAdmin, onMessage }: Props) {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-white text-[10px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
           style={{ backgroundColor: 'var(--accent)' }}
         >
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}

@@ -202,7 +202,7 @@ export function QuickStartGuideModal({
               <h4 className="text-[10px] font-black uppercase text-accent">Sync</h4>
               <button
                 onClick={onOpenCalendarSync}
-                className="px-3 py-1 bg-accent/20 hover:bg-accent border border-accent/30 rounded-lg text-[11px] md:text-[9px] font-black uppercase text-white transition-colors cursor-pointer"
+                className="px-3 py-1 bg-accent/20 hover:bg-accent border border-accent/30 rounded-lg text-[11px] md:text-[9px] font-semibold text-white transition-colors cursor-pointer"
               >
                 Configure Now
               </button>
@@ -417,7 +417,7 @@ export function QuickStartGuideModal({
                 {currentStep > 0 && (
                   <button
                     onClick={handleBack}
-                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white rounded-xl text-[11px] md:text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white rounded-xl text-[11px] md:text-[9px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" /> Back
                   </button>
@@ -425,7 +425,7 @@ export function QuickStartGuideModal({
                 
                 <button
                   onClick={handleNext}
-                  className="px-5 py-2.5 bg-accent hover:bg-white hover:text-black text-white rounded-xl text-[11px] md:text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-accent/15"
+                  className="px-5 py-2.5 bg-accent hover:bg-white hover:text-black text-white rounded-xl text-[11px] md:text-[9px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-accent/15"
                 >
                   {currentStep === steps.length - 1 ? 'Finish Tour' : 'Next'} <ChevronRight className="w-3.5 h-3.5" />
                 </button>

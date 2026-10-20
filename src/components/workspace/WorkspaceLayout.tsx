@@ -631,11 +631,8 @@ function WorkspacePanel({
                 Icon = WIDGET_ICONS[widgetType] || Layout;
                 
                 const job = jobs.find(j => j.id === jobId);
-                const catPrefix = widgetType === 'gear' ? 'GEAR' :
-                                  widgetType === 'creative' ? 'CREATIVE' :
-                                  widgetType === 'slate' ? 'SLATE' :
-                                  widgetType === 'edits' ? 'EDITS' : widgetType.toUpperCase();
-                label = job ? `${catPrefix}: ${job.title}` : `${catPrefix}: LOADING...`;
+                const catPrefix = WIDGET_LABELS[widgetType] || widgetType;
+                label = job ? `${catPrefix}: ${job.title}` : `${catPrefix}: loading…`;
               } else {
                 Icon = WIDGET_ICONS[t] || Layout;
                 label = WIDGET_LABELS[t] || t;
@@ -687,7 +684,7 @@ function WorkspacePanel({
                         <button
                           key={job.id}
                           onClick={() => handleAddJobTab(job.id)}
-                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
+                          className="w-full flex items-center justify-between gap-2 px-2.5 py-2 text-[12px] font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left"
                         >
                           {/* Proportional rather than fixed pixel caps: 150px +
                               50px was tuned for 7px text and overflows the 224px
@@ -745,7 +742,7 @@ function WorkspacePanel({
                         <button
                           key={key}
                           onClick={() => handleAddTab(key)}
-                          className="w-full flex items-center gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider"
+                          className="w-full flex items-center gap-2 px-2.5 py-2 text-[12px] font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left"
                         >
                           <Icon className="w-3.5 h-3.5 text-accent" />
                           <span>{WIDGET_LABELS[key]}</span>
@@ -755,7 +752,7 @@ function WorkspacePanel({
                     {canEmbed && (
                       <button
                         onClick={() => handleAddTab('embed_' + Date.now())}
-                        className="w-full flex items-center gap-2 px-2.5 py-2 text-[11px] md:text-[9px] font-bold text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left uppercase tracking-wider border-t border-white/5"
+                        className="w-full flex items-center gap-2 px-2.5 py-2 text-[12px] font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-left border-t border-white/5"
                       >
                         <Link className="w-3.5 h-3.5 text-accent" />
                         <span>Web Embed</span>
@@ -932,7 +929,7 @@ function EmbedWidget({
             <button 
               onClick={handleSave}
               disabled={!urlInput.trim()}
-              className="flex-grow py-2.5 bg-accent hover:bg-white hover:text-black text-white text-[11px] md:text-[9px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-grow py-2.5 bg-accent hover:bg-white hover:text-black text-white text-[11px] md:text-[9px] font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Save Embed
             </button>
@@ -1451,14 +1448,14 @@ function ClockWidget() {
             {stopwatchRunning && (
               <button 
                 onClick={handleLap}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/80 border border-white/5 rounded-lg text-[11px] md:text-[8px] font-black uppercase tracking-widest transition-all"
+                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/80 border border-white/5 rounded-lg text-[11px] md:text-[8px] font-semibold transition-all"
               >
                 Lap
               </button>
             )}
             <button 
               onClick={handleResetStopwatch}
-              className="px-2 py-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-lg text-[11px] md:text-[8px] font-black uppercase tracking-widest transition-all"
+              className="px-2 py-1.5 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-lg text-[11px] md:text-[8px] font-semibold transition-all"
             >
               Reset
             </button>

@@ -1727,7 +1727,7 @@ function ColumnsEditorModal({
           <button
             onClick={add}
             disabled={!newLabel.trim()}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-colors disabled:opacity-40"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-semibold text-white/70 hover:text-white transition-colors disabled:opacity-40"
           >
             <Plus className="w-3.5 h-3.5" /> Add
           </button>
@@ -1741,7 +1741,7 @@ function ColumnsEditorModal({
             Reset to defaults
           </button>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white transition-colors">
+            <button onClick={onClose} className="px-4 py-2.5 text-[10px] font-semibold text-white/50 hover:text-white transition-colors">
               Cancel
             </button>
             <button

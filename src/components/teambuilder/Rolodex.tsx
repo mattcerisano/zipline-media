@@ -2156,7 +2156,7 @@ export default function Rolodex() {
                 <button 
                   onClick={handleConfirmImport}
                   disabled={isImportLoading || selectedImportIdxs.length === 0}
-                  className="flex-grow py-4 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-accent/25 font-bold"
+                  className="flex-grow py-4 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-semibold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-accent/25 font-bold"
                 >
                   {isImportLoading ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -2239,7 +2239,7 @@ export default function Rolodex() {
                 <button
                   onClick={handleConfirmClientImport}
                   disabled={isClientImportLoading || selectedClientIdxs.length === 0}
-                  className="bg-accent text-white px-10 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="bg-accent text-white px-10 py-3 rounded-xl font-semibold text-[10px] hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {isClientImportLoading ? 'Importing…' : `Import ${selectedClientIdxs.length}`}
                 </button>

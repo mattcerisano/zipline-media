@@ -365,7 +365,7 @@ export default function TeamSettings({ session, onMessage }: Props) {
           <button
             type="button"
             onClick={generatePassword}
-            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white transition-colors"
+            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-[11px] md:text-[9px] font-semibold text-white/60 hover:text-white transition-colors"
           >
             Generate
           </button>
@@ -377,7 +377,7 @@ export default function TeamSettings({ session, onMessage }: Props) {
           <button
             onClick={addMember}
             disabled={busy || !newEmail.trim() || newPassword.length < 8 || !contactReady}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-white text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-white text-[10px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
             Create Account

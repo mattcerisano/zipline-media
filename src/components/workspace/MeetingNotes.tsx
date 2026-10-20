@@ -608,7 +608,7 @@ export default function MeetingNotes() {
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <FileText className="w-4 h-4 text-accent shrink-0" />
-                      <span className="text-xs font-black tracking-tight text-white uppercase truncate">{client.name}</span>
+                      <span className="text-[13px] font-semibold tracking-tight text-white truncate">{client.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] md:text-[9px] font-black bg-white/5 border border-white/5 text-white/50 px-1.5 py-0.5 rounded-full shrink-0">
@@ -710,7 +710,7 @@ export default function MeetingNotes() {
               {/* Editor Header */}
               <div className="p-4 md:p-6 border-b border-white/10 flex flex-col gap-3 shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded bg-accent/15 border border-accent/20 text-[11px] md:text-[9px] font-black uppercase tracking-widest text-accent shrink-0">
+                  <span className="px-2 py-0.5 rounded bg-accent/15 border border-accent/20 text-[11px] font-semibold text-accent shrink-0">
                     {clients.find(c => c.id === activeNote.client_id)?.name || 'Client'}
                   </span>
                   <span className="text-[10px] font-medium text-white/30 shrink-0">|</span>
@@ -1021,7 +1021,7 @@ export default function MeetingNotes() {
                     </div>
                     <button 
                       onClick={addActionItem}
-                      className="bg-accent hover:bg-white hover:text-black text-white px-4 py-1.5 rounded-xl text-[11px] md:text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer border border-accent"
+                      className="bg-accent hover:bg-white hover:text-black text-white px-4 py-1.5 rounded-xl text-[11px] md:text-[9px] font-semibold transition-all cursor-pointer border border-accent"
                     >
                       Add Task
                     </button>
@@ -1038,7 +1038,7 @@ export default function MeetingNotes() {
                   <button
                     onClick={handleAISummarize}
                     disabled={isSummarizing || !activeNote.content}
-                    className="bg-purple-600/10 hover:bg-purple-600 border border-purple-500/20 text-purple-400 hover:text-white px-3.5 py-1.5 rounded-xl text-[11px] md:text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-purple-500/5"
+                    className="bg-purple-600/10 hover:bg-purple-600 border border-purple-500/20 text-purple-400 hover:text-white px-3.5 py-1.5 rounded-xl text-[11px] md:text-[9px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-purple-500/5"
                   >
                     {isSummarizing ? 'Analyzing…' : 'Run Summarizer'}
                   </button>
@@ -1235,7 +1235,7 @@ export default function MeetingNotes() {
                     type="button"
                     onClick={handleCreateNote}
                     disabled={!selectedClientForNewNote}
-                    className="bg-accent text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                    className="bg-accent text-white px-8 py-3 rounded-xl font-semibold text-[10px] hover:bg-white hover:text-black transition-all shadow-lg shadow-accent/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Create Note
                   </button>

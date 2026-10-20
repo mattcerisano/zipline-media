@@ -1705,7 +1705,7 @@ export default function CommandCenterPage() {
                         <button
                           onClick={handleClaimStudioCalendar}
                           disabled={isClaimingStudio}
-                          className="w-full py-2 bg-white/10 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          className="w-full py-2 bg-white/10 border border-white/10 text-white text-[10px] font-semibold hover:bg-white/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {isClaimingStudio ? 'Setting...' : 'Use this as the studio calendar'}
                         </button>
@@ -1717,7 +1717,7 @@ export default function CommandCenterPage() {
                     {!isGoogleConnected ? (
                       <button
                         onClick={handleConnectGoogle}
-                        className="flex-1 py-2.5 bg-accent text-white text-xs font-black uppercase tracking-widest hover:bg-white hover:text-black rounded-xl transition-all cursor-pointer"
+                        className="flex-1 py-2.5 bg-accent text-white text-xs font-semibold hover:bg-white hover:text-black rounded-xl transition-all cursor-pointer"
                       >
                         Connect Google Account
                       </button>
@@ -1726,13 +1726,13 @@ export default function CommandCenterPage() {
                         <button
                           onClick={handleTriggerSync}
                           disabled={isSyncing}
-                          className="flex-1 py-2.5 bg-green-600 text-white text-xs font-black uppercase tracking-widest hover:bg-green-500 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                          className="flex-1 py-2.5 bg-green-600 text-white text-xs font-semibold hover:bg-green-500 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {isSyncing ? 'Syncing...' : 'Run Two-Way Sync'}
                         </button>
                         <button
                           onClick={handleConnectGoogle}
-                          className="py-2.5 px-3 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 rounded-xl transition-all cursor-pointer"
+                          className="py-2.5 px-3 bg-white/5 border border-white/10 text-white text-[10px] font-semibold hover:bg-white/10 rounded-xl transition-all cursor-pointer"
                           title="Reconnect Account"
                         >
                           Reconnect
@@ -1993,7 +1993,7 @@ export default function CommandCenterPage() {
                     type="button"
                     onClick={handleCreateTab}
                     disabled={!newTabLabel.trim() || (newTabType === 'embed' && !newTabUrl.trim())}
-                    className="flex-grow py-3 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="flex-grow py-3 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     Create Workspace
                   </button>
@@ -2140,7 +2140,7 @@ export default function CommandCenterPage() {
                     <button 
                       type="button"
                       onClick={handleDeleteTab}
-                      className="py-3 px-4 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer font-bold"
+                      className="py-3 px-4 bg-red-500/10 border border-red-500/20 hover:bg-red-500 hover:text-white text-red-500 rounded-xl text-[10px] font-semibold transition-all cursor-pointer font-bold"
                     >
                       Delete Tab
                     </button>
@@ -2156,7 +2156,7 @@ export default function CommandCenterPage() {
                     type="button"
                     onClick={handleSaveEditTab}
                     disabled={!editTabLabel.trim() || (editTabType === 'embed' && !editTabUrl.trim())}
-                    className="flex-grow py-3 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-bold"
+                    className="flex-grow py-3 bg-accent hover:bg-white hover:text-black text-white text-[10px] font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer font-bold"
                   >
                     Save
                   </button>

@@ -305,7 +305,7 @@ export default function DashboardOverview({
               ))}
               <button
                 onClick={resetWidgets}
-                className="w-full flex items-center gap-2 px-2 py-2 mt-1 border-t border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-accent transition-colors"
+                className="w-full flex items-center gap-2 px-2 py-2 mt-1 border-t border-white/5 text-[10px] font-semibold text-white/40 hover:text-accent transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" /> Reset to Default
               </button>
@@ -444,7 +444,7 @@ export default function DashboardOverview({
               <button
                 onClick={testDiscordWebhook}
                 disabled={isSending || !discordMsg.trim()}
-                className="bg-accent hover:bg-accent/90 text-white disabled:bg-white/5 disabled:text-white/30 disabled:cursor-not-allowed shrink-0 whitespace-nowrap px-5 py-3 sm:py-0 text-xs font-black uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer hover:shadow-[0_0_20px_rgba(0,119,255,0.3)] active:scale-[0.98]"
+                className="bg-accent hover:bg-accent/90 text-white disabled:bg-white/5 disabled:text-white/30 disabled:cursor-not-allowed shrink-0 whitespace-nowrap px-5 py-3 sm:py-0 text-xs font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 cursor-pointer hover:shadow-[0_0_20px_rgba(0,119,255,0.3)] active:scale-[0.98]"
               >
                 {isSending ? (
                   <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

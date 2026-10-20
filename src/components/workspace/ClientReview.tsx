@@ -387,11 +387,11 @@ export default function ClientReview() {
                 {/* Approval Action Button */}
                 <button
                   onClick={handleToggleApproval}
-                  className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 shadow-lg ${
-                    activeReview.approved 
-                      ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/15' 
-                      : 'bg-yellow-500 hover:bg-white hover:text-black text-black shadow-yellow-500/15'
-                  }`}
+                  className={`px-5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 shadow-lg ${
+ activeReview.approved 
+ ? 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/15' 
+ : 'bg-yellow-500 hover:bg-white hover:text-black text-black shadow-yellow-500/15'
+ }`}
                 >
                   {activeReview.approved ? (
                     <>

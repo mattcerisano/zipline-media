@@ -1429,7 +1429,7 @@ export default function Slate({
           {groupedJobs.map(cg => (
             <section key={cg.key} className="space-y-6">
               <div className="flex items-center gap-4">
-                <h2 className="text-xs font-black uppercase tracking-[0.3em] text-accent whitespace-nowrap">{cg.name}</h2>
+                <h2 className="text-sm font-semibold tracking-tight text-accent whitespace-nowrap">{cg.name}</h2>
                 <div className="h-px bg-accent/20 flex-1" />
                 <span className="text-[11px] font-medium opacity-40 tracking-tight text-white">
                   {cg.projects.reduce((n, p) => n + p.jobs.length, 0)} Jobs
@@ -1443,7 +1443,7 @@ export default function Slate({
                         className="w-2 h-2 rounded-full shrink-0"
                         style={{ backgroundColor: pg.color || 'var(--accent)' }}
                       />
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-white/70 whitespace-nowrap">{pg.name}</h3>
+                      <h3 className="text-xs font-semibold tracking-tight text-white/70 whitespace-nowrap">{pg.name}</h3>
                       <div className="h-px bg-white/5 flex-1" />
                       <span className="text-[10px] font-medium opacity-40 tracking-tight text-white">{pg.jobs.length}</span>
                     </div>
@@ -1939,7 +1939,7 @@ export default function Slate({
                          type="button"
                          onClick={handleAutoFillLogistics}
                          disabled={isAutoFillingLogistics}
-                         className="px-2 py-0.5 bg-accent/20 border border-accent/30 text-accent hover:bg-accent hover:text-white rounded-md text-[11px] md:text-[8px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                         className="px-2 py-0.5 bg-accent/20 border border-accent/30 text-accent hover:bg-accent hover:text-white rounded-md text-[11px] md:text-[8px] font-semibold transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
                        >
                          {isAutoFillingLogistics ? (
                            <>
