@@ -2024,7 +2024,7 @@ export default function Slate({
       <Modal
         open={!!linkModalJob}
         onClose={() => setLinkModalJob(null)}
-        title="Add Vault Link"
+        title="Add Link"
         subtitle={linkModalJob?.title}
         maxWidth="max-w-md"
       >
@@ -2265,7 +2265,7 @@ function JobCard({
             items={[
               { label: 'Edit production', icon: <Settings2 className="w-3.5 h-3.5" />, onSelect: onEdit },
               { label: 'Build gear list', icon: <Package className="w-3.5 h-3.5" />, onSelect: () => onBuildGear?.() },
-              { label: 'Add vault link', icon: <LinkIcon className="w-3.5 h-3.5" />, onSelect: onAddLink },
+              { label: 'Add link', hint: 'Drive folder, review, reference', icon: <LinkIcon className="w-3.5 h-3.5" />, onSelect: onAddLink },
               {
                 label: 'Add deliverable',
                 hint: 'Cutdown, version or platform cut',
@@ -2487,7 +2487,7 @@ function JobCard({
 
         {/* QuickBooks, read-only. Only rendered once the client has actually
             been billed something — an empty billing block on every card would
-            be the "No vault links" placeholder all over again. */}
+            be the "No links" placeholder all over again. */}
         {billing && (billing.invoiced > 0 || billing.estimateCount > 0) && (
           <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
             <div className="flex items-center justify-between mb-2">
@@ -2519,13 +2519,14 @@ function JobCard({
           </div>
         )}
 
-        {/* Project Vault — rendered only when there is something in it. The
+        {/* Links — rendered only when there is something in it. Called
+            "Project Vault" before, which read as the password Vault. The
             empty "No vault links" placeholder used to occupy a block on every
             card that had no links, which was most of them. */}
         {hasVaultLinks && (
           <div className="space-y-2 mb-6">
              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/30 flex items-center gap-2 mb-3">
-               <LinkIcon className="w-3 h-3" /> Project Vault
+               <LinkIcon className="w-3 h-3" /> Links
              </p>
              <div className="grid grid-cols-2 gap-2">
                 {job.review_link && !reviewIsDraft && (
