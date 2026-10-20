@@ -2128,7 +2128,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-0 z-[110] bg-neutral-950 text-white lg:hidden flex flex-col pt-[env(safe-area-inset-top)]"
+              className="fixed inset-0 z-[110] bg-neutral-950 text-white flex flex-col pt-[env(safe-area-inset-top)]"
             >
               <EscapeToClose onClose={() => setIsMobileManifestOpen(false)} />
               <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-neutral-950 shrink-0">
@@ -2161,8 +2161,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         </AnimatePresence>
         </ModalPortal>
 
-        {/* Floating Mobile Trigger */}
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[105] @4xl:hidden w-full px-6">
+        {/* Manifest trigger, shown whenever the manifest column isn't (phones
+            and narrower desktop panels). Fixed to the screen on a phone; from
+            md it sticks to the bottom of the panel instead, so it can't run
+            under the sidebar and hide its own label. */}
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 md:sticky md:left-auto md:bottom-6 md:translate-x-0 z-[105] @4xl:hidden w-full px-6 md:px-0">
           <motion.button
             initial={{ y: 100 }}
             animate={{ y: 0 }}
