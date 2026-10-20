@@ -563,11 +563,61 @@ export default function Rolodex({
     return result;
   }, [contacts, searchQuery, sortField, sortOrder, showFavoritesOnly, selectedRoleFilter]);
 
+  // Clients that are probably people: a name that matches a crew contact and
+  // nothing of their own — no shoots, no projects, no details. Typing a name
+  // into a client box used to create a client on save, and this is the shape
+  // that left behind. (This check lived in the Library's Clients tab.)
+  const [clientUsage, setClientUsage] = useState<{ jobs: Map<string, number>; projects: Map<string, number> } | null>(null);
+  const [showStraysOnly, setShowStraysOnly] = useState(false);
+  useEffect(() => {
+    if (activeView !== 'clients' || clientUsage) return;
+    void (async () => {
+      const [jobsRes, projRes] = await Promise.all([
+        supabase.from('jobs').select('client_id').not('client_id', 'is', null),
+        supabase.from('projects').select('client_id').not('client_id', 'is', null),
+      ]);
+      const tally = (rows: { client_id: string | null }[] | null) => {
+        const m = new Map<string, number>();
+        for (const r of rows || []) if (r.client_id) m.set(r.client_id, (m.get(r.client_id) || 0) + 1);
+        return m;
+      };
+      setClientUsage({ jobs: tally(jobsRes.data as any), projects: tally(projRes.data as any) });
+    })();
+  }, [activeView, clientUsage]);
+  const strayClientIds = useMemo(() => {
+    if (!clientUsage) return new Set<string>();
+    const contactNames = new Set(contacts.map(c => (c.name || '').trim().toLowerCase()).filter(Boolean));
+    return new Set(clients
+      .filter(c =>
+        contactNames.has((c.name || '').trim().toLowerCase()) &&
+        !clientUsage.jobs.get(c.id) && !clientUsage.projects.get(c.id) &&
+        !c.email && !c.phone && !c.address && !c.notes && !c.quickbooks_customer_id)
+      .map(c => c.id));
+  }, [clients, contacts, clientUsage]);
+
+  const deleteStrayClients = async () => {
+    const ids = [...strayClientIds];
+    if (ids.length === 0) return;
+    const ok = await confirmAction({
+      title: `Delete ${ids.length} ${ids.length === 1 ? 'client' : 'clients'}?`,
+      message: 'Each one shares a name with a crew contact and has no shoots, projects or details. The crew contacts stay. This can’t be undone.',
+      danger: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
+    const { error } = await supabase.from('clients').delete().in('id', ids);
+    if (error) { toast(`Couldn't delete them: ${error.message}`, 'error'); return; }
+    setClients(prev => prev.filter(c => !strayClientIds.has(c.id)));
+    setShowStraysOnly(false);
+    toast(`Deleted ${ids.length} ${ids.length === 1 ? 'client' : 'clients'}.`);
+  };
+
   const filteredClients = useMemo(() => {
     return clients.filter(c => 
-      c.name.toLowerCase().includes(searchQuery.toLowerCase())
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      (!showStraysOnly || strayClientIds.has(c.id))
     );
-  }, [clients, searchQuery]);
+  }, [clients, searchQuery, showStraysOnly, strayClientIds]);
 
   /**
    * Check parsed rows against the roster once, at parse time — not on every
@@ -1094,6 +1144,29 @@ export default function Rolodex({
           <Plus className="w-4 h-4" /> Add {activeView === 'crew' ? 'Contact' : 'Client'}
         </button>
       </div>
+
+      {activeView === 'clients' && strayClientIds.size > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.07]">
+          <AlertTriangle className="hidden sm:block w-4 h-4 text-amber-400/80 shrink-0" />
+          <p className="flex-1 text-[12px] text-white/65 leading-relaxed">
+            {strayClientIds.size} {strayClientIds.size === 1 ? 'client looks like a person' : 'clients look like people'}: same name as a crew contact, and no shoots, projects or details of their own. Usually a name typed into a client box by mistake.
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => setShowStraysOnly(v => !v)}
+              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/15 text-[12px] font-semibold text-white/75 hover:text-white"
+            >
+              {showStraysOnly ? 'Show all clients' : `Show ${strayClientIds.size === 1 ? 'it' : 'them'}`}
+            </button>
+            <button
+              onClick={deleteStrayClients}
+              className="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/25 text-[12px] font-semibold text-red-400 hover:bg-red-500/20"
+            >
+              Delete {strayClientIds.size === 1 ? 'it' : `all ${strayClientIds.size}`}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-neutral-900/40 border border-white/10 rounded-2xl overflow-hidden">
         <table className="w-full text-left border-collapse">
