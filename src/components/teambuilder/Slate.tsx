@@ -2180,7 +2180,6 @@ function JobCard({
             )}
             items={[
               { label: 'Edit production', icon: <Settings2 className="w-3.5 h-3.5" />, onSelect: onEdit },
-              { label: 'Crew & schedule', icon: <ChevronRight className="w-3.5 h-3.5" />, onSelect: onManage },
               { label: 'Build gear list', icon: <Package className="w-3.5 h-3.5" />, onSelect: () => onBuildGear?.() },
               { label: 'Add vault link', icon: <LinkIcon className="w-3.5 h-3.5" />, onSelect: onAddLink },
               {
@@ -2310,14 +2309,8 @@ function JobCard({
               })}
             </div>
 
-            {!isClient && (
-              <button
-                type="button"
-                onClick={onManage}
-                className="mt-2 text-[10px] font-bold uppercase tracking-widest text-accent hover:text-white transition-colors"
-              >
-                {crew.length > 4 ? `+${crew.length - 4} more · Manage crew` : 'Manage crew'}
-              </button>
+            {crew.length > 4 && (
+              <p className="mt-2 text-[10px] font-medium text-white/40">+{crew.length - 4} more</p>
             )}
           </div>
         )}
@@ -2477,22 +2470,16 @@ function JobCard({
         )}
       </div>
 
-      {/* Footer: the two things you actually do next. The old left-hand slot
-          held a static briefcase styled as an avatar stack that never had any
-          avatars in it. */}
+      {/* Footer: the one way into the crew manager. The card used to offer
+          three (a link in the crew box, this button, and a menu item); links
+          are added from the ⋮ menu. */}
       {!isClient && (
-        <div className="pt-4 border-t border-white/5 mt-auto flex items-center justify-between gap-2 relative z-10">
-           <button
-             onClick={onAddLink}
-             className="text-[11px] font-medium tracking-tight text-white/30 hover:text-accent transition-all flex items-center gap-1.5 px-2 py-1.5 hover:bg-white/5 rounded-lg"
-           >
-             <Plus className="w-3.5 h-3.5" /> Link
-           </button>
+        <div className="pt-4 border-t border-white/5 mt-auto flex items-center justify-end gap-2 relative z-10">
            <button
              onClick={onManage}
-             className="text-[12px] font-medium tracking-tight text-white/40 hover:text-white transition-all flex items-center gap-2 px-3 py-1.5 hover:bg-white/5 rounded-lg"
+             className="text-[12px] font-medium tracking-tight text-white/50 hover:text-white transition-all flex items-center gap-1.5 px-3 py-1.5 hover:bg-white/5 rounded-lg"
            >
-             Manage <ChevronRight className="w-4 h-4" />
+             Crew & schedule <ChevronRight className="w-4 h-4" />
            </button>
         </div>
       )}

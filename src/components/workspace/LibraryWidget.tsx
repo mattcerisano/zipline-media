@@ -324,7 +324,7 @@ export default function LibraryWidget() {
     if (!q) return [...current].sort(activeSort.compare);
     // Search spans every type. "Hudson" should surface the Hudson Theatre
     // client and the Hudson Gala shoot together rather than asking which tab.
-    const pool = ENTITIES.flatMap(e => rows[e.key]);
+    const pool = ENTITIES.filter(e => e.key !== 'clients').flatMap(e => rows[e.key]);
     return pool
       .filter(r => r.name.toLowerCase().includes(q) || (r.detail || '').toLowerCase().includes(q))
       .sort((a, b) => a.type.localeCompare(b.type) || byName(a, b));
@@ -572,7 +572,7 @@ export default function LibraryWidget() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search shoots, clients and projects…"
+              placeholder="Search shoots and projects…"
               aria-label="Search the library"
               className={`${inputClass} pl-9`}
             />
@@ -580,7 +580,8 @@ export default function LibraryWidget() {
         </div>
 
         <div className="flex gap-1.5 flex-wrap items-center">
-          {ENTITIES.map(e => {
+          {/* Clients live in the Rolodex now, alongside their contact details. */}
+          {ENTITIES.filter(e => e.key !== 'clients').map(e => {
             const Icon = e.icon;
             const active = e.key === entity && !searching;
             return (
@@ -842,10 +843,10 @@ export default function LibraryWidget() {
                 </p>
               )}
 
-              {relatedFor(activeRow).length > 0 && (
+              {relatedFor(activeRow).some(rel => rel.type !== 'clients') && (
                 <div className="space-y-1.5">
                   <p className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/30">Related</p>
-                  {relatedFor(activeRow).map(rel => (
+                  {relatedFor(activeRow).filter(rel => rel.type !== 'clients').map(rel => (
                     <button
                       key={`${rel.type}-${rel.id}`}
                       type="button"

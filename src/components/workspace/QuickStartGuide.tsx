@@ -97,14 +97,14 @@ export function QuickStartGuideModal({
                 <div className="p-1.5 bg-white/10 rounded"><Rows className="w-3.5 h-3.5 text-accent" /></div>
               </div>
               <p className="text-xs text-white/60">
-                Hover over any panel and use the <strong className="text-white">Split</strong> icons in the top-right corner to divide it vertically or horizontally.
+                Click <strong className="text-white">Edit layout</strong> in the header, then use the <strong className="text-white">Split</strong> icons in a panel&apos;s top-right corner to divide it vertically or horizontally. Click <strong className="text-white">Done</strong> to hide the controls again.
               </p>
             </div>
 
             <div className="flex gap-4 items-center bg-white/5 p-3 rounded-xl border border-white/5">
               <div className="p-1.5 bg-white/10 rounded shrink-0"><RotateCcw className="w-3.5 h-3.5 text-accent" /></div>
               <p className="text-xs text-white/60">
-                If the splits get too complicated, simply click the <strong className="text-white">Reset View</strong> button in the top-right header area to restore the default panel layout instantly.
+                If the splits get too complicated, click <strong className="text-white">Edit layout</strong>, then the <strong className="text-white">Reset</strong> button beside it to restore the default panel layout.
               </p>
             </div>
           </div>
@@ -456,13 +456,13 @@ export function QuickStartWidget() {
           </div>
           <ul className="space-y-2 text-white/60 leading-relaxed list-disc list-inside">
             <li>
-              Hover over a panel header and click <strong className="text-white">Columns (vertical split)</strong> or <strong className="text-white">Rows (horizontal split)</strong> to divide the workspace view.
+              Click <strong className="text-white">Edit layout</strong> in the header, then <strong className="text-white">Columns (vertical split)</strong> or <strong className="text-white">Rows (horizontal split)</strong> on a panel to divide the workspace view.
             </li>
             <li>
               Drag the dark borders/dividers between panels to resize them.
             </li>
             <li>
-              Click the <strong className="text-white">Reset View</strong> button in the header bar above to revert any screen splitting back to defaults.
+              While editing the layout, click <strong className="text-white">Reset</strong> in the header to revert any screen splitting back to defaults.
             </li>
           </ul>
         </div>
@@ -489,7 +489,7 @@ export function QuickStartWidget() {
           <div className="space-y-2 text-white/60">
             <div className="flex justify-between border-b border-white/5 py-1 text-[11px]">
               <span className="font-bold">Reset Split View</span>
-              <span className="bg-white/10 px-2 py-0.5 rounded text-[11px] md:text-[8px] font-bold text-white">Reset View Button</span>
+              <span className="bg-white/10 px-2 py-0.5 rounded text-[11px] md:text-[8px] font-bold text-white">Edit layout → Reset</span>
             </div>
             <div className="flex justify-between border-b border-white/5 py-1 text-[11px]">
               <span className="font-bold">Add Web Embed Tab</span>

@@ -57,6 +57,8 @@ export interface Client {
   phone?: string;
   address?: string;
   notes?: string;
+  /** The QuickBooks customer this client's invoices and quotes come from. */
+  quickbooks_customer_id?: string | null;
   history?: {
     id: string;
     type: 'job' | 'gear';

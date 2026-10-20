@@ -55,7 +55,7 @@ import { useRealtime } from '@/lib/useRealtime';
 import { caps } from '@/lib/format';
 import { toast, confirmAction } from '@/components/Feedback';
 import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
-import { formatLocalDate } from '@/lib/date';
+import { formatLocalDate, todayLocalISO } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
 import { STUDIO_OWNER, buildRentalLog, isBorrowed, ownedName, parseOwnedName } from '@/lib/gear-owners';
 import { gearShortfalls } from '@/lib/conflicts';
@@ -231,17 +231,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const [newTemplateDesc, setNewTemplateDesc] = useState('');
 
   // External API States
-  const [weatherLoading, setWeatherLoading] = useState(false);
-  const [hospitalLoading, setHospitalLoading] = useState(false);
-  const [parkingLoading, setParkingLoading] = useState(false);
-  const [weatherSuccess, setWeatherSuccess] = useState(false);
-  const [hospitalSuccess, setHospitalSuccess] = useState(false);
-  const [parkingSuccess, setParkingSuccess] = useState(false);
   const [weatherSummary, setWeatherSummary] = useState<string | null>(null);
-  const [weatherLink, setWeatherLink] = useState<string | null>(null);
   const [nearestHospital, setNearestHospital] = useState<{name: string, address: string} | null>(null);
   const [nearestParking, setNearestParking] = useState<{name: string, address: string} | null>(null);
-  const [hoveredLogistics, setHoveredLogistics] = useState<'weather' | 'hospital' | 'parking' | null>(null);
   
   // Rolodex Data
   const [clients, setClients] = useState<Client[]>([]);
@@ -790,38 +782,18 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
   const clearManifest = () => setManifest({});
   
-  // Jobs offered under Job Title. Once a client is chosen in "Generated For",
-  // the list narrows to that client's jobs — the full studio history made the
-  // picker useless the moment you already knew whose shoot you were pulling
-  // gear for. A half-typed client name that matches nothing leaves the list
-  // alone rather than emptying it, so the field stays usable mid-keystroke.
-  const jobsForClient = useMemo(() => {
-    const selected = clientId ? clients.find(c => c.id === clientId) : null;
-    const targetName = (selected?.name || clientName).trim().toLowerCase();
-    if (!clientId && !targetName) return jobs;
+  const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId) || null, [jobs, selectedJobId]);
 
-    const narrowed = jobs.filter(j => {
-      if (clientId && j.client_id === clientId) return true;
-      const jobClient = (j.client_name || '').trim().toLowerCase();
-      return !!jobClient && jobClient === targetName;
-    });
-
-    // A chosen client with no jobs yet genuinely has none to offer; a typed
-    // name that matched nothing is more likely still being typed.
-    if (clientId) return narrowed;
-    return narrowed.length > 0 ? narrowed : jobs;
-  }, [jobs, clients, clientId, clientName]);
-
-  const isJobListNarrowed = jobsForClient.length !== jobs.length;
-
-  // The link the rest of the app filters on. Falls back to a name match so a
-  // list loaded from an older job still resolves to its client row.
-  const resolveClientId = () => {
-    const query = clientName.trim().toLowerCase();
-    if (clientId) return clientId;
-    if (!query) return null;
-    return clients.find(c => c.name.trim().toLowerCase() === query)?.id || null;
-  };
+  // Upcoming shoots first (soonest at the top), then past ones newest first,
+  // then undated. Cancelled shoots are left out unless already open.
+  const productionOptions = useMemo(() => {
+    const today = todayLocalISO();
+    const live = jobs.filter(j => j.job_status !== 'Cancelled' || j.id === selectedJobId);
+    const upcoming = live.filter(j => j.shoot_date && j.shoot_date >= today).sort((a, b) => a.shoot_date!.localeCompare(b.shoot_date!));
+    const past = live.filter(j => j.shoot_date && j.shoot_date < today).sort((a, b) => b.shoot_date!.localeCompare(a.shoot_date!));
+    const undated = live.filter(j => !j.shoot_date);
+    return [...upcoming, ...past, ...undated];
+  }, [jobs, selectedJobId]);
 
   const resetApp = () => {
     clearManifest();
@@ -836,197 +808,40 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     setFilterCategory('All');
     setCustomGear([]); 
     setWeatherSummary(null);
-    setWeatherLink(null);
     setNearestHospital(null);
     setNearestParking(null);
-    setWeatherSuccess(false);
-    setHospitalSuccess(false);
-    setParkingSuccess(false);
-    setParkingLoading(false);
     setSelectedJobId(null);
   };
 
-  const fetchWeather = async () => {
-    if (!shootDate || !companyAddr) {
-        toast('Please enter a Location and Shoot Date first.');
-        return;
-    }
-    setWeatherLoading(true);
-    setWeatherSuccess(false);
-    try {
-        // 1. Geocode with our internal API to avoid CORS issues
-        const geoRes = await fetch(`/api/geocode?address=${encodeURIComponent(companyAddr)}`);
-        const geoData = await geoRes.json();
-        
-        if (!geoRes.ok) {
-            const msg = geoData.status ? `${geoData.error} (Google: ${geoData.status})` : (geoData.error || 'Address not found');
-            throw new Error(msg);
-        }
-        const { lat, lng } = geoData;
-
-        // 2. Weather
-        const date = new Date(shootDate).toISOString().slice(0, 10);
-        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weathercode,temperature_2m_max&temperature_unit=fahrenheit&timezone=auto&start_date=${date}&end_date=${date}`);
-        const wData = await wRes.json();
-
-        if (wData.daily) {
-            const code = wData.daily.weathercode[0];
-            const temp = wData.daily.temperature_2m_max[0];
-            const summary = `${weatherCodeToText(code)} • High: ${temp}°F`;
-            setWeatherSummary(summary);
-            setWeatherLink(`https://www.wunderground.com/weather/${lat},${lng}`);
-            setWeatherSuccess(true);
-        }
-    } catch (err: any) {
-        console.error(err);
-        toast(err.message || 'Could not fetch weather. Check address and date.');
-    } finally {
-        setWeatherLoading(false);
-    }
-  };
-
-
-  const findHospital = async () => {
-     if (!companyAddr) {
-         toast('Please enter a location address first.');
-         return;
-     }
-     setHospitalLoading(true);
-     setHospitalSuccess(false);
-     try {
-         const res = await fetch(`/api/hospital?address=${encodeURIComponent(companyAddr)}`);
-         const data = await res.json();
-         
-         if (res.ok && data) {
-             setNearestHospital({ name: data.name, address: data.address });
-             setHospitalSuccess(true);
-         } else {
-             const errorMsg = data.googleStatus ? `${data.error} (Google: ${data.googleStatus})` : (data.error || 'No hospital found nearby.');
-             toast(errorMsg);
-         }
-     } catch (err) {
-         console.error(err);
-         toast('Error searching for hospital.');
-     } finally {
-         setHospitalLoading(false);
-     }
-  };
-
-  const findParking = async () => {
-      if (!companyAddr) {
-          toast('Please enter a location address first.');
-          return;
-      }
-      setParkingLoading(true);
-      setParkingSuccess(false);
-      try {
-          const res = await fetch(`/api/parking?address=${encodeURIComponent(companyAddr)}`);
-          const data = await res.json();
-          
-          if (res.ok && data && data.place_id) {
-              setNearestParking({ name: data.name, address: data.address });
-              setParkingSuccess(true);
-          } else {
-              const errorMsg = data.googleStatus ? `${data.error} (Google: ${data.googleStatus})` : (data.error || 'No legitimate parking found nearby.');
-              toast(errorMsg);
-          }
-      } catch (err) {
-          console.error(err);
-          toast('Error searching for parking.');
-      } finally {
-          setParkingLoading(false);
-      }
-  };
 
   const saveJob = async () => {
-    if (!jobTitle || !shootDate) {
-      toast('Please enter a Job Title and Shoot Date to log to Slate.');
+    // A gear list belongs to a production; the production itself (title,
+    // date, client, logistics) is created and edited on the Slate.
+    const existingJob = jobs.find(j => j.id === selectedJobId);
+    if (!existingJob) {
+      toast('Pick the production this gear list is for.');
+      return;
+    }
+    if (JSON.stringify(existingJob.gear_manifest ?? {}) === JSON.stringify(manifest)) {
+      toast('Nothing new to save — this list matches Slate.', 'info');
       return;
     }
 
-    const resolvedClientId = resolveClientId();
-
-    // What this form actually edits. Status, venue name, production company
-    // and everything else on the production belong to Slate: writing them from
-    // here — a hardcoded 'Planning', a blank venue, "Generated By" as the prod
-    // co — reset every booked shoot whose gear list was saved.
-    const fields: Partial<Job> & Record<string, unknown> = {
-      title: jobTitle.trim(),
-      client_name: clientName.trim(),
-      shoot_date: shootDate,
-      location_address: companyAddr,
-      nearest_hospital_name: nearestHospital?.name || '',
-      nearest_hospital_address: nearestHospital?.address || '',
-      nearest_parking_name: nearestParking?.name || '',
-      nearest_parking_address: nearestParking?.address || '',
-      weather_summary: weatherSummary || '',
-      gear_manifest: manifest,
-      notes_general: notes,
-    };
-    // Only ever the id of a real client row — the Client → Project filters
-    // across Slate and the Library read this.
-    if (resolvedClientId) fields.client_id = resolvedClientId;
-
     try {
-      // Save the job itself. Client rows are created from the picker, never
-      // as a side effect of saving, so a one-off name typed here stays a name.
-      // Check if job with same ID or same title/date exists for updating
-      const existingJob = jobs.find(j => j.id === selectedJobId) || jobs.find(j => j.title === fields.title && j.shoot_date === fields.shoot_date);
-
-      let res;
-      let calendarChanged = true;
-      if (existingJob) {
-        // Send only what differs from the saved row, so a field this form
-        // never loaded, or that a teammate changed meanwhile, is left alone.
-        const same = (a: unknown, b: unknown) => JSON.stringify(a ?? '') === JSON.stringify(b ?? '');
-        const changes: Record<string, unknown> = Object.fromEntries(
-          Object.entries(fields).filter(([key, value]) => !same(value, (existingJob as any)[key]))
-        );
-        if ('client_name' in changes && !resolvedClientId) changes.client_id = null;
-        if (Object.keys(changes).length === 0) {
-          toast('Nothing new to save — this list matches Slate.', 'info');
-          return;
-        }
-        calendarChanged = Object.keys(changes).some(key => key !== 'gear_manifest');
-        res = await supabase
-          .from('jobs')
-          .update({ ...changes, updated_at: new Date().toISOString() })
-          .eq('id', existingJob.id)
-          .select();
-      } else {
-        res = await supabase
-          .from('jobs')
-          .insert({ ...fields, job_status: 'Planning', type: 'production', edit_status: null })
-          .select();
-      }
-
+      const res = await supabase
+        .from('jobs')
+        .update({ gear_manifest: manifest, updated_at: new Date().toISOString() })
+        .eq('id', existingJob.id)
+        .select();
       if (res.error) throw res.error;
-
-      if (!res.data || res.data.length === 0) {
-        throw new Error('No data returned from database');
-      }
+      if (!res.data || res.data.length === 0) throw new Error('No data returned from database');
 
       const saved = res.data[0] as Job;
-      if (existingJob) {
-        setJobs(prev => prev.map(j => j.id === existingJob.id ? saved : j));
-        setSelectedJobId(saved.id);
-        toast('Job updated on Slate successfully!');
-      } else {
-        setJobs(prev => [...prev, saved]);
-        setSelectedJobId(saved.id);
-        toast('Job logged to Slate successfully!');
-      }
-
-      // The title, date, address and logistics are on the Google event too.
-      // A manifest-only change isn't, so it skips the round trip.
-      if (calendarChanged && saved.shoot_date) {
-        pushJobToGoogleCalendar(saved.id).then(result => {
-          if (!result.ok && result.message) toast(result.message, 'error');
-        });
-      }
+      setJobs(prev => prev.map(j => j.id === saved.id ? saved : j));
+      toast('Gear list saved to the production.');
     } catch (err: any) {
-      console.error('Error saving job:', err);
-      toast('Failed to save job to Slate: ' + (err.message || 'Unknown error'));
+      console.error('Error saving gear list:', err);
+      toast('Failed to save the gear list: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -1072,10 +887,8 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     // Load logistics if present on the job
     if (job.weather_summary) {
         setWeatherSummary(job.weather_summary);
-        setWeatherSuccess(true);
     } else {
         setWeatherSummary(null);
-        setWeatherSuccess(false);
     }
 
     if (job.nearest_hospital_name) {
@@ -1083,10 +896,8 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             name: job.nearest_hospital_name,
             address: job.nearest_hospital_address || ''
         });
-        setHospitalSuccess(true);
     } else {
         setNearestHospital(null);
-        setHospitalSuccess(false);
     }
 
     if (job.nearest_parking_name) {
@@ -1094,10 +905,8 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             name: job.nearest_parking_name,
             address: job.nearest_parking_address || ''
         });
-        setParkingSuccess(true);
     } else {
         setNearestParking(null);
-        setParkingSuccess(false);
     }
 
     setNotes(job.notes_general || '');
@@ -1586,232 +1395,46 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
-        <div className="space-y-0.5 relative">
-          <label className="text-xs font-semibold opacity-40 ml-1 flex items-center gap-1.5">
-            Job Title
-            {selectedJobIdProp && <Lock className="w-2.5 h-2.5 text-accent opacity-60" />}
-          </label>
-          <div className="relative">
-            <input 
-              type="text" 
-              value={jobTitle}
-              disabled={!!selectedJobIdProp}
-              onChange={(e) => {
-                  const val = e.target.value;
-                  setJobTitle(val);
-                  
-                  // Autofill attempt. With a client chosen, only their jobs
-                  // count — two clients can run a shoot by the same name, and
-                  // matching the other one would rewrite the client field.
-                  const matchedJob = (clientId ? jobsForClient : jobs)
-                      .find(j => j.title.toLowerCase() === val.toLowerCase());
-                  if (matchedJob) {
-                      // The same load as picking it from the library, so the
-                      // form holds that job's details and nothing left over.
-                      loadJob(matchedJob);
-                  } else if (!val.trim()) {
-                      setSelectedJobId(null);
-                  }
-              }}
-              placeholder="e.g. Moulin Rouge"
-              list="job-list"
-              className={`w-full bg-black/50 border py-2.5 px-4 outline-none transition-colors text-sm font-semibold rounded-lg ${
-                selectedJobIdProp 
-                  ? 'border-accent/20 text-white/40 cursor-not-allowed bg-accent/5' 
-                  : 'border-white/10 focus:border-accent'
-              }`}
-            />
-            {selectedJobIdProp && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                <Lock className="w-3.5 h-3.5 text-accent" />
-              </div>
+      {/* Which production this list is for. Title, date, client, location,
+          logistics and notes are edited on the Slate — retyping them here
+          made two copies to keep in step. They still print on the PDF and
+          the share link, loaded from the production. */}
+      <div className="space-y-1.5 mb-6">
+        <label className="text-xs font-semibold opacity-40 ml-1 flex items-center gap-1.5">
+          Production
+          {selectedJobIdProp && <Lock className="w-2.5 h-2.5 text-accent opacity-60" />}
+        </label>
+        <select
+          value={selectedJobId || ''}
+          disabled={!!selectedJobIdProp}
+          onChange={(e) => {
+            const job = jobs.find(j => j.id === e.target.value);
+            if (job) loadJob(job);
+            else resetApp();
+          }}
+          className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <option value="">Pick a production…</option>
+          {productionOptions.map(j => (
+            <option key={j.id} value={j.id}>
+              {j.title}
+              {j.shoot_date ? ` — ${formatLocalDate(j.shoot_date, { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+              {j.client_name ? ` · ${j.client_name}` : ''}
+            </option>
+          ))}
+        </select>
+        {selectedJob ? (
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/70 space-y-1">
+            <p><span className="text-white/35 mr-1.5">Date</span>{formatLocalDate(selectedJob.shoot_date)}{selectedJob.call_time ? ` · call ${selectedJob.call_time}` : ''}</p>
+            {selectedJob.client_name && <p><span className="text-white/35 mr-1.5">Client</span>{selectedJob.client_name}</p>}
+            {(selectedJob.location_name || selectedJob.location_address) && (
+              <p className="truncate"><span className="text-white/35 mr-1.5">Location</span>{selectedJob.location_name || selectedJob.location_address}</p>
             )}
+            <p className="text-[11px] text-white/30 pt-1">Production details are changed on the Slate.</p>
           </div>
-          <datalist id="job-list">
-            {jobsForClient.map(j => (
-                <option key={j.id} value={j.title}>{j.client_name ? `(${j.client_name})` : ''}</option>
-            ))}
-          </datalist>
-          {isJobListNarrowed && !selectedJobIdProp && (
-            <p className="text-[10px] font-semibold text-white/30 ml-1 mt-0.5">
-              {jobsForClient.length === 0
-                ? `No jobs yet for ${clientName.trim()}`
-                : `${jobsForClient.length} job${jobsForClient.length === 1 ? '' : 's'} for ${clientName.trim()}`}
-            </p>
-          )}
-        </div>
-        <div className="space-y-0.5">
-          <label className="text-xs font-semibold opacity-40 ml-1">Shoot Date</label>
-          <div className="flex gap-2">
-            <input 
-                type="date" 
-                value={shootDate}
-                onChange={(e) => setShootDate(e.target.value)}
-                // The native picker icon is stretched invisibly over the whole
-                // field: in the manifest's half-width column it took the room
-                // the date needed and clipped it to "mm/dd/y".
-                className="relative w-full min-w-0 bg-black/50 border border-white/10 py-2.5 px-3 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-            />
-            <button 
-                onClick={() => setIsCalendarOpen(true)}
-                className="shrink-0 bg-white/10 hover:bg-white/20 p-3 rounded-lg transition-colors text-white"
-                title="Pick from Production Calendar"
-            >
-                <Calendar className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-        <div className="space-y-0.5">
-          <label className="text-xs font-semibold opacity-40 ml-1">
-            Generated For <span className="opacity-60 font-medium">(client)</span>
-          </label>
-          <ClientPicker
-            clients={clients}
-            value={clientName}
-            clientId={clientId}
-            onChange={({ name, clientId: id }) => { setClientName(name); setClientId(id); }}
-            onClientCreated={c => setClients(prev => [...prev, c])}
-            placeholder="Client Name"
-          />
-        </div>
-        <div className="space-y-0.5">
-          <label className="text-xs font-semibold opacity-40 ml-1">Generated By</label>
-          <input 
-            type="text" 
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
-          />
-        </div>
-        <div className="space-y-0.5 md:col-span-2">
-          <label className="text-xs font-semibold opacity-40 ml-1">Location</label>
-          <Autocomplete
-            apiKey={GOOGLE_MAPS_API_KEY}
-            onPlaceSelected={(place) => {
-                if (!place) return;
-                setCompanyAddr(place.formatted_address || '');
-                setWeatherSuccess(false);
-                setHospitalSuccess(false);
-                setParkingSuccess(false);
-                setWeatherLink(null);
-                setNearestHospital(null);
-                setNearestParking(null);
-            }}
-            options={{
-                types: ['geocode', 'establishment'],
-                fields: ['formatted_address', 'geometry'],
-                componentRestrictions: { country: 'us' }
-            }}
-            defaultValue={companyAddr}
-            onChange={(e: any) => {
-                setCompanyAddr(e.target.value);
-                setWeatherSuccess(false);
-                setHospitalSuccess(false);
-                setParkingSuccess(false);
-                setWeatherSummary(null);
-                setWeatherLink(null);
-                setNearestHospital(null);
-                setNearestParking(null);
-            }}
-            className="w-full bg-black/5 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
-            placeholder="Search for a location..."
-          />
-          <div className="flex gap-2 pt-1 relative">
-             {hoveredLogistics && (
-                <div className="absolute bottom-full left-0 mb-2 w-full bg-neutral-900 border border-white/10 p-3 rounded-xl shadow-xl z-50 pointer-events-none">
-                    {hoveredLogistics === 'weather' && (
-                        <div>
-                            <p className="text-xs font-semibold text-accent mb-1">Weather Forecast</p>
-                            <p className="text-xs font-semibold">{weatherSummary || 'No weather data loaded.'}</p>
-                        </div>
-                    )}
-                    {hoveredLogistics === 'hospital' && (
-                        <div>
-                            <p className="text-xs font-semibold text-red-500 mb-1">Nearest Hospital</p>
-                            {nearestHospital ? (
-                                <>
-                                    <p className="text-xs font-semibold">{nearestHospital.name}</p>
-                                    <p className="text-[10px] opacity-60">{nearestHospital.address}</p>
-                                </>
-                            ) : <p className="text-xs opacity-50">No hospital found.</p>}
-                        </div>
-                    )}
-                    {hoveredLogistics === 'parking' && (
-                        <div>
-                            <p className="text-xs font-semibold text-blue-500 mb-1">Nearest Parking</p>
-                            {nearestParking ? (
-                                <>
-                                    <p className="text-xs font-semibold">{nearestParking.name}</p>
-                                    <p className="text-[10px] opacity-60">{nearestParking.address}</p>
-                                </>
-                            ) : <p className="text-xs opacity-50">No parking found.</p>}
-                        </div>
-                    )}
-                </div>
-             )}
-
-             <button 
-                onClick={() => {
-                    if (weatherSuccess && weatherLink) {
-                        window.open(weatherLink, '_blank');
-                    } else {
-                        fetchWeather();
-                    }
-                }}
-                onMouseEnter={() => setHoveredLogistics('weather')}
-                onMouseLeave={() => setHoveredLogistics(null)}
-                disabled={weatherLoading}
-                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-xs font-semibold hover:bg-white/10 transition-all ${weatherSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
-             >
-                {weatherLoading ? '...' : weatherSuccess ? <Check className="w-3 h-3" /> : <Sun className="w-3 h-3" />}
-                {weatherSuccess ? 'View' : 'Weather'}
-             </button>
-             <button 
-                onClick={() => {
-                    if (hospitalSuccess && nearestHospital) {
-                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nearestHospital.name + ' ' + nearestHospital.address)}`, '_blank');
-                    } else {
-                        findHospital();
-                    }
-                }}
-                onMouseEnter={() => setHoveredLogistics('hospital')}
-                onMouseLeave={() => setHoveredLogistics(null)}
-                disabled={hospitalLoading}
-                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-xs font-semibold hover:bg-white/10 transition-all ${hospitalSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
-             >
-                {hospitalLoading ? '...' : hospitalSuccess ? <Check className="w-3 h-3" /> : <Stethoscope className="w-3 h-3" />}
-                {hospitalSuccess ? 'View' : 'Hospital'}
-             </button>
-             <button 
-                onClick={() => {
-                    if (parkingSuccess && nearestParking) {
-                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nearestParking.name + ' ' + nearestParking.address)}`, '_blank');
-                    } else {
-                        findParking();
-                    }
-                }}
-                onMouseEnter={() => setHoveredLogistics('parking')}
-                onMouseLeave={() => setHoveredLogistics(null)}
-                disabled={parkingLoading}
-                className={`flex-1 flex items-center justify-center gap-1 py-1.5 border border-white/10 rounded-lg text-xs font-semibold hover:bg-white/10 transition-all ${parkingSuccess ? 'text-green-500 border-green-500/20 bg-green-500/10' : 'opacity-60 hover:opacity-100'}`}
-             >
-                {parkingLoading ? '...' : parkingSuccess ? <Check className="w-3 h-3" /> : <Car className="w-3 h-3" />}
-                {parkingSuccess ? 'View' : 'Parking'}
-             </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-0.5 mb-6">
-        <label className="text-xs font-semibold opacity-40 ml-1">Production Notes</label>
-        <textarea 
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={1}
-          placeholder="Call time, parking, etc..."
-          className="w-full bg-black/50 border border-white/10 py-3 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg resize-none"
-        />
+        ) : (
+          <p className="text-[11px] text-white/35 ml-1">New shoot? Create it on the Slate, then pick it here.</p>
+        )}
       </div>
 
       {gearClashes.length > 0 && (
@@ -1941,11 +1564,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           <button 
             type="button"
             onClick={saveJob}
-            disabled={Object.keys(manifest).length === 0}
+            disabled={!selectedJobId || Object.keys(manifest).length === 0}
             className="flex items-center justify-center gap-1 border border-accent/20 bg-accent/5 py-2.5 text-xs font-semibold text-accent hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-accent/5"
-            title="Log gear to Slate"
+            title="Save this gear list to the production"
           >
-            <ClipboardList className="w-3.5 h-3.5" /> Slate
+            <ClipboardList className="w-3.5 h-3.5" /> Save
           </button>
           <button 
             type="button"
