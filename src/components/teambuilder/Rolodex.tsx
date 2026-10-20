@@ -75,7 +75,14 @@ type SortField = 'name' | 'primary_role';
 type SortOrder = 'asc' | 'desc';
 type RolodexView = 'crew' | 'clients';
 
-export default function Rolodex() {
+export default function Rolodex({
+  openRecord,
+  onRecordOpened,
+}: {
+  /** A person or client to open straight away (from search). */
+  openRecord?: { kind: 'contact' | 'client'; id: string } | null;
+  onRecordOpened?: () => void;
+} = {}) {
   const [activeView, setActiveView] = useState<RolodexView>('crew');
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -480,6 +487,22 @@ export default function Rolodex() {
       setIsClientDetailHistoryLoading(false);
     }
   }, []);
+
+  // Search picked a specific person or client: open their card once the
+  // lists are in, rather than leaving them to be found again by hand.
+  useEffect(() => {
+    if (!openRecord || isLoading) return;
+    if (openRecord.kind === 'contact') {
+      const contact = contacts.find(c => c.id === openRecord.id);
+      setActiveView('crew');
+      if (contact) openContactDetail(contact);
+    } else {
+      const client = clients.find(c => c.id === openRecord.id);
+      setActiveView('clients');
+      if (client) openClientDetail(client);
+    }
+    onRecordOpened?.();
+  }, [openRecord, isLoading, contacts, clients, openContactDetail, openClientDetail, onRecordOpened]);
 
   const copyToClipboard = useCallback((text: string, field: string) => {
     navigator.clipboard.writeText(text);

@@ -39,6 +39,8 @@ interface SearchPaletteProps {
   onClose: () => void;
   onOpenJob: (jobId: string) => void;
   onOpenContacts: () => void;
+  /** Open one Rolodex record — a person or a client — rather than the list. */
+  onOpenRecord?: (kind: 'contact' | 'client', id: string) => void;
   /** Navigate to a Command Center tab (feature results). */
   onNavigate?: (tabId: string) => void;
   /** Tab ids visible to this user — feature results outside this set are hidden. */
@@ -51,7 +53,7 @@ interface SearchPaletteProps {
   includePeople?: boolean;
 }
 
-export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts, onNavigate, availableTabs, includePeople = true }: SearchPaletteProps) {
+export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts, onOpenRecord, onNavigate, availableTabs, includePeople = true }: SearchPaletteProps) {
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<Hit[]>([]);
   const [corpus, setCorpus] = useState<Corpus | null>(null);
@@ -169,8 +171,9 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
     onClose();
     if (hit.type === 'job') onOpenJob(hit.id);
     else if (hit.type === 'feature') onNavigate?.(hit.id);
+    else if (onOpenRecord && (hit.type === 'contact' || hit.type === 'client')) onOpenRecord(hit.type, hit.id);
     else onOpenContacts();
-  }, [onClose, onOpenJob, onOpenContacts, onNavigate]);
+  }, [onClose, onOpenJob, onOpenContacts, onOpenRecord, onNavigate]);
 
   // Keyboard: arrows to move, enter to open, esc to close.
   const onKeyDown = (e: React.KeyboardEvent) => {

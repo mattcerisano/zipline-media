@@ -182,6 +182,9 @@ interface WorkspaceLayoutProps {
   /** An Edit Tracker card another screen asked to open (My Work). */
   openEditCardId?: string | null;
   onClearOpenEditCard?: () => void;
+  /** A Rolodex person or client to open (from search). */
+  openRolodexRecord?: { kind: 'contact' | 'client'; id: string } | null;
+  onClearRolodexRecord?: () => void;
   onSwitchTab: (tab: any) => void;
   /** Layout controls (add tab, split, close) show only while editing. */
   isLayoutEditing?: boolean;
@@ -198,6 +201,8 @@ export default function WorkspaceLayout({
   onClearNewProductionSeed,
   openEditCardId,
   onClearOpenEditCard,
+  openRolodexRecord,
+  onClearRolodexRecord,
   onSwitchTab,
   isLayoutEditing = false,
 }: WorkspaceLayoutProps) {
@@ -333,6 +338,8 @@ export default function WorkspaceLayout({
           onClearNewProductionSeed={onClearNewProductionSeed}
           openEditCardId={openEditCardId}
           onClearOpenEditCard={onClearOpenEditCard}
+          openRolodexRecord={openRolodexRecord}
+          onClearRolodexRecord={onClearRolodexRecord}
           onSwitchTab={onSwitchTab}
           isLayoutEditing={isLayoutEditing}
         />
@@ -509,6 +516,8 @@ function WorkspacePanel({
   onClearNewProductionSeed,
   openEditCardId,
   onClearOpenEditCard,
+  openRolodexRecord,
+  onClearRolodexRecord,
   onSwitchTab,
   isLayoutEditing = false,
 }: { 
@@ -808,6 +817,8 @@ function WorkspacePanel({
           onClearNewProductionSeed={onClearNewProductionSeed}
           openEditCardId={openEditCardId}
           onClearOpenEditCard={onClearOpenEditCard}
+          openRolodexRecord={openRolodexRecord}
+          onClearRolodexRecord={onClearRolodexRecord}
           onSwitchTab={onSwitchTab}
         />
       </div>
@@ -985,6 +996,8 @@ function WidgetMount({
   onClearNewProductionSeed,
   openEditCardId,
   onClearOpenEditCard,
+  openRolodexRecord,
+  onClearRolodexRecord,
   onSwitchTab
 }: { 
   type: string;
@@ -1069,7 +1082,7 @@ function WidgetMount({
     case 'social':
       return <SocialMedia />;
     case 'rolodex':
-      return <Rolodex />;
+      return <Rolodex openRecord={openRolodexRecord} onRecordOpened={onClearRolodexRecord} />;
     case 'meeting_notes':
       return <MeetingNotes />;
     case 'review':

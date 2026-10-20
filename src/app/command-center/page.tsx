@@ -619,6 +619,9 @@ export default function CommandCenterPage() {
   // An Edit Tracker card to open on arrival — My Work's edit rows hand one over.
   const [openEditCardId, setOpenEditCardId] = useState<string | null>(null);
   const clearOpenEditCard = useCallback(() => setOpenEditCardId(null), []);
+  // A Rolodex person or client search asked to open.
+  const [openRolodexRecord, setOpenRolodexRecord] = useState<{ kind: 'contact' | 'client'; id: string } | null>(null);
+  const clearRolodexRecord = useCallback(() => setOpenRolodexRecord(null), []);
   const [userRole, setUserRole] = useState<AppRole | null>(null);
   // 'none': signed in, but nobody has given this account a role. 'error': the
   // role couldn't be read (offline). Either way the workspace stays closed.
@@ -1525,6 +1528,8 @@ export default function CommandCenterPage() {
                   onClearNewProductionSeed={() => setNewProductionSeed(null)}
                   openEditCardId={openEditCardId}
                   onClearOpenEditCard={clearOpenEditCard}
+                  openRolodexRecord={openRolodexRecord}
+                  onClearRolodexRecord={clearRolodexRecord}
                   isLayoutEditing={isLayoutEditing}
                   onSwitchTab={(target) => {
                     // The guide is a modal, not a tab — "System Guide" on the
@@ -1580,6 +1585,11 @@ export default function CommandCenterPage() {
           localStorage.setItem('studio_active_tab', target);
         }}
         onOpenContacts={() => {
+          setActiveTab('rolodex');
+          localStorage.setItem('studio_active_tab', 'rolodex');
+        }}
+        onOpenRecord={(kind, id) => {
+          setOpenRolodexRecord({ kind, id });
           setActiveTab('rolodex');
           localStorage.setItem('studio_active_tab', 'rolodex');
         }}
