@@ -903,9 +903,9 @@ export default function MeetingNotes() {
                 {/* List of Attendees */}
                 <div className="flex flex-wrap gap-1.5">
                   {activeNote.attendees.length > 0 ? (
-                    activeNote.attendees.map(name => (
+                    activeNote.attendees.map((name, i) => (
                       <span 
-                        key={name} 
+                        key={`${name}-${i}`} 
                         className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-semibold text-white flex items-center gap-1.5"
                       >
                         {name}
@@ -955,9 +955,9 @@ export default function MeetingNotes() {
                 {/* List of Tasks */}
                 <div className="space-y-2 max-h-52 overflow-y-auto pr-1 custom-scrollbar">
                   {activeNote.action_items.length > 0 ? (
-                    activeNote.action_items.map(item => (
+                    activeNote.action_items.map((item, i) => (
                       <div 
-                        key={item.id}
+                        key={item.id || `item-${i}`}
                         className={`flex items-start justify-between gap-3 p-3 bg-black/25 border border-white/5 rounded-2xl group transition-all ${
                           item.completed ? 'opacity-45' : ''
                         }`}

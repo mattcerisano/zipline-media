@@ -447,11 +447,11 @@ export default function ClientReview() {
                       </div>
 
                       {/* Comment markers on timeline */}
-                      {activeReview.comments.map(c => {
+                      {activeReview.comments.map((c, ci) => {
                         const percent = (c.timestamp / (duration || 1)) * 100;
                         return (
                           <div
-                            key={c.id}
+                            key={c.id || `c-${ci}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               seekTo(c.timestamp);
@@ -505,9 +505,9 @@ export default function ClientReview() {
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4 bg-zinc-900/10">
                 {activeReview.comments.length > 0 ? (
-                  activeReview.comments.map(comment => (
+                  activeReview.comments.map((comment, ci) => (
                     <div 
-                      key={comment.id}
+                      key={comment.id || `comment-${ci}`}
                       onClick={() => seekTo(comment.timestamp)}
                       className="bg-black/25 border border-white/5 hover:border-accent/30 rounded-2xl p-4 text-left group transition-all cursor-pointer relative"
                     >
