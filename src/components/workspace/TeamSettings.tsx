@@ -134,7 +134,9 @@ export default function TeamSettings({ session, onMessage }: Props) {
       const data = await res.json();
       if (res.ok) {
         onMessage(
-          newRole === 'editor'
+          data.existingAccount
+            ? `${newEmail} already had an account (they'd signed in before being added). They now have access and keep their own password — the temporary one wasn't used.`
+            : newRole === 'editor'
             ? `Account created. Share the temporary password with ${newEmail} — they sign in at /command-center, land on the Edit Tracker, and see the cards assigned to their linked contact.`
             : `Account created. Share the temporary password with ${newEmail} — they sign in at /command-center.`
         );

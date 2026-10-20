@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
+import { loadUserPref, saveUserPref } from '@/lib/user-prefs';
 import { loadMyScratchNotes, saveMyScratchNotes } from '@/lib/team-prefs';
 import { canUseWidget, type AppRole } from '@/lib/roles';
 import { Job } from '@/components/gearbuilder/types';
@@ -251,6 +252,29 @@ export default function WorkspaceLayout({
       node.tabs.length === 1 &&
       node.tabs[0] === 'notes';
 
+    // Your account's copy of this layout, so a layout set up on the laptop
+    // is there on the phone and the studio machine. It replaces this
+    // device's copy when they differ; a layout only this device has (from
+    // before layouts synced) is sent up instead.
+    let cancelled = false;
+    const prefKey = `layout:${activeTab}`;
+    const usable = (node: LayoutNode) =>
+      !isBlankFallback(node) && !(!DEFAULT_LAYOUTS[activeTab] && isContaminated(node));
+    loadUserPref<LayoutNode>(prefKey).then(remote => {
+      if (cancelled) return;
+      const local = localStorage.getItem(storageKey);
+      if (remote && usable(remote)) {
+        if (local === JSON.stringify(remote)) return;
+        localStorage.setItem(storageKey, JSON.stringify(remote));
+        setLayoutRoot(remote);
+      } else if (!remote && local) {
+        try {
+          const parsed = JSON.parse(local) as LayoutNode;
+          if (usable(parsed)) saveUserPref(prefKey, parsed, 0);
+        } catch { /* unreadable local copy — leave it */ }
+      }
+    });
+
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
@@ -271,11 +295,13 @@ export default function WorkspaceLayout({
     } else {
       setLayoutRoot(fallback);
     }
+    return () => { cancelled = true; };
   }, [activeTab, storageKey]);
 
   const saveLayout = (newLayout: LayoutNode) => {
     setLayoutRoot(newLayout);
     localStorage.setItem(storageKey, JSON.stringify(newLayout));
+    saveUserPref(`layout:${activeTab}`, newLayout);
   };
 
   if (!layoutRoot) {

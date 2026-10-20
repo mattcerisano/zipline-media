@@ -41,6 +41,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { supabase } from '@/lib/supabase';
 import { trackView, trackAction, loadTabOpens } from '@/lib/usage';
 import { rankTabsByUse } from '@/lib/tab-ranking';
+import { saveUserPref } from '@/lib/user-prefs';
 import { getBranding } from '@/lib/branding';
 import { applyAccent } from '@/lib/brand-theme';
 import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
@@ -293,6 +294,8 @@ export default function CommandCenterPage() {
     if (e) e.stopPropagation();
     const storageKey = `studio_workspace_layout_${tabId}`;
     localStorage.removeItem(storageKey);
+    // And your account's copy, or the next device would bring it back.
+    saveUserPref(`layout:${tabId}`, null, 0);
     // Force a clean single remount of the active workspace so it reloads the
     // default layout. Bumping a nonce in the render key is deterministic —
     // unlike toggling activeTab through '', which AnimatePresence (mode="wait")
@@ -617,6 +620,9 @@ export default function CommandCenterPage() {
   const [openEditCardId, setOpenEditCardId] = useState<string | null>(null);
   const clearOpenEditCard = useCallback(() => setOpenEditCardId(null), []);
   const [userRole, setUserRole] = useState<AppRole | null>(null);
+  // 'none': signed in, but nobody has given this account a role. 'error': the
+  // role couldn't be read (offline). Either way the workspace stays closed.
+  const [accessState, setAccessState] = useState<'ok' | 'none' | 'error'>('ok');
 
   // One source of truth for "what can this account open". Everything that
   // navigates — the sidebar, the search palette, the guard below — reads this,
@@ -883,18 +889,17 @@ export default function CommandCenterPage() {
         }
       }
 
-      // 3. If still not found, create a new client role
+      // 3. Still nothing: this account hasn't been given access. It used to
+      // grant itself the client role here, which meant anyone who managed to
+      // sign in got in. Outside clients never log in, so an unknown account
+      // now waits for an admin to add it under Settings → Team.
       if (!role) {
-        const { data: newRole, error: insertError } = await supabase
-          .from('user_roles')
-          .insert({ id: userId, email: email, role: 'client' })
-          .select('role')
-          .single();
-
-        if (insertError) throw insertError;
-        role = newRole?.role || 'client';
+        setUserRole(null);
+        setAccessState('none');
+        return;
       }
 
+      setAccessState('ok');
       setUserRole(role as AppRole);
       if (setDefaultTab) {
         if (!checkPersistedTab(role as AppRole)) {
@@ -905,13 +910,9 @@ export default function CommandCenterPage() {
       }
     } catch (err: any) {
       console.error('[Studio OS] Error fetching user role:', err);
-      setUserRole('client'); // Default fallback
-      if (setDefaultTab) {
-        if (!checkPersistedTab('client')) {
-          setActiveTab('calendar');
-          localStorage.setItem('studio_active_tab', 'calendar');
-        }
-      }
+      // Not knowing your role is not a reason to hand you one.
+      setUserRole(null);
+      setAccessState('error');
     } finally {
       setIsLoading(false);
     }
@@ -999,6 +1000,7 @@ export default function CommandCenterPage() {
   };
 
   const handleLogout = async () => {
+    setAccessState('ok');
     await supabase.auth.signOut();
   };
 
@@ -1087,6 +1089,34 @@ export default function CommandCenterPage() {
               Authorized access only · All sessions are logged
             </p>
           </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (accessState !== 'ok' && !userRole) {
+    return (
+      <div className="studio-shell min-h-dvh bg-black text-white flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-zinc-950 border border-white/10 rounded-2xl p-6 space-y-4 text-center">
+          <h1 className="text-lg font-semibold">
+            {accessState === 'none' ? 'You don’t have access yet' : 'Couldn’t check your access'}
+          </h1>
+          <p className="text-sm text-white/60 leading-relaxed">
+            {accessState === 'none'
+              ? <>You’re signed in as <span className="text-white">{session.user.email}</span>, but this account hasn’t been added to Studio OS. Ask an admin to add you under Settings → Team with this same email.</>
+              : 'Something went wrong reading your account. Check your connection and try again.'}
+          </p>
+          <div className="flex gap-2 justify-center pt-1">
+            <button
+              onClick={() => { setIsLoading(true); fetchUserRole(session.user.id, session.user.email || '', true); }}
+              className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium"
+            >
+              Try again
+            </button>
+            <button onClick={handleLogout} className="px-4 py-2 rounded-lg border border-white/10 text-sm font-medium text-white/70">
+              Sign out
+            </button>
+          </div>
         </div>
       </div>
     );
