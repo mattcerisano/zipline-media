@@ -34,7 +34,7 @@ import {
   Merge
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EscapeToClose } from '@/components/workspace/Overlay';
+import { EscapeToClose, Portal } from '@/components/workspace/Overlay';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { Contact, Client } from '@/components/gearbuilder/types';
@@ -1354,6 +1354,11 @@ export default function Rolodex({
         </table>
       </div>
 
+      {/* Every sheet below renders into the app shell, not this panel. The
+          panel is its own stacking context, so however high their z-index,
+          these painted underneath the sticky page header — on a phone the
+          header sat over the top of the card and its close button. */}
+      <Portal>
       {/* ═══════════════════════ CONTACT DETAIL CARD ═══════════════════════ */}
       <AnimatePresence>
         {isContactDetailOpen && selectedContact && (
@@ -2745,6 +2750,7 @@ export default function Rolodex({
           </div>
         )}
       </AnimatePresence>
+      </Portal>
 
       {/* ═══════════════════════ DUPLICATE REVIEW ═══════════════════════ */}
       {/* Portals itself to body, so no AnimatePresence and no conditional

@@ -26,7 +26,7 @@ import {
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EscapeToClose } from '@/components/workspace/Overlay';
+import { EscapeToClose, Portal } from '@/components/workspace/Overlay';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/lib/supabase';
 import { authHeader } from '@/lib/api-client';
@@ -953,6 +953,7 @@ export default function InboxWidget() {
       </div>
 
       {/* Compose New Email */}
+      <Portal>
       <AnimatePresence>
         {showCompose && (
           <motion.div
@@ -1027,8 +1028,10 @@ export default function InboxWidget() {
           </motion.div>
         )}
       </AnimatePresence>
+      </Portal>
 
       {/* Link-to-Job picker */}
+      <Portal>
       <AnimatePresence>
         {showJobPicker && (
           <motion.div
@@ -1093,6 +1096,7 @@ export default function InboxWidget() {
           </motion.div>
         )}
       </AnimatePresence>
+      </Portal>
 
     </div>
   );

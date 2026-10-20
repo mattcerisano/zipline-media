@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, ExternalLink, Quote,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { saved } from '@/lib/saved';
 import {
   DELIVERABLE_FORMATS,
   nextDeliverableStatus,
@@ -14,7 +15,7 @@ import {
 } from '@/lib/deliverables';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { confirmAction } from '@/components/Feedback';
-import { useEscapeToClose } from '@/components/workspace/Overlay';
+import { Portal, useEscapeToClose } from '@/components/workspace/Overlay';
 
 /* ------------------------------------------------------------------ */
 /* Shared constants                                                    */
@@ -249,11 +250,16 @@ function PostModal({ post, clients, onClose, onSaved }: { post: Post; clients: C
       scheduled_at: draft.scheduled_at || null,
       link_url: draft.link_url || '',
     };
-    if (draft.id) await supabase.from('social_posts').update(payload).eq('id', draft.id);
-    else await supabase.from('social_posts').insert([payload]);
-    onSaved();
+    const write = draft.id
+      ? supabase.from('social_posts').update(payload).eq('id', draft.id)
+      : supabase.from('social_posts').insert([payload]);
+    // A refused save keeps the form open with everything still filled in.
+    if (await saved(write, 'save the post')) onSaved();
   };
-  const remove = async () => { if (draft.id && (await confirmAction({ message: 'Delete this post?', danger: true, confirmLabel: 'Delete' }))) { await supabase.from('social_posts').delete().eq('id', draft.id); onSaved(); } };
+  const remove = async () => {
+    if (!draft.id || !(await confirmAction({ message: 'Delete this post?', danger: true, confirmLabel: 'Delete' }))) return;
+    if (await saved(supabase.from('social_posts').delete().eq('id', draft.id), 'delete the post')) onSaved();
+  };
 
   return (
     <ModalShell title={draft.id ? 'Edit Post' : 'New Post'} onClose={onClose}>
@@ -335,30 +341,38 @@ function RolloutTracker({ clients }: { clients: Client[] }) {
   const addCampaign = async () => {
     const name = prompt('Campaign / release name (e.g. "If I Believed — Single"):');
     if (!name) return;
-    const { data } = await supabase.from('social_campaigns').insert([{ name }]).select().single();
-    if (data) { setCampaigns((c) => [data as Campaign, ...c]); setActiveId((data as Campaign).id); }
+    const res = await saved(supabase.from('social_campaigns').insert([{ name }]).select().single(), 'create the campaign');
+    if (res?.data) { setCampaigns((c) => [res.data as Campaign, ...c]); setActiveId((res.data as Campaign).id); }
   };
+  // Edits stay on screen if a save is refused; the toast says it didn't stick.
   const patchCampaign = async (patch: Partial<Campaign>) => {
     if (!activeId) return;
     setCampaigns((cs) => cs.map((c) => (c.id === activeId ? { ...c, ...patch } : c)));
-    await supabase.from('social_campaigns').update(patch).eq('id', activeId);
+    await saved(supabase.from('social_campaigns').update(patch).eq('id', activeId), 'save the campaign');
   };
   const deleteCampaign = async () => {
     if (!activeId || !(await confirmAction({ message: 'Delete this campaign and its tasks?', danger: true, confirmLabel: 'Delete' }))) return;
-    await supabase.from('social_campaigns').delete().eq('id', activeId);
+    if (!(await saved(supabase.from('social_campaigns').delete().eq('id', activeId), 'delete the campaign'))) return;
     setCampaigns((cs) => cs.filter((c) => c.id !== activeId));
     setActiveId('');
   };
 
   const addTask = async (phase: string) => {
-    const { data } = await supabase.from('social_campaign_tasks').insert([{ campaign_id: activeId, phase, task: '', sort_order: tasks.length }]).select().single();
-    if (data) setTasks((t) => [...t, data as CTask]);
+    const res = await saved(
+      supabase.from('social_campaign_tasks').insert([{ campaign_id: activeId, phase, task: '', sort_order: tasks.length }]).select().single(),
+      'add the task',
+    );
+    if (res?.data) setTasks((t) => [...t, res.data as CTask]);
   };
   const patchTask = async (id: string, patch: Partial<CTask>) => {
     setTasks((ts) => ts.map((t) => (t.id === id ? { ...t, ...patch } : t)));
-    await supabase.from('social_campaign_tasks').update(patch).eq('id', id);
+    await saved(supabase.from('social_campaign_tasks').update(patch).eq('id', id), 'save the task');
   };
-  const delTask = async (id: string) => { setTasks((ts) => ts.filter((t) => t.id !== id)); await supabase.from('social_campaign_tasks').delete().eq('id', id); };
+  const delTask = async (id: string) => {
+    const before = tasks;
+    setTasks((ts) => ts.filter((t) => t.id !== id));
+    if (!(await saved(supabase.from('social_campaign_tasks').delete().eq('id', id), 'delete the task'))) setTasks(before);
+  };
 
   const active = campaigns.find((c) => c.id === activeId);
 
@@ -452,11 +466,21 @@ function Deliverables({ clients }: { clients: Client[] }) {
   useEffect(() => { void (async () => { await load(); })(); }, [load]);
 
   const add = async () => {
-    const { data } = await supabase.from('social_deliverables').insert([{ label: '', format: '9:16', platform: 'instagram', status: 'todo' }]).select().single();
-    if (data) setRows((r) => [data as Deliv, ...r]);
+    const res = await saved(
+      supabase.from('social_deliverables').insert([{ label: '', format: '9:16', platform: 'instagram', status: 'todo' }]).select().single(),
+      'add the deliverable',
+    );
+    if (res?.data) setRows((r) => [res.data as Deliv, ...r]);
   };
-  const patch = async (id: string, p: Partial<Deliv>) => { setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...p } : r))); await supabase.from('social_deliverables').update(p).eq('id', id); };
-  const del = async (id: string) => { setRows((rs) => rs.filter((r) => r.id !== id)); await supabase.from('social_deliverables').delete().eq('id', id); };
+  const patch = async (id: string, p: Partial<Deliv>) => {
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...p } : r)));
+    await saved(supabase.from('social_deliverables').update(p).eq('id', id), 'save the deliverable');
+  };
+  const del = async (id: string) => {
+    const before = rows;
+    setRows((rs) => rs.filter((r) => r.id !== id));
+    if (!(await saved(supabase.from('social_deliverables').delete().eq('id', id), 'delete the deliverable'))) setRows(before);
+  };
 
   return (
     <div>
@@ -512,11 +536,18 @@ function LinkHub({ clients }: { clients: Client[] }) {
   useEffect(() => { void (async () => { await load(); })(); }, [load]);
 
   const add = async (kind: 'link' | 'caption') => {
-    const { data } = await supabase.from('social_links').insert([{ kind, label: '' }]).select().single();
-    if (data) setItems((i) => [data as SLink, ...i]);
+    const res = await saved(supabase.from('social_links').insert([{ kind, label: '' }]).select().single(), `add the ${kind}`);
+    if (res?.data) setItems((i) => [res.data as SLink, ...i]);
   };
-  const patch = async (id: string, p: Partial<SLink>) => { setItems((is) => is.map((x) => (x.id === id ? { ...x, ...p } : x))); await supabase.from('social_links').update(p).eq('id', id); };
-  const del = async (id: string) => { setItems((is) => is.filter((x) => x.id !== id)); await supabase.from('social_links').delete().eq('id', id); };
+  const patch = async (id: string, p: Partial<SLink>) => {
+    setItems((is) => is.map((x) => (x.id === id ? { ...x, ...p } : x)));
+    await saved(supabase.from('social_links').update(p).eq('id', id), 'save the entry');
+  };
+  const del = async (id: string) => {
+    const before = items;
+    setItems((is) => is.filter((x) => x.id !== id));
+    if (!(await saved(supabase.from('social_links').delete().eq('id', id), 'delete the entry'))) setItems(before);
+  };
   const copy = (id: string, text: string) => { navigator.clipboard?.writeText(text); setCopied(id); setTimeout(() => setCopied(''), 1200); };
   const clientName = (id?: string | null) => clients.find((c) => c.id === id)?.name;
 
@@ -599,7 +630,9 @@ function Empty({ icon: Icon, text }: { icon: React.ElementType; text: string }) 
 
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   useEscapeToClose(true, onClose);
+  // Portalled out of the panel, or it opens underneath the sticky page header.
   return (
+    <Portal>
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-lg bg-neutral-900 border border-white/10 rounded-3xl p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5 border-b border-white/5 pb-3">
@@ -609,5 +642,6 @@ function ModalShell({ title, onClose, children }: { title: string; onClose: () =
         {children}
       </div>
     </div>
+    </Portal>
   );
 }

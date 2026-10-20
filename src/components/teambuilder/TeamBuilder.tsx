@@ -27,7 +27,7 @@ import {
   AlignLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EscapeToClose } from '@/components/workspace/Overlay';
+import { EscapeToClose, Portal } from '@/components/workspace/Overlay';
 import { jsPDF } from 'jspdf';
 import { supabase } from '@/lib/supabase';
 import { caps } from '@/lib/format';
@@ -177,16 +177,20 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
     const next = [...jobRoles];
     [next[index], next[target]] = [next[target], next[index]];
     const renumbered = next.map((r, i) => ({ ...r, sort_order: i }));
+    const before = jobRoles;
     setJobRoles(renumbered);
-    try {
-      await Promise.all(
-        renumbered.map(r =>
-          supabase.from('job_roles').update({ sort_order: r.sort_order }).eq('id', r.id)
-        )
-      );
-    } catch (err) {
-      console.error('Error saving crew order:', err);
-      toast('Failed to save the new crew order. If this persists, the sort_order migration may not have been applied.');
+    // Supabase reports a refused update in each result's `error` rather than
+    // rejecting, so Promise.all alone never noticed a failed save.
+    const results = await Promise.all(
+      renumbered.map(r =>
+        supabase.from('job_roles').update({ sort_order: r.sort_order }).eq('id', r.id)
+      )
+    );
+    const failed = results.find(r => r.error);
+    if (failed) {
+      console.error('Error saving crew order:', failed.error);
+      setJobRoles(before);
+      toast("Couldn't save the new crew order — it wasn't changed. Check your connection and try again.", 'error');
     }
   };
 
@@ -879,6 +883,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
       </div>
 
       {/* Template Modal */}
+      <Portal>
       <AnimatePresence>
         {isTemplateModalOpen && (
           <div 
@@ -940,6 +945,7 @@ export default function TeamBuilder({ predefinedJobId, onClose }: { predefinedJo
           </div>
         )}
       </AnimatePresence>
+      </Portal>
     </div>
   );
 }

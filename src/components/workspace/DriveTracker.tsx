@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
+import { toast } from '@/components/Feedback';
 import { Modal, DropdownMenu, type MenuItem } from '@/components/workspace/Overlay';
 import { formatLocalDate, todayLocalISO } from '@/lib/date';
 import {
@@ -183,7 +184,7 @@ export default function DriveTracker() {
 
   const logEvent = async (drive: Drive, action: DriveAction, extra: Partial<DriveEvent> = {}) => {
     const actor = await currentActor();
-    await supabase.from('drive_events').insert({
+    const { error } = await supabase.from('drive_events').insert({
       drive_id: drive.id,
       action,
       holder_name: extra.holder_name ?? drive.holder_name,
@@ -191,6 +192,9 @@ export default function DriveTracker() {
       note: extra.note ?? null,
       actor,
     });
+    // The drive itself saved; only its history line didn't. Say so rather
+    // than leave a gap in the history nobody knows about.
+    if (error) toast(`${drive.label} was updated, but its history entry wasn't saved.`, 'error');
   };
 
   const patchDrive = async (drive: Drive, patch: Partial<Drive>, action: DriveAction, extra: Partial<DriveEvent> = {}) => {

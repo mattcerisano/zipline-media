@@ -254,7 +254,65 @@ button, a, [role="button"], input[type="checkbox"], select {
   /* Mid-gray muted text stays readable on light surfaces. */
   --color-neutral-400: #6b7280;
 
+  /* Status colours. Dark mode writes coloured text in the pale 200-500
+     shades, which read well on black and all but vanish on white: "Booked"
+     was green-300 on a faint green tint at 1.3:1, "Late" red-300 at 1.5:1.
+     Here every one of those shades points at the colour's deep 700 shade
+     instead, so chips, dates and warnings keep their hue and become legible;
+     tints like bg-green-500/10 stay tints, just a little richer. */
+  --color-red-200: oklch(50.5% 0.213 27.518);
+  --color-orange-200: oklch(55.3% 0.195 38.402);
+  --color-amber-200: oklch(55.5% 0.163 48.998);
+  --color-yellow-200: oklch(55.4% 0.135 66.442);
+  --color-lime-200: oklch(53.2% 0.157 131.589);
+  --color-green-200: oklch(52.7% 0.154 150.069);
+  --color-emerald-200: oklch(50.8% 0.118 165.612);
+  --color-teal-200: oklch(51.1% 0.096 186.391);
+  --color-cyan-200: oklch(52% 0.105 223.128);
+  --color-sky-200: oklch(50% 0.134 242.749);
+  --color-blue-200: oklch(48.8% 0.243 264.376);
+  --color-indigo-200: oklch(45.7% 0.24 277.023);
+  --color-violet-200: oklch(49.1% 0.27 292.581);
+  --color-purple-200: oklch(49.6% 0.265 301.924);
+  --color-fuchsia-200: oklch(51.8% 0.253 323.949);
+  --color-pink-200: oklch(52.5% 0.223 3.958);
+  --color-rose-200: oklch(51.4% 0.222 16.935);
+
+  --color-red-300: var(--color-red-200); --color-red-400: var(--color-red-200); --color-red-500: var(--color-red-200);
+  --color-orange-300: var(--color-orange-200); --color-orange-400: var(--color-orange-200); --color-orange-500: var(--color-orange-200);
+  --color-amber-300: var(--color-amber-200); --color-amber-400: var(--color-amber-200); --color-amber-500: var(--color-amber-200);
+  --color-yellow-300: var(--color-yellow-200); --color-yellow-400: var(--color-yellow-200); --color-yellow-500: var(--color-yellow-200);
+  --color-lime-300: var(--color-lime-200); --color-lime-400: var(--color-lime-200); --color-lime-500: var(--color-lime-200);
+  --color-green-300: var(--color-green-200); --color-green-400: var(--color-green-200); --color-green-500: var(--color-green-200);
+  --color-emerald-300: var(--color-emerald-200); --color-emerald-400: var(--color-emerald-200); --color-emerald-500: var(--color-emerald-200);
+  --color-teal-300: var(--color-teal-200); --color-teal-400: var(--color-teal-200); --color-teal-500: var(--color-teal-200);
+  --color-cyan-300: var(--color-cyan-200); --color-cyan-400: var(--color-cyan-200); --color-cyan-500: var(--color-cyan-200);
+  --color-sky-300: var(--color-sky-200); --color-sky-400: var(--color-sky-200); --color-sky-500: var(--color-sky-200);
+  --color-blue-300: var(--color-blue-200); --color-blue-400: var(--color-blue-200); --color-blue-500: var(--color-blue-200);
+  --color-indigo-300: var(--color-indigo-200); --color-indigo-400: var(--color-indigo-200); --color-indigo-500: var(--color-indigo-200);
+  --color-violet-300: var(--color-violet-200); --color-violet-400: var(--color-violet-200); --color-violet-500: var(--color-violet-200);
+  --color-purple-300: var(--color-purple-200); --color-purple-400: var(--color-purple-200); --color-purple-500: var(--color-purple-200);
+  --color-fuchsia-300: var(--color-fuchsia-200); --color-fuchsia-400: var(--color-fuchsia-200); --color-fuchsia-500: var(--color-fuchsia-200);
+  --color-pink-300: var(--color-pink-200); --color-pink-400: var(--color-pink-200); --color-pink-500: var(--color-pink-200);
+  --color-rose-300: var(--color-rose-200); --color-rose-400: var(--color-rose-200); --color-rose-500: var(--color-rose-200);
+
   --app-scrollbar-thumb: rgba(0, 0, 0, 0.22);
+}
+
+/* Faint text. `text-white/30` is ink at 30%: on black that reads as a
+   mid-gray, but the same 30% on white is noticeably fainter (1.9:1 against
+   2.6:1 in dark mode), so labels, dates and addresses washed out. Light mode
+   lifts each step to the opacity that matches dark mode's contrast. Hover is
+   excluded so `hover:text-white` still brightens; only hover variants are
+   ever combined with these classes. */
+@layer utilities {
+  .studio-os[data-theme="light"] .text-white\/20:not(:hover) { color: color-mix(in oklab, var(--color-white) 30%, transparent); }
+  .studio-os[data-theme="light"] .text-white\/25:not(:hover) { color: color-mix(in oklab, var(--color-white) 35%, transparent); }
+  .studio-os[data-theme="light"] .text-white\/30:not(:hover) { color: color-mix(in oklab, var(--color-white) 45%, transparent); }
+  .studio-os[data-theme="light"] .text-white\/35:not(:hover) { color: color-mix(in oklab, var(--color-white) 50%, transparent); }
+  .studio-os[data-theme="light"] .text-white\/40:not(:hover) { color: color-mix(in oklab, var(--color-white) 55%, transparent); }
+  .studio-os[data-theme="light"] .text-white\/45:not(:hover) { color: color-mix(in oklab, var(--color-white) 60%, transparent); }
+  .studio-os[data-theme="light"] .text-white\/50:not(:hover) { color: color-mix(in oklab, var(--color-white) 65%, transparent); }
 }
 
 /* Themed scrollbars inside Studio OS (global rules still apply elsewhere). */

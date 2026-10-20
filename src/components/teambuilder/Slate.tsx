@@ -753,10 +753,14 @@ export default function Slate({
         if (roles && roles.length > 0) {
           const roleRows = roles.map(({ id: _rid, contact: _c, ...r }: any) => ({ ...r, job_id: data.id }));
           const { error: rolesErr } = await supabase.from('job_roles').insert(roleRows);
-          if (rolesErr) console.error('Duplicated job but crew copy failed:', rolesErr);
+          if (rolesErr) {
+            console.error('Duplicated job but crew copy failed:', rolesErr);
+            toast("Duplicated, but the crew didn't copy over — add them to the new day.", 'error');
+          }
         }
       } catch (rolesErr) {
         console.error('Duplicated job but crew copy failed:', rolesErr);
+        toast("Duplicated, but the crew didn't copy over — add them to the new day.", 'error');
       }
 
       setJobs(prev => [...prev, data as Job].sort((a, b) => (a.shoot_date || '').localeCompare(b.shoot_date || '')));
