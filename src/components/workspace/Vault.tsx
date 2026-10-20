@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EscapeToClose, Modal } from '@/components/workspace/Overlay';
+import { EscapeToClose, Modal, Portal } from '@/components/workspace/Overlay';
 import {
   Lock, Unlock, Plus, Eye, EyeOff, Copy, Trash2, X, Loader2, ShieldCheck,
   KeyRound, CreditCard, FileText, Paperclip, Calendar, Search, Download, Users, RefreshCw, UserPlus,
@@ -594,6 +594,7 @@ export default function Vault({ userRole }: { userRole?: string | null } = {}) {
       )}
 
       {/* Add / Edit modal */}
+      <Portal>
       <AnimatePresence>
         {editing && (
           <motion.div
@@ -674,6 +675,7 @@ export default function Vault({ userRole }: { userRole?: string | null } = {}) {
           </motion.div>
         )}
       </AnimatePresence>
+      </Portal>
 
       {membersModal}
 

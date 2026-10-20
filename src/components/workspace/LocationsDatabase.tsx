@@ -15,8 +15,10 @@ import {
   Navigation
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EscapeToClose } from '@/components/workspace/Overlay';
+import { EscapeToClose, Portal } from '@/components/workspace/Overlay';
 import { supabase } from '@/lib/supabase';
+import { saved } from '@/lib/saved';
+import { toast, confirmAction } from '@/components/Feedback';
 
 interface ScoutingLocation {
   id: string;
@@ -29,12 +31,49 @@ interface ScoutingLocation {
   created_at?: string;
 }
 
+const LOCAL_KEY = 'studio_locations_local';
+/** The placeholder locations the old browser-only mode seeded. */
+const DEMO_IDS = new Set(['loc-1', 'loc-2', 'loc-3']);
+
+// One-time move of locations someone typed while the tab was browser-only.
+// The demo locations it seeded are dropped; anything else is saved to the
+// shared table, and the browser copy is cleared once that works.
+async function carryOverLocalLocations(): Promise<ScoutingLocation[]> {
+  let raw: string | null = null;
+  let local: ScoutingLocation[] = [];
+  try {
+    raw = localStorage.getItem(LOCAL_KEY);
+    // Claim the copy before the first await, so a second load running at the
+    // same time (React's development double-mount, or the tab opened twice)
+    // finds nothing and can't upload it again. Put back below if this fails.
+    localStorage.removeItem(LOCAL_KEY);
+    local = JSON.parse(raw || '[]');
+  } catch { /* unreadable — nothing to keep */ }
+  const real = Array.isArray(local) ? local.filter(l => !DEMO_IDS.has(l.id) && l.name && l.address) : [];
+  if (real.length === 0) return [];
+  const res = await saved(
+    supabase.from('locations').insert(real.map(l => ({
+      name: l.name,
+      address: l.address,
+      permit_details: l.permit_details,
+      power_specs: l.power_specs,
+      parking_capacity: l.parking_capacity,
+      rating: l.rating || 5,
+    }))).select(),
+    'move the locations saved on this device to the shared list',
+  );
+  if (!res) {
+    try { if (raw) localStorage.setItem(LOCAL_KEY, raw); } catch { /* ignore */ }
+    return [];
+  }
+  return (res.data || []) as ScoutingLocation[];
+}
+
 export default function LocationsDatabase() {
   const [locations, setLocations] = useState<ScoutingLocation[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [useLocalStorage, setUseLocalStorage] = useState(false);
 
   // Form states for new location modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,106 +84,51 @@ export default function LocationsDatabase() {
   const [newParking, setNewParking] = useState('');
   const [newRating, setNewRating] = useState(5);
 
-  useEffect(() => {
-    fetchLocations();
-  }, []);
-
-  // Fetch from Supabase or LocalStorage fallback
+  // Locations live in the shared table only. This tab used to fall back to
+  // this browser's storage — seeded with three made-up demo locations —
+  // whenever the table was empty, and saving to the table never worked (the
+  // made-up `loc_…` ids aren't valid ids), so the table stayed empty and every
+  // scout anyone logged stayed on the one device it was typed on.
+  // Runs once on mount, while isLoading is still its initial true.
   const fetchLocations = async () => {
-    setIsLoading(true);
-    let loaded: ScoutingLocation[] = [];
-    let fallback = false;
-
-    try {
-      const { data, error } = await supabase
-        .from('locations')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      loaded = data || [];
-    } catch (err) {
-      console.warn('Locations table not found in Supabase. Falling back to local storage.');
-      fallback = true;
+    const { data, error } = await supabase
+      .from('locations')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Failed to load locations:', error);
+      toast("Couldn't load the locations. Check your connection and reload.", 'error');
+      setIsLoading(false);
+      return;
     }
-
-    if (fallback || loaded.length === 0) {
-      setUseLocalStorage(true);
-      const local = localStorage.getItem('studio_locations_local');
-      if (local) {
-        try {
-          loaded = JSON.parse(local);
-        } catch (e) {
-          loaded = [];
-        }
-      } else {
-        // High fidelity mock database
-        loaded = [
-          {
-            id: 'loc-1',
-            name: 'Industrial Loft Studio',
-            address: '462 1st Ave, New York, NY 10016',
-            permit_details: 'Standard indoor filming permit. Noise restrictions after 10 PM.',
-            power_specs: 'Three phase 200A service. Standard Edison outlets throughout.',
-            parking_capacity: '12 dedicated van spaces in rear lot.',
-            rating: 5
-          },
-          {
-            id: 'loc-2',
-            name: 'Downtown Plaza Plaza',
-            address: '308 W 46th St, New York, NY 10036',
-            permit_details: 'City street permit required. Must coordinate with Mayor\'s Office of Film.',
-            power_specs: 'Generator required for heavy fixtures. No tie-ins available.',
-            parking_capacity: 'Street parking only. Nearby commercial garages available.',
-            rating: 4
-          },
-          {
-            id: 'loc-3',
-            name: 'Greenpoint Waterfront Park',
-            address: 'Kent St, Brooklyn, NY 11222',
-            permit_details: 'Parks department filming permit required. Requires 10 days advance filing.',
-            power_specs: 'No public power grids. Twin-pack generator recommended.',
-            parking_capacity: 'Large gravel lot fits up to 6 production trucks.',
-            rating: 5
-          }
-        ];
-        localStorage.setItem('studio_locations_local', JSON.stringify(loaded));
-      }
-    }
-
-    setLocations(loaded);
+    setLocations([...(await carryOverLocalLocations()), ...((data || []) as ScoutingLocation[])]);
     setIsLoading(false);
   };
+
+  useEffect(() => { void (async () => { await fetchLocations(); })(); }, []);
 
   // Add a location
   const handleAddLocation = async () => {
     if (!newName.trim() || !newAddress.trim()) return;
 
-    const newLoc: ScoutingLocation = {
-      id: 'loc_' + Date.now(),
-      name: newName.trim(),
-      address: newAddress.trim(),
-      permit_details: newPermits.trim() || 'No permits logged.',
-      power_specs: newPower.trim() || 'No power specs logged.',
-      parking_capacity: newParking.trim() || 'No parking specs logged.',
-      rating: newRating
-    };
-
-    const updated = [newLoc, ...locations];
-    setLocations(updated);
-
-    if (useLocalStorage) {
-      localStorage.setItem('studio_locations_local', JSON.stringify(updated));
-    } else {
-      try {
-        await supabase
-          .from('locations')
-          .insert(newLoc);
-      } catch (err) {
-        console.error('Failed to insert location into Supabase:', err);
-        localStorage.setItem('studio_locations_local', JSON.stringify(updated));
-      }
-    }
+    const res = await saved(
+      supabase
+        .from('locations')
+        .insert({
+          name: newName.trim(),
+          address: newAddress.trim(),
+          permit_details: newPermits.trim() || 'No permits logged.',
+          power_specs: newPower.trim() || 'No power specs logged.',
+          parking_capacity: newParking.trim() || 'No parking specs logged.',
+          rating: newRating,
+        })
+        .select()
+        .single(),
+      'save the location',
+    );
+    // Refused: leave the form open and filled in so nothing is lost.
+    if (!res?.data) return;
+    setLocations(prev => [res.data as ScoutingLocation, ...prev]);
 
     // Reset form states
     setNewName('');
@@ -158,23 +142,10 @@ export default function LocationsDatabase() {
 
   // Delete a location
   const handleDeleteLocation = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this location?')) return;
-
-    const updated = locations.filter(l => l.id !== id);
-    setLocations(updated);
-
-    if (useLocalStorage) {
-      localStorage.setItem('studio_locations_local', JSON.stringify(updated));
-    } else {
-      try {
-        await supabase
-          .from('locations')
-          .delete()
-          .eq('id', id);
-      } catch (err) {
-        console.error('Failed to delete location from Supabase:', err);
-      }
-    }
+    if (!(await confirmAction({ message: 'Delete this location?', danger: true, confirmLabel: 'Delete' }))) return;
+    const before = locations;
+    setLocations(prev => prev.filter(l => l.id !== id));
+    if (!(await saved(supabase.from('locations').delete().eq('id', id), 'delete the location'))) setLocations(before);
   };
 
   // Filter locations
@@ -338,6 +309,7 @@ export default function LocationsDatabase() {
       </div>
 
       {/* ═══════════════════════ ADD SCOUT MODAL ═══════════════════════ */}
+      <Portal>
       <AnimatePresence>
         {isModalOpen && (
           <div 
@@ -462,6 +434,7 @@ export default function LocationsDatabase() {
           </div>
         )}
       </AnimatePresence>
+      </Portal>
     </div>
   );
 }

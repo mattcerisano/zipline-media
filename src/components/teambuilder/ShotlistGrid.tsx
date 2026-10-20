@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronRight, Star,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { saved } from '@/lib/saved';
 import { JobShot, JobScene } from '@/components/gearbuilder/types';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { confirmAction } from '@/components/Feedback';
@@ -141,9 +142,11 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
 
   /* -------------------- shot mutations -------------------- */
   const patchShot = async (id: string, patch: Partial<JobShot>) => {
+    const before = shots.find((s) => s.id === id);
     setShots((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-    const { error } = await supabase.from('job_shotlist').update(patch).eq('id', id);
-    if (error) console.error('[ShotlistGrid] patchShot failed:', error);
+    if (!(await saved(supabase.from('job_shotlist').update(patch).eq('id', id), 'save the shot')) && before) {
+      setShots((prev) => prev.map((s) => (s.id === id ? before : s)));
+    }
   };
 
   const addShot = async (sceneId: string) => {
@@ -157,8 +160,9 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
       priority: 'must',
       sort_order: shots.length,
     };
-    const { data, error } = await supabase.from('job_shotlist').insert([row]).select().single();
-    if (error) { console.error('[ShotlistGrid] addShot failed:', error); return; }
+    const res = await saved(supabase.from('job_shotlist').insert([row]).select().single(), 'add the shot');
+    if (!res) return;
+    const data = res.data;
     // Keep new row visually within its scene by inserting after the scene's last shot
     setShots((prev) => {
       const next = [...prev];
@@ -169,30 +173,36 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
   };
 
   const deleteShot = async (id: string) => {
+    const before = shots;
     setShots((prev) => prev.filter((s) => s.id !== id));
-    await supabase.from('job_shotlist').delete().eq('id', id);
+    if (!(await saved(supabase.from('job_shotlist').delete().eq('id', id), 'delete the shot'))) setShots(before);
   };
 
   /* -------------------- scene mutations -------------------- */
   const patchScene = async (id: string, patch: Partial<JobScene>) => {
+    const before = scenes.find((s) => s.id === id);
     setScenes((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-    const { error } = await supabase.from('job_scenes').update(patch).eq('id', id);
-    if (error) console.error('[ShotlistGrid] patchScene failed:', error);
+    if (!(await saved(supabase.from('job_scenes').update(patch).eq('id', id), 'save the scene')) && before) {
+      setScenes((prev) => prev.map((s) => (s.id === id ? before : s)));
+    }
   };
 
   const addScene = async () => {
     const row = { job_id: jobId, setup_number: String(scenes.length + 1), name: `Scene ${scenes.length + 1}`, sort_order: scenes.length };
-    const { data, error } = await supabase.from('job_scenes').insert([row]).select().single();
-    if (error) { console.error('[ShotlistGrid] addScene failed:', error); return; }
-    setScenes((prev) => [...prev, data as JobScene]);
+    const res = await saved(supabase.from('job_scenes').insert([row]).select().single(), 'add the scene');
+    if (res) setScenes((prev) => [...prev, res.data as JobScene]);
   };
 
   const deleteScene = async (id: string) => {
     if (!(await confirmAction({ message: 'Delete this scene and all of its shots?', danger: true, confirmLabel: 'Delete' }))) return;
     setScenes((prev) => prev.filter((s) => s.id !== id));
     setShots((prev) => prev.filter((s) => s.scene_id !== id));
-    await supabase.from('job_shotlist').delete().eq('scene_id', id);
-    await supabase.from('job_scenes').delete().eq('id', id);
+    // Shots first, then the scene. If either step is refused, reload so the
+    // grid shows what's actually left rather than an empty scene that isn't.
+    const ok =
+      (await saved(supabase.from('job_shotlist').delete().eq('scene_id', id), 'delete the scene')) &&
+      (await saved(supabase.from('job_scenes').delete().eq('id', id), 'delete the scene'));
+    if (!ok) load();
   };
 
   /* -------------------- render -------------------- */

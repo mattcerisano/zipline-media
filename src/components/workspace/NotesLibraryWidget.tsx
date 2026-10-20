@@ -13,6 +13,7 @@ import {
   Check,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { saved } from '@/lib/saved';
 import { useRealtime } from '@/lib/useRealtime';
 import { toast, confirmAction } from '@/components/Feedback';
 
@@ -61,7 +62,7 @@ export default function NotesLibraryWidget() {
   const [search, setSearch] = useState('');
   const [clientFilter, setClientFilter] = useState('All');
   const [jobFilter, setJobFilter] = useState('All');
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const myEmail = useRef<string | null>(null);
 
@@ -151,9 +152,9 @@ export default function NotesLibraryWidget() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       saveTimer.current = null;
-      try {
-        const current = { ...active, ...patch };
-        await supabase
+      const current = { ...active, ...patch };
+      const ok = await saved(
+        supabase
           .from('production_notes')
           .update({
             title: current.title,
@@ -164,13 +165,14 @@ export default function NotesLibraryWidget() {
             pinned: current.pinned,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', id);
-        setSaveState('saved');
-        setTimeout(() => setSaveState('idle'), 1500);
-      } catch (err) {
-        console.error('Autosave failed:', err);
-        setSaveState('idle');
-      }
+          .eq('id', id),
+        'save the note',
+      );
+      // On failure the text stays on screen (reloading would throw away what
+      // was typed) and the indicator says so; the next edit retries the save.
+      if (!ok) { setSaveState('failed'); return; }
+      setSaveState('saved');
+      setTimeout(() => setSaveState(s => (s === 'saved' ? 'idle' : s)), 1500);
     }, AUTOSAVE_MS);
   };
 
@@ -178,18 +180,14 @@ export default function NotesLibraryWidget() {
     setNotes(prev => prev
       .map(n => (n.id === note.id ? { ...n, pinned: !n.pinned } : n))
       .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.updated_at.localeCompare(a.updated_at)));
-    try {
-      await supabase.from('production_notes').update({ pinned: !note.pinned }).eq('id', note.id);
-    } catch (err) { console.error(err); }
+    if (!(await saved(supabase.from('production_notes').update({ pinned: !note.pinned }).eq('id', note.id), 'pin the note'))) fetchNotes();
   };
 
   const deleteNote = async (note: Note) => {
     if (!(await confirmAction({ message: `Delete "${note.title}"? This can't be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
     setNotes(prev => prev.filter(n => n.id !== note.id));
     if (activeId === note.id) setActiveId(null);
-    try {
-      await supabase.from('production_notes').delete().eq('id', note.id);
-    } catch (err) { console.error(err); }
+    if (!(await saved(supabase.from('production_notes').delete().eq('id', note.id), 'delete the note'))) fetchNotes();
   };
 
   const nameOf = (list: Option[], id: string | null) => list.find(o => o.id === id)?.name || null;
@@ -328,7 +326,7 @@ export default function NotesLibraryWidget() {
                 className="flex-1 min-w-0 bg-transparent text-base font-bold text-white outline-none border-b border-transparent focus:border-accent/40 transition-colors"
               />
               <span className="shrink-0 text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/25 w-14 text-right">
-                {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? <span className="text-green-400 inline-flex items-center gap-1"><Check className="w-3 h-3" /> Saved</span> : ''}
+                {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? <span className="text-green-400 inline-flex items-center gap-1"><Check className="w-3 h-3" /> Saved</span> : saveState === 'failed' ? <span className="text-red-400">Not saved</span> : ''}
               </span>
               <button onClick={() => togglePin(active)} title={active.pinned ? 'Unpin' : 'Pin to top'} className="p-2 text-white/30 hover:text-accent transition-colors shrink-0">
                 {active.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}

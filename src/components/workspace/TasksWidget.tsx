@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, Trash2, ListTodo, Loader2, Calendar } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { saved } from '@/lib/saved';
 import { useRealtime } from '@/lib/useRealtime';
 import { formatLocalDate } from '@/lib/date';
 
@@ -100,20 +101,14 @@ export default function TasksWidget() {
 
   const toggle = async (todo: Todo) => {
     setTodos(prev => prev.map(t => (t.id === todo.id ? { ...t, completed: !t.completed } : t)));
-    try {
-      await supabase.from('job_todos').update({ completed: !todo.completed }).eq('id', todo.id);
-    } catch (err) {
-      console.error('Failed to toggle task:', err);
+    if (!(await saved(supabase.from('job_todos').update({ completed: !todo.completed }).eq('id', todo.id), 'update the task'))) {
+      fetchTodos();
     }
   };
 
   const remove = async (id: string) => {
     setTodos(prev => prev.filter(t => t.id !== id));
-    try {
-      await supabase.from('job_todos').delete().eq('id', id);
-    } catch (err) {
-      console.error('Failed to delete task:', err);
-    }
+    if (!(await saved(supabase.from('job_todos').delete().eq('id', id), 'delete the task'))) fetchTodos();
   };
 
   const open = todos.filter(t => !t.completed);

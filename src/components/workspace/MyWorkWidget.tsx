@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Scissors, Clapperboard, ListTodo, Loader2, UserCheck, Calendar } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { saved } from '@/lib/saved';
 import { useRealtime } from '@/lib/useRealtime';
 import { formatLocalDate, parseLocalDate } from '@/lib/date';
 import { DEFAULT_STAGE_DEFS, sanitizeStageDefs, stageLabel, type EditStageDef } from '@/lib/edit-stages';
@@ -148,11 +149,7 @@ export default function MyWorkWidget({ onSwitchTab }: { onSwitchTab?: (target: u
 
   const toggleTask = async (id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
-    try {
-      await supabase.from('job_todos').update({ completed: true }).eq('id', id);
-    } catch (err) {
-      console.error('Failed to complete task:', err);
-    }
+    if (!(await saved(supabase.from('job_todos').update({ completed: true }).eq('id', id), 'complete the task'))) fetchAll();
   };
 
   if (loading) {

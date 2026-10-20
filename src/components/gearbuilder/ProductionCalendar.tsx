@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { todayLocalISO, formatLocalDate, toTimeInputValue, fromTimeInputValue } from '@/lib/date';
 import { useRealtime } from '@/lib/useRealtime';
 import { pushJobToGoogleCalendar, pushEventToGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
-import { Modal, EscapeToClose } from '@/components/workspace/Overlay';
+import { Modal, EscapeToClose, Portal } from '@/components/workspace/Overlay';
 import ClientPicker from '@/components/workspace/ClientPicker';
 import { toast } from '@/components/Feedback';
 import { trackAction } from '@/lib/usage';
@@ -372,7 +372,11 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     }
 
     const { error } = await supabase.from('calendar_events').delete().eq('id', id);
-    if (error) console.error('Error deleting calendar event:', error);
+    if (error) {
+      console.error('Error deleting calendar event:', error);
+      toast("Couldn't delete the event — it's still on the calendar.", 'error');
+      fetchEvents();
+    }
   };
 
 
@@ -1292,6 +1296,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       </Modal>
 
       {/* Inline Event Editor (two-way Google Calendar sync) */}
+      <Portal>
       <AnimatePresence>
         {editable && editingJob && (
           <motion.div
@@ -1487,6 +1492,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
           </motion.div>
         )}
       </AnimatePresence>
+      </Portal>
     </div>
   );
 }

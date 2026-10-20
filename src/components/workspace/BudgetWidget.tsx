@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, Trash2, DollarSign, AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { saved } from '@/lib/saved';
 import { useRealtime } from '@/lib/useRealtime';
 
 // Production budget tracker. Line items live in the budget_items table
@@ -112,20 +113,13 @@ export default function BudgetWidget() {
 
   const updateItem = async (id: string, patch: Partial<BudgetItem>) => {
     setItems(prev => prev.map(i => (i.id === id ? { ...i, ...patch } : i)));
-    try {
-      await supabase.from('budget_items').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id);
-    } catch (err) {
-      console.error('Failed to update budget item:', err);
-    }
+    const write = supabase.from('budget_items').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id);
+    if (!(await saved(write, 'update the budget line'))) fetchItems();
   };
 
   const deleteItem = async (id: string) => {
     setItems(prev => prev.filter(i => i.id !== id));
-    try {
-      await supabase.from('budget_items').delete().eq('id', id);
-    } catch (err) {
-      console.error('Failed to delete budget item:', err);
-    }
+    if (!(await saved(supabase.from('budget_items').delete().eq('id', id), 'delete the budget line'))) fetchItems();
   };
 
   const totals = useMemo(() => {

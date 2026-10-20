@@ -32,8 +32,10 @@ import {
   SmilePlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EscapeToClose } from '@/components/workspace/Overlay';
+import { EscapeToClose, Portal } from '@/components/workspace/Overlay';
 import { supabase } from '@/lib/supabase';
+import { saved } from '@/lib/saved';
+import { toast, confirmAction } from '@/components/Feedback';
 
 // Note Type Definition
 interface MeetingNote {
@@ -59,6 +61,47 @@ interface Client {
   name: string;
 }
 
+const LOCAL_KEY = 'studio_meeting_notes_local';
+/** The placeholder note the old browser-only mode seeded. */
+const DEMO_IDS = new Set(['note-default-1']);
+
+// Notes whose save was refused were copied into this browser and never shown
+// again. Move any that are still here up to the shared table once, then
+// clear the browser copy.
+async function carryOverLocalNotes(existing: Set<string>): Promise<MeetingNote[]> {
+  let raw: string | null = null;
+  let local: MeetingNote[] = [];
+  try {
+    raw = localStorage.getItem(LOCAL_KEY);
+    // Claim the copy before the first await, so a second load running at the
+    // same time (React's development double-mount, or the tab opened twice)
+    // finds nothing and can't upload it again. Put back below if this fails.
+    localStorage.removeItem(LOCAL_KEY);
+    local = JSON.parse(raw || '[]');
+  } catch { /* unreadable — nothing to keep */ }
+  const stranded = Array.isArray(local) ? local.filter(n => n && n.title && n.client_id && !DEMO_IDS.has(n.id) && !existing.has(n.id)) : [];
+  if (stranded.length === 0) return [];
+  const res = await saved(
+    supabase.from('meeting_notes').insert(stranded.map(n => ({
+      client_id: n.client_id,
+      title: n.title,
+      content: n.content || '',
+      meeting_date: n.meeting_date || new Date().toISOString(),
+      sentiment: n.sentiment || 'neutral',
+      attendees: n.attendees || [],
+      action_items: n.action_items || [],
+      metadata: n.metadata || {},
+      scratchpad: n.scratchpad || '',
+    }))).select(),
+    'move the notes saved on this device to the shared list',
+  );
+  if (!res) {
+    try { if (raw) localStorage.setItem(LOCAL_KEY, raw); } catch { /* ignore */ }
+    return [];
+  }
+  return (res.data || []) as MeetingNote[];
+}
+
 export default function MeetingNotes() {
   // State variables
   const [clients, setClients] = useState<Client[]>([]);
@@ -69,7 +112,8 @@ export default function MeetingNotes() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [useLocalStorage, setUseLocalStorage] = useState(false);
+  // True while the latest autosave was refused, so the footer can say so.
+  const [saveFailed, setSaveFailed] = useState(false);
   
   // Client selection for new note modal
   const [isNewNoteModalOpen, setIsNewNoteModalOpen] = useState(false);
@@ -97,16 +141,156 @@ export default function MeetingNotes() {
   // Ref for note content text area for inserting formatting
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Load clients and notes on mount
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
   // Sync active note changes back to DB / local storage
   const activeNote = notes.find(n => n.id === selectedNoteId) || null;
 
-  // Auto-save effect
+  // Debounce timer for the autosave effect further down
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Voice recording timer
+  useEffect(() => {
+    if (!isRecording) return;
+    recordingTimerRef.current = setInterval(() => {
+      setRecordingTime(prev => prev + 1);
+    }, 1000);
+    // Stopping (or leaving) clears the timer and resets the clock.
+    return () => {
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      setRecordingTime(0);
+    };
+  }, [isRecording]);
+
+  // Notes live in the shared table only. New notes used to get a made-up
+  // `note_…` id the table can't store, so every save was refused and the code
+  // quietly copied the note into this browser instead — but loading reads the
+  // table, so the note vanished on the next reload. No note ever reached the
+  // team. A failed load also used to swap in a demo note with invented
+  // attendees; now it just says the load failed.
+  const fetchInitialData = async () => {
+    setIsLoading(true);
+    const [clientsRes, notesRes] = await Promise.all([
+      supabase.from('clients').select('id, name').order('name'),
+      supabase.from('meeting_notes').select('*').order('meeting_date', { ascending: false }),
+    ]);
+    const loadedClients = (clientsRes.data || []) as Client[];
+    let loadedNotes: MeetingNote[] = [];
+    if (notesRes.error) {
+      console.error('Failed to load meeting notes:', notesRes.error);
+      toast("Couldn't load the meeting notes. Check your connection and reload.", 'error');
+    } else {
+      loadedNotes = (notesRes.data || []) as MeetingNote[];
+      loadedNotes = [...(await carryOverLocalNotes(new Set(loadedNotes.map(n => n.id)))), ...loadedNotes];
+    }
+
+    setClients(loadedClients);
+    setNotes(loadedNotes);
+    
+    // Auto-expand clients that have notes
+    const expansions: Record<string, boolean> = {};
+    loadedNotes.forEach(note => {
+      expansions[note.client_id] = true;
+    });
+    setExpandedClients(expansions);
+
+    if (loadedNotes.length > 0) {
+      setSelectedNoteId(loadedNotes[0].id);
+    }
+
+    setIsLoading(false);
+  };
+
+  // Autosave the open note. A refused save leaves the text on screen (it's
+  // still there to retry — the next edit saves again) and the footer says
+  // "Not saved" until a save goes through.
+  const saveNoteToStorage = async (updatedNote: MeetingNote) => {
+    setIsSaving(true);
+    const ok = await saved(
+      supabase
+        .from('meeting_notes')
+        .update({
+          client_id: updatedNote.client_id,
+          title: updatedNote.title,
+          content: updatedNote.content,
+          meeting_date: updatedNote.meeting_date,
+          sentiment: updatedNote.sentiment,
+          attendees: updatedNote.attendees,
+          action_items: updatedNote.action_items,
+          metadata: updatedNote.metadata,
+          scratchpad: updatedNote.scratchpad,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', updatedNote.id),
+      'save the meeting note',
+    );
+    setSaveFailed(!ok);
+    setIsSaving(false);
+  };
+
+  // Create a new note
+  const handleCreateNote = async () => {
+    if (!selectedClientForNewNote) return;
+
+    const title = newNoteTitle.trim() || 'New Meeting Note';
+    // The table assigns the id; the note only appears once it has one, so it
+    // can't exist on screen without existing for the team.
+    const res = await saved(
+      supabase
+        .from('meeting_notes')
+        .insert({
+          client_id: selectedClientForNewNote,
+          title,
+          content: `# ${title}\n\n*Write your meeting details here…*`,
+          meeting_date: new Date().toISOString(),
+          sentiment: 'neutral',
+          attendees: [],
+          action_items: [],
+          metadata: { platform: 'Google Meet', objective: '' },
+          scratchpad: '',
+        })
+        .select()
+        .single(),
+      'create the meeting note',
+    );
+    if (!res?.data) return; // the form stays open with its choices intact
+    const newNote = res.data as MeetingNote;
+
+    setNotes(prev => [newNote, ...prev]);
+    setSelectedNoteId(newNote.id);
+    setMobilePane('note');
+
+    // Expand the client in sidebar
+    setExpandedClients(prev => ({ ...prev, [newNote.client_id]: true }));
+
+    // Reset form states
+    setNewNoteTitle('');
+    setIsNewNoteModalOpen(false);
+  };
+
+  // Delete a note
+  const handleDeleteNote = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!(await confirmAction({ message: 'Delete this meeting note?', danger: true, confirmLabel: 'Delete' }))) return;
+
+    const before = notes;
+    const beforeSelected = selectedNoteId;
+    const updatedNotes = notes.filter(n => n.id !== id);
+    setNotes(updatedNotes);
+
+    if (selectedNoteId === id) {
+      setSelectedNoteId(updatedNotes.length > 0 ? updatedNotes[0].id : null);
+      setMobilePane('list');
+    }
+
+    if (!(await saved(supabase.from('meeting_notes').delete().eq('id', id), 'delete the meeting note'))) {
+      setNotes(before);
+      setSelectedNoteId(beforeSelected);
+    }
+  };
+
+  // Load clients and notes on mount
+  useEffect(() => { void (async () => { await fetchInitialData(); })(); }, []);
+
+  // Auto-save effect
   useEffect(() => {
     if (activeNote) {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -127,220 +311,6 @@ export default function MeetingNotes() {
     activeNote?.metadata, 
     activeNote?.scratchpad
   ]);
-
-  // Voice recording timer
-  useEffect(() => {
-    if (isRecording) {
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-    } else {
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-      setRecordingTime(0);
-    }
-    return () => {
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-    };
-  }, [isRecording]);
-
-  // Fetch clients & notes from Supabase or LocalStorage fallback
-  const fetchInitialData = async () => {
-    setIsLoading(true);
-    let loadedClients: Client[] = [];
-    let loadedNotes: MeetingNote[] = [];
-    let fallbackToLocal = false;
-
-    // 1. Fetch Clients
-    try {
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('id, name')
-        .order('name');
-      
-      if (clientError) throw clientError;
-      loadedClients = clientData || [];
-    } catch (err) {
-      console.warn('Failed to fetch clients from database, using local mock/fallback:', err);
-      // Fallback local mock clients if Supabase fails
-      loadedClients = [
-        { id: 'client-1', name: 'Zipline Productions' },
-        { id: 'client-2', name: 'Broadway Reels Inc' },
-        { id: 'client-3', name: 'Showtime Media' },
-        { id: 'client-4', name: 'Revelations Marketing' }
-      ];
-    }
-
-    // 2. Fetch Notes from Supabase
-    try {
-      const { data: noteData, error: noteError } = await supabase
-        .from('meeting_notes')
-        .select('*')
-        .order('meeting_date', { ascending: false });
-
-      if (noteError) throw noteError;
-      loadedNotes = noteData || [];
-      setUseLocalStorage(false);
-    } catch (err) {
-      console.warn('Meeting notes table not found or query failed. Falling back to local storage.');
-      fallbackToLocal = true;
-      setUseLocalStorage(true);
-    }
-
-    if (fallbackToLocal) {
-      const localNotesStr = localStorage.getItem('studio_meeting_notes_local');
-      if (localNotesStr) {
-        try {
-          loadedNotes = JSON.parse(localNotesStr);
-        } catch (e) {
-          loadedNotes = [];
-        }
-      } else {
-        // Populate default notes if empty
-        loadedNotes = [
-          {
-            id: 'note-default-1',
-            client_id: loadedClients[0]?.id || 'client-1',
-            title: 'Q3 Brand Kickoff Meeting',
-            content: `# Q3 Kickoff & Strategy Session\n\nWe aligned on the production timeline for the Q3 brand commercials. The client wants a premium, cinematic feel with dynamic camera movement.\n\n## Discussion Points\n- Brand objectives and target audience definition.\n- Choosing locations (on-set studio vs. downtown b-roll).\n- Script iterations and storyboards approval deadline.\n\n## Creative Mood\n- Sleek dark theme look\n- High-contrast neon lighting accents`,
-            meeting_date: new Date().toISOString(),
-            sentiment: 'outstanding',
-            attendees: ['Matt Cerisano', 'Sarah Jenkins (Client)', 'David Miller (DP)'],
-            action_items: [
-              { id: 'act-1', text: 'Lock script draft v3', completed: true, due_date: '2026-06-25' },
-              { id: 'act-2', text: 'Confirm location rental scouting', completed: false, due_date: '2026-06-28' },
-              { id: 'act-3', text: 'Send crew gear templates', completed: false, due_date: '2026-06-30' }
-            ],
-            metadata: {
-              platform: 'Zoom',
-              objective: 'Establish Q3 creative vision and secure production shoot dates.',
-              ai_summary: '**Summary:** A productive kickoff meeting where the core creative direction for the Q3 brand reel was locked.\n\n**Key Decisions:**\n- Theme: Cinematic High-Contrast Dark Mode.\n- Locations: 1 Day Studio, 1 Day Outdoor Downtown.\n\n**Next Steps:** Confirm DP availability and finalize location scout.'
-            },
-            scratchpad: 'DP Contact: 555-0192 (David)\nNeed to crosscheck rental inventory for ARRI Alexa 35.'
-          }
-        ];
-        localStorage.setItem('studio_meeting_notes_local', JSON.stringify(loadedNotes));
-      }
-    }
-
-    setClients(loadedClients);
-    setNotes(loadedNotes);
-    
-    // Auto-expand clients that have notes
-    const expansions: Record<string, boolean> = {};
-    loadedNotes.forEach(note => {
-      expansions[note.client_id] = true;
-    });
-    setExpandedClients(expansions);
-
-    if (loadedNotes.length > 0) {
-      setSelectedNoteId(loadedNotes[0].id);
-    }
-
-    setIsLoading(false);
-  };
-
-  // Save a single note back to Supabase or Local Storage
-  const saveNoteToStorage = async (updatedNote: MeetingNote) => {
-    setIsSaving(true);
-    
-    if (useLocalStorage) {
-      // Save to localStorage
-      const updatedNotes = notes.map(n => n.id === updatedNote.id ? updatedNote : n);
-      localStorage.setItem('studio_meeting_notes_local', JSON.stringify(updatedNotes));
-      setIsSaving(false);
-    } else {
-      // Save to Supabase
-      try {
-        const { error } = await supabase
-          .from('meeting_notes')
-          .upsert({
-            id: updatedNote.id,
-            client_id: updatedNote.client_id,
-            title: updatedNote.title,
-            content: updatedNote.content,
-            meeting_date: updatedNote.meeting_date,
-            sentiment: updatedNote.sentiment,
-            attendees: updatedNote.attendees,
-            action_items: updatedNote.action_items,
-            metadata: updatedNote.metadata,
-            scratchpad: updatedNote.scratchpad,
-            updated_at: new Date().toISOString()
-          });
-
-        if (error) throw error;
-      } catch (err) {
-        console.error('Failed to sync note to Supabase. Gracefully falling back to local storage update:', err);
-        // Fall back to updating local storage as safety net
-        const updatedNotes = notes.map(n => n.id === updatedNote.id ? updatedNote : n);
-        localStorage.setItem('studio_meeting_notes_local', JSON.stringify(updatedNotes));
-      } finally {
-        setIsSaving(false);
-      }
-    }
-  };
-
-  // Create a new note
-  const handleCreateNote = async () => {
-    if (!selectedClientForNewNote) return;
-
-    const newNote: MeetingNote = {
-      id: 'note_' + Date.now(),
-      client_id: selectedClientForNewNote,
-      title: newNoteTitle.trim() || 'New Meeting Note',
-      content: `# ${newNoteTitle.trim() || 'New Meeting Note'}\n\n*Write your meeting details here…*`,
-      meeting_date: new Date().toISOString(),
-      sentiment: 'neutral',
-      attendees: [],
-      action_items: [],
-      metadata: {
-        platform: 'Google Meet',
-        objective: ''
-      },
-      scratchpad: ''
-    };
-
-    const updatedNotes = [newNote, ...notes];
-    setNotes(updatedNotes);
-    setSelectedNoteId(newNote.id);
-    setMobilePane('note');
-
-    // Expand the client in sidebar
-    setExpandedClients(prev => ({ ...prev, [newNote.client_id]: true }));
-
-    // Persist immediately
-    await saveNoteToStorage(newNote);
-
-    // Reset form states
-    setNewNoteTitle('');
-    setIsNewNoteModalOpen(false);
-  };
-
-  // Delete a note
-  const handleDeleteNote = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this meeting note?')) return;
-
-    const updatedNotes = notes.filter(n => n.id !== id);
-    setNotes(updatedNotes);
-
-    if (selectedNoteId === id) {
-      setSelectedNoteId(updatedNotes.length > 0 ? updatedNotes[0].id : null);
-      setMobilePane('list');
-    }
-
-    if (useLocalStorage) {
-      localStorage.setItem('studio_meeting_notes_local', JSON.stringify(updatedNotes));
-    } else {
-      try {
-        await supabase
-          .from('meeting_notes')
-          .delete()
-          .eq('id', id);
-      } catch (err) {
-        console.error('Failed to delete note from Supabase:', err);
-      }
-    }
-  };
 
   // Update fields on the currently active note
   const updateActiveNote = (patch: Partial<MeetingNote>) => {
@@ -682,8 +652,8 @@ export default function MeetingNotes() {
         {/* Sync Status Banner */}
         <div className="p-3 bg-black/40 border-t border-white/10 flex items-center justify-between text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40">
           <div className="flex items-center gap-1.5">
-            {useLocalStorage ? <CloudOff className="w-3.5 h-3.5 text-yellow-500" /> : <Cloud className="w-3.5 h-3.5 text-green-400" />}
-            <span>{useLocalStorage ? 'Local Sandbox Mode' : 'Cloud Synchronized'}</span>
+            {saveFailed ? <CloudOff className="w-3.5 h-3.5 text-red-400" /> : <Cloud className="w-3.5 h-3.5 text-green-400" />}
+            <span className={saveFailed ? 'text-red-400' : ''}>{saveFailed ? 'Not saved' : 'Synced'}</span>
           </div>
           {isSaving && (
             <div className="flex items-center gap-1">
@@ -1167,6 +1137,7 @@ export default function MeetingNotes() {
       </div>
 
       {/* ═══════════════════════ NEW NOTE SETUP MODAL ═══════════════════════ */}
+      <Portal>
       <AnimatePresence>
         {isNewNoteModalOpen && (
           <div 
@@ -1245,8 +1216,10 @@ export default function MeetingNotes() {
           </div>
         )}
       </AnimatePresence>
+      </Portal>
 
       {/* 🎙️ VOICE TRANSCRIPT PREVIEW MODAL */}
+      <Portal>
       <AnimatePresence>
         {showTranscriptModal && audioTranscript && (
           <div 
@@ -1298,6 +1271,7 @@ export default function MeetingNotes() {
           </div>
         )}
       </AnimatePresence>
+      </Portal>
 
       {/* Embedded keyframe CSS for sound wave animation */}
       <style jsx global>{`

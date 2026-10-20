@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { saved } from '@/lib/saved';
 import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
 import { Job, Contact, EditLabel, JobLink, Client, Project } from '@/components/gearbuilder/types';
@@ -325,15 +326,21 @@ export default function EditTracker({
 
   const firstStageId = stageDefs[0]?.id || 'Filmed';
 
-  // Persist column edits: this browser immediately, the org table when the
-  // migration has been run (fails soft when it hasn't).
+  // Persist column edits: this browser immediately, then the org row so the
+  // whole team gets them.
   const saveStageDefs = async (defs: EditStageDef[]) => {
     setStageDefs(defs);
     try { localStorage.setItem(STAGES_STORAGE_KEY, JSON.stringify(defs)); } catch { /* ignore */ }
-    if (orgId) {
-      try {
-        await supabase.from('organizations').update({ edit_stages: defs }).eq('id', orgId);
-      } catch { /* column may not exist yet — localStorage still applies */ }
+    if (!orgId) return;
+    const res = await saved(
+      supabase.from('organizations').update({ edit_stages: defs }).eq('id', orgId).select('id'),
+      'save the columns for the team',
+    );
+    // Only admins may update the org row, and a refused update isn't an error
+    // under row-level security — it just matches nothing. Without this a
+    // producer's column edit looked saved but only ever reached their browser.
+    if (res && !res.data?.length) {
+      toast('These columns are saved on this device only. Ask an admin to change them for the whole team.', 'info');
     }
   };
 
@@ -1355,34 +1362,29 @@ function CardChecklist({ jobId, isClient }: { jobId: string; isClient: boolean }
     const task = newItem.trim();
     if (!task) return;
     setNewItem('');
-    try {
-      const { data, error } = await supabase
+    const res = await saved(
+      supabase
         .from('job_todos')
         .insert([{ job_id: jobId, task, completed: false, sort_order: items.length }])
         .select('id, task, completed')
-        .single();
-      if (!error && data) setItems(prev => [...prev, data as any]);
-    } catch (err) {
-      console.error('Failed to add checklist item:', err);
-    }
+        .single(),
+      'add the checklist item',
+    );
+    if (res?.data) setItems(prev => [...prev, res.data as any]);
+    else setNewItem(task); // give the typed text back rather than losing it
   };
 
   const toggle = async (id: string, completed: boolean) => {
     setItems(prev => prev.map(i => (i.id === id ? { ...i, completed } : i)));
-    try {
-      await supabase.from('job_todos').update({ completed }).eq('id', id);
-    } catch (err) {
-      console.error('Failed to toggle checklist item:', err);
+    if (!(await saved(supabase.from('job_todos').update({ completed }).eq('id', id), 'update the checklist item'))) {
+      setItems(prev => prev.map(i => (i.id === id ? { ...i, completed: !completed } : i)));
     }
   };
 
   const remove = async (id: string) => {
+    const before = items;
     setItems(prev => prev.filter(i => i.id !== id));
-    try {
-      await supabase.from('job_todos').delete().eq('id', id);
-    } catch (err) {
-      console.error('Failed to delete checklist item:', err);
-    }
+    if (!(await saved(supabase.from('job_todos').delete().eq('id', id), 'delete the checklist item'))) setItems(before);
   };
 
   // Click an item's text to reword it. Enter or blur saves, Escape backs out.

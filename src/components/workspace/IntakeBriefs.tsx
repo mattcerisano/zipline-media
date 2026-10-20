@@ -15,8 +15,14 @@ import {
   LayoutGrid
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EscapeToClose } from '@/components/workspace/Overlay';
+import { EscapeToClose, Portal } from '@/components/workspace/Overlay';
 import { supabase } from '@/lib/supabase';
+import { saved } from '@/lib/saved';
+import { toast, confirmAction } from '@/components/Feedback';
+
+const LOCAL_KEY = 'studio_client_intakes_local';
+/** The placeholder briefs the old browser-only mode seeded. */
+const DEMO_IDS = new Set(['intake-1', 'intake-2']);
 
 interface ClientIntake {
   id: string;
@@ -35,13 +41,46 @@ interface Client {
   name: string;
 }
 
+// One-time move of briefs someone typed while the tab was browser-only.
+// The two demo briefs it seeded are dropped; anything else is saved to the
+// shared table, and the browser copy is cleared once that works.
+async function carryOverLocalBriefs(nameOf: (id: string) => string): Promise<ClientIntake[]> {
+  let raw: string | null = null;
+  let local: ClientIntake[] = [];
+  try {
+    raw = localStorage.getItem(LOCAL_KEY);
+    // Claim the copy before the first await, so a second load running at the
+    // same time (React's development double-mount, or the tab opened twice)
+    // finds nothing and can't upload it again. Put back below if this fails.
+    localStorage.removeItem(LOCAL_KEY);
+    local = JSON.parse(raw || '[]');
+  } catch { /* unreadable — nothing to keep */ }
+  const real = Array.isArray(local) ? local.filter(i => !DEMO_IDS.has(i.id) && i.project_title) : [];
+  if (real.length === 0) return [];
+  const res = await saved(
+    supabase.from('client_intakes').insert(real.map(i => ({
+      client_id: i.client_id || null,
+      project_title: i.project_title,
+      creative_brief: i.creative_brief || '',
+      aspect_ratios: i.aspect_ratios || ['16:9'],
+      reference_links: i.reference_links || [],
+      status: i.status || 'pending_review',
+    }))).select(),
+    'move the briefs saved on this device to the shared list',
+  );
+  if (!res) {
+    try { if (raw) localStorage.setItem(LOCAL_KEY, raw); } catch { /* ignore */ }
+    return [];
+  }
+  return ((res.data || []) as Omit<ClientIntake, 'client_name'>[]).map(r => ({ ...r, client_name: nameOf(r.client_id) }));
+}
+
 export default function IntakeBriefs() {
   const [intakes, setIntakes] = useState<ClientIntake[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [useLocalStorage, setUseLocalStorage] = useState(false);
 
   // Form states for new brief modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,126 +91,58 @@ export default function IntakeBriefs() {
   const [newRefLink, setNewRefLink] = useState('');
   const [refLinks, setRefLinks] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  // Fetch clients & briefs from Supabase or LocalStorage fallback
+  // Briefs live in the shared table only. This tab used to fall back to this
+  // browser's storage — seeded with two made-up demo briefs pinned to real
+  // clients — whenever the table was empty, and saving to the table never
+  // worked (the made-up `intake_…` ids aren't valid ids, and `client_name`
+  // isn't a column), so the table stayed empty and every brief anyone logged
+  // stayed on the one device it was typed on.
+  // Runs once on mount, while isLoading is still its initial true.
   const fetchInitialData = async () => {
-    setIsLoading(true);
-    let loadedClients: Client[] = [];
-    let loadedIntakes: ClientIntake[] = [];
-    let fallback = false;
-
-    // 1. Fetch Clients
-    try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, name')
-        .order('name');
-      if (error) throw error;
-      loadedClients = data || [];
-    } catch (err) {
-      console.warn('Clients database query failed in Briefs, using mock:');
-      loadedClients = [
-        { id: 'client-1', name: 'Zipline Productions' },
-        { id: 'client-2', name: 'Broadway Reels Inc' },
-        { id: 'client-3', name: 'Showtime Media' }
-      ];
-    }
-
-    // 2. Fetch Briefs
-    try {
-      const { data, error } = await supabase
-        .from('client_intakes')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      loadedIntakes = data || [];
-    } catch (err) {
-      console.warn('Client intakes table not found. Using local storage fallback.');
-      fallback = true;
-    }
-
-    if (fallback || loadedIntakes.length === 0) {
-      setUseLocalStorage(true);
-      const local = localStorage.getItem('studio_client_intakes_local');
-      if (local) {
-        try {
-          loadedIntakes = JSON.parse(local);
-        } catch (e) {
-          loadedIntakes = [];
-        }
-      } else {
-        // High fidelity mock intakes database
-        loadedIntakes = [
-          {
-            id: 'intake-1',
-            client_id: loadedClients[0]?.id || 'client-1',
-            client_name: loadedClients[0]?.name || 'Zipline Productions',
-            project_title: 'Summer Brand Commercial Campaign',
-            creative_brief: 'Create a 30-second high-energy cinematic commercial showcasing our summer apparel. Heavy emphasis on outdoor sports, ocean b-roll, and sun flares. Fast editing style matching licensed EDM soundtrack.',
-            aspect_ratios: ['16:9', '9:16'],
-            reference_links: ['https://vimeo.com/channels/staffpicks', 'https://vimeo.com/12345678'],
-            status: 'pre_production'
-          },
-          {
-            id: 'intake-2',
-            client_id: loadedClients[1]?.id || 'client-2',
-            client_name: loadedClients[1]?.name || 'Broadway Reels Inc',
-            project_title: 'Cast Recording Highlight Reel',
-            creative_brief: 'Document the behind-the-scenes recording session of the new Broadway cast album. Capture raw vocal takes, conductor cues, and micro-interviews with the lead vocalists. Focus on the emotional connection of the performers.',
-            aspect_ratios: ['16:9', '1:1'],
-            reference_links: ['https://youtube.com/watch?v=castreel'],
-            status: 'pending_review'
-          }
-        ];
-        localStorage.setItem('studio_client_intakes_local', JSON.stringify(loadedIntakes));
-      }
-    }
-
+    const [clientsRes, intakesRes] = await Promise.all([
+      supabase.from('clients').select('id, name').order('name'),
+      supabase.from('client_intakes').select('*').order('created_at', { ascending: false }),
+    ]);
+    const loadedClients = (clientsRes.data || []) as Client[];
     setClients(loadedClients);
-    setIntakes(loadedIntakes);
+    if (intakesRes.error) {
+      console.error('Failed to load briefs:', intakesRes.error);
+      toast("Couldn't load the briefs. Check your connection and reload.", 'error');
+      setIsLoading(false);
+      return;
+    }
+    const nameOf = (id: string) => loadedClients.find(c => c.id === id)?.name || '';
+    let rows = ((intakesRes.data || []) as Omit<ClientIntake, 'client_name'>[]).map(r => ({ ...r, client_name: nameOf(r.client_id) }));
+    rows = [...(await carryOverLocalBriefs(nameOf)), ...rows];
+    setIntakes(rows);
     setIsLoading(false);
   };
 
-  // Save changes to active brief list
-  const saveIntakesList = async (updatedList: ClientIntake[]) => {
-    setIntakes(updatedList);
-    if (useLocalStorage) {
-      localStorage.setItem('studio_client_intakes_local', JSON.stringify(updatedList));
-    }
-  };
+  useEffect(() => { void (async () => { await fetchInitialData(); })(); }, []);
 
   // Add new intake brief
   const handleAddBrief = async () => {
     if (!selectedClientId || !newTitle.trim() || !newBrief.trim()) return;
 
+    const res = await saved(
+      supabase
+        .from('client_intakes')
+        .insert({
+          client_id: selectedClientId,
+          project_title: newTitle.trim(),
+          creative_brief: newBrief.trim(),
+          aspect_ratios: selectedRatios,
+          reference_links: refLinks,
+          status: 'pending_review',
+        })
+        .select()
+        .single(),
+      'save the brief',
+    );
+    // Refused: leave the form open and filled in so nothing is lost.
+    if (!res?.data) return;
     const clientObj = clients.find(c => c.id === selectedClientId);
-    const newIntake: ClientIntake = {
-      id: 'intake_' + Date.now(),
-      client_id: selectedClientId,
-      client_name: clientObj?.name || 'Unknown Client',
-      project_title: newTitle.trim(),
-      creative_brief: newBrief.trim(),
-      aspect_ratios: selectedRatios,
-      reference_links: refLinks,
-      status: 'pending_review'
-    };
-
-    const updated = [newIntake, ...intakes];
-    await saveIntakesList(updated);
-
-    if (!useLocalStorage) {
-      try {
-        await supabase
-          .from('client_intakes')
-          .insert(newIntake);
-      } catch (err) {
-        console.error('Failed to sync brief to Supabase:', err);
-      }
-    }
+    setIntakes(prev => [{ ...(res.data as Omit<ClientIntake, 'client_name'>), client_name: clientObj?.name || '' }, ...prev]);
 
     // Reset form states
     setNewTitle('');
@@ -184,37 +155,17 @@ export default function IntakeBriefs() {
 
   // Delete an intake brief
   const handleDeleteBrief = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this brief?')) return;
-    const updated = intakes.filter(i => i.id !== id);
-    await saveIntakesList(updated);
-
-    if (!useLocalStorage) {
-      try {
-        await supabase
-          .from('client_intakes')
-          .delete()
-          .eq('id', id);
-      } catch (err) {
-        console.error('Failed to delete brief from Supabase:', err);
-      }
-    }
+    if (!(await confirmAction({ message: 'Delete this brief?', danger: true, confirmLabel: 'Delete' }))) return;
+    const before = intakes;
+    setIntakes(prev => prev.filter(i => i.id !== id));
+    if (!(await saved(supabase.from('client_intakes').delete().eq('id', id), 'delete the brief'))) setIntakes(before);
   };
 
   // Update status of a brief
   const handleUpdateStatus = async (id: string, newStatus: ClientIntake['status']) => {
-    const updated = intakes.map(i => i.id === id ? { ...i, status: newStatus } : i);
-    await saveIntakesList(updated);
-
-    if (!useLocalStorage) {
-      try {
-        await supabase
-          .from('client_intakes')
-          .update({ status: newStatus })
-          .eq('id', id);
-      } catch (err) {
-        console.error('Failed to update brief status in Supabase:', err);
-      }
-    }
+    const before = intakes;
+    setIntakes(prev => prev.map(i => (i.id === id ? { ...i, status: newStatus } : i)));
+    if (!(await saved(supabase.from('client_intakes').update({ status: newStatus }).eq('id', id), 'update the brief'))) setIntakes(before);
   };
 
   // Add visual reference link
@@ -433,6 +384,7 @@ export default function IntakeBriefs() {
       </div>
 
       {/* ═══════════════════════ NEW BRIEF FORM MODAL ═══════════════════════ */}
+      <Portal>
       <AnimatePresence>
         {isModalOpen && (
           <div 
@@ -581,6 +533,7 @@ export default function IntakeBriefs() {
           </div>
         )}
       </AnimatePresence>
+      </Portal>
     </div>
   );
 }
