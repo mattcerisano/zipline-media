@@ -294,6 +294,23 @@ button, a, [role="button"], input[type="checkbox"], select {
   }
 }
 
+/* iOS Safari gives date and time inputs a built-in minimum width, and the
+   16px phone font above makes it wider still, so they pushed forms (the
+   production editor) past the right edge. Let them shrink like any field. */
+@media (max-width: 767px) {
+  .studio-os input[type="date"],
+  .studio-os input[type="time"],
+  .studio-os input[type="datetime-local"] {
+    min-width: 0;
+    max-width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .studio-os input::-webkit-date-and-time-value {
+    text-align: left;
+  }
+}
+
 /* Pop-ups and full-screen overlays keep scrolling to themselves. They live
    inside the panel's scroll area in the DOM, so a swipe that reached the end
    of a pop-up (or landed on one with nothing to scroll) carried on and

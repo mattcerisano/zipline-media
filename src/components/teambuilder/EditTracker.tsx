@@ -641,7 +641,7 @@ export default function EditTracker({
             }`}
             title="Show only cards where the assigned editor matches your account email"
           >
-            <UserCheck className="w-3.5 h-3.5" /> My cards
+            <UserCheck className="w-3.5 h-3.5" /> <span className="hidden sm:inline">My cards</span>
           </button>
         )}
         <FilterSheet
@@ -678,14 +678,14 @@ export default function EditTracker({
             {uniqueYears.map(y => <option key={y as string} value={y as string}>{y}</option>)}
           </select>
         </FilterSheet>
-        <div className={`flex items-center ${CONTROL_GAP} ml-auto`}>
+        <div className={`flex items-center ${CONTROL_GAP} w-full md:w-auto md:ml-auto`}>
           {canManageBoard && availableJobs.length > 0 && (
             <select
               value=""
               onChange={(e) => {
                 if (e.target.value) updateJobEditStatus(e.target.value, firstStageId);
               }}
-              className={`${CONTROL_H} rounded-xl border border-accent/30 bg-accent/10 text-accent px-4 text-[13px] font-medium tracking-tight outline-none focus:border-accent transition-colors cursor-pointer appearance-none w-full sm:w-auto sm:min-w-[190px] sm:max-w-[240px]`}
+              className={`${CONTROL_H} rounded-xl border border-accent/30 bg-accent/10 text-accent px-4 text-[13px] font-medium tracking-tight outline-none focus:border-accent transition-colors cursor-pointer appearance-none flex-1 min-w-0 md:flex-none md:min-w-[190px] md:max-w-[240px]`}
               title="Pull a Slate production onto the post-production board"
             >
               <option value="">+ Add production</option>
@@ -717,7 +717,7 @@ export default function EditTracker({
               className={`${CONTROL_BUTTON} hover:border-white/25`}
               title="Rename, recolor, add, or remove board columns"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" /> Columns
+              <SlidersHorizontal className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Columns</span>
             </button>
           )}
         </div>

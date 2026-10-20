@@ -375,8 +375,11 @@ export default function DriveTracker() {
   return (
     <div className="flex flex-col h-full bg-neutral-950 text-white overflow-hidden">
       {/* Header */}
-      <div className="px-4 md:px-6 pt-5 pb-4 shrink-0 border-b border-white/[0.06]">
-        <div className="flex items-start justify-between gap-4">
+      {/* Phones: the page header already says Drive Tracker, so the title,
+          subtitle and big Add button give way to three compact counts and
+          the toolbar — it used to fill half the screen. */}
+      <div className="px-4 md:px-6 pt-3 md:pt-5 pb-3 md:pb-4 shrink-0 border-b border-white/[0.06]">
+        <div className="hidden md:flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-lg font-semibold tracking-tight flex items-center gap-2">
               <HardDrive className="w-5 h-5 text-accent" /> Drive tracker
@@ -394,9 +397,8 @@ export default function DriveTracker() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4">
+        <div className="grid grid-cols-3 gap-2 md:mt-4">
           <Stat
-            className="col-span-2 md:col-span-1"
             label="Available"
             value={String(totals.available)}
             detail={[
@@ -423,15 +425,24 @@ export default function DriveTracker() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col md:flex-row gap-2 mt-4">
-          <Segmented
-            value={view}
-            onChange={(v) => setView(v as View)}
-            options={[
-              { value: 'holders', label: 'Who has what', icon: <Users className="w-3.5 h-3.5" /> },
-              { value: 'all', label: 'All drives', icon: <List className="w-3.5 h-3.5" /> },
-            ]}
-          />
+        <div className="flex flex-col md:flex-row gap-2 mt-3 md:mt-4">
+          <div className="flex gap-2">
+            <Segmented
+              value={view}
+              onChange={(v) => setView(v as View)}
+              options={[
+                { value: 'holders', label: 'Who has what', icon: <Users className="w-3.5 h-3.5" /> },
+                { value: 'all', label: 'All drives', icon: <List className="w-3.5 h-3.5" /> },
+              ]}
+            />
+            <button
+              onClick={() => setEditing('new')}
+              aria-label="Add drive"
+              className="md:hidden ml-auto shrink-0 bg-accent text-white px-3 rounded-lg text-sm font-medium flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" /> Add
+            </button>
+          </div>
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35" />
             <input
@@ -651,10 +662,10 @@ function Stat({ label, value, detail, tone, onClick, className = '' }: {
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`min-w-0 text-left rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5 enabled:hover:bg-white/[0.05] transition-colors ${className}`}
+      className={`min-w-0 text-left rounded-xl border border-white/[0.07] bg-white/[0.02] px-2.5 md:px-3 py-2 md:py-2.5 enabled:hover:bg-white/[0.05] transition-colors ${className}`}
     >
-      <div className="text-[11px] text-white/40">{label}</div>
-      <div className={`text-xl font-semibold tracking-tight tabular-nums ${color}`}>{value}</div>
+      <div className="text-[11px] text-white/40 truncate">{label}</div>
+      <div className={`text-lg md:text-xl font-semibold tracking-tight tabular-nums ${color}`}>{value}</div>
       <div className={`text-[10px] truncate ${detailColor}`}>{detail}</div>
     </button>
   );
