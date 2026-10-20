@@ -60,6 +60,13 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const searchSeq = useRef(0);
+  // Phones and tablets search by keyword only. Loading the embedding model and
+  // ranking up to 1,500 records with it ran on the main thread and froze an
+  // iPhone for a second or more every time search opened.
+  const [keywordOnly] = useState(
+    () => typeof window !== 'undefined' &&
+      (window.matchMedia('(max-width: 767px)').matches || window.matchMedia('(pointer: coarse)').matches),
+  );
 
   // Load the corpus + kick off the model download when first opened.
   useEffect(() => {
@@ -112,13 +119,14 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
       })();
     }
 
+    if (keywordOnly) return;
     // Mirror the embedding model's load state, which lives in the
     // semantic-search module rather than in React. Reading an external store on
     // open is what the rule's own guidance calls the legitimate case.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSemStatus(getSemanticStatus());
     ensureModel((pct) => setModelPct(pct)).then(() => setSemStatus(getSemanticStatus()));
-  }, [open, corpus]);
+  }, [open, corpus, keywordOnly]);
 
   // Rank on every keystroke: keyword instantly, semantic layered on when ready.
   const runSearch = useCallback(async (q: string) => {
@@ -147,9 +155,10 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
     setSelected(0);
 
     // …then semantic re-rank, dropped if a newer keystroke superseded it.
+    if (keywordOnly) return;
     const sem = await semanticRank(q, corpus.docs).catch(() => null);
     if (sem && seq === searchSeq.current) setHits(build(sem));
-  }, [corpus]);
+  }, [corpus, keywordOnly]);
 
   useEffect(() => {
     const t = setTimeout(() => runSearch(query), 120);
@@ -241,7 +250,7 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
 
             {/* Status footer */}
             <div className="flex items-center justify-between px-4 py-2 border-t border-white/5 bg-black/30">
-              <span className="text-[11px] md:text-[9px] text-white/25 tracking-wide">↑↓ navigate · Enter to open · Esc to close</span>
+              <span className="hidden md:inline text-[11px] md:text-[9px] text-white/25 tracking-wide">↑↓ navigate · Enter to open · Esc to close</span>
               <span className="flex items-center gap-1.5 text-[11px] md:text-[9px] font-bold uppercase tracking-widest">
                 {semStatus === 'ready' ? (
                   <><Sparkles className="w-3 h-3 text-accent" /><span className="text-accent">Smart search on</span></>

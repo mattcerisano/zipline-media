@@ -106,6 +106,16 @@ const AVAILABLE_LABEL_COLORS = [
   { id: 'pink', class: 'bg-pink-500' },
 ];
 
+type CardSize = 'compact' | 'regular' | 'large';
+const CARD_SIZE_KEY = 'edit_board_card_size';
+// Columns share the board's width and wrap onto another row before they get
+// narrower than this — no sideways scrolling to find a stage.
+const COLUMN_MIN: Record<CardSize, string> = {
+  compact: 'md:min-w-[150px] md:basis-[150px]',
+  regular: 'md:min-w-[240px] md:basis-[240px]',
+  large: 'md:min-w-[320px] md:basis-[320px]',
+};
+
 export default function EditTracker({
   userRole,
   selectedJobId,
@@ -140,6 +150,19 @@ export default function EditTracker({
 
   // Board vs timeline (agenda-by-deadline) presentation of the same cards.
   const [viewMode, setViewMode] = useState<'board' | 'timeline'>('board');
+  // Card size on the board — how wide columns are and how dense cards read.
+  // Each viewer's own choice, remembered on this device.
+  const [cardSize, setCardSize] = useState<CardSize>('regular');
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CARD_SIZE_KEY);
+      if (saved === 'compact' || saved === 'regular' || saved === 'large') setCardSize(saved);
+    } catch { /* private mode */ }
+  }, []);
+  const chooseCardSize = (size: CardSize) => {
+    setCardSize(size);
+    try { localStorage.setItem(CARD_SIZE_KEY, size); } catch { /* ignore */ }
+  };
   // "My Cards" filter — only cards assigned to the signed-in user, matched to
   // their Rolodex contact by email.
   const [myCardsOnly, setMyCardsOnly] = useState(false);
@@ -282,7 +305,8 @@ export default function EditTracker({
   // the board. Jobs created on Slate no longer auto-appear as cards — they sit
   // in the "Add to Board" picker until someone pulls them in.
   const boardJobs = useMemo(() => jobs.filter(j => !!j.edit_status), [jobs]);
-  const availableJobs = useMemo(() => jobs.filter(j => !j.edit_status), [jobs]);
+  // Archived productions stay off the add-to-board picker.
+  const availableJobs = useMemo(() => jobs.filter(j => !j.edit_status && !j.archived_at), [jobs]);
 
   // Resolved columns for rendering. Any card whose status doesn't match a
   // defined column (e.g. a column was deleted after cards used it) gets its
@@ -617,7 +641,7 @@ export default function EditTracker({
             }`}
             title="Show only cards where the assigned editor matches your account email"
           >
-            <UserCheck className="w-3.5 h-3.5" /> My cards
+            <UserCheck className="w-3.5 h-3.5" /> <span className="hidden sm:inline">My cards</span>
           </button>
         )}
         <FilterSheet
@@ -654,14 +678,14 @@ export default function EditTracker({
             {uniqueYears.map(y => <option key={y as string} value={y as string}>{y}</option>)}
           </select>
         </FilterSheet>
-        <div className={`flex items-center ${CONTROL_GAP} ml-auto`}>
+        <div className={`flex items-center ${CONTROL_GAP} w-full md:w-auto md:ml-auto`}>
           {canManageBoard && availableJobs.length > 0 && (
             <select
               value=""
               onChange={(e) => {
                 if (e.target.value) updateJobEditStatus(e.target.value, firstStageId);
               }}
-              className={`${CONTROL_H} rounded-xl border border-accent/30 bg-accent/10 text-accent px-4 text-[13px] font-medium tracking-tight outline-none focus:border-accent transition-colors cursor-pointer appearance-none w-full sm:w-auto sm:min-w-[190px] sm:max-w-[240px]`}
+              className={`${CONTROL_H} rounded-xl border border-accent/30 bg-accent/10 text-accent px-4 text-[13px] font-medium tracking-tight outline-none focus:border-accent transition-colors cursor-pointer appearance-none flex-1 min-w-0 md:flex-none md:min-w-[190px] md:max-w-[240px]`}
               title="Pull a Slate production onto the post-production board"
             >
               <option value="">+ Add production</option>
@@ -672,13 +696,28 @@ export default function EditTracker({
               ))}
             </select>
           )}
+          {viewMode === 'board' && (
+            <div className={`hidden md:flex items-center gap-0.5 p-1 bg-black/50 border border-white/10 rounded-xl ${CONTROL_H}`} role="group" aria-label="Card size">
+              {(['compact', 'regular', 'large'] as CardSize[]).map((sz, i) => (
+                <button
+                  key={sz}
+                  onClick={() => chooseCardSize(sz)}
+                  title={`Card size: ${sz === 'compact' ? 'small' : sz === 'regular' ? 'medium' : 'large'}`}
+                  aria-pressed={cardSize === sz}
+                  className={`h-full w-8 rounded-lg text-[12px] font-semibold transition-colors ${cardSize === sz ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+                >
+                  {['S', 'M', 'L'][i]}
+                </button>
+              ))}
+            </div>
+          )}
           {canManageBoard && (
             <button
               onClick={() => setIsColumnsModalOpen(true)}
               className={`${CONTROL_BUTTON} hover:border-white/25`}
               title="Rename, recolor, add, or remove board columns"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" /> Columns
+              <SlidersHorizontal className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Columns</span>
             </button>
           )}
         </div>
@@ -688,12 +727,12 @@ export default function EditTracker({
         <TimelineView jobs={filteredJobs} stages={stages} onOpen={(job) => setActiveJob(job)} />
       ) : (
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex flex-col overflow-y-auto md:flex-row md:overflow-x-auto md:overflow-y-visible gap-4 pb-8 custom-scrollbar items-stretch md:items-start flex-1">
+        <div className="flex flex-col overflow-y-auto md:flex-row md:flex-wrap md:overflow-x-hidden gap-4 pb-8 custom-scrollbar items-stretch md:items-start flex-1 min-h-0">
           {stages.map(stage => {
             const stageJobs = filteredJobs.filter(j => (j.edit_status || firstStageId) === stage.id);
             
             return (
-              <div key={stage.id} className="flex-none w-full md:w-[300px] flex flex-col bg-neutral-900/80 rounded-xl border border-white/5 max-h-[70vh] md:max-h-full">
+              <div key={stage.id} className={`flex-none w-full md:w-auto md:flex-1 ${COLUMN_MIN[cardSize]} flex flex-col bg-neutral-900/80 rounded-xl border border-white/5 max-h-[70vh]`}>
                 <div className={`flex items-center justify-between p-3 rounded-t-xl border-t-2 ${stage.borderT}`}>
                   <div className="flex items-center gap-2">
                     <stage.icon className={`w-4 h-4 ${stage.colorClass}`} />
@@ -724,7 +763,7 @@ export default function EditTracker({
                               className="mb-2"
                               onClick={() => setActiveJob(job)}
                             >
-                              <CardFront job={job} isDragging={snapshot.isDragging} loggedSeconds={timeTotals[job.id] || 0} />
+                              <CardFront job={job} isDragging={snapshot.isDragging} loggedSeconds={timeTotals[job.id] || 0} size={cardSize} />
                             </div>
                           )}
                         </Draggable>
@@ -1722,7 +1761,7 @@ function ColumnsEditorModal({
 // ----------------------------------------------------------------------
 // COMPONENT: CardFront (The compact Trello-style card on the board)
 // ----------------------------------------------------------------------
-function CardFront({ job, isDragging, loggedSeconds = 0 }: { job: Job, isDragging: boolean, loggedSeconds?: number }) {
+function CardFront({ job, isDragging, loggedSeconds = 0, size = 'regular' }: { job: Job, isDragging: boolean, loggedSeconds?: number, size?: CardSize }) {
   const hasNotes = !!job.edit_notes?.trim();
   // Drafts count once each (newest cut), and the review link isn't counted
   // again when it's just that newest draft.
@@ -1739,7 +1778,7 @@ function CardFront({ job, isDragging, loggedSeconds = 0 }: { job: Job, isDraggin
   const displayDate = dueDate ? dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
 
   return (
-    <div className={`bg-neutral-800 rounded-lg shadow-sm border p-3 cursor-pointer hover:border-white/20 transition-all ${isDragging ? 'rotate-2 scale-105 border-accent shadow-2xl' : 'border-white/5'}`}>
+    <div className={`bg-neutral-800 rounded-lg shadow-sm border ${size === 'compact' ? 'p-2' : size === 'large' ? 'p-4' : 'p-3'} cursor-pointer hover:border-white/20 transition-all ${isDragging ? 'rotate-2 scale-105 border-accent shadow-2xl' : 'border-white/5'}`}>
       
       {/* Labels Row */}
       {job.edit_labels && job.edit_labels.length > 0 && (
@@ -1751,7 +1790,7 @@ function CardFront({ job, isDragging, loggedSeconds = 0 }: { job: Job, isDraggin
       )}
 
       {/* Title */}
-      <h4 className="text-sm font-medium text-white mb-2 leading-tight">{job.title}</h4>
+      <h4 className={`${size === 'compact' ? 'text-xs mb-1' : size === 'large' ? 'text-base mb-2' : 'text-sm mb-2'} font-medium text-white leading-tight`}>{job.title}</h4>
 
       {/* Badges & Avatar Row */}
       <div className="flex items-center justify-between mt-3">
@@ -1868,6 +1907,11 @@ function CardDetailModal({
   const currentStage = stages.find(s => s.id === job.edit_status) || stages[0];
 
   const saveTitle = () => {
+    // A new card is written once, by Create Card. Saving the title on blur
+    // here created it early — leaving the title for the Client field made a
+    // card with no client and closed the form, and clicking Create Card
+    // (which blurs the title first) made a second one.
+    if (isCreatingNew) return;
     if (title.trim() && title !== job.title) {
       onUpdate({ ...job, title: title.trim() });
     }

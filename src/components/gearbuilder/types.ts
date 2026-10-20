@@ -231,6 +231,8 @@ export interface Job {
   job_status?: 'Planning' | 'Hold' | 'Booked' | 'Wrapped' | 'Cancelled';
   type?: 'production' | 'rental';
   shoot_date?: string;
+  /** Set when a production is archived: kept, but out of the Slate's lists. */
+  archived_at?: string | null;
   due_date?: string;
   end_date?: string;
   call_time?: string;

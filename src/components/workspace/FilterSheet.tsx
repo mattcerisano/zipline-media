@@ -58,9 +58,11 @@ export function FilterSheet({
       {/* One instance of the controls. `hidden` below md unless expanded;
           always a flex row from md up. */}
       <div
+        // Phones: an even two-column grid. As a flex column, every control's
+        // flex-1 applied to its height and squashed the selects to ~25px.
         className={collapsed
-          ? `${open ? 'flex' : 'hidden'} w-full flex-col gap-3 md:flex-row md:flex-wrap md:items-center`
-          : `${open ? 'flex' : 'hidden'} w-full flex-col gap-3 md:flex md:w-auto md:flex-row md:flex-wrap md:items-center`}
+          ? `${open ? 'grid md:flex' : 'hidden'} w-full grid-cols-2 gap-2 [&>*]:w-full md:[&>*]:w-auto md:flex-row md:flex-wrap md:items-center md:gap-3`
+          : `${open ? 'grid' : 'hidden'} w-full grid-cols-2 gap-2 [&>*]:w-full md:[&>*]:w-auto md:flex md:w-auto md:flex-row md:flex-wrap md:items-center md:gap-3`}
       >
         {children}
       </div>

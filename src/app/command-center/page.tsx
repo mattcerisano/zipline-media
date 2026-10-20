@@ -1115,7 +1115,7 @@ export default function CommandCenterPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 z-48 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 z-40"
           />
         )}
       </AnimatePresence>
@@ -1131,8 +1131,8 @@ export default function CommandCenterPage() {
           width: isSidebarOpen ? 260 : 80
         }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className={`bg-zinc-950/80 backdrop-blur-2xl border-r border-white/10 flex flex-col z-50 shrink-0 shadow-2xl ${
-          isMobile ? 'fixed left-0 top-0 bottom-0' : 'relative'
+        className={`border-r border-white/10 flex flex-col z-50 shrink-0 shadow-2xl ${
+          isMobile ? 'fixed left-0 top-0 bottom-0 bg-zinc-950' : 'relative bg-zinc-950/80 backdrop-blur-2xl'
         }`}
       >
         <div className={`flex ${(!isSidebarOpen && !isMobile) ? 'flex-col items-center gap-4 px-0 py-6' : 'items-center justify-between p-6'}`}>
@@ -1162,7 +1162,7 @@ export default function CommandCenterPage() {
             aside past the viewport and cut "Sign Out" in half against the
             shell's overflow-hidden, on every panel. With it, the nav scrolls
             and the footer stays pinned. */}
-        <nav className="flex-1 min-h-0 px-4 py-6 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 min-h-0 px-4 py-6 overflow-y-auto overscroll-contain touch-pan-y custom-scrollbar">
           {isMounted ? (
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="sidebar-nav">
