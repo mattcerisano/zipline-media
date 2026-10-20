@@ -166,6 +166,19 @@ interface RentalsProps {
   selectedJobId?: string | null;
 }
 
+const ONE_OFF_KEY = 'gear_one_off_lists';
+
+interface OneOffList {
+  id: string;
+  name: string;
+  date: string;
+  client: string;
+  location: string;
+  notes: string;
+  manifest: Record<string, number>;
+  savedAt: string;
+}
+
 export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: selectedJobIdProp }: RentalsProps = {}) {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
@@ -219,6 +232,16 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState<'gear' | 'library' | 'templates' | 'rentals'>('gear');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  // One-off lists: built without a production and kept on this device only —
+  // a quick kit for a rental pickup or a test, never on the Slate.
+  const [oneOffLists, setOneOffLists] = useState<OneOffList[]>([]);
+  const [oneOffId, setOneOffId] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ONE_OFF_KEY);
+      if (raw) setOneOffLists(JSON.parse(raw));
+    } catch { /* private mode or bad data — start empty */ }
+  }, []);
   const [copiedLink, setCopiedLink] = useState(false);
   // Older shoots auto-drop out of the library so building a new list isn't
   // cluttered with months-old jobs. They're not deleted — a toggle reveals them.
@@ -811,15 +834,64 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     setNearestHospital(null);
     setNearestParking(null);
     setSelectedJobId(null);
+    setOneOffId(null);
   };
 
 
+  const persistOneOffs = (lists: OneOffList[]) => {
+    setOneOffLists(lists);
+    try { localStorage.setItem(ONE_OFF_KEY, JSON.stringify(lists)); } catch { /* storage full or blocked */ }
+  };
+
+  const saveOneOff = () => {
+    const id = oneOffId || `oneoff-${Date.now()}`;
+    const list: OneOffList = {
+      id,
+      name: jobTitle.trim() || 'Untitled gear list',
+      date: shootDate,
+      client: clientName.trim(),
+      location: companyAddr.trim(),
+      notes,
+      manifest,
+      savedAt: new Date().toISOString(),
+    };
+    persistOneOffs([list, ...oneOffLists.filter(l => l.id !== id)]);
+    setOneOffId(id);
+    toast('Saved on this device. It isn’t on the Slate.', 'info');
+  };
+
+  const loadOneOff = (id: string) => {
+    const list = oneOffLists.find(l => l.id === id);
+    if (!list) return;
+    setSelectedJobId(null);
+    setOneOffId(id);
+    setJobTitle(list.name);
+    setShootDate(list.date || '');
+    setClientName(list.client || '');
+    setClientId(null);
+    setCompanyAddr(list.location || '');
+    setNotes(list.notes || '');
+    setWeatherSummary(null);
+    setNearestHospital(null);
+    setNearestParking(null);
+    adoptMissingItems(list.manifest || {});
+    setManifest(list.manifest || {});
+  };
+
+  const deleteOneOff = async () => {
+    if (!oneOffId) return;
+    if (!(await confirmAction({ title: 'Delete this saved list?', message: 'It’s removed from this device. Nothing on the Slate changes.', danger: true, confirmLabel: 'Delete' }))) return;
+    persistOneOffs(oneOffLists.filter(l => l.id !== oneOffId));
+    resetApp();
+  };
+
   const saveJob = async () => {
     // A gear list belongs to a production; the production itself (title,
-    // date, client, logistics) is created and edited on the Slate.
+    // date, client, logistics) is created and edited on the Slate. With no
+    // production picked it's a one-off, saved on this device only.
     const existingJob = jobs.find(j => j.id === selectedJobId);
     if (!existingJob) {
-      toast('Pick the production this gear list is for.');
+      saveOneOff();
       return;
     }
     if (JSON.stringify(existingJob.gear_manifest ?? {}) === JSON.stringify(manifest)) {
@@ -868,6 +940,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   };
 
   const loadJob = (job: Job) => {
+    setOneOffId(null);
     setSelectedJobId(job.id);
     setJobTitle(job.title);
     // Every field is set from the job, blank or not. Skipping the blank ones
@@ -1405,23 +1478,36 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           {selectedJobIdProp && <Lock className="w-2.5 h-2.5 text-accent opacity-60" />}
         </label>
         <select
-          value={selectedJobId || ''}
+          value={selectedJobId || (oneOffId ? `draft:${oneOffId}` : '')}
           disabled={!!selectedJobIdProp}
           onChange={(e) => {
-            const job = jobs.find(j => j.id === e.target.value);
+            const v = e.target.value;
+            if (v.startsWith('draft:')) { loadOneOff(v.slice(6)); return; }
+            const job = jobs.find(j => j.id === v);
             if (job) loadJob(job);
             else resetApp();
           }}
           className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <option value="">Pick a production…</option>
-          {productionOptions.map(j => (
-            <option key={j.id} value={j.id}>
-              {j.title}
-              {j.shoot_date ? ` — ${formatLocalDate(j.shoot_date, { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
-              {j.client_name ? ` · ${j.client_name}` : ''}
-            </option>
-          ))}
+          <option value="">One-off list (not on the Slate)</option>
+          {oneOffLists.length > 0 && (
+            <optgroup label="Saved one-off lists (this device)">
+              {oneOffLists.map(l => (
+                <option key={l.id} value={`draft:${l.id}`}>
+                  {l.name}{l.date ? ` — ${formatLocalDate(l.date, { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          <optgroup label="Productions">
+            {productionOptions.map(j => (
+              <option key={j.id} value={j.id}>
+                {j.title}
+                {j.shoot_date ? ` — ${formatLocalDate(j.shoot_date, { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
+                {j.client_name ? ` · ${j.client_name}` : ''}
+              </option>
+            ))}
+          </optgroup>
         </select>
         {selectedJob ? (
           <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/70 space-y-1">
@@ -1433,7 +1519,52 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             <p className="text-[11px] text-white/30 pt-1">Production details are changed on the Slate.</p>
           </div>
         ) : (
-          <p className="text-[11px] text-white/35 ml-1">New shoot? Create it on the Slate, then pick it here.</p>
+          // One-off: these only label the PDF. Nothing here touches the Slate.
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <input
+                type="text"
+                value={jobTitle}
+                onChange={(e) => setJobTitle(e.target.value)}
+                placeholder="List name"
+                className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
+              />
+              <input
+                type="date"
+                value={shootDate}
+                onChange={(e) => setShootDate(e.target.value)}
+                aria-label="Date"
+                className="w-full min-w-0 bg-black/50 border border-white/10 py-2.5 px-3 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
+              />
+              <input
+                type="text"
+                value={clientName}
+                onChange={(e) => { setClientName(e.target.value); setClientId(null); }}
+                placeholder="Client (optional)"
+                className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
+              />
+              <input
+                type="text"
+                value={companyAddr}
+                onChange={(e) => setCompanyAddr(e.target.value)}
+                placeholder="Location (optional)"
+                className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg"
+              />
+            </div>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={1}
+              placeholder="Notes (optional)"
+              className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg resize-none"
+            />
+            <p className="text-[11px] text-white/35 ml-1 flex items-center justify-between gap-2">
+              <span>Prints on the PDF. Save draft keeps it on this device only.</span>
+              {oneOffId && (
+                <button type="button" onClick={deleteOneOff} className="shrink-0 text-red-400/70 hover:text-red-400">Delete draft</button>
+              )}
+            </p>
+          </div>
         )}
       </div>
 
@@ -1564,11 +1695,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           <button 
             type="button"
             onClick={saveJob}
-            disabled={!selectedJobId || Object.keys(manifest).length === 0}
+            disabled={Object.keys(manifest).length === 0}
             className="flex items-center justify-center gap-1 border border-accent/20 bg-accent/5 py-2.5 text-xs font-semibold text-accent hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-accent/5"
-            title="Save this gear list to the production"
+            title={selectedJobId ? 'Save this gear list to the production' : 'Save this one-off list on this device'}
           >
-            <ClipboardList className="w-3.5 h-3.5" /> Save
+            <ClipboardList className="w-3.5 h-3.5" /> {selectedJobId ? 'Save' : 'Save draft'}
           </button>
           <button 
             type="button"
