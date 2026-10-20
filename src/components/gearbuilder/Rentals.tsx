@@ -1023,6 +1023,24 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     }
   }, [preloadedJob]);
 
+  // The page scrolls inside a workspace panel, not the window, so the pinned
+  // catalog has to be sized to that panel. Sized to 100vh it ran taller than
+  // the panel: its bottom was always clipped and the panel lurched when the
+  // sticky let go. Panels can also be split, so the height is measured.
+  const trackScrollport = (root: HTMLDivElement | null) => {
+    if (!root) return;
+    let scroller = root.parentElement;
+    while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) {
+      scroller = scroller.parentElement;
+    }
+    if (!scroller) return;
+    const measure = () => root.style.setProperty('--scrollport-h', `${scroller.clientHeight}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(scroller);
+    return () => observer.disconnect();
+  };
+
   useEffect(() => {
     if (selectedJobIdProp && jobs.length > 0) {
       const match = jobs.find(j => j.id === selectedJobIdProp);
@@ -1538,7 +1556,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           logistics and notes are edited on the Slate — retyping them here
           made two copies to keep in step. They still print on the PDF and
           the share link, loaded from the production. */}
-      <div className="space-y-1.5 mb-6">
+      <div className="space-y-1.5 mb-6" data-tour="gear-start">
         <label className="text-xs font-semibold opacity-40 ml-1 flex items-center gap-1.5">
           Production
           {selectedJobIdProp && <Lock className="w-2.5 h-2.5 text-accent opacity-60" />}
@@ -1757,12 +1775,16 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   );
 
     return (
-    <div className="@container pt-2 md:pt-8 pb-32 @4xl:pb-8 px-0 md:px-6">
-        <div className="grid grid-cols-1 @4xl:grid-cols-12 gap-6 @4xl:gap-12 items-start">
+    <div ref={trackScrollport} className="@container pt-2 md:pt-8 pb-8 px-0 md:px-6">
+        {/* The room for the floating manifest button lives here, not on the
+            @container itself: an element can't query its own width, so
+            @4xl:pb-8 there never applied and desktop always scrolled 96px of
+            dead space past the pinned catalog. */}
+        <div className="grid grid-cols-1 @4xl:grid-cols-12 gap-6 @4xl:gap-12 items-start pb-24 @4xl:pb-0">
           {/* self-stretch so the sticky catalog can travel the full height of
               the (now content-sized) manifest instead of scrolling away. */}
           <div className="@4xl:col-span-7 space-y-8 @4xl:self-stretch">
-            <section className="md:bg-neutral-900/50 md:border border-white/10 p-0 md:p-6 md:pb-0 md:rounded-2xl md:overflow-hidden flex flex-col h-fit md:max-h-[75vh] @4xl:max-h-none @4xl:h-[calc(100vh-140px)] @4xl:sticky @4xl:top-24">
+            <section className="md:bg-neutral-900/50 md:border border-white/10 p-0 md:p-6 md:pb-0 md:rounded-2xl md:overflow-hidden flex flex-col h-fit md:max-h-[calc(var(--scrollport-h,100vh)*0.75)] @4xl:max-h-none @4xl:h-[calc(var(--scrollport-h,100vh)-4rem)] @4xl:sticky @4xl:top-8">
               
               <div className="bg-neutral-900 md:bg-neutral-900/90 md:backdrop-blur-md p-4 md:p-0 z-20 sticky top-0 border-b md:border-b-0 border-white/10 space-y-4">
                 {/* Tab Toggle */}
@@ -1852,13 +1874,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
                 )}
               </div>
 
-              <div className="md:flex-1 md:min-h-0 md:overflow-y-auto p-4 md:px-0 custom-scrollbar">
+              <div className="md:flex-1 md:min-h-0 md:overflow-y-auto @4xl:overscroll-contain p-4 md:px-0 custom-scrollbar">
                 {activeSidebarTab === 'gear' ? (
                   <>
                     {filteredGroupedItems ? (
                       Object.keys(filteredGroupedItems).sort().map(cat => (
                         <div key={cat} className="mb-8 last:mb-0">
-                          <h3 className="sticky top-0 bg-neutral-900/95 backdrop-blur z-10 py-3 text-xs font-bold text-accent mb-2 border-b border-white/10">{cat}</h3>
+                          <h3 className="sticky top-0 bg-neutral-900/95 z-10 py-3 text-xs font-bold text-accent mb-2 border-b border-white/10">{cat}</h3>
                           <div className="space-y-2">
                             {filteredGroupedItems[cat].map(item => (
                                 <GearItem 
@@ -2171,6 +2193,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             animate={{ y: 0 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsMobileManifestOpen(true)}
+            data-tour="gear-start"
             className="w-full bg-accent text-white py-4 px-6 rounded-2xl shadow-2xl shadow-accent/40 flex items-center justify-between font-semibold text-xs"
           >
             <div className="flex items-center gap-3">

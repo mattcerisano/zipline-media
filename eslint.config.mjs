@@ -15,6 +15,9 @@ const eslintConfig = defineConfig([
     "scripts/**",
     "supabase/**",
     "electron/**",
+    // Parallel sessions' git worktrees live here, each a full copy of the
+    // repo with its own build output; linting them buried real results.
+    ".claude/**",
   ]),
   {
     rules: {
