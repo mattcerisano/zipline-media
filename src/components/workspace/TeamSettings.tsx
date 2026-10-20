@@ -265,7 +265,7 @@ export default function TeamSettings({ session, onMessage }: Props) {
                   value={m.role}
                   disabled={isSelf}
                   onChange={(e) => changeRole(m.id, e.target.value)}
-                  className="bg-black/40 border border-white/10 rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest text-white/70 outline-none focus:border-accent appearance-none cursor-pointer disabled:opacity-40"
+                  className="bg-black/40 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white/70 outline-none focus:border-accent appearance-none cursor-pointer disabled:opacity-40"
                 >
                   {APP_ROLES.map(role => (
                     <option key={role} value={role}>{ROLE_LABELS[role]}</option>

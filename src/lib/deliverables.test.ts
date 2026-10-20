@@ -37,9 +37,10 @@ describe('nextDeliverableStatus', () => {
 
 describe('deliverableStatusLabel', () => {
   it('reads as words while the stored value stays snake_case', () => {
-    expect(deliverableStatusLabel('in_progress')).toBe('in progress');
-    expect(deliverableStatusLabel('delivered')).toBe('delivered');
-    expect(deliverableStatusLabel(null)).toBe('todo');
+    expect(deliverableStatusLabel('in_progress')).toBe('In progress');
+    expect(deliverableStatusLabel('delivered')).toBe('Delivered');
+    expect(deliverableStatusLabel(null)).toBe('To do');
+    expect(deliverableStatusLabel('on_hold')).toBe('On hold');
   });
 });
 

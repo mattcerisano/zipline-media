@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Briefcase, Users, Building2, Loader2, Sparkles, X, Zap } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { APP_FEATURES } from '@/lib/feature-registry';
+import { useEscapeToClose } from './Overlay';
 import {
   ensureModel,
   getSemanticStatus,
@@ -175,12 +176,15 @@ export default function SearchPalette({ open, onClose, onOpenJob, onOpenContacts
     else onOpenContacts();
   }, [onClose, onOpenJob, onOpenContacts, onOpenRecord, onNavigate]);
 
-  // Keyboard: arrows to move, enter to open, esc to close.
+  // Escape closes from anywhere — it used to be handled on the input alone,
+  // so after clicking a result row or the backdrop's edge it did nothing.
+  useEscapeToClose(open, onClose);
+
+  // Keyboard: arrows to move, enter to open.
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setSelected(s => Math.min(s + 1, hits.length - 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setSelected(s => Math.max(s - 1, 0)); }
     else if (e.key === 'Enter' && hits[selected]) { e.preventDefault(); openHit(hits[selected]); }
-    else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
   };
 
   const typeIcon = { job: Briefcase, contact: Users, client: Building2, feature: Zap };

@@ -296,6 +296,12 @@ button, a, [role="button"], input[type="checkbox"], select {
   --color-pink-300: var(--color-pink-200); --color-pink-400: var(--color-pink-200); --color-pink-500: var(--color-pink-200);
   --color-rose-300: var(--color-rose-200); --color-rose-400: var(--color-rose-200); --color-rose-500: var(--color-rose-200);
 
+  /* The brand accent is picked to glow on black, so as text on white it sat
+     around 2:1. Text set in the accent uses this deeper shade of the same hue
+     (rules below); buttons and fills keep the brand colour itself. Derived
+     from the live variable, so a changed brand colour follows through. */
+  --accent-ink: color-mix(in oklab, var(--color-accent) 62%, black);
+
   --app-scrollbar-thumb: rgba(0, 0, 0, 0.22);
 }
 
@@ -313,6 +319,13 @@ button, a, [role="button"], input[type="checkbox"], select {
   .studio-os[data-theme="light"] .text-white\/40:not(:hover) { color: color-mix(in oklab, var(--color-white) 55%, transparent); }
   .studio-os[data-theme="light"] .text-white\/45:not(:hover) { color: color-mix(in oklab, var(--color-white) 60%, transparent); }
   .studio-os[data-theme="light"] .text-white\/50:not(:hover) { color: color-mix(in oklab, var(--color-white) 65%, transparent); }
+
+  /* Accent-coloured text, in the deeper --accent-ink above. */
+  .studio-os[data-theme="light"] .text-accent:not(:hover) { color: var(--accent-ink); }
+  .studio-os[data-theme="light"] .text-accent\/80:not(:hover) { color: color-mix(in oklab, var(--accent-ink) 90%, transparent); }
+  .studio-os[data-theme="light"] .text-accent\/70:not(:hover) { color: color-mix(in oklab, var(--accent-ink) 85%, transparent); }
+  .studio-os[data-theme="light"] .text-accent\/60:not(:hover) { color: color-mix(in oklab, var(--accent-ink) 80%, transparent); }
+  .studio-os[data-theme="light"] .text-accent\/50:not(:hover) { color: color-mix(in oklab, var(--accent-ink) 75%, transparent); }
 }
 
 /* Themed scrollbars inside Studio OS (global rules still apply elsewhere). */

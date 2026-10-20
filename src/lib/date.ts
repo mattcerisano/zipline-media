@@ -186,3 +186,13 @@ export function wallClockFromGoogleDateTime(
 export function todayLocalISO(d: Date = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+/**
+ * Today as "YYYY-MM-DD" in the studio's timezone — for server code, where the
+ * machine's own clock is UTC. QuickBooks counted invoices due "today" as
+ * overdue from 8pm in New York because the server's day had already turned.
+ */
+export function todayInZone(timeZone: string = STUDIO_TIME_ZONE, d: Date = new Date()): string {
+  // en-CA formats a date as YYYY-MM-DD.
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}

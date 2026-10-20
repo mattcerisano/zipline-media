@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { saved } from '@/lib/saved';
 import { JobShot, JobScene } from '@/components/gearbuilder/types';
 import { sanitizeUrl } from '@/lib/sanitize';
-import { confirmAction } from '@/components/Feedback';
+import { confirmAction, promptAction } from '@/components/Feedback';
 
 // Common option hints for the free-text dropdowns (matching the producer's sheet)
 const MOVEMENT_OPTS = ['Static', 'Handheld', 'Steadicam', 'Drone', 'Gimbal', 'Slider', 'Dolly', 'Pan', 'Tilt', 'Multi'];
@@ -323,15 +323,34 @@ export default function ShotlistGrid({ jobId }: { jobId: string }) {
                           {shot.image_url ? (
                             <img src={shot.image_url} alt="" className="w-12 h-8 object-cover rounded mx-auto border border-white/10" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
                           ) : null}
-                          <button
-                            onClick={() => {
-                              const url = prompt('Storyboard image URL (optional):', shot.image_url || '');
-                              if (url !== null) patchShot(shot.id, { image_url: url });
-                            }}
-                            className="text-[11px] md:text-[8px] text-white/30 hover:text-accent flex items-center gap-0.5 mx-auto mt-0.5 cursor-pointer"
-                          >
-                            <ImageIcon className="w-3 h-3" /> {shot.image_url ? 'edit' : 'add'}
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5 mt-0.5">
+                            <button
+                              onClick={async () => {
+                                const url = await promptAction({
+                                  title: shot.image_url ? 'Change storyboard image' : 'Add storyboard image',
+                                  label: 'Image link',
+                                  placeholder: 'https://…',
+                                  defaultValue: shot.image_url || '',
+                                  confirmLabel: 'Save',
+                                });
+                                if (url) patchShot(shot.id, { image_url: url });
+                              }}
+                              className="text-[11px] md:text-[8px] text-white/30 hover:text-accent flex items-center gap-0.5 cursor-pointer"
+                            >
+                              <ImageIcon className="w-3 h-3" /> {shot.image_url ? 'edit' : 'add'}
+                            </button>
+                            {/* The app's prompt never returns a blank answer, so
+                                clearing the link (a blank entry in the old browser
+                                prompt) gets its own control. */}
+                            {shot.image_url && (
+                              <button
+                                onClick={() => patchShot(shot.id, { image_url: '' })}
+                                className="text-[11px] md:text-[8px] text-white/30 hover:text-red-400 cursor-pointer"
+                              >
+                                remove
+                              </button>
+                            )}
+                          </div>
                         </td>
                         <td className="text-center">
                           <button onClick={() => deleteShot(shot.id)} className="p-1 text-white/15 hover:text-red-400 opacity-0 group-hover:opacity-100 cursor-pointer" title="Delete shot">

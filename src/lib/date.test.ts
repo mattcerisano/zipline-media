@@ -6,6 +6,7 @@ import {
   zonedWallClockToDate,
   wallClockFromGoogleDateTime,
   todayLocalISO,
+  todayInZone,
   parseLocalDate,
 } from './date';
 
@@ -141,6 +142,15 @@ describe('todayLocalISO', () => {
 
   it('zero-pads so the string sorts and compares correctly', () => {
     expect(todayLocalISO(new Date(2026, 0, 5))).toBe('2026-01-05');
+  });
+});
+
+describe('todayInZone', () => {
+  it("keeps New York's date after the UTC day has turned", () => {
+    // 9:30pm on 6 Aug in New York (EDT) is 01:30 on 7 Aug in UTC.
+    const instant = new Date(Date.UTC(2026, 7, 7, 1, 30));
+    expect(todayInZone('America/New_York', instant)).toBe('2026-08-06');
+    expect(todayInZone('UTC', instant)).toBe('2026-08-07');
   });
 });
 
