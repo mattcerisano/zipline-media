@@ -256,6 +256,7 @@ export function DropdownMenu({ trigger, items, align = 'right' }: {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.12 }}
             style={{ top, left, width: MENU_W }}
+            data-tour="dropdown-menu"
             className="fixed z-[9000] bg-neutral-900 border border-white/10 rounded-xl shadow-2xl p-1.5"
           >
             {items.map((item, i) => (

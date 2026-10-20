@@ -696,7 +696,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
   };
 
   return (
-    <div className="bg-neutral-900/30 border border-white/10 rounded-2xl p-4 md:p-8">
+    <div className="bg-neutral-900/30 border border-white/10 rounded-2xl p-4 md:p-8" data-tour="calendar-main">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
         <h2 className="text-lg md:text-xl font-bold tracking-tight flex items-center gap-3">

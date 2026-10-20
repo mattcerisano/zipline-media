@@ -1415,6 +1415,7 @@ export default function Slate({
         {!isClient && (
           <button 
             onClick={() => openNewJobModal()}
+            data-tour="slate-new"
             className={`w-full lg:w-auto shrink-0 ${CONTROL_CTA}`}
           >
             <Plus className="w-4 h-4" /> New Production
@@ -2261,6 +2262,7 @@ function JobCard({
                 {...aria}
                 aria-haspopup="menu"
                 aria-label={`Actions for ${job.title}`}
+                data-tour="slate-card-menu"
                 className="p-2 -mr-1 shrink-0 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-all"
               >
                 <MoreVertical className="w-4 h-4" />
@@ -2572,6 +2574,7 @@ function JobCard({
         <div className="pt-4 border-t border-white/5 mt-auto flex items-center justify-end gap-2 relative z-10">
            <button
              onClick={onManage}
+             data-tour="slate-crew"
              className="text-[12px] font-medium tracking-tight text-white/50 hover:text-white transition-all flex items-center gap-1.5 px-3 py-1.5 hover:bg-white/5 rounded-lg"
            >
              Crew & schedule <ChevronRight className="w-4 h-4" />

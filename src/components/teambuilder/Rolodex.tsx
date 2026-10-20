@@ -1023,7 +1023,7 @@ export default function Rolodex({
         {STANDARD_ROLES.map(role => <option key={role} value={role} />)}
       </datalist>
 
-      <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 w-fit mb-6">
+      <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 w-fit mb-6" data-tour="rolodex-tabs">
         <button 
           onClick={() => setActiveView('crew')}
           className={`px-6 py-2.5 rounded-lg text-xs font-semibold tracking-tight transition-all ${activeView === 'crew' ? 'bg-accent text-white shadow-lg shadow-accent/20' : 'text-white/40 hover:text-white'}`}

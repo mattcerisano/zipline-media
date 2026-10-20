@@ -1538,7 +1538,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           logistics and notes are edited on the Slate — retyping them here
           made two copies to keep in step. They still print on the PDF and
           the share link, loaded from the production. */}
-      <div className="space-y-1.5 mb-6">
+      <div className="space-y-1.5 mb-6" data-tour="gear-start">
         <label className="text-xs font-semibold opacity-40 ml-1 flex items-center gap-1.5">
           Production
           {selectedJobIdProp && <Lock className="w-2.5 h-2.5 text-accent opacity-60" />}
