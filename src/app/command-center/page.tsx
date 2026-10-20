@@ -39,7 +39,8 @@ function timeAgo(iso: string | null): string {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { supabase } from '@/lib/supabase';
-import { trackView, trackAction } from '@/lib/usage';
+import { trackView, trackAction, loadTabOpens } from '@/lib/usage';
+import { rankTabsByUse } from '@/lib/tab-ranking';
 import { getBranding } from '@/lib/branding';
 import { applyAccent } from '@/lib/brand-theme';
 import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
@@ -620,9 +621,26 @@ export default function CommandCenterPage() {
   // One source of truth for "what can this account open". Everything that
   // navigates — the sidebar, the search palette, the guard below — reads this,
   // so a role can never reach a workspace by way of a stale saved tab id.
+  // How often the team opened each tab in the last 30 days. Read once per
+  // load, so the sidebar doesn't reshuffle under someone's cursor as they work.
+  const [tabOpens, setTabOpens] = useState<Record<string, number> | null>(null);
+  useEffect(() => {
+    if (!userRole) return;
+    let cancelled = false;
+    loadTabOpens().then(opens => { if (!cancelled) setTabOpens(opens); });
+    return () => { cancelled = true; };
+  }, [userRole]);
+
   const visibleTabs = useMemo(
     () => tabs.filter(tab => canAccessTab(userRole, tab)),
     [tabs, userRole]
+  );
+
+  // Most-used first. While editing the layout the saved order shows instead:
+  // that's the order dragging changes, and it decides ties and unopened tabs.
+  const sidebarTabs = useMemo(
+    () => (isLayoutEditing || !tabOpens ? visibleTabs : rankTabsByUse(visibleTabs, tabOpens)),
+    [visibleTabs, tabOpens, isLayoutEditing],
   );
 
   // If the persisted/last-used tab isn't open to this account (a shared
@@ -1154,7 +1172,12 @@ export default function CommandCenterPage() {
                     ref={provided.innerRef}
                     className="space-y-1.5"
                   >
-                    {visibleTabs
+                    {isLayoutEditing && userRole === 'admin' && isSidebarOpen && (
+                      <p className="px-2 pb-2 text-[11px] leading-snug text-white/40">
+                        Normally sorted by most used. The order here is used for ties and tabs nobody has opened.
+                      </p>
+                    )}
+                    {sidebarTabs
                       .map((tab, index) => {
                         const Icon = getIconComponent(tab.iconName);
                         return (
@@ -1272,7 +1295,7 @@ export default function CommandCenterPage() {
             </DragDropContext>
           ) : (
             <div className="space-y-1.5">
-              {visibleTabs
+              {sidebarTabs
                 .map(tab => {
                   const Icon = getIconComponent(tab.iconName);
                   return (
