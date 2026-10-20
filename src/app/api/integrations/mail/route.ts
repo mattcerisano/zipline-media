@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { decodeHtmlEntities } from '@/lib/html-entities';
 import { getValidGoogleToken } from '@/lib/google-auth';
 import { getAuthedUserId } from '@/lib/api-auth';
 
@@ -232,7 +233,7 @@ export async function GET(request: Request) {
 
             const subject = getHeader(firstMsg, 'Subject') || '(No Subject)';
             const from = getHeader(lastMsg, 'From') || 'Unknown';
-            const snippet = lastMsg.snippet || '';
+            const snippet = decodeHtmlEntities(lastMsg.snippet || '');
 
             // Gmail-style dates: time of day for today's mail, short date otherwise
             const dateStr = getHeader(lastMsg, 'Date');
@@ -387,7 +388,7 @@ export async function GET(request: Request) {
           from: getHeader('From') || 'Unknown',
           to: getHeader('To') || 'Unknown',
           date: formattedDate,
-          snippet: msg.snippet || '',
+          snippet: decodeHtmlEntities(msg.snippet || ''),
           body: bodyHtml,
           attachments: collectAttachments(msg)
         };

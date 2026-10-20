@@ -2418,10 +2418,13 @@ function JobCard({
             </div>
 
             <div className="space-y-1.5">
+              {/* Phones put the name on its own line: beside the format, status
+                  and remove controls (and at the 16px phone input size) it was
+                  cut to "Short Form x1…". */}
               {deliverables.map(d => (
-                <div key={d.id} className="flex items-center gap-2 group/deliv">
+                <div key={d.id} className="flex flex-wrap sm:flex-nowrap items-center gap-x-2 gap-y-0.5 group/deliv">
                   {isClient ? (
-                    <span className="flex-1 text-[11px] text-white/80 truncate">{d.label || 'Untitled'}</span>
+                    <span className="flex-1 basis-full sm:basis-auto text-[11px] text-white/80 truncate">{d.label || 'Untitled'}</span>
                   ) : (
                     <input
                       defaultValue={d.label || ''}
@@ -2431,7 +2434,7 @@ function JobCard({
                         const value = e.target.value;
                         if (value !== (d.label || '')) onPatchDeliverable?.(d.id, { label: value });
                       }}
-                      className="flex-1 min-w-0 bg-transparent outline-none text-[11px] text-white/80 rounded px-1 py-0.5 focus:bg-white/10 placeholder:text-white/25"
+                      className="flex-1 basis-full sm:basis-auto min-w-0 bg-transparent outline-none text-[11px] text-white/80 rounded px-1 py-0.5 focus:bg-white/10 placeholder:text-white/25"
                     />
                   )}
 
@@ -2440,7 +2443,7 @@ function JobCard({
                       value={d.format || '16:9'}
                       aria-label="Aspect ratio"
                       onChange={e => onPatchDeliverable?.(d.id, { format: e.target.value })}
-                      className="bg-transparent outline-none text-[10px] text-white/45 cursor-pointer shrink-0 hover:text-white/70"
+                      className="ml-auto sm:ml-0 bg-transparent outline-none text-[10px] text-white/45 cursor-pointer shrink-0 hover:text-white/70"
                     >
                       {DELIVERABLE_FORMATS.map(f => (
                         <option key={f} value={f} className="bg-zinc-900">{f}</option>

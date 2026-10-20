@@ -495,7 +495,7 @@ export default function DriveTracker() {
             </button>
           </div>
         ) : view === 'holders' ? (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] items-start">
             <section className="min-w-0">
               <SectionLabel>Out · {holderGroups.reduce((n, g) => n + g.drives.length, 0)}</SectionLabel>
               {holderGroups.length === 0 ? (
@@ -535,7 +535,7 @@ export default function DriveTracker() {
 
             <section className="min-w-0">
               <SectionLabel>Available · {keeperGroups.reduce((n, g) => n + g.drives.length, 0)}</SectionLabel>
-              <div className="grid md:grid-cols-2 lg:grid-cols-1 gap-3 items-start">
+              <div className="grid md:grid-cols-2 xl:grid-cols-1 gap-3 items-start">
                 {keeperGroups.map((g) => (
                   <div key={g.keeper ?? 'none'} className="min-w-0 rounded-2xl border border-white/[0.07] bg-white/[0.015] p-3">
                     <div className="px-1 pb-2.5">

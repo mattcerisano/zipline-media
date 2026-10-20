@@ -66,6 +66,10 @@ interface CustomTab {
   iconName: string;
   type: 'workspace' | 'embed' | 'notes' | 'system';
   embedUrl?: string;
+  /** Custom workspaces: the tools the tab opens with, so every device and
+   *  teammate starts from them (the seeded layout only lived on the device
+   *  that made the tab; elsewhere it opened as a blank notepad). */
+  starterTools?: string[];
   isDefault?: boolean;
   // Only the configurable roles appear here. Scoped roles (freelance editor)
   // are whitelisted in src/lib/roles.ts instead, so no tab setting can hand
@@ -223,7 +227,20 @@ const SYSTEM_TAB_EYEBROWS: Record<string, string> = {
 // the team's) still name them, so they're dropped on load. Client Review went
 // because clients never log in and the Edit Tracker already keeps every draft
 // link; its saved reviews stay in the database.
-const RETIRED_SYSTEM_TABS = new Set(['review']);
+// "tutorials" (Learning Center) came from an old branch whose widget never
+// reached main, so it rendered the shared scratch notepad under another name.
+const RETIRED_SYSTEM_TABS = new Set(['review', 'tutorials']);
+
+// The tools a custom workspace opens with. Tabs made before this was
+// recorded fall back to a tool whose name matches the tab's ("Tasks" → the
+// task list), then to the scratch notepad.
+function starterToolsFor(tab: CustomTab | undefined): string[] | undefined {
+  if (!tab || tab.type !== 'workspace') return undefined;
+  if (tab.starterTools?.length) return tab.starterTools;
+  const name = tab.label.trim().toLowerCase();
+  const match = STARTER_TOOLS.find(t => t.id === name || t.label.toLowerCase() === name || t.id === name.replace(/s$/, '') || `${t.id}s` === name);
+  return match ? [match.id] : undefined;
+}
 
 const DEFAULT_TABS: CustomTab[] = [
   { id: 'dashboard', label: 'Dashboard', iconName: 'LayoutDashboard', type: 'system', isDefault: true, allowedRoles: ['admin'] },
@@ -288,6 +305,7 @@ export default function CommandCenterPage() {
   };
 
   const activeTabObj = tabs.find(t => t.id === activeTab);
+  const activeStarterTools = useMemo(() => starterToolsFor(activeTabObj), [activeTabObj]);
 
   // Reset a specific tab's workspace layout to factory defaults
   const resetWorkspaceForTab = (tabId: string, e?: React.MouseEvent) => {
@@ -440,6 +458,7 @@ export default function CommandCenterPage() {
       iconName: newTabIcon,
       type: newTabType,
       embedUrl: newTabType === 'embed' ? embedUrl : undefined,
+      starterTools: newTabType === 'workspace' ? (newTabTools.length > 0 ? newTabTools : ['notes']) : undefined,
       allowedRoles: newTabRoles
     };
 
@@ -1530,6 +1549,7 @@ export default function CommandCenterPage() {
                   onClearOpenEditCard={clearOpenEditCard}
                   openRolodexRecord={openRolodexRecord}
                   onClearRolodexRecord={clearRolodexRecord}
+                  starterTools={activeStarterTools}
                   isLayoutEditing={isLayoutEditing}
                   onSwitchTab={(target) => {
                     // The guide is a modal, not a tab — "System Guide" on the

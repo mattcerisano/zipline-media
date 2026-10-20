@@ -1038,8 +1038,11 @@ export default function Rolodex({
         </button>
       </div>
 
-      <div className="flex flex-wrap md:flex-nowrap justify-between items-center gap-3 md:gap-4">
-        <div className="flex flex-row flex-wrap sm:flex-nowrap items-center gap-3 flex-1 basis-full md:basis-auto">
+      {/* One row only from xl. At a laptop width with the sidebar open, a
+          single row squeezed the search box to a sliver and pushed the role
+          filter under Favorites; now search + filters get their own row. */}
+      <div className="flex flex-wrap xl:flex-nowrap justify-between items-center gap-3 md:gap-4">
+        <div className="flex flex-row flex-wrap sm:flex-nowrap items-center gap-3 flex-1 basis-full xl:basis-auto">
           {/* Search leads — it's what the toolbar is for. The two filters sit
               behind a chip on a phone and inline from md up. */}
           <div className="relative flex-1 min-w-[160px]">

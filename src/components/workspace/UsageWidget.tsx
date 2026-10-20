@@ -46,7 +46,34 @@ const LABEL_TEXT: Record<string, string> = {
   search_palette: 'Open ⌘K search',
 };
 
+// Surfaces are recorded by tab id. Show the name people know the tab by:
+// the team's tab list for custom workspaces, these for built-in ones.
+const SURFACE_NAMES: Record<string, string> = {
+  dashboard: 'Dashboard', calendar: 'Calendar', slate: 'Slate', edits: 'Edit Tracker', gear: 'Gear Builder',
+  creative: 'Creative Board', social: 'Social Media', inbox: 'Inbox', rolodex: 'Rolodex', meeting_notes: 'Meeting Notes',
+  locations: 'Locations Scouting', drives: 'Drive Tracker', intake: 'Client Onboarding', vault: 'Vault', library: 'Library',
+  usage: 'Usage', integrations: 'Integrations', review: 'Client Review (retired)', tutorials: 'Learning Center (retired)',
+  header: 'Header',
+};
+
+function surfaceName(surface: string, tabNames: Record<string, string>): string {
+  if (tabNames[surface]) return tabNames[surface];
+  if (SURFACE_NAMES[surface]) return SURFACE_NAMES[surface];
+  if (surface.startsWith('custom_')) return 'A custom tab that was removed';
+  const plain = surface.replace(/_/g, ' ');
+  return plain.charAt(0).toUpperCase() + plain.slice(1);
+}
+
 export default function UsageWidget() {
+  // The team's tab names, cached by the sidebar on this device.
+  const [tabNames] = useState<Record<string, string>>(() => {
+    try {
+      const list = JSON.parse(localStorage.getItem('custom_tabs_list') || '[]') as { id: string; label: string }[];
+      return Object.fromEntries(list.map(t => [t.id, t.label]));
+    } catch {
+      return {};
+    }
+  });
   const [rows, setRows] = useState<Row[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -237,7 +264,7 @@ export default function UsageWidget() {
               ) : stats.surfaces.map(([surface, n]) => (
                 <div key={surface} className="space-y-1">
                   <div className="flex justify-between text-[11px]">
-                    <span className="capitalize text-white/80">{surface}</span>
+                    <span className="text-white/80">{surfaceName(surface, tabNames)}</span>
                     <span className="text-white/35 tabular-nums">{n}</span>
                   </div>
                   <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
