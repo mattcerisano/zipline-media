@@ -282,7 +282,8 @@ export default function EditTracker({
   // the board. Jobs created on Slate no longer auto-appear as cards — they sit
   // in the "Add to Board" picker until someone pulls them in.
   const boardJobs = useMemo(() => jobs.filter(j => !!j.edit_status), [jobs]);
-  const availableJobs = useMemo(() => jobs.filter(j => !j.edit_status), [jobs]);
+  // Archived productions stay off the add-to-board picker.
+  const availableJobs = useMemo(() => jobs.filter(j => !j.edit_status && !j.archived_at), [jobs]);
 
   // Resolved columns for rendering. Any card whose status doesn't match a
   // defined column (e.g. a column was deleted after cards used it) gets its

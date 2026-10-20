@@ -5,6 +5,8 @@ import {
   Search,
   Plus, 
   Trash2, 
+  Archive, 
+  ArchiveRestore, 
   Calendar, 
   MapPin, 
   Clock,
@@ -119,6 +121,7 @@ export default function Slate({
   const [projects, setProjects] = useState<Project[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [showArchived, setShowArchived] = useState(false);
   const [clientFilter, setClientFilter] = useState('All');
   const [projectFilter, setProjectFilter] = useState('All');
   const [groupByProject, setGroupByProject] = useState(false);
@@ -635,6 +638,23 @@ export default function Slate({
     }
   };
 
+  // Archive keeps a production — crew, gear, links, everything — but takes it
+  // out of the Slate's lists and the pickers elsewhere. For work that never
+  // got a date, or is done but worth keeping.
+  const toggleArchive = async (job: Job) => {
+    const archived_at = job.archived_at ? null : new Date().toISOString();
+    setJobs(prev => prev.map(j => (j.id === job.id ? { ...j, archived_at } : j)));
+    const { error } = await supabase.from('jobs').update({ archived_at }).eq('id', job.id);
+    if (error) {
+      setJobs(prev => prev.map(j => (j.id === job.id ? { ...j, archived_at: job.archived_at } : j)));
+      toast(/archived_at/.test(error.message)
+        ? 'Archiving needs a one-time database update first (the archive SQL script).'
+        : `Couldn't ${archived_at ? 'archive' : 'unarchive'} it: ${error.message}`, 'error');
+      return;
+    }
+    toast(archived_at ? `Archived “${job.title}”. It’s in the Archived folder at the bottom.` : `“${job.title}” is back on the Slate.`);
+  };
+
   const deleteJob = async (id: string) => {
     if (!(await confirmAction({ title: 'Delete this production?', message: 'This will remove all associated roles and gear lists, and clear the shoot from Google Calendar.', danger: true, confirmLabel: 'Delete' }))) return;
     try {
@@ -1136,7 +1156,9 @@ export default function Slate({
   };
 
 
-  const filteredJobs = useMemo(() => {
+  // Everything the search and filters match, archived or not. The Slate's
+  // lists show the live ones; archived ones sit in their own folder.
+  const matchingJobs = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return jobs.filter(job => {
       // Search spans everything you'd plausibly remember a shoot by, not just
@@ -1163,6 +1185,12 @@ export default function Slate({
       return matchesSearch && matchesStatus && matchesClient && matchesProject;
     });
   }, [jobs, searchQuery, statusFilter, clientFilter, projectFilter, projectNameById, clientNameById]);
+
+  const filteredJobs = useMemo(() => matchingJobs.filter(j => !j.archived_at), [matchingJobs]);
+  const archivedJobs = useMemo(
+    () => matchingJobs.filter(j => !!j.archived_at).sort((a, b) => (b.archived_at || '').localeCompare(a.archived_at || '')),
+    [matchingJobs],
+  );
 
   /** The last day a shoot occupies — its end date for a multi-day run. */
   const lastDayOf = (job: Job) => job.end_date && job.end_date > (job.shoot_date || '')
@@ -1429,6 +1457,7 @@ export default function Slate({
                           onSaveAsTemplate={() => saveAsTemplate(job)}
                           onDuplicate={() => duplicateJob(job)}
                           onDelete={() => deleteJob(job.id)}
+                onArchive={() => toggleArchive(job)}
                           onAddLink={() => setLinkModalJob(job)}
                           onManage={() => setManageJobId(job.id)}
                           onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
@@ -1473,6 +1502,7 @@ export default function Slate({
                   onSaveAsTemplate={() => saveAsTemplate(job)}
                   onDuplicate={() => duplicateJob(job)}
                   onDelete={() => deleteJob(job.id)}
+                onArchive={() => toggleArchive(job)}
                   onAddLink={() => setLinkModalJob(job)}
                   onManage={() => setManageJobId(job.id)}
                   onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
@@ -1510,6 +1540,7 @@ export default function Slate({
                 onSaveAsTemplate={() => saveAsTemplate(job)}
                 onDuplicate={() => duplicateJob(job)}
                 onDelete={() => deleteJob(job.id)}
+                onArchive={() => toggleArchive(job)}
                 onAddLink={() => setLinkModalJob(job)}
                 onManage={() => setManageJobId(job.id)}
                 onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
@@ -1551,6 +1582,7 @@ export default function Slate({
                 onSaveAsTemplate={() => saveAsTemplate(job)}
                 onDuplicate={() => duplicateJob(job)}
                 onDelete={() => deleteJob(job.id)}
+                onArchive={() => toggleArchive(job)}
                 onAddLink={() => setLinkModalJob(job)}
                 onManage={() => setManageJobId(job.id)}
                 onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
@@ -1569,6 +1601,56 @@ export default function Slate({
             ))}
           </div>
         </section>
+
+        {/* Archived: kept, out of the way. Collapsed unless asked for, or a
+            search matches something in it. */}
+        {archivedJobs.length > 0 && (
+          <section className="space-y-6">
+            <button
+              type="button"
+              onClick={() => setShowArchived(v => !v)}
+              className="w-full flex items-center gap-3 text-left group"
+              aria-expanded={showArchived || !!searchQuery.trim()}
+            >
+              <Archive className="w-3.5 h-3.5 text-white/40 group-hover:text-white/70" />
+              <h2 className="text-[11px] font-semibold tracking-tight text-white/50 group-hover:text-white/80 whitespace-nowrap">Archived</h2>
+              <div className="h-px bg-white/10 flex-1" />
+              <span className="text-[11px] font-medium text-white/40 whitespace-nowrap">
+                {archivedJobs.length} {archivedJobs.length === 1 ? 'job' : 'jobs'} · {showArchived || searchQuery.trim() ? 'Hide' : 'Show'}
+              </span>
+            </button>
+            {(showArchived || !!searchQuery.trim()) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-70">
+             {archivedJobs.map(job => (
+              <JobCard 
+                key={job.id} 
+                job={job} 
+                isClient={isClient}
+                getStatusIcon={getStatusIcon} 
+                onSaveAsTemplate={() => saveAsTemplate(job)}
+                onDuplicate={() => duplicateJob(job)}
+                onDelete={() => deleteJob(job.id)}
+                onArchive={() => toggleArchive(job)}
+                onAddLink={() => setLinkModalJob(job)}
+                onManage={() => setManageJobId(job.id)}
+                onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
+                onEdit={() => openEditJobModal(job)}
+                onBuildGear={() => onBuildGear?.(job)}
+                onRefreshWeather={() => handleRefreshWeather(job)}
+                onStatusChange={(status) => updateJobStatus(job, status)}
+                billing={job.client_id ? billing[job.client_id] : undefined}
+                crew={crew[job.id]}
+                  deliverables={deliverables[job.id]}
+                onAddDeliverable={() => addDeliverable(job)}
+                onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
+                onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
+                projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
+              />
+            ))}
+              </div>
+            )}
+          </section>
+        )}
       </div>
       )}
 
@@ -2066,6 +2148,7 @@ function JobCard({
   onSaveAsTemplate,
   onDuplicate,
   onDelete,
+  onArchive,
   onAddLink,
   onManage,
   onExportCallSheet,
@@ -2087,6 +2170,7 @@ function JobCard({
   onSaveAsTemplate: () => void,
   onDuplicate: () => void,
   onDelete: () => void,
+  onArchive?: () => void,
   onAddLink: () => void,
   onManage: () => void,
   onExportCallSheet: () => void,
@@ -2209,6 +2293,9 @@ function JobCard({
                 onSelect: onDuplicate,
               },
               { label: 'Save crew as template', icon: <BookmarkPlus className="w-3.5 h-3.5" />, onSelect: onSaveAsTemplate },
+              job.archived_at
+                ? { label: 'Unarchive', hint: 'Back onto the Slate', icon: <ArchiveRestore className="w-3.5 h-3.5" />, onSelect: () => onArchive?.() }
+                : { label: 'Archive', hint: 'Keep it, out of the way', icon: <Archive className="w-3.5 h-3.5" />, onSelect: () => onArchive?.() },
               { label: 'Delete production', icon: <Trash2 className="w-3.5 h-3.5" />, onSelect: onDelete, danger: true },
             ]}
           />

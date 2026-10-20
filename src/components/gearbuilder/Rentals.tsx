@@ -811,7 +811,8 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   // then undated. Cancelled shoots are left out unless already open.
   const productionOptions = useMemo(() => {
     const today = todayLocalISO();
-    const live = jobs.filter(j => j.job_status !== 'Cancelled' || j.id === selectedJobId);
+    // Cancelled and archived shoots are left out unless already open.
+    const live = jobs.filter(j => (j.job_status !== 'Cancelled' && !j.archived_at) || j.id === selectedJobId);
     const upcoming = live.filter(j => j.shoot_date && j.shoot_date >= today).sort((a, b) => a.shoot_date!.localeCompare(b.shoot_date!));
     const past = live.filter(j => j.shoot_date && j.shoot_date < today).sort((a, b) => b.shoot_date!.localeCompare(a.shoot_date!));
     const undated = live.filter(j => !j.shoot_date);
