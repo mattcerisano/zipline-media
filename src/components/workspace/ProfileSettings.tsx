@@ -11,6 +11,7 @@ import { applyAccent, extractBrandColorFromImage, resetAccent } from '@/lib/bran
 import ThemeSwitcher from './ThemeSwitcher';
 import IntegrationsSettings from './IntegrationsSettings';
 import TeamSettings from './TeamSettings';
+import ChangePassword from './ChangePassword';
 import { confirmAction } from '@/components/Feedback';
 
 interface ProfileSettingsProps {
@@ -321,6 +322,12 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                     <label className={labelClass}>Address</label>
                     <input className={inputClass} value={profile.address || ''} onChange={(e) => setProfile(p => ({ ...p, address: e.target.value }))} />
                   </div>
+
+                  {/* Separate from the profile Save below: a password change
+                      takes effect on its own button, never alongside a name edit. */}
+                  {session?.user?.email && (
+                    <ChangePassword email={session.user.email} inputClass={inputClass} labelClass={labelClass} />
+                  )}
                 </>
               )}
 

@@ -3,33 +3,38 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EscapeToClose } from './Overlay';
-import { 
-  X, 
-  ChevronLeft, 
-  ChevronRight, 
-  HelpCircle, 
-  Columns, 
-  Rows, 
-  RotateCcw, 
-  Briefcase, 
-  Scissors, 
-  Package, 
-  Users, 
-  MessageSquare, 
-  Link, 
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  HelpCircle,
+  Columns,
+  Briefcase,
+  Scissors,
+  Package,
+  Users,
   Sparkles,
   Calendar,
-  Plus,
-  Library,
-  Film,
-  Clapperboard
+  NotebookPen,
+  SlidersHorizontal,
+  Upload,
+  Timer,
+  HardDrive,
+  UserCog,
+  LayoutGrid,
+  type LucideIcon,
 } from 'lucide-react';
 
-// --- INTERACTIVE TOUR STEPS ---
+// One tour per kind of account. Admins and staff run the whole studio; a
+// freelance editor's account opens on the Edit Tracker and reaches nothing but
+// that and the Drive Tracker (src/lib/roles.ts), so the full tour mostly
+// described screens they can't open. Each list covers only what its reader
+// can actually do, as of PRs #100–#115.
+
 interface TourStep {
   title: string;
   subtitle: string;
-  icon: any;
+  icon: LucideIcon;
   content: React.ReactNode;
 }
 
@@ -37,399 +42,384 @@ interface QuickStartGuideModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenCalendarSync: () => void;
+  /** Picks the tour. Null while the role is still loading: the team tour shows. */
+  userRole?: string | null;
 }
 
-export function QuickStartGuideModal({ 
-  isOpen, 
-  onClose, 
-  onOpenCalendarSync 
+/** A row in a step: icon, short heading, one or two sentences. */
+function Item({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex gap-3 items-start bg-white/5 p-3 rounded-xl border border-white/5">
+      <Icon className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+      <div className="min-w-0">
+        <h5 className="text-[13px] font-semibold text-white leading-snug">{title}</h5>
+        <p className="text-xs text-white/60 leading-relaxed mt-0.5">{children}</p>
+      </div>
+    </div>
+  );
+}
+
+function Lead({ children }: { children: React.ReactNode }) {
+  return <p className="text-sm text-white/70 leading-relaxed">{children}</p>;
+}
+
+function Points({ items }: { items: React.ReactNode[] }) {
+  return (
+    <ul className="text-xs text-white/60 space-y-2 list-disc list-outside pl-4 leading-relaxed">
+      {items.map((item, i) => <li key={i}>{item}</li>)}
+    </ul>
+  );
+}
+
+const B = ({ children }: { children: React.ReactNode }) => <strong className="text-white font-semibold">{children}</strong>;
+
+function teamSteps(onOpenCalendarSync: () => void): TourStep[] {
+  return [
+    {
+      title: 'Welcome to Studio OS',
+      subtitle: 'The studio’s shared workspace',
+      icon: Sparkles,
+      content: (
+        <div className="space-y-3">
+          <Lead>
+            Every production in one place — the Slate, the Edit Tracker, gear, crew, the calendar and notes — saved for the whole team as you work.
+          </Lead>
+          <Item icon={LayoutGrid} title="Start on the Dashboard">
+            <B>This week</B> lists what’s shooting, edits that are due, past shoots to close out and the drives that have been out longest.
+          </Item>
+          <Item icon={HelpCircle} title="Find anything">
+            Press <B>⌘K</B> or the magnifier to search productions, contacts, clients and features. A contact opens straight to their card.
+          </Item>
+          <Item icon={Columns} title="The sidebar learns">
+            The tabs the team opens most move to the top on their own.
+          </Item>
+          <p className="text-[11px] text-white/45 leading-relaxed">
+            If a save ever fails you’ll see a red message and the screen puts itself back, so nothing quietly disappears.
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: 'Productions on the Slate',
+      subtitle: 'From the first hold to the wrap',
+      icon: Briefcase,
+      content: (
+        <div className="space-y-3">
+          <Points items={[
+            <><B>New production</B> takes the client, dates, call and wrap times and the location. The status chip on a card moves it from Hold to Booked in one tap.</>,
+            <>Each card shows its crew, its deliverables and its billing (read from QuickBooks once connected — nothing is written back).</>,
+            <><B>Crew &amp; schedule</B> opens the crew manager, which warns when someone is already booked on another shoot at the same time.</>,
+            <>The card menu holds the gear list, links, call sheet and brief PDFs, <B>Duplicate</B> for the next day, <B>Archive</B> (kept in the Archived folder at the bottom) and <B>Delete</B>.</>,
+            <>When a shoot is over, close it out from the Dashboard: <B>Mark wrapped</B>, or <B>Wrapped, add to edit board</B> if it goes to post.</>,
+          ]} />
+        </div>
+      ),
+    },
+    {
+      title: 'Post on the Edit Tracker',
+      subtitle: 'Every cut, every version',
+      icon: Scissors,
+      content: (
+        <div className="space-y-3">
+          <Points items={[
+            <><B>+ Add production</B> pulls a shoot from the Slate onto the board. Drag cards between stages; <B>Columns</B> renames or adds stages for everyone (admins only).</>,
+            <>Switch between <B>Board</B> and <B>Timeline</B>, show <B>My cards</B> only, filter by client, project or year, and size cards <B>S / M / L</B>.</>,
+            <>Editors post each cut on its card. Version numbers count themselves and the newest becomes the review link; posting V1 offers to move the card to review, which alerts the team.</>,
+            <>Editors log hours with a timer or by adding minutes, and the total shows on the card.</>,
+            <>Deliverable chips step through <B>To do</B>, <B>In progress</B> and <B>Delivered</B>, here and on the Slate.</>,
+          ]} />
+          <p className="text-[11px] text-white/45 leading-relaxed">
+            A freelance editor’s account sees only their own cards, plus the Drive Tracker.
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: 'Gear',
+      subtitle: 'Lists, clashes and sharing',
+      icon: Package,
+      content: (
+        <div className="space-y-3">
+          <Points items={[
+            <>Pick a production to build its gear list, or start a <B>one-off list</B> that never touches the Slate. <B>Save draft</B> keeps it for later, on any of your devices.</>,
+            <>It warns when another shoot that day needs the same gear and there isn’t enough to go round.</>,
+            <>Export a PDF, or share a live link the crew can open without signing in.</>,
+            <>Owners you type are remembered, so the next list fills them in.</>,
+          ]} />
+        </div>
+      ),
+    },
+    {
+      title: 'People and clients',
+      subtitle: 'The Rolodex',
+      icon: Users,
+      content: (
+        <div className="space-y-3">
+          <Points items={[
+            <>Crew and contractors with their roles, rates and contact details. Each card lists what that person is booked on.</>,
+            <>Clients live here too. Rename one and every production follows; link it to its QuickBooks customer to see billing on the Slate.</>,
+            <><B>Import</B> brings in contacts from a spreadsheet or clients from QuickBooks, and possible duplicates are offered for merging.</>,
+          ]} />
+        </div>
+      ),
+    },
+    {
+      title: 'Calendar and Google',
+      subtitle: 'Both directions, automatically',
+      icon: Calendar,
+      content: (
+        <div className="space-y-3">
+          <div className="bg-black/40 border border-white/5 p-4 rounded-xl space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h4 className="text-[13px] font-semibold text-white">Google sync</h4>
+              <button
+                onClick={onOpenCalendarSync}
+                className="px-3 py-1.5 bg-accent/20 hover:bg-accent border border-accent/30 rounded-lg text-xs font-semibold text-white transition-colors cursor-pointer shrink-0"
+              >
+                Set it up
+              </button>
+            </div>
+            <Points items={[
+              <>Connect Google once. Saving a production puts it on the studio calendar with the crew, call time and location written into the event.</>,
+              <>Events added in Google whose titles start with <B>🎥</B> come in as productions; anything else shows as a marker.</>,
+            ]} />
+          </div>
+          <Points items={[
+            <>Click a day for a quick marker — <B>Hold</B>, <B>Out of office</B>, <B>Booked</B>, <B>Meeting</B> — or <B>New production</B> with that date filled in.</>,
+            <>The subscription link gives any calendar app a private, read-only copy. Share it only with the team.</>,
+            <>On a phone the calendar opens as an agenda; the toggle at the top switches to the month grid.</>,
+          ]} />
+        </div>
+      ),
+    },
+    {
+      title: 'Notes, briefs and records',
+      subtitle: 'Shared with the team',
+      icon: NotebookPen,
+      content: (
+        <div className="space-y-3">
+          <Points items={[
+            <><B>Meeting notes</B> are kept per client and save as you type — the footer says <B>Synced</B>, or <B>Not saved</B> if something went wrong.</>,
+            <><B>Client onboarding</B> holds creative briefs; <B>Locations</B> holds scouting notes on permits, power and parking.</>,
+            <><B>Vault</B> stores encrypted logins and notes — your own, plus a shared vault for the people you choose.</>,
+            <><B>Library</B> is for tidying: browse, rename and remove projects and shoots, several at once if you tick them.</>,
+          ]} />
+        </div>
+      ),
+    },
+    {
+      title: 'Make it yours',
+      subtitle: 'Layout, settings and alerts',
+      icon: SlidersHorizontal,
+      content: (
+        <div className="space-y-3">
+          <Item icon={Columns} title="Edit layout">
+            In the top bar. Split panels, add tabs or web embeds, reorder the sidebar, or <B>Reset</B>. Click <B>Done</B> when you’re finished.
+          </Item>
+          <Item icon={UserCog} title="Settings">
+            Click your name at the top right for your profile, password and appearance (light, dim or dark). Admins also get branding, integrations and the team list.
+          </Item>
+          <Item icon={Sparkles} title="Team alerts">
+            Under <B>Settings → Integrations</B>, add a Discord, Slack or Teams channel and choose which events post there — new productions, status changes, edits ready and delivered.
+          </Item>
+        </div>
+      ),
+    },
+  ];
+}
+
+const editorSteps: TourStep[] = [
+  {
+    title: 'Welcome',
+    subtitle: 'Your edit board',
+    icon: Sparkles,
+    content: (
+      <div className="space-y-3">
+        <Lead>
+          Your account has two screens: the <B>Edit Tracker</B>, where you land, and the <B>Drive Tracker</B>. You’ll see the productions you’ve been assigned.
+        </Lead>
+        <Points items={[
+          <>Everything saves for the studio as you work. If a save fails you’ll see a red message and the screen puts itself back.</>,
+          <>Open this guide again any time from the <B>?</B> in the top bar.</>,
+        ]} />
+      </div>
+    ),
+  },
+  {
+    title: 'Your cards',
+    subtitle: 'Stages and views',
+    icon: Scissors,
+    content: (
+      <div className="space-y-3">
+        <Points items={[
+          <>Each column is a stage. Drag a card to move it along — the producer sees the change straight away.</>,
+          <>Switch between <B>Board</B> and <B>Timeline</B> (ordered by due date), filter by client, project or year, and size cards <B>S / M / L</B> on a larger screen.</>,
+          <>Open a card for its notes, <B>Checklist</B>, <B>Deliverables</B> and links. Tap a deliverable’s chip to move it from <B>To do</B> to <B>In progress</B> to <B>Delivered</B>.</>,
+        ]} />
+      </div>
+    ),
+  },
+  {
+    title: 'Posting a cut',
+    subtitle: 'Versions count themselves',
+    icon: Upload,
+    content: (
+      <div className="space-y-3">
+        <Points items={[
+          <>On the card, under <B>Drafts</B>, give the cut a title, paste its link (Vimeo, Frame.io, Drive…) and post it.</>,
+          <>The version number counts itself — V1, V2, V3 — and the newest becomes the review link everywhere the studio looks.</>,
+          <>After you post, the card offers to move to review. That’s what tells the producer it’s ready to watch.</>,
+        ]} />
+      </div>
+    ),
+  },
+  {
+    title: 'Logging time',
+    subtitle: 'Hours on each card',
+    icon: Timer,
+    content: (
+      <div className="space-y-3">
+        <Points items={[
+          <>Press <B>Start timer</B> on the card when you begin and <B>Stop</B> when you’re done. The total shows on the card.</>,
+          <>Forgot to stop? The timer closes itself after 12 hours, and you can add the real time by hand.</>,
+          <>To log time afterwards, add the minutes with an optional note.</>,
+        ]} />
+      </div>
+    ),
+  },
+  {
+    title: 'Drives',
+    subtitle: 'Who has what',
+    icon: HardDrive,
+    content: (
+      <div className="space-y-3">
+        <Points items={[
+          <>The <B>Drive Tracker</B> lists the studio’s drives and who has each one.</>,
+          <><B>Check out</B> a drive when you take it. When you hand it on, use its menu — <B>Back with…</B> or <B>Change who has it</B> — so the next person can find it.</>,
+          <><B>History</B> on a drive shows everywhere it has been.</>,
+        ]} />
+      </div>
+    ),
+  },
+  {
+    title: 'Your account',
+    subtitle: 'Profile, password and appearance',
+    icon: UserCog,
+    content: (
+      <div className="space-y-3">
+        <Points items={[
+          <>Click your name at the top right for <B>Settings</B>: your name, photo and phone number.</>,
+          <><B>Password</B> is at the bottom of the profile — it asks for your current one first, and can sign you out of your other devices.</>,
+          <><B>Appearance</B> switches between light, dim and dark, or follows your device.</>,
+        ]} />
+      </div>
+    ),
+  },
+];
+
+export function QuickStartGuideModal({
+  isOpen,
+  onClose,
+  onOpenCalendarSync,
+  userRole,
 }: QuickStartGuideModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
-  const steps: TourStep[] = [
-    {
-      title: "Welcome to Studio OS",
-      subtitle: "The Command Center for Zipline Media",
-      icon: Sparkles,
-      content: (
-        <div className="space-y-4">
-          <p className="text-sm text-white/70 leading-relaxed">
-            Welcome to <strong className="text-white">Studio OS</strong>, your agency-grade internal portal designed to unify production slates, crew planning, editing status, gear builders, and live integrations.
-          </p>
-          <div className="bg-white/5 border border-white/15 p-4 rounded-xl space-y-3">
-            <h4 className="text-[10px] font-black tracking-widest text-accent uppercase">At a Glance:</h4>
-            <ul className="grid grid-cols-2 gap-3 text-xs text-white/60">
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-accent rounded-full" />
-                Real-time Database Sync
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-accent rounded-full" />
-                Modular Panel Splits
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-accent rounded-full" />
-                Draft Links & Versions
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-accent rounded-full" />
-                Google & Discord Feeds
-              </li>
-            </ul>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Modular Layouts & Panel Splits",
-      subtitle: "Customize your environment dynamically",
-      icon: Columns,
-      content: (
-        <div className="space-y-4">
-          <p className="text-sm text-white/70 leading-relaxed">
-            Studio OS workspaces are built on a dynamic window-splitting layout manager. You can create customized dashboard layouts by splitting existing panels.
-          </p>
-          
-          <div className="space-y-3">
-            <div className="flex gap-4 items-center bg-white/5 p-3 rounded-xl border border-white/5">
-              <div className="flex items-center gap-1.5 shrink-0">
-                <div className="p-1.5 bg-white/10 rounded"><Columns className="w-3.5 h-3.5 text-accent" /></div>
-                <div className="p-1.5 bg-white/10 rounded"><Rows className="w-3.5 h-3.5 text-accent" /></div>
-              </div>
-              <p className="text-xs text-white/60">
-                Click <strong className="text-white">Edit layout</strong> in the header, then use the <strong className="text-white">Split</strong> icons in a panel&apos;s top-right corner to divide it vertically or horizontally. Click <strong className="text-white">Done</strong> to hide the controls again.
-              </p>
-            </div>
-
-            <div className="flex gap-4 items-center bg-white/5 p-3 rounded-xl border border-white/5">
-              <div className="p-1.5 bg-white/10 rounded shrink-0"><RotateCcw className="w-3.5 h-3.5 text-accent" /></div>
-              <p className="text-xs text-white/60">
-                If the splits get too complicated, click <strong className="text-white">Edit layout</strong>, then the <strong className="text-white">Reset</strong> button beside it to restore the default panel layout.
-              </p>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Core Modules Guide",
-      subtitle: "Unifying pre-production, filming, and post",
-      icon: Briefcase,
-      content: (
-        <div className="space-y-4 max-h-[350px] overflow-y-auto no-scrollbar pr-1">
-          <p className="text-sm text-white/70 leading-relaxed">
-            Quickly navigate the core internal widgets by switching workspace tabs or clicking icons:
-          </p>
-          <div className="space-y-2.5">
-            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
-              <Briefcase className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-              <div>
-                <h5 className="text-[10px] font-black uppercase text-white">Production Slate</h5>
-                <p className="text-[11px] text-white/60">Every card shows its crew, its deliverables and its billing at a glance. Manage status and budgets, and export PDF call sheets.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
-              <Scissors className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-              <div>
-                <h5 className="text-[10px] font-black uppercase text-white">Edit Tracker</h5>
-                <p className="text-[11px] text-white/60">Track each edit through your stages, post each cut&apos;s link with its version history, and coordinate notes. S / M / L sets how big the cards are.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
-              <Package className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-              <div>
-                <h5 className="text-[10px] font-black uppercase text-white">Gear Builder</h5>
-                <p className="text-[11px] text-white/60">Pick a production and build its gear list, or make a one-off list that never touches the Slate. Export a PDF or share a live link; it warns when another shoot that day needs the same gear.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
-              <Users className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-              <div>
-                <h5 className="text-[10px] font-black uppercase text-white">Rolodex CRM</h5>
-                <p className="text-[11px] text-white/60">Crew, vendors and clients with day rates and contact info, plus who&apos;s booked when. Searching a name opens their card.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
-              <Library className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-              <div>
-                <h5 className="text-[10px] font-black uppercase text-white">Library</h5>
-                <p className="text-[11px] text-white/60">One place to browse, rename and tidy projects and shoots. Clients live in the Rolodex; gear is edited in the Gear Builder.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Tabs & Custom Embeds",
-      subtitle: "Modular widgets and custom dashboards",
-      icon: Link,
-      content: (
-        <div className="space-y-4">
-          <p className="text-sm text-white/70 leading-relaxed">
-            Expand the portal capabilities by creating custom workspace views.
-          </p>
-          <div className="space-y-3">
-            <div className="flex gap-4 items-center bg-white/5 p-3 rounded-xl border border-white/5">
-              <div className="p-2 bg-white/10 rounded shrink-0"><Link className="w-4 h-4 text-accent" /></div>
-              <p className="text-xs text-white/60 font-bold uppercase tracking-wider">
-                Web Embeds: <span className="text-white/80 lowercase normal-case block mt-0.5">Embed public folders, Vimeo playbacks, Figma wireframes, or Trello boards directly into any split panel.</span>
-              </p>
-            </div>
-            <div className="flex gap-4 items-center bg-white/5 p-3 rounded-xl border border-white/5">
-              <div className="p-2 bg-white/10 rounded shrink-0"><Plus className="w-4 h-4 text-accent" /></div>
-              <p className="text-xs text-white/60">
-                Click <strong className="text-white">Edit layout</strong> in the header, then <strong className="text-white">Create Workspace</strong> at the bottom of the sidebar to add a custom tab for your team. The sidebar keeps the tabs the team opens most at the top; the order you set in Edit layout breaks ties.
-              </p>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Calendar Integration",
-      subtitle: "Two-way synchronization",
-      icon: Calendar,
-      content: (
-        <div className="space-y-4 max-h-[350px] overflow-y-auto no-scrollbar pr-1">
-          <p className="text-sm text-white/70 leading-relaxed">
-            The calendar works in both directions: shoots booked here appear on Google, and events
-            added in Google appear here.
-          </p>
-
-          <div className="bg-black/40 border border-white/5 p-4 rounded-xl space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-[10px] font-black uppercase text-accent">Sync</h4>
-              <button
-                onClick={onOpenCalendarSync}
-                className="px-3 py-1 bg-accent/20 hover:bg-accent border border-accent/30 rounded-lg text-[11px] md:text-[9px] font-semibold text-white transition-colors cursor-pointer"
-              >
-                Configure Now
-              </button>
-            </div>
-            <ul className="text-xs text-white/60 space-y-2 list-disc list-inside">
-              <li>Connect Google once and saving a production pushes it automatically — with the crew, call time, location and safety details written into the event, so the calendar entry works as a pocket call sheet.</li>
-              <li>Colours match Google&rsquo;s own palette, so a Hold looks the same in both places. Productions are tangerine.</li>
-              <li>Subscribe any calendar app to the feed link for a read-only copy.</li>
-            </ul>
-          </div>
-
-          <div className="bg-black/40 border border-white/5 p-4 rounded-xl space-y-3">
-            <h4 className="text-[10px] font-black uppercase text-accent">Clicking a day</h4>
-            <ul className="text-xs text-white/60 space-y-2 list-disc list-inside">
-              <li><span className="text-white font-semibold">Hold, Out of Office, Booked, Meeting</span> — quick markers. A colour and a note, nothing more.</li>
-              <li><span className="text-white font-semibold">New production</span> — opens the full Slate form with that date already filled in, for a real shoot that needs a client, crew and a location.</li>
-            </ul>
-          </div>
-
-          <div className="bg-black/40 border border-white/5 p-4 rounded-xl space-y-2">
-            <h4 className="text-[10px] font-black uppercase text-accent">On a phone</h4>
-            <p className="text-xs text-white/60">
-              The calendar opens as an agenda — a running list of what&rsquo;s coming, with full titles
-              and call times. Switch to the month grid with the toggle at the top when you want to
-              spot a free week.
-            </p>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "What a Production Card Carries",
-      subtitle: "Crew, deliverables and billing at a glance",
-      icon: Clapperboard,
-      content: (
-        <div className="space-y-4 max-h-[350px] overflow-y-auto no-scrollbar pr-1">
-          <p className="text-sm text-white/70 leading-relaxed">
-            Each card on the Slate board shows the three things you usually open a job to check.
-            A block only appears once it has something in it, so an empty shoot stays a title and a date.
-          </p>
-          <div className="space-y-2.5">
-            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
-              <Users className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-              <div>
-                <h5 className="text-[10px] font-black uppercase text-white">Crew</h5>
-                <p className="text-[11px] text-white/60">Who&rsquo;s on it, their position and their call time. Roles you haven&rsquo;t filled yet read <span className="italic">Unassigned</span> rather than hiding — that&rsquo;s the thing still to book.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
-              <Film className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-              <div>
-                <h5 className="text-[10px] font-black uppercase text-white">Deliverables</h5>
-                <p className="text-[11px] text-white/60">Every cutdown the shoot owes. Tap the chip to move one from to&nbsp;do to in&nbsp;progress to delivered. Add them from the card menu; they also show in the Social tab.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 items-start bg-white/5 p-2.5 rounded-xl border border-white/5">
-              <Plus className="w-4 h-4 text-accent mt-0.5 shrink-0" />
-              <div>
-                <h5 className="text-[10px] font-black uppercase text-white">Billing</h5>
-                <p className="text-[11px] text-white/60">Invoiced and quoted totals, read straight from QuickBooks once it&rsquo;s connected. Read-only — nothing here writes to your books.</p>
-              </div>
-            </div>
-          </div>
-          <p className="text-[11px] text-white/45 leading-relaxed">
-            <span className="text-white/70">Crew &amp; schedule</span> at the bottom of the card opens the crew manager. The menu holds
-            the rest: gear list, links, call sheet and production brief exports, duplicating a shoot
-            for the next day, archiving it (kept, in the Archived folder at the bottom of the Slate),
-            and deleting it.
-          </p>
-        </div>
-      )
-    },
-    {
-      title: "The Library",
-      subtitle: "Everything the rest of the app refers to",
-      icon: Library,
-      content: (
-        <div className="space-y-4 max-h-[350px] overflow-y-auto no-scrollbar pr-1">
-          <p className="text-sm text-white/70 leading-relaxed">
-            Projects and shoots in one place — for when you want to tidy up, rename something,
-            or add a lot at once. Clients are kept in the Rolodex; the gear catalogue in the Gear Builder.
-          </p>
-          <ul className="text-xs text-white/60 space-y-2 list-disc list-inside">
-            <li>Search across both at once. Looking for &ldquo;Hudson&rdquo; finds the project and the shoot together.</li>
-            <li>Pick a record to see its details and what it&rsquo;s linked to — a project walks to its shoots.</li>
-            <li>Sort shoots by date, client or status.</li>
-            <li>Tick several rows to remove them together.</li>
-          </ul>
-          <div className="bg-amber-400/5 border border-amber-400/20 p-3 rounded-xl space-y-1.5">
-            <h4 className="text-[10px] font-black uppercase text-amber-300/90">Before you delete</h4>
-            <p className="text-[11px] text-white/60 leading-relaxed">
-              Removing a project <span className="text-white">unlinks</span> its shoots — they stay.
-              Deleting a <span className="text-white">shoot</span> is different: its crew, schedule, shot list
-              and budget go with it, and it&rsquo;s cleared from Google Calendar. The confirmation always says which.
-            </p>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Team Channel Alerts",
-      subtitle: "Discord, Slack or Teams",
-      icon: MessageSquare,
-      content: (
-        <div className="space-y-4">
-          <p className="text-sm text-white/70 leading-relaxed">
-            Keep the team aligned without anyone having to check the app. Studio OS posts to the channels you add — Discord, Slack or Microsoft Teams.
-          </p>
-          <div className="bg-white/5 border border-white/15 p-4 rounded-xl space-y-3">
-            <h4 className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping" />
-              Alerts you can switch on
-            </h4>
-            <div className="grid grid-cols-2 gap-2.5 text-xs text-white/60 font-semibold">
-              <div className="flex items-center gap-1.5">✓ New production</div>
-              <div className="flex items-center gap-1.5">✓ Status changes</div>
-              <div className="flex items-center gap-1.5">✓ Edit ready for review</div>
-              <div className="flex items-center gap-1.5">✓ Edit delivered</div>
-            </div>
-          </div>
-          <p className="text-[10px] text-white/40 italic">
-            Add channels and choose which alerts go where under Settings → Integrations.
-          </p>
-        </div>
-      )
-    }
-  ];
+  const steps = userRole === 'editor' ? editorSteps : teamSteps(onOpenCalendarSync);
+  // The guide can open before the role has loaded (first visit) and switch
+  // tours underneath; keep the step inside the shorter list.
+  const stepIndex = Math.min(currentStep, steps.length - 1);
+  const step = steps[stepIndex];
+  const isLast = stepIndex === steps.length - 1;
 
   const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      onClose();
-    }
+    if (!isLast) setCurrentStep(stepIndex + 1);
+    else onClose();
   };
 
   const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
+    if (stepIndex > 0) setCurrentStep(stepIndex - 1);
   };
 
-  const StepIcon = steps[currentStep].icon;
+  const StepIcon = step.icon;
 
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
           <EscapeToClose onClose={onClose} />
-          {/* Main Modal Box */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
-            transition={{ type: "spring", duration: 0.4 }}
-            className="w-full max-w-xl bg-zinc-950 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative flex flex-col justify-between overflow-hidden min-h-[460px]"
+            transition={{ type: 'spring', duration: 0.4 }}
+            role="dialog"
+            aria-label="Quick start guide"
+            className="w-full max-w-xl max-h-[90dvh] bg-zinc-950 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl relative flex flex-col overflow-hidden"
           >
-            {/* Top glowing line decoration */}
             <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-accent to-transparent" />
-            
-            {/* Close Button */}
-            <button aria-label="Close" title="Close" 
+
+            <button
+              aria-label="Close"
+              title="Close"
               onClick={onClose}
               className="absolute top-4 right-4 p-2 hover:bg-white/5 rounded-full text-white/40 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
-            {/* Step Header */}
-            <div className="flex items-center gap-3.5 mb-6">
+            {/* Step header */}
+            <div className="flex items-center gap-3.5 mb-5 pr-8 shrink-0">
               <div className="w-11 h-11 bg-accent/10 rounded-xl flex items-center justify-center border border-accent/20 shrink-0">
-                <StepIcon className="w-6 h-6 text-accent animate-pulse" />
+                <StepIcon className="w-5 h-5 text-accent" />
               </div>
               <div className="min-w-0">
-                <h3 className="text-base font-black uppercase tracking-tighter text-white truncate">
-                  {steps[currentStep].title}
-                </h3>
-                <p className="text-[11px] md:text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mt-0.5 truncate">
-                  {steps[currentStep].subtitle}
-                </p>
+                <h3 className="text-lg font-semibold tracking-tight text-white leading-tight">{step.title}</h3>
+                <p className="text-xs text-white/45 mt-0.5">{step.subtitle}</p>
               </div>
             </div>
 
-            {/* Slide Body */}
-            <div className="flex-1 mb-8 flex flex-col justify-center">
+            {/* Step body — scrolls on short screens instead of growing past them */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar mb-6 -mr-2 pr-2">
               <motion.div
-                key={currentStep}
+                key={`${userRole === 'editor' ? 'e' : 't'}-${stepIndex}`}
                 initial={{ opacity: 0, x: 15 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -15 }}
                 transition={{ duration: 0.25 }}
               >
-                {steps[currentStep].content}
+                {step.content}
               </motion.div>
             </div>
 
-            {/* Bottom Actions Area */}
-            <div className="flex items-center justify-between border-t border-white/5 pt-5 shrink-0">
-              {/* Slide dots */}
-              <div className="flex gap-1.5">
-                {steps.map((_, i) => (
+            {/* Navigation */}
+            <div className="flex items-center justify-between gap-4 border-t border-white/5 pt-5 shrink-0">
+              <div className="flex gap-1.5 flex-wrap">
+                {steps.map((s, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentStep(i)}
+                    aria-label={`Step ${i + 1}: ${s.title}`}
+                    aria-current={i === stepIndex ? 'step' : undefined}
                     className={`h-1.5 rounded-full transition-all duration-300 ${
-                      i === currentStep ? 'w-6 bg-accent' : 'w-1.5 bg-white/10 hover:bg-white/35'
+                      i === stepIndex ? 'w-6 bg-accent' : 'w-1.5 bg-white/10 hover:bg-white/35'
                     }`}
                   />
                 ))}
               </div>
-
-              {/* Navigation buttons */}
-              <div className="flex gap-2">
-                {currentStep > 0 && (
+              <div className="flex gap-2 shrink-0">
+                {stepIndex > 0 && (
                   <button
                     onClick={handleBack}
-                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white rounded-xl text-[11px] md:text-[9px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" /> Back
                   </button>
                 )}
-                
                 <button
                   onClick={handleNext}
-                  className="px-5 py-2.5 bg-accent hover:bg-white hover:text-black text-white rounded-xl text-[11px] md:text-[9px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-accent/15"
+                  className="px-5 py-2.5 bg-accent hover:bg-white hover:text-black text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-accent/15"
                 >
-                  {currentStep === steps.length - 1 ? 'Finish Tour' : 'Next'} <ChevronRight className="w-3.5 h-3.5" />
+                  {isLast ? 'Done' : 'Next'} {!isLast && <ChevronRight className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
@@ -441,70 +431,52 @@ export function QuickStartGuideModal({
 }
 
 // --- INLINE CHEATSHEET WIDGET ---
+// A panel admins and staff can keep open beside their work (editors can't
+// mount it). The short version of the team tour.
 export function QuickStartWidget() {
+  const rows: { label: string; how: string }[] = [
+    { label: 'Search anything', how: '⌘K' },
+    { label: 'Close out a past shoot', how: 'Dashboard → This week' },
+    { label: 'Duplicate a shoot for the next day', how: 'Slate card → menu' },
+    { label: 'Archive a production', how: 'Slate card → menu' },
+    { label: 'One-off gear list', how: 'Gear Builder → One-off' },
+    { label: 'Split a panel or add an embed', how: 'Edit layout' },
+    { label: 'Calendar subscription link', how: 'Calendar sync icon' },
+    { label: 'Team alerts', how: 'Settings → Integrations' },
+    { label: 'Change your password', how: 'Settings → Profile' },
+  ];
   return (
     <div className="w-full h-full flex flex-col p-5 bg-neutral-950/20 text-white min-h-[300px] overflow-y-auto no-scrollbar">
       <div className="flex items-center gap-2 border-b border-white/5 pb-3 mb-4 shrink-0">
         <HelpCircle className="w-4 h-4 text-accent" />
-        <h4 className="text-[10px] font-black uppercase tracking-widest">Quick Start Cheatsheet</h4>
+        <h4 className="text-sm font-semibold">Quick start</h4>
       </div>
 
-      <div className="space-y-6 text-xs text-white/70">
-        {/* Layout management card */}
-        <div className="bg-white/5 border border-white/5 p-4 rounded-xl space-y-3">
-          <div className="flex items-center gap-2 border-b border-white/5 pb-1.5">
-            <Columns className="w-4.5 h-4.5 text-accent" />
-            <h5 className="text-[10px] font-black uppercase text-white">Layout Splits & Resizing</h5>
+      <div className="space-y-4 text-xs text-white/70">
+        <div className="bg-white/5 border border-white/5 p-4 rounded-xl">
+          <h5 className="text-[13px] font-semibold text-white mb-2">Where things are</h5>
+          <div className="divide-y divide-white/5">
+            {rows.map(r => (
+              <div key={r.label} className="flex items-center justify-between gap-3 py-1.5">
+                <span className="text-white/70">{r.label}</span>
+                <span className="bg-white/10 px-2 py-0.5 rounded text-[11px] font-medium text-white shrink-0">{r.how}</span>
+              </div>
+            ))}
           </div>
-          <ul className="space-y-2 text-white/60 leading-relaxed list-disc list-inside">
-            <li>
-              Click <strong className="text-white">Edit layout</strong> in the header, then <strong className="text-white">Columns (vertical split)</strong> or <strong className="text-white">Rows (horizontal split)</strong> on a panel to divide the workspace view.
-            </li>
-            <li>
-              Drag the dark borders/dividers between panels to resize them.
-            </li>
-            <li>
-              While editing the layout, click <strong className="text-white">Reset</strong> in the header to revert any screen splitting back to defaults.
-            </li>
-          </ul>
         </div>
 
-        {/* Integration cheatsheet */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white/5 border border-white/5 p-4 rounded-xl space-y-2">
-            <h5 className="text-[11px] md:text-[9px] font-black uppercase text-accent tracking-widest">Calendar Webcal</h5>
+          <div className="bg-white/5 border border-white/5 p-4 rounded-xl space-y-1.5">
+            <h5 className="text-[13px] font-semibold text-white">Google two-way sync</h5>
             <p className="text-[11px] leading-relaxed text-white/60">
-              Click the Calendar Sync button in the header to copy the ICS subscription URL to keep your devices synced.
+              Saved productions go to the studio calendar. Google events titled with a leading <span className="text-white">🎥</span> come back as productions.
             </p>
           </div>
-          <div className="bg-white/5 border border-white/5 p-4 rounded-xl space-y-2">
-            <h5 className="text-[11px] md:text-[9px] font-black uppercase text-accent tracking-widest">Google Two-Way Sync</h5>
+          <div className="bg-white/5 border border-white/5 p-4 rounded-xl space-y-1.5">
+            <h5 className="text-[13px] font-semibold text-white">Layouts</h5>
             <p className="text-[11px] leading-relaxed text-white/60">
-              Connect your account, then events created on Google Calendar prefixed with <span className="text-white font-bold">🎥</span> automatically sync back to your Production Slate.
+              Drag the dividers between panels to resize them. <span className="text-white">Edit layout → Reset</span> puts a tab back to its defaults.
             </p>
-          </div>
-        </div>
-
-        {/* Shortcuts / Quick Actions */}
-        <div className="bg-white/5 border border-white/5 p-4 rounded-xl space-y-3">
-          <h5 className="text-[10px] font-black uppercase text-white border-b border-white/5 pb-1.5">Shortcut Operations</h5>
-          <div className="space-y-2 text-white/60">
-            <div className="flex justify-between border-b border-white/5 py-1 text-[11px]">
-              <span className="font-bold">Reset Split View</span>
-              <span className="bg-white/10 px-2 py-0.5 rounded text-[11px] md:text-[8px] font-bold text-white">Edit layout → Reset</span>
-            </div>
-            <div className="flex justify-between border-b border-white/5 py-1 text-[11px]">
-              <span className="font-bold">Add Web Embed Tab</span>
-              <span className="bg-white/10 px-2 py-0.5 rounded text-[11px] md:text-[8px] font-bold text-white">Plus Icon &gt; Web Embed</span>
-            </div>
-            <div className="flex justify-between border-b border-white/5 py-1 text-[11px]">
-              <span className="font-bold">Link Gear builder from Slate</span>
-              <span className="bg-white/10 px-2 py-0.5 rounded text-[11px] md:text-[8px] font-bold text-white">Slate &gt; Click &quot;Build Gear&quot;</span>
-            </div>
-            <div className="flex justify-between py-1 text-[11px]">
-              <span className="font-bold">CRM Contacts database</span>
-              <span className="bg-white/10 px-2 py-0.5 rounded text-[11px] md:text-[8px] font-bold text-white">Rolodex Panel</span>
-            </div>
           </div>
         </div>
       </div>

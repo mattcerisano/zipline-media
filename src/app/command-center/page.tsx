@@ -2200,6 +2200,7 @@ export default function CommandCenterPage() {
       {/* Quick Start Guide Modal */}
       <QuickStartGuideModal 
         isOpen={isQuickStartOpen} 
+        userRole={userRole}
         onClose={() => setIsQuickStartOpen(false)} 
         onOpenCalendarSync={() => {
           setIsQuickStartOpen(false);
