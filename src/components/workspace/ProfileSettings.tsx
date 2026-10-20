@@ -223,24 +223,25 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-2 px-5 pt-4">
+          {/* Tabs. They wrap rather than run off the right edge: on a phone
+              the strip had to be swiped sideways to find Integrations. */}
+          <div className="flex flex-wrap gap-1.5 md:gap-2 px-5 pt-4">
             <button
               onClick={() => setTab('profile')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'profile' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-all ${tab === 'profile' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
             >
-              <UserIcon className="w-3.5 h-3.5" /> My Profile
+              <UserIcon className="w-3.5 h-3.5" /> My profile
             </button>
             <button
               onClick={() => setTab('appearance')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'appearance' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-all ${tab === 'appearance' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
             >
               <SwatchBook className="w-3.5 h-3.5" /> Appearance
             </button>
             {isAdmin && (
               <button
                 onClick={() => setTab('branding')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'branding' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-all ${tab === 'branding' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
               >
                 <Palette className="w-3.5 h-3.5" /> Branding
               </button>
@@ -248,7 +249,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
             {isAdmin && (
               <button
                 onClick={() => setTab('integrations')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'integrations' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-all ${tab === 'integrations' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
               >
                 <Bell className="w-3.5 h-3.5" /> Integrations
               </button>
@@ -256,7 +257,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
             {isAdmin && (
               <button
                 onClick={() => setTab('team')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'team' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-all ${tab === 'team' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
               >
                 <Users className="w-3.5 h-3.5" /> Team
               </button>

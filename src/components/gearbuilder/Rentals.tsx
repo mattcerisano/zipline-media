@@ -98,7 +98,9 @@ const ModalPortal = ({ children }: { children: React.ReactNode }) => {
   // Hydration-safe mount check: false on the server pass, true once client-side.
   const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   if (!mounted) return null;
-  return createPortal(children, document.body);
+  // Inside the Studio OS root (which carries the light/dark theme), but
+  // outside the scrolling panel.
+  return createPortal(children, document.getElementById('studio-os-root') || document.body);
 };
 
 
@@ -1444,8 +1446,56 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   // Grows to the true height of the manifest rather than scrolling inside a
   // viewport-height box — the list is read by scrolling the page, with the
   // catalog staying pinned alongside it.
-  const ManifestContent = (
-    <section className="bg-neutral-900/80 border border-white/10 p-6 md:p-8 rounded-2xl flex flex-col">
+  const ManifestActions = (
+            <div className="grid grid-cols-4 gap-1.5">
+          <button 
+            type="button"
+            onClick={resetApp}
+            className="flex items-center justify-center gap-1 border border-white/10 py-2.5 text-xs font-semibold hover:bg-white hover:text-black transition-all rounded-xl"
+            title="Reset gear list"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Reset
+          </button>
+          <button 
+            type="button"
+            onClick={saveJob}
+            disabled={Object.keys(manifest).length === 0}
+            className="flex items-center justify-center gap-1 border border-accent/20 bg-accent/5 py-2.5 text-xs font-semibold text-accent hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-accent/5"
+            title={selectedJobId ? 'Save this gear list to the production' : 'Save this one-off list on this device'}
+          >
+            <ClipboardList className="w-3.5 h-3.5" /> {selectedJobId ? 'Save' : 'Save draft'}
+          </button>
+          <button 
+            type="button"
+            onClick={exportPDF}
+            disabled={Object.keys(manifest).length === 0}
+            className="flex items-center justify-center gap-1 bg-accent py-2.5 text-xs font-semibold hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl shadow-lg shadow-accent/20"
+          >
+            <FileDown className="w-3.5 h-3.5" /> PDF
+          </button>
+          <button 
+            type="button"
+            onClick={shareGearList}
+            disabled={!selectedJobId || Object.keys(manifest).length === 0}
+            className={`flex items-center justify-center gap-1 py-2.5 text-xs font-semibold border transition-all rounded-xl ${
+              copiedLink 
+                ? 'bg-green-600 border-green-500 text-white' 
+                : 'border-white/10 text-white/60 hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-white/40'
+            }`}
+            title="Copy shareable link"
+          >
+            <Share2 className="w-3.5 h-3.5" /> {copiedLink ? 'Copied' : 'Share'}
+          </button>
+        </div>
+  );
+
+  // The manifest panel. On a phone it opens as a full-screen sheet that has
+  // its own header and a footer for the buttons, so the panel's header and
+  // floating button bar are left out there — two headers and a bar drifting
+  // over the list read as a window inside a window.
+  const renderManifest = (inSheet: boolean) => (
+    <section className={inSheet ? 'flex flex-col' : 'bg-neutral-900/80 border border-white/10 p-6 md:p-8 rounded-2xl flex flex-col'}>
+      {!inSheet && (
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <ClipboardList className="w-5 h-5 text-accent" />
@@ -1460,14 +1510,9 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               <Trash2 className="w-3 h-3" /> <span className="hidden md:inline">Clear</span>
             </button>
           )}
-          <button 
-            onClick={() => setIsMobileManifestOpen(false)}
-            className="@4xl:hidden p-2 hover:bg-white/10 rounded-full transition-colors"
-          >
-            <ChevronDown className="w-5 h-5" />
-          </button>
         </div>
       </div>
+      )}
 
       {/* Which production this list is for. Title, date, client, location,
           logistics and notes are edited on the Slate — retyping them here
@@ -1683,49 +1728,13 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
             <FolderOpen className="w-3.5 h-3.5" /> Save as Gear Package
           </button>
         )}
-                <div className="sticky bottom-0 z-20 bg-neutral-900/90 backdrop-blur-md p-4 border-t border-white/10">
-            <div className="grid grid-cols-4 gap-1.5">
-          <button 
-            type="button"
-            onClick={resetApp}
-            className="flex items-center justify-center gap-1 border border-white/10 py-2.5 text-xs font-semibold hover:bg-white hover:text-black transition-all rounded-xl"
-            title="Reset gear list"
-          >
-            <RotateCcw className="w-3.5 h-3.5" /> Reset
-          </button>
-          <button 
-            type="button"
-            onClick={saveJob}
-            disabled={Object.keys(manifest).length === 0}
-            className="flex items-center justify-center gap-1 border border-accent/20 bg-accent/5 py-2.5 text-xs font-semibold text-accent hover:bg-accent hover:text-white transition-all rounded-xl shadow-lg shadow-accent/5"
-            title={selectedJobId ? 'Save this gear list to the production' : 'Save this one-off list on this device'}
-          >
-            <ClipboardList className="w-3.5 h-3.5" /> {selectedJobId ? 'Save' : 'Save draft'}
-          </button>
-          <button 
-            type="button"
-            onClick={exportPDF}
-            disabled={Object.keys(manifest).length === 0}
-            className="flex items-center justify-center gap-1 bg-accent py-2.5 text-xs font-semibold hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-accent disabled:hover:text-white transition-all rounded-xl shadow-lg shadow-accent/20"
-          >
-            <FileDown className="w-3.5 h-3.5" /> PDF
-          </button>
-          <button 
-            type="button"
-            onClick={shareGearList}
-            disabled={!selectedJobId || Object.keys(manifest).length === 0}
-            className={`flex items-center justify-center gap-1 py-2.5 text-xs font-semibold border transition-all rounded-xl ${
-              copiedLink 
-                ? 'bg-green-600 border-green-500 text-white' 
-                : 'border-white/10 text-white/60 hover:bg-white hover:text-black disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-white/40'
-            }`}
-            title="Copy shareable link"
-          >
-            <Share2 className="w-3.5 h-3.5" /> {copiedLink ? 'Copied' : 'Share'}
-          </button>
-        </div>
-      </div>
-    </section>);
+                {!inSheet && (
+                  <div className="sticky bottom-0 z-20 bg-neutral-900/90 backdrop-blur-md p-4 border-t border-white/10">
+                    {ManifestActions}
+                  </div>
+                )}
+    </section>
+  );
 
     return (
     <div className="@container pt-2 md:pt-8 pb-32 @4xl:pb-8 px-0 md:px-6">
@@ -1735,7 +1744,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           <div className="@4xl:col-span-7 space-y-8 @4xl:self-stretch">
             <section className="md:bg-neutral-900/50 md:border border-white/10 p-0 md:p-6 md:pb-0 md:rounded-2xl md:overflow-hidden flex flex-col h-fit md:max-h-[75vh] @4xl:max-h-none @4xl:h-[calc(100vh-140px)] @4xl:sticky @4xl:top-24">
               
-              <div className="bg-neutral-900/90 backdrop-blur-md p-4 md:p-0 z-20 sticky top-0 border-b md:border-b-0 border-white/10 space-y-4">
+              <div className="bg-neutral-900 md:bg-neutral-900/90 md:backdrop-blur-md p-4 md:p-0 z-20 sticky top-0 border-b md:border-b-0 border-white/10 space-y-4">
                 {/* Tab Toggle */}
                 <div className="flex gap-1 md:gap-2 p-1 bg-black/40 border border-white/5 rounded-xl">
                   <button 
@@ -2087,10 +2096,11 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
           </div>
 
           <div className="hidden @4xl:block @4xl:col-span-5 space-y-8 min-h-0">
-            {ManifestContent}
+            {renderManifest(false)}
           </div>
         </div>
 
+        <ModalPortal>
         <AnimatePresence>
           {isMobileManifestOpen && (
             <motion.div 
@@ -2098,30 +2108,38 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-0 z-[110] bg-neutral-950 @4xl:hidden flex flex-col"
+              className="fixed inset-0 z-[110] bg-neutral-950 text-white lg:hidden flex flex-col pt-[env(safe-area-inset-top)]"
             >
               <EscapeToClose onClose={() => setIsMobileManifestOpen(false)} />
-              <div className="flex items-center justify-between p-6 border-b border-white/10 bg-neutral-900/50 backdrop-blur-lg sticky top-0 z-20">
-                <div className="flex items-center gap-3">
-                  <Package className="w-5 h-5 text-accent" />
-                  <h2 className="text-lg font-bold text-white">Manifest</h2>
-                  <span className="bg-accent/20 text-accent text-[10px] font-semibold px-2 py-0.5 rounded-full">
+              <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-neutral-950 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <h2 className="text-base font-semibold text-white">Gear list</h2>
+                  <span className="bg-accent/20 text-accent text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0">
                     {Object.values(manifest).reduce((a, b) => a + b, 0)} items
                   </span>
                 </div>
-                <button 
-                  onClick={() => setIsMobileManifestOpen(false)}
-                  className="p-3 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10"
-                >
-                  <X className="w-6 h-6" />
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  {Object.keys(manifest).length > 0 && (
+                    <button onClick={clearManifest} className="px-3 py-2 text-[13px] font-medium text-white/50 hover:text-red-400">Clear</button>
+                  )}
+                  <button
+                    onClick={() => setIsMobileManifestOpen(false)}
+                    className="px-3 py-2 rounded-lg bg-white/10 text-[13px] font-semibold text-white"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
-              <div className="flex-1 overflow-y-auto p-6 pb-32 custom-scrollbar">
-                {ManifestContent}
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 custom-scrollbar">
+                {renderManifest(true)}
+              </div>
+              <div className="shrink-0 border-t border-white/10 bg-neutral-950 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                {ManifestActions}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+        </ModalPortal>
 
         {/* Floating Mobile Trigger */}
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[105] @4xl:hidden w-full px-6">

@@ -294,6 +294,22 @@ button, a, [role="button"], input[type="checkbox"], select {
   }
 }
 
+/* Pop-ups and full-screen overlays keep scrolling to themselves. They live
+   inside the panel's scroll area in the DOM, so a swipe that reached the end
+   of a pop-up (or landed on one with nothing to scroll) carried on and
+   scrolled the page behind it. A scroll container with `contain` stops the
+   chain there. */
+.studio-os .fixed.inset-0 {
+  overscroll-behavior: contain;
+}
+.studio-os .fixed.inset-0:not(.pointer-events-none) {
+  overflow-y: auto;
+}
+.studio-os .fixed.inset-0 .overflow-y-auto,
+.studio-os .fixed.inset-0 .overflow-auto {
+  overscroll-behavior: contain;
+}
+
 /* Snappier taps: no 300ms double-tap-zoom wait on buttons/links, and no gray
    flash overlay on tap (the UI has its own hover/active states). */
 .studio-os button,
