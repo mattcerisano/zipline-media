@@ -24,6 +24,7 @@ export interface WeekJob {
   location_name?: string | null;
   due_date?: string | null;
   editor_name?: string | null;
+  archived_at?: string | null;
 }
 
 export interface WeekDrive {

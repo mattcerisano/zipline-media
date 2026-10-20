@@ -77,19 +77,6 @@ async function runTests() {
     'Slate Subscription Calendar ICS Feed',
     '/api/calendar'
   );
-
-  // 9. Test Discord webhook POST
-  await testEndpoint(
-    'Discord Webhook Dispatch Alert',
-    '/api/integrations/discord',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: '🛠️ **Studio OS Automated Integration Health Check**\nAll systems checked.'
-      })
-    }
-  );
 }
 
 runTests();

@@ -57,14 +57,19 @@ export default function ThisWeek({
     const [jobsRes, drivesRes, orgRes] = await Promise.all([
       supabase
         .from('jobs')
-        .select('id, title, client_name, production_company, job_status, edit_status, shoot_date, end_date, call_time, location_name, due_date, editor:contacts(name)')
+        // `*` rather than a column list, so archived_at is read once it exists
+        // without breaking this query before the archive migration runs.
+        .select('*, editor:contacts(name)')
         .limit(2000),
       // Fails soft where the Drive Tracker migration hasn't run.
       supabase.from('drives').select('id, label, holder_name, status, checked_out_at').eq('status', 'out'),
       supabase.from('organizations').select('edit_stages').order('created_at', { ascending: true }).limit(1).maybeSingle(),
     ]);
     if (!jobsRes.error && jobsRes.data) {
-      setJobs((jobsRes.data as any[]).map(({ editor, ...j }) => ({ ...j, editor_name: editor?.name ?? null })));
+      setJobs((jobsRes.data as any[])
+        // Archived productions are kept, but they aren't this week's business.
+        .filter(j => !j.archived_at)
+        .map(({ editor, ...j }) => ({ ...j, editor_name: editor?.name ?? null })));
     }
     if (!drivesRes.error && drivesRes.data) setDrives(drivesRes.data as WeekDrive[]);
     setStageDefs(sanitizeStageDefs((orgRes.data as any)?.edit_stages) || DEFAULT_STAGE_DEFS);

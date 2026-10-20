@@ -59,6 +59,7 @@ import { formatLocalDate, todayLocalISO } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
 import { STUDIO_OWNER, buildRentalLog, isBorrowed, ownedName, parseOwnedName } from '@/lib/gear-owners';
 import { gearShortfalls } from '@/lib/conflicts';
+import { loadUserPref, saveUserPref } from '@/lib/user-prefs';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -236,15 +237,31 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [activeSidebarTab, setActiveSidebarTab] = useState<'gear' | 'library' | 'templates' | 'rentals'>('gear');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  // One-off lists: built without a production and kept on this device only —
+  // One-off lists: built without a production and kept in your account —
   // a quick kit for a rental pickup or a test, never on the Slate.
   const [oneOffLists, setOneOffLists] = useState<OneOffList[]>([]);
   const [oneOffId, setOneOffId] = useState<string | null>(null);
   useEffect(() => {
+    let local: OneOffList[] = [];
     try {
       const raw = localStorage.getItem(ONE_OFF_KEY);
-      if (raw) setOneOffLists(JSON.parse(raw));
+      if (raw) local = JSON.parse(raw);
     } catch { /* private mode or bad data — start empty */ }
+    setOneOffLists(local);
+    // Your account's copy, so a draft saved on the laptop opens on the
+    // phone. It wins when it exists; drafts only this device has (from
+    // before drafts synced) are sent up the first time.
+    let cancelled = false;
+    loadUserPref<OneOffList[]>(ONE_OFF_KEY).then(remote => {
+      if (cancelled) return;
+      if (Array.isArray(remote)) {
+        setOneOffLists(remote);
+        try { localStorage.setItem(ONE_OFF_KEY, JSON.stringify(remote)); } catch { /* ignore */ }
+      } else if (local.length > 0) {
+        saveUserPref(ONE_OFF_KEY, local, 0);
+      }
+    });
+    return () => { cancelled = true; };
   }, []);
   const [copiedLink, setCopiedLink] = useState(false);
   // Older shoots auto-drop out of the library so building a new list isn't
@@ -846,6 +863,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
   const persistOneOffs = (lists: OneOffList[]) => {
     setOneOffLists(lists);
     try { localStorage.setItem(ONE_OFF_KEY, JSON.stringify(lists)); } catch { /* storage full or blocked */ }
+    saveUserPref(ONE_OFF_KEY, lists, 0);
   };
 
   const saveOneOff = () => {
@@ -862,7 +880,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
     };
     persistOneOffs([list, ...oneOffLists.filter(l => l.id !== id)]);
     setOneOffId(id);
-    toast('Saved on this device. It isn’t on the Slate.', 'info');
+    toast('Draft saved to your account. It isn’t on the Slate.', 'info');
   };
 
   const loadOneOff = (id: string) => {
@@ -885,7 +903,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
 
   const deleteOneOff = async () => {
     if (!oneOffId) return;
-    if (!(await confirmAction({ title: 'Delete this saved list?', message: 'It’s removed from this device. Nothing on the Slate changes.', danger: true, confirmLabel: 'Delete' }))) return;
+    if (!(await confirmAction({ title: 'Delete this saved list?', message: 'It’s removed from your drafts on every device. Nothing on the Slate changes.', danger: true, confirmLabel: 'Delete' }))) return;
     persistOneOffs(oneOffLists.filter(l => l.id !== oneOffId));
     resetApp();
   };
@@ -1539,7 +1557,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
         >
           <option value="">One-off list (not on the Slate)</option>
           {oneOffLists.length > 0 && (
-            <optgroup label="Saved one-off lists (this device)">
+            <optgroup label="Saved one-off lists">
               {oneOffLists.map(l => (
                 <option key={l.id} value={`draft:${l.id}`}>
                   {l.name}{l.date ? ` — ${formatLocalDate(l.date, { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
@@ -1607,7 +1625,7 @@ export default function Rentals({ preloadedJob, onClearPreload, selectedJobId: s
               className="w-full bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg resize-none"
             />
             <p className="text-[11px] text-white/35 ml-1 flex items-center justify-between gap-2">
-              <span>Prints on the PDF. Save draft keeps it on this device only.</span>
+              <span>Prints on the PDF. Save draft keeps it in your account, not on the Slate.</span>
               {oneOffId && (
                 <button type="button" onClick={deleteOneOff} className="shrink-0 text-red-400/70 hover:text-red-400">Delete draft</button>
               )}
