@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { Portal, useEscapeToClose } from './Overlay';
+import { Portal } from './Overlay';
 
 /**
  * A walk through the real interface: the screen dims, the control being
@@ -63,6 +63,14 @@ function findVisible(marker: string): HTMLElement | null {
   return null;
 }
 
+/** Fully on screen (or as much of it as can be, for something taller than the window). */
+function inView(el: HTMLElement): boolean {
+  const r = el.getBoundingClientRect();
+  const vh = window.innerHeight;
+  if (r.height >= vh - 16) return r.top <= 8 && r.top >= -r.height + vh / 2;
+  return r.top >= 8 && r.bottom <= vh - 8 && r.left >= 0 && r.right <= window.innerWidth;
+}
+
 async function waitFor(marker: string, ms: number, alive: () => boolean): Promise<HTMLElement | null> {
   const until = Date.now() + ms;
   while (alive()) {
@@ -117,7 +125,11 @@ export default function GuidedTour({ steps, host, onClose }: {
 }) {
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
-  const [ready, setReady] = useState(false);
+  // The step that has finished arriving. Tied to the index, not a flag: on
+  // the render where the step changes, a boolean was still true from the last
+  // step and flashed the new text over the old spotlight.
+  const [readyAt, setReadyAt] = useState<number | null>(null);
+  const ready = readyAt === index;
   const [cardSize, setCardSize] = useState({ w: 320, h: 160 });
   const [, setViewport] = useState(0); // re-place the card on resize
 
@@ -129,6 +141,9 @@ export default function GuidedTour({ steps, host, onClose }: {
   const run = useRef(0);
   const direction = useRef<1 | -1>(1);
   const cardRef = useRef<HTMLDivElement>(null);
+  // True while the tour sends its own Escape to close a menu or card it
+  // opened, so its Escape handler lets that one through.
+  const closing = useRef(false);
 
   const step = steps[Math.min(index, steps.length - 1)];
   const isLast = index >= steps.length - 1;
@@ -138,9 +153,14 @@ export default function GuidedTour({ steps, host, onClose }: {
     const container = openContainer.current;
     openContainer.current = null;
     if (!container) return;
-    for (let i = 0; i < 3 && findVisible(container); i++) {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      await sleep(180);
+    closing.current = true;
+    try {
+      for (let i = 0; i < 3 && findVisible(container); i++) {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await sleep(180);
+      }
+    } finally {
+      closing.current = false;
     }
   }, []);
 
@@ -164,7 +184,6 @@ export default function GuidedTour({ steps, host, onClose }: {
     const id = ++run.current;
     const alive = () => run.current === id;
     const h = hostRef.current;
-    setReady(false);
     setRect(null);
     targetEl.current = null;
 
@@ -195,17 +214,26 @@ export default function GuidedTour({ steps, host, onClose }: {
         if (!(await waitFor(step.opens.container, 2500, alive))) return skip();
       }
 
-      if (!step.target) { if (alive()) setReady(true); return; }
+      if (!step.target) { if (alive()) setReadyAt(index); return; }
 
       const el = await waitFor(step.target, step.tab || step.inSidebar ? 3500 : 1200, alive);
       if (!alive()) return;
       if (!el) return skip();
-      el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
-      await sleep(step.inSidebar && h.isMobile ? 450 : 320);
+      // Scroll only when it's off screen: a menu is already in view, and
+      // scrolling under it makes it chase its button while the spotlight
+      // is being measured. A second, instant scroll catches a nested panel
+      // (a card's sheet on a phone) that the smooth one didn't finish.
+      if (!inView(el)) {
+        el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+        await sleep(450);
+        if (!alive()) return;
+        if (!inView(el)) el.scrollIntoView({ block: 'center', inline: 'nearest' });
+      }
+      await sleep(step.inSidebar && h.isMobile ? 450 : 200);
       if (!alive()) return;
       targetEl.current = el;
       setRect(el.getBoundingClientRect());
-      setReady(true);
+      setReadyAt(index);
     })();
     // `index` drives this; the step objects are static per tour.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -234,24 +262,35 @@ export default function GuidedTour({ steps, host, onClose }: {
     };
   }, [ready]);
 
-  // Measure the card so it can be placed without overlapping its target.
+  // Measure the card so it can be placed without overlapping its target; its
+  // height changes with each step's text.
   useLayoutEffect(() => {
     const el = cardRef.current;
     if (!el) return;
-    const w = el.offsetWidth, h = el.offsetHeight;
-    if (w !== cardSize.w || h !== cardSize.h) setCardSize({ w, h });
-  });
+    const measure = () => setCardSize(prev =>
+      prev.w === el.offsetWidth && prev.h === el.offsetHeight ? prev : { w: el.offsetWidth, h: el.offsetHeight });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
-  // ← → and Enter move; Escape (via the shared stack, so an open menu closes first) ends.
-  useEscapeToClose(true, () => { void finish(); });
+  // ← → move (Enter presses the focused Next button by itself). Escape ends
+  // the tour outright: caught before anything else hears it, so it doesn't
+  // just close the menu or card the tour opened and leave the tour standing.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); go(index + 1); }
+      if (e.key === 'Escape') {
+        if (closing.current) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        void finish();
+      } else if (e.key === 'ArrowRight') { e.preventDefault(); go(index + 1); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); if (index > 0) go(index - 1); }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [go, index]);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [go, index, finish]);
 
   const pos = place(rect, cardSize.w, cardSize.h, host.isMobile);
   const spot = rect && {
@@ -260,20 +299,30 @@ export default function GuidedTour({ steps, host, onClose }: {
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-[9400]" role="dialog" aria-modal="true" aria-label="Guided tour">
+      <div
+        className="fixed inset-0 z-[9400]"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Guided tour"
+        data-step={step.id}
+        data-ready={ready ? 'true' : 'false'}
+      >
         {/* Holds the app still: the tour drives, clicks underneath wait. */}
         <div className="absolute inset-0" onMouseDown={(e) => e.preventDefault()} />
 
         {/* Dimming, with the target cut out of it. */}
-        {spot ? (
+        {spot && ready ? (
           <motion.div
-            className="absolute rounded-xl pointer-events-none ring-2 ring-accent"
+            className="absolute rounded-xl pointer-events-none"
             style={{ boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.62)' }}
             initial={false}
             animate={spot}
             transition={{ type: 'spring', stiffness: 260, damping: 30 }}
           >
-            <span className="absolute -inset-1 rounded-xl border-2 border-accent/60 animate-ping" />
+            {/* The outline is a border, not a `ring`: Tailwind draws rings
+                with box-shadow, which the dimming above replaces. */}
+            <span className="absolute inset-0 rounded-xl border-2 border-accent" />
+            <span className="absolute -inset-1 rounded-xl border-2 border-accent/50 animate-ping" />
           </motion.div>
         ) : (
           <div className="absolute inset-0 bg-black/60 pointer-events-none" />

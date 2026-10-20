@@ -580,7 +580,11 @@ export default function CommandCenterPage() {
   // Which surfaces get opened. One line here covers every tab, rather than a
   // call scattered through each widget. Repeats inside ten seconds collapse,
   // so flicking through tabs doesn't drown the totals.
+  // The guided tour flips through tabs on its own; those aren't visits, and
+  // counting them would push the toured tabs up everyone's sidebar.
+  const tourSwitchingTab = useRef(false);
   useEffect(() => {
+    if (tourSwitchingTab.current) { tourSwitchingTab.current = false; return; }
     if (activeTab) trackView(activeTab);
   }, [activeTab]);
 
@@ -2209,10 +2213,20 @@ export default function CommandCenterPage() {
         isOpen={isQuickStartOpen} 
         userRole={userRole}
         onClose={() => setIsQuickStartOpen(false)} 
-        onOpenCalendarSync={() => {
-          setIsQuickStartOpen(false);
-          setIsCalendarSyncOpen(true);
-        }} 
+        host={{
+          activeTab,
+          isMobile,
+          setSidebarOpen: setIsSidebarOpen,
+          goToTab: (tabId) => {
+            if (!visibleTabs.some(t => t.id === tabId)) return false;
+            if (tabId !== activeTab) {
+              tourSwitchingTab.current = true;
+              setActiveTab(tabId);
+              localStorage.setItem('studio_active_tab', tabId);
+            }
+            return true;
+          },
+        }}
       />
     </div>
   );
