@@ -200,7 +200,7 @@ function teamSteps(onOpenCalendarSync: () => void): TourStep[] {
         <div className="space-y-3">
           <Points items={[
             <><B>Meeting notes</B> are kept per client and save as you type — the footer says <B>Synced</B>, or <B>Not saved</B> if something went wrong.</>,
-            <><B>Client onboarding</B> holds creative briefs; <B>Locations</B> holds scouting notes on permits, power and parking.</>,
+            <><B>Client onboarding</B> holds creative briefs. <B>Locations</B> maps every place the studio has shot or scouted, and keeps scouting notes on permits, power and parking.</>,
             <><B>Vault</B> stores encrypted logins and notes — your own, plus a shared vault for the people you choose.</>,
             <><B>Library</B> is for tidying: browse, rename and remove projects and shoots, several at once if you tick them.</>,
           ]} />

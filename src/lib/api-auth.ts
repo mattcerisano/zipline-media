@@ -62,3 +62,10 @@ export async function isTeamMember(user: { id: string; email: string | null }): 
   const { data } = await authClient.from('user_roles').select('role').eq('id', user.id).maybeSingle();
   return !!data?.role && TEAM_ROLES.has(data.role as string);
 }
+
+/** Admin accounts (and the owner): for team-wide one-off jobs like a backfill. */
+export async function isAdmin(user: { id: string; email: string | null }): Promise<boolean> {
+  if (isOwnerEmail(user.email)) return true;
+  const { data } = await authClient.from('user_roles').select('role').eq('id', user.id).maybeSingle();
+  return data?.role === 'admin';
+}
