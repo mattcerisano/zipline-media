@@ -60,7 +60,7 @@ import { caps, currency } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
 import { saved } from '@/lib/saved';
 import { trackAction } from '@/lib/usage';
-import { CONTROL_FIELD, CONTROL_SELECT, CONTROL_SELECT_MAX, CONTROL_CTA, CONTROL_GAP, TOOLBAR_CARD, controlToggle } from '@/lib/controls';
+import { CONTROL_FIELD, CONTROL_SELECT, CONTROL_SELECT_MAX, CONTROL_CTA, CONTROL_GAP, CONTROL_H, TOOLBAR_CARD, controlToggle } from '@/lib/controls';
 import { FilterSheet } from '@/components/workspace/FilterSheet';
 import { Modal, DropdownMenu } from '@/components/workspace/Overlay';
 import type { BillingSummary } from '@/app/api/integrations/quickbooks/route';
@@ -116,6 +116,20 @@ const normaliseLink = (raw: string): URL | null => {
   }
 };
 
+/**
+ * How big the cards are, as on the Edit Tracker: small fits more productions
+ * on screen to scan a busy month, large gives each card room to read. Same
+ * fields at every size — only the width and spacing change. Phones always
+ * show one card across, so the choice only applies from tablet width up.
+ */
+type CardSize = 'compact' | 'regular' | 'large';
+const CARD_SIZE_KEY = 'slate_card_size';
+const CARD_GRID: Record<CardSize, string> = {
+  compact: 'grid grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4',
+  regular: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6',
+  large: 'grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6',
+};
+
 const weatherCodeToText = (code: number) => {
   const map: Record<number, string> = {
     0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
@@ -160,6 +174,18 @@ export default function Slate({
   const [clientFilter, setClientFilter] = useState('All');
   const [projectFilter, setProjectFilter] = useState('All');
   const [groupByProject, setGroupByProject] = useState(false);
+  // Each viewer's own choice, remembered on this device like the Edit Tracker's.
+  const [cardSize, setCardSize] = useState<CardSize>('regular');
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CARD_SIZE_KEY);
+      if (saved === 'compact' || saved === 'regular' || saved === 'large') setCardSize(saved);
+    } catch { /* private mode */ }
+  }, []);
+  const chooseCardSize = (size: CardSize) => {
+    setCardSize(size);
+    try { localStorage.setItem(CARD_SIZE_KEY, size); } catch { /* ignore */ }
+  };
   const [isLoading, setIsLoading] = useState(true);
   
   // Manage Job Modal (Team Builder)
@@ -1444,6 +1470,7 @@ export default function Slate({
       onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
       onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
       moved={movedJobId === job.id}
+      compact={cardSize === 'compact'}
       onMovedSeen={() => setMovedJobId(null)}
     />
   );
@@ -1535,6 +1562,21 @@ export default function Slate({
               {groupByProject ? 'Grouped' : 'Group'}
             </button>
           </FilterSheet>
+
+          <div className={`hidden md:flex items-center gap-0.5 p-1 bg-black/50 border border-white/10 rounded-xl ${CONTROL_H}`} role="group" aria-label="Card size">
+            {(['compact', 'regular', 'large'] as CardSize[]).map((sz, i) => (
+              <button
+                key={sz}
+                type="button"
+                onClick={() => chooseCardSize(sz)}
+                title={`Card size: ${sz === 'compact' ? 'small' : sz === 'regular' ? 'medium' : 'large'}`}
+                aria-pressed={cardSize === sz}
+                className={`h-full w-8 rounded-lg text-[12px] font-semibold transition-colors ${cardSize === sz ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
+              >
+                {['S', 'M', 'L'][i]}
+              </button>
+            ))}
+          </div>
         </div>
 
         {!isClient && (
@@ -1577,7 +1619,7 @@ export default function Slate({
                       <div className="h-px bg-white/5 flex-1" />
                       <span className="text-[10px] font-medium opacity-40 tracking-tight text-white">{pg.jobs.length}</span>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className={CARD_GRID[cardSize]}>
                       {pg.jobs.map(job => renderCard(job, { showProject: false }))}
                     </div>
                   </div>
@@ -1598,7 +1640,7 @@ export default function Slate({
               <div className="h-px bg-amber-400/20 flex-1" />
               <span className="text-[11px] font-medium opacity-40 tracking-tight text-white">{unscheduledJobs.length} {unscheduledJobs.length === 1 ? 'Job' : 'Jobs'}</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={CARD_GRID[cardSize]}>
               {unscheduledJobs.map(job => renderCard(job))}
             </div>
           </section>
@@ -1611,7 +1653,7 @@ export default function Slate({
             <span className="text-[11px] font-medium opacity-40 tracking-tight text-white">{upcomingJobs.length} Jobs</span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={CARD_GRID[cardSize]}>
             {upcomingJobs.map(job => renderCard(job))}
             {upcomingJobs.length === 0 && (
               <div className="col-span-full py-20 text-center bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40">
@@ -1628,7 +1670,7 @@ export default function Slate({
             <span className="text-[11px] font-medium opacity-40 tracking-tight text-white">{pastJobs.length} Jobs</span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={CARD_GRID[cardSize]}>
              {pastJobs.map(job => renderCard(job))}
           </div>
         </section>
@@ -1651,7 +1693,7 @@ export default function Slate({
               </span>
             </button>
             {(showArchived || !!searchQuery.trim()) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-70">
+              <div className={`${CARD_GRID[cardSize]} opacity-70`}>
              {archivedJobs.map(job => renderCard(job))}
               </div>
             )}
@@ -2173,6 +2215,7 @@ function JobCard({
   onRemoveDeliverable,
   moved = false,
   onMovedSeen,
+  compact = false,
 }: {
   job: Job,
   isClient: boolean,
@@ -2201,6 +2244,8 @@ function JobCard({
   /** Its date just changed, so it may have moved: bring it into view. */
   moved?: boolean,
   onMovedSeen?: () => void,
+  /** Small cards: tighter padding, so more fit across. */
+  compact?: boolean,
 }) {
   const gearCount = job.gear_manifest ? Object.values(job.gear_manifest as Record<string, number>).reduce((a, b) => a + b, 0) : 0;
 
@@ -2255,7 +2300,7 @@ function JobCard({
   return (
     <div
       ref={cardRef}
-      className={`@container group bg-neutral-900/40 border p-5 md:p-6 rounded-2xl transition-all relative flex flex-col h-full overflow-hidden ${
+      className={`@container group bg-neutral-900/40 border ${compact ? 'p-4' : 'p-5 md:p-6'} rounded-2xl transition-all relative flex flex-col h-full overflow-hidden ${
         moved ? 'border-accent/60 ring-2 ring-accent/30' : 'border-white/5'
       } ${isClient ? '' : 'hover:border-accent/30 hover:bg-neutral-900/60'}`}
     >
@@ -2418,9 +2463,9 @@ function JobCard({
           </dd>
 
           <dt className={DETAIL_LABEL}>Call</dt>
-          <dd className="flex items-center gap-1.5 min-w-0">
+          <dd className="flex flex-wrap items-center gap-1.5 min-w-0">
             {isClient ? (
-              <span className={`${readValue} flex-1`}>{job.call_time || 'TBD'}</span>
+              <span className={`${readValue} flex-1 basis-[5.5rem]`}>{job.call_time || 'TBD'}</span>
             ) : (
               <InlinePicker
                 type="time"
@@ -2431,29 +2476,32 @@ function JobCard({
                 placeholder={job.call_time || 'TBD'}
                 ariaLabel={`Call time for ${job.title}`}
                 onSave={(next) => void onPatch({ call_time: fromTimeInputValue(next) }, 'change the call time')}
-                className="flex-1"
+                className="flex-1 basis-[5.5rem]"
               />
             )}
-            <span className="shrink-0 text-[11px] font-medium text-white/40 px-1">Wrap</span>
-            {isClient ? (
-              <span className={`${readValue} flex-1`}>{job.wrap_time || '—'}{overnight && ' (+1)'}</span>
-            ) : (
-              <InlinePicker
-                type="time"
-                value={toTimeInputValue(job.wrap_time)}
-                format={(v) => (
-                  <>
-                    {fromTimeInputValue(v)}
-                    {/* A wrap at or before the call is a night shoot. */}
-                    {overnight && <span className="ml-1 text-[11px] text-white/40" title="Runs past midnight">+1</span>}
-                  </>
-                )}
-                placeholder={job.wrap_time || 'TBD'}
-                ariaLabel={`Wrap time for ${job.title}`}
-                onSave={(next) => void onPatch({ wrap_time: fromTimeInputValue(next) }, 'change the wrap time')}
-                className="flex-1"
-              />
-            )}
+            {/* On a small card Wrap moves under Call rather than both times being cut to "7:…". */}
+            <span className="flex flex-1 basis-[7.5rem] items-center gap-1.5 min-w-0">
+              <span className="shrink-0 text-[11px] font-medium text-white/40 px-1">Wrap</span>
+              {isClient ? (
+                <span className={`${readValue} flex-1`}>{job.wrap_time || '—'}{overnight && ' (+1)'}</span>
+              ) : (
+                <InlinePicker
+                  type="time"
+                  value={toTimeInputValue(job.wrap_time)}
+                  format={(v) => (
+                    <>
+                      {fromTimeInputValue(v)}
+                      {/* A wrap at or before the call is a night shoot. */}
+                      {overnight && <span className="ml-1 text-[11px] text-white/40" title="Runs past midnight">+1</span>}
+                    </>
+                  )}
+                  placeholder={job.wrap_time || 'TBD'}
+                  ariaLabel={`Wrap time for ${job.title}`}
+                  onSave={(next) => void onPatch({ wrap_time: fromTimeInputValue(next) }, 'change the wrap time')}
+                  className="flex-1"
+                />
+              )}
+            </span>
           </dd>
 
           {(!isClient || job.location_name) && (
