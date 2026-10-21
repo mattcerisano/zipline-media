@@ -59,6 +59,7 @@ import {
   isScopedRole,
   type AppRole,
 } from '@/lib/roles';
+import { isRetiredCustomTab } from '@/lib/custom-tabs';
 
 interface CustomTab {
   id: string;
@@ -231,16 +232,8 @@ const SYSTEM_TAB_EYEBROWS: Record<string, string> = {
 // client_intakes.
 const RETIRED_SYSTEM_TABS = new Set(['review', 'tutorials', 'intake']);
 
-// Notes now have one home, Meeting Notes. The full-page notepad tab type and
-// a custom tab that only opened the scratch notepad (the "Notes" tab, which
-// never held anything) are dropped on load the same way; whatever was typed
-// in them stays in this browser's storage.
-const SCRATCH_TAB_LABELS = new Set(['notes', 'scratch notes', 'notepad', 'scratch notepad']);
-function isRetiredCustomTab(tab: CustomTab): boolean {
-  if (tab.type === 'notes') return true;
-  if (tab.type !== 'workspace' || !SCRATCH_TAB_LABELS.has(tab.label.trim().toLowerCase())) return false;
-  return (tab.starterTools || []).every((t) => t === 'notes');
-}
+// Custom tabs that only opened retired tools (the notepad, the Notes Library)
+// are dropped on load the same way: see src/lib/custom-tabs.ts.
 
 // Built-in tabs whose default name changed. Saved tab lists keep the label
 // they were saved with, so one still carrying an old default takes the new
@@ -339,8 +332,13 @@ export default function CommandCenterPage() {
   const activeStarterTools = useMemo(() => starterToolsFor(activeTabObj), [activeTabObj]);
 
   // The browser tab used to carry the public site's title on every screen.
+  // Put back on the way out: the public pages set their title through Next's
+  // metadata, and React skips a <title> whose text it believes is unchanged,
+  // so without this the home page could keep reading "Slate · Studio OS".
   useEffect(() => {
+    const previous = document.title;
     document.title = activeTabObj ? `${activeTabObj.label} · Studio OS` : 'Studio OS';
+    return () => { document.title = previous; };
   }, [activeTabObj]);
 
   // Reset a specific tab's workspace layout to factory defaults
@@ -1504,7 +1502,7 @@ export default function CommandCenterPage() {
                 {activeTabObj ? (
                   activeTabObj.type === 'system' ? (SYSTEM_TAB_EYEBROWS[activeTabObj.id] || 'Studio OS')
                   : activeTabObj.type === 'embed' ? 'External Tool Integration' :
-                      activeTabObj.type === 'notes' ? 'Production Notepad' : workspaceEyebrow(activeStarterTools)
+                      workspaceEyebrow(activeStarterTools)
                 ) : 'Workspace Overview'}
               </h2>
               <h1 className="text-lg md:text-[26px] font-semibold tracking-tight text-white truncate">

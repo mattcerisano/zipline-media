@@ -163,14 +163,13 @@ const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
   meeting_notes: { type: 'panel', id: 'meeting-notes-root', activeTab: 'meeting_notes', tabs: ['meeting_notes'] },
   review: { type: 'panel', id: 'client-review-root', activeTab: 'review', tabs: ['review'] },
   locations: { type: 'panel', id: 'locations-scouting-root', activeTab: 'locations', tabs: ['locations'] },
-  intake: { type: 'panel', id: 'client-onboarding-root', activeTab: 'intake', tabs: ['intake'] },
 };
 
 /** Tools no panel offers any more; a saved layout that names one still renders. */
 const RETIRED_WIDGETS = new Set(['review', 'intake', 'docs']);
 
 /** Built-in tabs that went without a default layout until it was added above. */
-const LATE_DEFAULT_TABS = new Set(['meeting_notes', 'review', 'locations', 'intake']);
+const LATE_DEFAULT_TABS = new Set(['meeting_notes', 'review', 'locations']);
 
 interface WorkspaceLayoutProps {
   activeTab: string;

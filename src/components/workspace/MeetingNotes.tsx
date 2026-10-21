@@ -586,7 +586,7 @@ export default function MeetingNotes() {
         </div>
 
         {/* Sync Status Banner */}
-        <div className="p-3 bg-black/40 border-t border-white/10 flex items-center justify-between text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/40">
+        <div className="p-3 bg-black/40 border-t border-white/10 flex items-center justify-between text-[11px] md:text-[10px] font-semibold text-white/40">
           <div className="flex items-center gap-1.5">
             {saveFailed ? <CloudOff className="w-3.5 h-3.5 text-red-400" /> : <Cloud className="w-3.5 h-3.5 text-green-400" />}
             <span className={saveFailed ? 'text-red-400' : ''}>{saveFailed ? 'Not saved' : 'Synced'}</span>
