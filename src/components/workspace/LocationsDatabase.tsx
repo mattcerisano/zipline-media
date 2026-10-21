@@ -308,7 +308,7 @@ export default function LocationsDatabase({ onOpenProduction, isAdmin = false }:
     let coordinates: StoredPlace = {};
     if (text && coordsReady) {
       try {
-        const geo = await fetch(`/api/geocode?strict=1&address=${encodeURIComponent(text)}`);
+        const geo = await fetch(`/api/geocode?strict=1&address=${encodeURIComponent(text)}`, { headers: await authHeader() });
         if (geo.ok) {
           const { lat, lng } = await geo.json();
           coordinates = { latitude: lat, longitude: lng, geocoded_address: text };
