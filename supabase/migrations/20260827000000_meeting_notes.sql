@@ -25,4 +25,16 @@ CREATE POLICY "Allow all for now" ON meeting_notes FOR ALL USING (true) WITH CHE
 CREATE INDEX IF NOT EXISTS idx_meeting_notes_client_id ON meeting_notes (client_id);
 
 -- Enable real-time updates for meeting_notes
-ALTER PUBLICATION supabase_realtime ADD TABLE meeting_notes;
+-- Realtime, only if not already a member (so this file can run twice).
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['meeting_notes'] LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    END IF;
+  END LOOP;
+END $$;

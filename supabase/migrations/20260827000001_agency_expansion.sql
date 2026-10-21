@@ -53,7 +53,19 @@ CREATE INDEX IF NOT EXISTS idx_client_intakes_client_id ON client_intakes (clien
 CREATE INDEX IF NOT EXISTS idx_video_reviews_job_id ON video_reviews (job_id);
 
 -- Enable real-time updates for new tables
-ALTER PUBLICATION supabase_realtime ADD TABLE locations, client_intakes, video_reviews;
+-- Realtime, only if not already a member (so this file can run twice).
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['locations', 'client_intakes', 'video_reviews'] LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    END IF;
+  END LOOP;
+END $$;
 
 -- 6. Add financial tracking columns to jobs table
 ALTER TABLE jobs 

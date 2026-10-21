@@ -2,7 +2,20 @@ import type { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { productionBranchError } from "./src/lib/production-branch";
 
+/**
+ * STUDIO_ONLY=1 turns the deployment into just the app: the marketing site at
+ * `/` and its pages redirect to the Command Center. Decided at build time, so
+ * a deployment that never sets it carries no redirect rule at all.
+ */
+const STUDIO_ONLY = process.env.STUDIO_ONLY === '1';
+
 const nextConfig: NextConfig = {
+  // One value for both sides of the owner bypass: the server checks
+  // OWNER_EMAIL (src/lib/api-owner.ts), the login screen checks the public
+  // copy (src/lib/studio.ts). Setting the one variable configures both.
+  env: {
+    NEXT_PUBLIC_OWNER_EMAIL: process.env.OWNER_EMAIL || '',
+  },
   images: {
     remotePatterns: [
       {
@@ -25,6 +38,21 @@ const nextConfig: NextConfig = {
   // set — a full script policy would need nonces for the Vimeo/YouTube embeds
   // and Google sign-in, and is a separate job. X-Frame-Options covers older
   // browsers. HSTS is already sent by Vercel.
+  async redirects() {
+    if (!STUDIO_ONLY) return [];
+    const toApp = (source: string) => ({ source, destination: '/command-center', permanent: false });
+    return [
+      toApp('/'),
+      toApp('/archive'),
+      toApp('/archive/:path*'),
+      toApp('/services'),
+      toApp('/services/:path*'),
+      toApp('/gear'),
+      toApp('/gear/:path*'),
+      toApp('/photography'),
+      toApp('/photography/:path*'),
+    ];
+  },
   async headers() {
     return [
       {

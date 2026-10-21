@@ -23,4 +23,16 @@ CREATE POLICY "Allow all for now" ON budget_items FOR ALL USING (true) WITH CHEC
 CREATE INDEX IF NOT EXISTS idx_budget_items_job_id ON budget_items (job_id);
 
 -- Enable real-time updates for budget_items
-ALTER PUBLICATION supabase_realtime ADD TABLE budget_items;
+-- Realtime, only if not already a member (so this file can run twice).
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['budget_items'] LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    END IF;
+  END LOOP;
+END $$;

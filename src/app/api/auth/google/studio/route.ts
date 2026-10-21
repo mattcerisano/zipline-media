@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthedUser } from '@/lib/api-auth';
+import { isOwnerEmail } from '@/lib/api-owner';
 
 // Designate which connected Google account is *the* studio calendar.
 //
@@ -9,10 +10,6 @@ import { getAuthedUser } from '@/lib/api-auth';
 // (a sole connected account is the studio calendar by default); it matters as
 // soon as a second person connects, because until someone chooses, pushes fall
 // back to whoever hit Save and productions scatter again.
-
-// Mirrors the primary-administrator bypass used at login and in team
-// management, so the org owner can set this even without a user_roles row.
-const OWNER_EMAIL = 'matt@zipline.media';
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -33,7 +30,9 @@ export async function POST(request: Request) {
   }
 
   // Admin-only: this redirects where every production on the board lands.
-  if (caller.email !== OWNER_EMAIL) {
+  // The owner bypass (OWNER_EMAIL) mirrors the one at login and in team
+  // management, so the org owner can set this even without a user_roles row.
+  if (!isOwnerEmail(caller.email)) {
     const { data } = await admin.from('user_roles').select('role').eq('id', caller.id).maybeSingle();
     if (data?.role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });

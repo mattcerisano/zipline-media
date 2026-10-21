@@ -25,4 +25,16 @@ CREATE INDEX IF NOT EXISTS idx_production_notes_job_id ON production_notes (job_
 CREATE INDEX IF NOT EXISTS idx_production_notes_client_id ON production_notes (client_id);
 CREATE INDEX IF NOT EXISTS idx_production_notes_updated_at ON production_notes (updated_at DESC);
 
-ALTER PUBLICATION supabase_realtime ADD TABLE production_notes;
+-- Realtime, only if not already a member (so this file can run twice).
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['production_notes'] LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    END IF;
+  END LOOP;
+END $$;

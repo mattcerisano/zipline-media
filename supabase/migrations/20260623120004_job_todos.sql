@@ -20,4 +20,16 @@ CREATE POLICY "Allow all for now" ON job_todos FOR ALL USING (true) WITH CHECK (
 CREATE INDEX IF NOT EXISTS idx_job_todos_job_id ON job_todos (job_id);
 
 -- Enable real-time updates for job_todos
-ALTER PUBLICATION supabase_realtime ADD TABLE job_todos;
+-- Realtime, only if not already a member (so this file can run twice).
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['job_todos'] LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    END IF;
+  END LOOP;
+END $$;

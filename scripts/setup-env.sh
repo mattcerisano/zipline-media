@@ -65,6 +65,42 @@ ask_plain() {
   printf -v "$__var" '%s' "${__value:-$__default}"
 }
 
+# A second studio starts from an empty Vercel project, so the Supabase keys and
+# the studio's identity have to be set here too. The original deployment has
+# all of these already: press Enter through this section to leave them alone.
+echo
+echo "─────────────────────────────────────────────────────────────"
+echo " 0. New studio?  (docs/INSTALL_NEW_STUDIO.md)"
+echo "    Enter to skip every prompt in this section — an existing"
+echo "    deployment keeps what it has."
+echo "─────────────────────────────────────────────────────────────"
+ask_plain  SB_URL     "NEXT_PUBLIC_SUPABASE_URL   (Supabase → Settings → API → Project URL)"
+ask_plain  SB_ANON    "NEXT_PUBLIC_SUPABASE_ANON_KEY   (same page → anon public)"
+ask_secret SB_SERVICE "Paste SUPABASE_SERVICE_ROLE_KEY (same page → service_role; input hidden)"
+ask_plain  OWNER      "OWNER_EMAIL   (the address that signs in as admin before anyone is added)"
+ask_plain  STUDIO     "NEXT_PUBLIC_STUDIO_NAME   (shown on the login screen and exports)"
+ask_plain  SITE       "SITE_URL   (this deployment's address, e.g. https://acme-studio.vercel.app)"
+ask_plain  HOME_LL    "NEXT_PUBLIC_STUDIO_HOME   (map centre as lat,lng; Enter for Midtown NYC)"
+ask_plain  ONLY       "STUDIO_ONLY   (1 = no marketing site, / goes straight to the app)"
+ask_plain  G_ID       "GOOGLE_CLIENT_ID   (docs/GOOGLE_SETUP.md; Enter to skip Google)"
+ask_secret G_SECRET   "Paste GOOGLE_CLIENT_SECRET (input hidden)"
+ask_plain  G_REDIRECT "GOOGLE_REDIRECT_URI   (e.g. ${SITE:-https://your-domain}/api/auth/google/callback)"
+ask_secret MAPS_KEY   "Paste the Google Maps key for GOOGLE_MAPS_API_KEY + NEXT_PUBLIC_GOOGLE_MAPS_API_KEY (input hidden; Enter to skip)"
+
+put NEXT_PUBLIC_SUPABASE_URL      "$SB_URL"
+put NEXT_PUBLIC_SUPABASE_ANON_KEY "$SB_ANON"
+put SUPABASE_SERVICE_ROLE_KEY     "$SB_SERVICE"
+put OWNER_EMAIL                   "$OWNER"
+put NEXT_PUBLIC_STUDIO_NAME       "$STUDIO"
+put SITE_URL                      "$SITE"
+put NEXT_PUBLIC_STUDIO_HOME       "$HOME_LL"
+put STUDIO_ONLY                   "$ONLY"
+put GOOGLE_CLIENT_ID              "$G_ID"
+put GOOGLE_CLIENT_SECRET          "$G_SECRET"
+put GOOGLE_REDIRECT_URI           "$G_REDIRECT"
+put GOOGLE_MAPS_API_KEY           "$MAPS_KEY"
+put NEXT_PUBLIC_GOOGLE_MAPS_API_KEY "$MAPS_KEY"
+
 echo
 echo "─────────────────────────────────────────────────────────────"
 echo " 1. Generated secrets — no account needed, these are random"

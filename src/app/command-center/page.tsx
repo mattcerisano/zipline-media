@@ -43,6 +43,7 @@ import { trackView, trackAction, loadTabOpens } from '@/lib/usage';
 import { rankTabsByUse, applyPersonalOrder } from '@/lib/tab-ranking';
 import { loadUserPref, saveUserPref } from '@/lib/user-prefs';
 import { getBranding } from '@/lib/branding';
+import { OWNER_EMAIL_PUBLIC, STUDIO_EMAIL_DOMAIN, STUDIO_NAME } from '@/lib/studio';
 import { applyAccent } from '@/lib/brand-theme';
 import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
 import type { NewProductionSeed } from '@/components/gearbuilder/ProductionCalendar';
@@ -949,9 +950,10 @@ export default function CommandCenterPage() {
       return false;
     };
 
-    // Hardcoded bypass for the primary administrator account
+    // Bypass for the deployment's owner (OWNER_EMAIL), who can predate the
+    // user_roles table. Off when the variable is unset.
     const cleanEmail = email.trim().toLowerCase();
-    if (cleanEmail === 'matt@zipline.media') {
+    if (OWNER_EMAIL_PUBLIC && cleanEmail === OWNER_EMAIL_PUBLIC) {
       setUserRole('admin');
       if (setDefaultTab) {
         if (!checkPersistedTab('admin')) {
@@ -1137,7 +1139,7 @@ export default function CommandCenterPage() {
               <Lock className="w-8 h-8 text-accent relative z-10" />
             </div>
             <h1 className="text-[28px] font-bold tracking-tight text-white bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">Studio OS</h1>
-            <p className="text-[11px] font-medium tracking-[0.18em] uppercase text-white/35 mt-2">Zipline Media · Internal Portal</p>
+            <p className="text-[11px] font-medium tracking-[0.18em] uppercase text-white/35 mt-2">{STUDIO_NAME} · Internal Portal</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
@@ -1149,7 +1151,7 @@ export default function CommandCenterPage() {
                 type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@zipline.media"
+                placeholder={`you@${STUDIO_EMAIL_DOMAIN}`}
                 required
                 className="w-full bg-black/40 border border-white/10 p-3.5 outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 transition-all duration-300 text-sm font-medium rounded-xl text-white placeholder:opacity-45 placeholder:uppercase placeholder:font-medium"
               />

@@ -18,6 +18,8 @@ import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
 import { todayLocalISO } from '@/lib/date';
 import ThisWeek from '@/components/workspace/ThisWeek';
+import SampleDataNotice from '@/components/workspace/SampleDataNotice';
+import { STUDIO_OS_NAME } from '@/lib/studio';
 
 export interface DashboardOverviewProps {
   /** A tab id, or a hand-off object ({ selectCalendarJob }, { openEditCard }). */
@@ -111,6 +113,18 @@ export default function DashboardOverview({
 }: DashboardOverviewProps) {
   const [widgets, setWidgets] = useState<Record<string, boolean>>(DEFAULT_WIDGETS);
   const [showCustomize, setShowCustomize] = useState(false);
+
+  // supabase/install/sample_data.sql titles every production it adds
+  // "[Sample] …"; while any are left, say so, or the fake shoots on the
+  // calendar look like real bookings.
+  const [sampleCount, setSampleCount] = useState(0);
+  useEffect(() => {
+    supabase
+      .from('jobs')
+      .select('id', { count: 'exact', head: true })
+      .ilike('title', '[Sample]%')
+      .then(({ count }) => setSampleCount(count || 0));
+  }, []);
 
   // Load saved widget visibility (per-browser, like the workspace layout prefs)
   useEffect(() => {
@@ -274,6 +288,14 @@ export default function DashboardOverview({
 
   return (
     <div className="h-full overflow-y-auto no-scrollbar p-4 md:p-6">
+      {sampleCount > 0 && (
+        <div className="mb-3">
+          <SampleDataNotice>
+            This is sample data: {sampleCount} example {sampleCount === 1 ? 'production' : 'productions'}, with their clients, crew and a drive, so you can see the app populated.
+            Delete them from the Slate when you&apos;re ready, or run supabase/install/remove_sample_data.sql to clear them all at once.
+          </SampleDataNotice>
+        </div>
+      )}
       {/* Customize bar */}
       <div className="flex items-center justify-end mb-3 relative">
         <button
@@ -504,7 +526,7 @@ export default function DashboardOverview({
           </div>
 
           <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-            <span className="text-[10px] font-medium tracking-wide text-white/30">Zipline Studio OS v1.2</span>
+            <span className="text-[10px] font-medium tracking-wide text-white/30">{STUDIO_OS_NAME} v1.2</span>
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
           </div>
         </div>

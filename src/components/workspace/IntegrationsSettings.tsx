@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { postNotify } from '@/lib/notify';
 import { DEFAULT_EVENT_TEMPLATES } from '@/lib/notify-defaults';
 import type { NotificationChannel, NotificationEvent, NotificationPlatform } from '@/components/gearbuilder/types';
+import { IS_DEFAULT_STUDIO, STUDIO_NAME } from '@/lib/studio';
 
 // Display metadata for the three supported platforms.
 const PLATFORMS: { platform: NotificationPlatform; label: string; hint: string }[] = [
@@ -120,7 +121,7 @@ export default function IntegrationsSettings({ isAdmin, onMessage }: Props) {
       if (!oid) {
         const { data: created, error: orgErr } = await supabase
           .from('organizations')
-          .insert([{ name: 'Zipline Media', tagline: 'Creative Video Production', brand_color: '#0077FF' }])
+          .insert([{ name: STUDIO_NAME, tagline: IS_DEFAULT_STUDIO ? 'Creative Video Production' : '', brand_color: '#0077FF' }])
           .select('id')
           .single();
         if (orgErr || !created) {

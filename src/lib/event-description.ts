@@ -1,6 +1,7 @@
 import { formatLocalDate } from '@/lib/date';
 import { latestDraftLinks } from '@/lib/drafts';
 import type { JobLink } from '@/components/gearbuilder/types';
+import { STUDIO_OS_NAME } from '@/lib/studio';
 
 /**
  * Google Calendar event descriptions for Studio OS.
@@ -18,7 +19,7 @@ import type { JobLink } from '@/components/gearbuilder/types';
  * of "N/A" is worse than a short one.
  */
 
-const FOOTER = 'Zipline Studio OS';
+const FOOTER = STUDIO_OS_NAME;
 
 /** Google caps descriptions at 8 KB; long crew lists are the only realistic
  *  way to approach it, so they're bounded rather than the whole string cut. */
