@@ -20,7 +20,8 @@ import { Job } from '@/components/gearbuilder/types';
 import ShotlistGrid from '@/components/teambuilder/ShotlistGrid';
 import { generateMasterBrief } from '@/lib/pdf-generator';
 import { sanitizeUrl } from '@/lib/sanitize';
-import { formatLocalDate, todayLocalISO } from '@/lib/date';
+import { todayLocalISO } from '@/lib/date';
+import { orderProductions, productionLabel } from '@/lib/production-order';
 import { toast } from '@/components/Feedback';
 
 const PRESET_COLORS = [
@@ -30,26 +31,6 @@ const PRESET_COLORS = [
 
 interface CreativeProps {
   selectedJobId?: string | null;
-}
-
-// Soonest shoot first, then past shoots newest first, then undated: the
-// order the Gear Builder's production picker uses. The old strip scrolled
-// through every open production, newest date first, so it opened on
-// whichever one had no date yet.
-function orderProductions(jobs: Job[]): Job[] {
-  const today = todayLocalISO();
-  const upcoming = jobs.filter(j => j.shoot_date && j.shoot_date >= today).sort((a, b) => a.shoot_date!.localeCompare(b.shoot_date!));
-  const past = jobs.filter(j => j.shoot_date && j.shoot_date < today).sort((a, b) => b.shoot_date!.localeCompare(a.shoot_date!));
-  const undated = jobs.filter(j => !j.shoot_date);
-  return [...upcoming, ...past, ...undated];
-}
-
-function productionLabel(job: Job): string {
-  const date = job.shoot_date
-    ? formatLocalDate(job.shoot_date, { month: 'short', day: 'numeric', year: 'numeric' })
-    : 'date TBD';
-  const status = job.job_status && job.job_status !== 'Booked' ? job.job_status : null;
-  return [`${job.title} — ${date}`, job.client_name, status].filter(Boolean).join(' · ');
 }
 
 export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeProps = {}) {
@@ -137,7 +118,9 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
         .order('shoot_date', { ascending: false });
 
       if (error) throw error;
-      const fetchedJobs = orderProductions(((data || []) as Job[]).filter(j => j.job_status !== 'Wrapped' && j.job_status !== 'Cancelled'));
+      // Soonest shoot first, then past newest first, then undated — the old
+      // strip ran newest date first, so it opened on whichever had no date.
+      const fetchedJobs = orderProductions(((data || []) as Job[]).filter(j => j.job_status !== 'Wrapped' && j.job_status !== 'Cancelled'), todayLocalISO());
       setJobs(fetchedJobs);
 
       if (fetchedJobs.length > 0) {
