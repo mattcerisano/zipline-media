@@ -3,13 +3,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EscapeToClose } from '@/components/workspace/Overlay';
-import { X, User as UserIcon, Building2, Upload, Loader2, Save, Palette, SwatchBook, Bell, RotateCcw, Users } from 'lucide-react';
+import { X, User as UserIcon, Building2, Upload, Loader2, Save, Palette, SwatchBook, RotateCcw, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/components/gearbuilder/types';
 import { DEFAULT_BRANDING, type Branding } from '@/lib/branding';
 import { applyAccent, extractBrandColorFromImage, resetAccent } from '@/lib/brand-theme';
 import ThemeSwitcher from './ThemeSwitcher';
-import IntegrationsSettings from './IntegrationsSettings';
 import TeamSettings from './TeamSettings';
 import ChangePassword from './ChangePassword';
 import { confirmAction } from '@/components/Feedback';
@@ -25,7 +24,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
   const isAdmin = userRole === 'admin';
   const userId = session?.user?.id;
 
-  const [tab, setTab] = useState<'profile' | 'appearance' | 'branding' | 'integrations' | 'team'>('profile');
+  const [tab, setTab] = useState<'profile' | 'appearance' | 'branding' | 'team'>('profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -225,7 +224,8 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
           </div>
 
           {/* Tabs. They wrap rather than run off the right edge: on a phone
-              the strip had to be swiped sideways to find Integrations. */}
+              the strip had to be swiped sideways to find Team. Integrations
+              live on their own sidebar tab, not here as well. */}
           <div className="flex flex-wrap gap-1.5 md:gap-2 px-5 pt-4">
             <button
               onClick={() => setTab('profile')}
@@ -245,14 +245,6 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-all ${tab === 'branding' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
               >
                 <Palette className="w-3.5 h-3.5" /> Branding
-              </button>
-            )}
-            {isAdmin && (
-              <button
-                onClick={() => setTab('integrations')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-all ${tab === 'integrations' ? 'bg-accent text-white' : 'bg-white/5 text-white/50 hover:text-white'}`}
-              >
-                <Bell className="w-3.5 h-3.5" /> Integrations
               </button>
             )}
             {isAdmin && (
@@ -450,10 +442,6 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
                 </>
               )}
 
-              {tab === 'integrations' && isAdmin && (
-                <IntegrationsSettings isAdmin={isAdmin} onMessage={setMessage} />
-              )}
-
               {tab === 'team' && isAdmin && (
                 <TeamSettings session={session} onMessage={setMessage} />
               )}
@@ -470,7 +458,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
               <button onClick={onClose} className="px-4 py-2.5 text-[10px] font-semibold text-white/50 hover:text-white transition-colors">
                 Close
               </button>
-              {tab !== 'appearance' && tab !== 'integrations' && tab !== 'team' && (
+              {tab !== 'appearance' && tab !== 'team' && (
                 <button
                   onClick={tab === 'profile' ? handleSaveProfile : handleSaveBranding}
                   disabled={saving}

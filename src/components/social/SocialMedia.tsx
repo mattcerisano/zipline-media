@@ -151,7 +151,7 @@ function ContentCalendar({ clients }: { clients: Client[] }) {
         <div className="flex items-center gap-3">
           <div className="hidden md:flex items-center gap-2">
             {PLATFORMS.slice(0, 5).map((p) => (
-              <span key={p.key} className="flex items-center gap-1 text-[11px] md:text-[8px] font-bold uppercase text-white/40"><span className={`w-2 h-2 rounded-full ${p.dot}`} />{p.label}</span>
+              <span key={p.key} className="flex items-center gap-1 text-[11px] md:text-[9px] font-medium text-white/40"><span className={`w-2 h-2 rounded-full ${p.dot}`} />{p.label}</span>
             ))}
           </div>
           <button onClick={() => newPost()} className="shrink-0 px-3 py-2 bg-accent/15 border border-accent/40 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 cursor-pointer"><Plus className="w-3.5 h-3.5" /> Post</button>

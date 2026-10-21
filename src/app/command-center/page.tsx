@@ -173,20 +173,18 @@ const STARTER_TOOLS: { id: string; label: string }[] = [
   { id: 'meeting_notes', label: 'Meeting Notes' },
   { id: 'locations', label: 'Locations' },
   { id: 'drives', label: 'Drive Tracker' },
-  { id: 'intake', label: 'Client Onboarding' },
   { id: 'inbox', label: 'Studio Inbox' },
   { id: 'vault', label: 'Vault' },
-  { id: 'notes', label: 'Scratch Notes' },
   { id: 'script', label: 'Script & Teleprompter' },
   { id: 'clock', label: 'Production Timer' },
   { id: 'budget', label: 'Budget Tracker' },
   { id: 'tasks', label: 'Task List' },
   { id: 'mywork', label: 'My Work' },
-  { id: 'docs', label: 'Notes Library' },
 ];
 
 // Picking an icon pre-selects the closest real tool(s), so "Budget" doesn't
-// silently create an empty page. Icons with no matching tool suggest Notes.
+// silently create an empty page. Icons with no matching tool suggest the
+// task list (it was the scratch notepad, which is no longer offered).
 const ICON_TOOL_SUGGESTIONS: Record<string, string[]> = {
   LayoutDashboard: ['dashboard'], BarChart3: ['dashboard'], PieChart: ['dashboard'], TrendingUp: ['dashboard'],
   Calendar: ['calendar'], Clock: ['clock'], ListTodo: ['tasks'], CheckSquare: ['tasks'],
@@ -195,7 +193,7 @@ const ICON_TOOL_SUGGESTIONS: Record<string, string[]> = {
   DollarSign: ['budget'], Receipt: ['budget'], CreditCard: ['budget'],
   Camera: ['slate', 'gear'], Clapperboard: ['slate'], Film: ['edits'], Video: ['edits'],
   Mic: ['script'], Palette: ['creative'], Scissors: ['edits'], Package: ['gear'],
-  FolderOpen: ['docs'], FileText: ['docs'], Image: ['creative'], Upload: ['docs'],
+  FolderOpen: ['meeting_notes'], FileText: ['meeting_notes'], Image: ['creative'], Upload: ['meeting_notes'],
   Star: ['mywork'], Flag: ['mywork'], Lock: ['vault'], Settings: ['dashboard'],
 };
 
@@ -216,7 +214,6 @@ const SYSTEM_TAB_EYEBROWS: Record<string, string> = {
   review: 'Client Feedback',
   locations: 'Shoots & Scouts',
   drives: 'Drives & Hand-offs',
-  intake: 'Project Intake',
   vault: 'Secure Asset Storage',
   library: 'Projects & Shoots',
   usage: 'Team Activity',
@@ -229,7 +226,21 @@ const SYSTEM_TAB_EYEBROWS: Record<string, string> = {
 // link; its saved reviews stay in the database.
 // "tutorials" (Learning Center) came from an old branch whose widget never
 // reached main, so it rendered the shared scratch notepad under another name.
-const RETIRED_SYSTEM_TABS = new Set(['review', 'tutorials']);
+// Client Onboarding went unused under three names (the tab, a "Project
+// Intake" eyebrow, a "Creative Briefs & Intake" heading); its briefs stay in
+// client_intakes.
+const RETIRED_SYSTEM_TABS = new Set(['review', 'tutorials', 'intake']);
+
+// Notes now have one home, Meeting Notes. The full-page notepad tab type and
+// a custom tab that only opened the scratch notepad (the "Notes" tab, which
+// never held anything) are dropped on load the same way; whatever was typed
+// in them stays in this browser's storage.
+const SCRATCH_TAB_LABELS = new Set(['notes', 'scratch notes', 'notepad', 'scratch notepad']);
+function isRetiredCustomTab(tab: CustomTab): boolean {
+  if (tab.type === 'notes') return true;
+  if (tab.type !== 'workspace' || !SCRATCH_TAB_LABELS.has(tab.label.trim().toLowerCase())) return false;
+  return (tab.starterTools || []).every((t) => t === 'notes');
+}
 
 // Built-in tabs whose default name changed. Saved tab lists keep the label
 // they were saved with, so one still carrying an old default takes the new
@@ -262,7 +273,6 @@ const DEFAULT_TABS: CustomTab[] = [
   { id: 'meeting_notes', label: 'Meeting Notes', iconName: 'FileText', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'locations', label: 'Locations', iconName: 'MapPin', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'drives', label: 'Drive Tracker', iconName: 'HardDrive', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
-  { id: 'intake', label: 'Client Onboarding', iconName: 'ClipboardList', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
   { id: 'vault', label: 'Vault', iconName: 'Lock', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'library', label: 'Library', iconName: 'Library', type: 'system', isDefault: true, allowedRoles: ['admin'] },
   { id: 'usage', label: 'Usage', iconName: 'Activity', type: 'system', isDefault: true, allowedRoles: ['admin'] },
@@ -292,7 +302,7 @@ export default function CommandCenterPage() {
   const [newTabRoles, setNewTabRoles] = useState<AppRole[]>(['admin', 'staff']);
   // Which real tools the new workspace opens with. Auto-suggested from the
   // chosen icon until the user hand-picks (then their choice wins).
-  const [newTabTools, setNewTabTools] = useState<string[]>(['notes']);
+  const [newTabTools, setNewTabTools] = useState<string[]>(['tasks']);
   const [newTabToolsTouched, setNewTabToolsTouched] = useState(false);
   // Tracks whether the user typed their own label; until then, picking an
   // icon autofills the workspace name with the icon's label.
@@ -315,6 +325,11 @@ export default function CommandCenterPage() {
 
   const activeTabObj = tabs.find(t => t.id === activeTab);
   const activeStarterTools = useMemo(() => starterToolsFor(activeTabObj), [activeTabObj]);
+
+  // The browser tab used to carry the public site's title on every screen.
+  useEffect(() => {
+    document.title = activeTabObj ? `${activeTabObj.label} · Studio OS` : 'Studio OS';
+  }, [activeTabObj]);
 
   // Reset a specific tab's workspace layout to factory defaults
   const resetWorkspaceForTab = (tabId: string, e?: React.MouseEvent) => {
@@ -379,7 +394,7 @@ export default function CommandCenterPage() {
     // tabs or ordering.
     const mergeSystemTabs = (saved: CustomTab[]): CustomTab[] => {
       const parsed = saved
-        .filter((t) => !(t.type === 'system' && RETIRED_SYSTEM_TABS.has(t.id)))
+        .filter((t) => !(t.type === 'system' && RETIRED_SYSTEM_TABS.has(t.id)) && !isRetiredCustomTab(t))
         .map((t) => {
           if (t.type !== 'system' || !RENAMED_SYSTEM_TAB_LABELS[t.id]?.includes(t.label)) return t;
           const current = DEFAULT_TABS.find((d) => d.id === t.id);
@@ -508,7 +523,7 @@ export default function CommandCenterPage() {
       iconName: newTabIcon,
       type: newTabType,
       embedUrl: newTabType === 'embed' ? embedUrl : undefined,
-      starterTools: newTabType === 'workspace' ? (newTabTools.length > 0 ? newTabTools : ['notes']) : undefined,
+      starterTools: newTabType === 'workspace' ? (newTabTools.length > 0 ? newTabTools : ['tasks']) : undefined,
       allowedRoles: newTabRoles
     };
 
@@ -516,7 +531,7 @@ export default function CommandCenterPage() {
     // as a working panel — previously an unknown tab id fell back to the
     // Dashboard layout, which made every new tab look like a dashboard clone.
     if (newTabType === 'workspace') {
-      const tools = newTabTools.length > 0 ? newTabTools : ['notes'];
+      const tools = newTabTools.length > 0 ? newTabTools : ['tasks'];
       const seededLayout = {
         type: 'panel',
         id: `${newTab.id}-root`,
@@ -537,7 +552,7 @@ export default function CommandCenterPage() {
     setNewTabType('workspace');
     setNewTabUrl('');
     setNewTabRoles(['admin', 'staff']);
-    setNewTabTools(['notes']);
+    setNewTabTools(['tasks']);
     setNewTabToolsTouched(false);
     setNewTabLabelTouched(false);
     setShowToolPicker(false);
@@ -558,7 +573,7 @@ export default function CommandCenterPage() {
     // changed the picture, which read as a bug).
     const iconChanged = editTabIcon !== selectedTabToEdit.iconName;
     if (iconChanged && editTabType === 'workspace') {
-      const tools = ICON_TOOL_SUGGESTIONS[editTabIcon] || ['notes'];
+      const tools = ICON_TOOL_SUGGESTIONS[editTabIcon] || ['tasks'];
       localStorage.setItem(
         `studio_workspace_layout_${selectedTabToEdit.id}`,
         JSON.stringify({ type: 'panel', id: `${selectedTabToEdit.id}-root`, activeTab: tools[0], tabs: tools })
@@ -1533,12 +1548,12 @@ export default function CommandCenterPage() {
                     title={`Google sync failing${googleSyncInfo.at ? ` since ${timeAgo(googleSyncInfo.at)}` : ''}: ${googleSyncInfo.error || 'unknown error'}`}
                   >
                     <AlertTriangle className="w-3.5 h-3.5" />
-                    <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest hidden sm:inline">Sync failing</span>
+                    <span className="text-[11px] md:text-[10px] font-semibold hidden sm:inline">Sync failing</span>
                   </button>
                 )}
                 {isGoogleConnected && googleSyncInfo.ok === true && googleSyncInfo.at && (
                   <span
-                    className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/30 select-none"
+                    className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] md:text-[10px] font-medium text-white/30 select-none"
                     title={`Google Calendar last synced ${new Date(googleSyncInfo.at).toLocaleString()}`}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
@@ -1607,8 +1622,6 @@ export default function CommandCenterPage() {
             >
               {activeTabObj?.type === 'embed' ? (
                 <FullscreenEmbedWidget url={activeTabObj.embedUrl || ''} />
-              ) : activeTabObj?.type === 'notes' ? (
-                <FullscreenNotesWidget tabId={activeTabObj.id} />
               ) : (
                 <WorkspaceLayout 
                   activeTab={activeTab}
@@ -1924,7 +1937,7 @@ export default function CommandCenterPage() {
 
                 <div>
                   <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Tab Type</label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={() => setNewTabType('workspace')}
@@ -1948,18 +1961,6 @@ export default function CommandCenterPage() {
                     >
                       <div className="font-black text-[13px] md:text-[10px] uppercase tracking-wider">Embed</div>
                       <div className="text-[11px] md:text-[7px] text-white/30 uppercase mt-0.5 font-bold">External Website</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNewTabType('notes')}
-                      className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                        newTabType === 'notes' 
-                          ? 'border-accent/40 bg-accent/10 text-white' 
-                          : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
-                      }`}
-                    >
-                      <div className="font-black text-[13px] md:text-[10px] uppercase tracking-wider">Notepad</div>
-                      <div className="text-[11px] md:text-[7px] text-white/30 uppercase mt-0.5 font-bold">Markdown Page</div>
                     </button>
                   </div>
                 </div>
@@ -2006,7 +2007,7 @@ export default function CommandCenterPage() {
                         automatically from the icon. "Change" reveals the full
                         list without making the modal taller by default. */}
                     <div className="flex flex-wrap items-center gap-1.5 bg-black/40 border border-white/5 p-2.5 rounded-xl">
-                      {(newTabTools.length > 0 ? newTabTools : ['notes']).map(id => {
+                      {(newTabTools.length > 0 ? newTabTools : ['tasks']).map(id => {
                         const tool = STARTER_TOOLS.find(t => t.id === id);
                         return (
                           <span key={id} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent/15 border border-accent/30 text-[11px] md:text-[9px] font-black uppercase tracking-wider text-white">
@@ -2151,7 +2152,7 @@ export default function CommandCenterPage() {
                 {!selectedTabToEdit.isDefault && (
                   <div>
                     <label className="text-[11px] md:text-[8px] font-black uppercase tracking-widest text-white/40 block mb-2">Tab Type</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setEditTabType('workspace')}
@@ -2175,18 +2176,6 @@ export default function CommandCenterPage() {
                       >
                         <div className="font-black text-[13px] md:text-[10px] uppercase tracking-wider">Embed</div>
                         <div className="text-[11px] md:text-[7px] text-white/30 uppercase mt-0.5 font-bold">iFrame Web Tool</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditTabType('notes')}
-                        className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                          editTabType === 'notes' 
-                            ? 'border-accent/40 bg-accent/10 text-white' 
-                            : 'border-white/5 bg-white/5 text-white/40 hover:text-white hover:bg-white/10'
-                        }`}
-                      >
-                        <div className="font-black text-[13px] md:text-[10px] uppercase tracking-wider">Notepad</div>
-                        <div className="text-[11px] md:text-[7px] text-white/30 uppercase mt-0.5 font-bold">Markdown Page</div>
                       </button>
                     </div>
                   </div>
@@ -2290,37 +2279,6 @@ export default function CommandCenterPage() {
             return true;
           },
         }}
-      />
-    </div>
-  );
-}
-
-// ----------------------------------------------------------------------
-// FULLSCREEN NOTE WIDGET
-// ----------------------------------------------------------------------
-function FullscreenNotesWidget({ tabId }: { tabId: string }) {
-  const [notes, setNotes] = useState('');
-  const storageKey = `studio_scratch_notes_${tabId}`;
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setNotes(localStorage.getItem(storageKey) || '');
-    }
-  }, [storageKey]);
-
-  const saveNotes = (val: string) => {
-    setNotes(val);
-    localStorage.setItem(storageKey, val);
-  };
-
-  return (
-    <div className="w-full h-full flex flex-col p-8 bg-zinc-950/20 text-white min-h-[300px]">
-      <textarea
-        value={notes}
-        onChange={(e) => saveNotes(e.target.value)}
-        placeholder="Write scratch workspace logs, storyboard drafts, or client call reminders here..."
-        className="w-full h-full bg-transparent border-0 resize-none outline-none text-sm font-bold leading-relaxed text-white/70 focus:text-white transition-colors"
       />
     </div>
   );

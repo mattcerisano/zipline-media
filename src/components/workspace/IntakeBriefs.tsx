@@ -205,7 +205,7 @@ export default function IntakeBriefs() {
           <h1 className="text-xl font-black uppercase tracking-tighter text-white flex items-center gap-2">
             <Inbox className="w-5 h-5 text-accent" /> Creative Briefs & Intake
           </h1>
-          <p className="hidden md:block text-[10px] font-bold text-white/40 uppercase tracking-wider mt-0.5">
+          <p className="hidden md:block text-[11px] text-white/40 mt-0.5">
             Collect client requirements, creative mood briefs, and delivery aspect ratios
           </p>
         </div>
@@ -377,7 +377,7 @@ export default function IntakeBriefs() {
         ) : (
           <div className="text-center py-20 text-white/30 space-y-4">
             <Inbox className="w-12 h-12 text-white/10 mx-auto" />
-            <h3 className="text-sm font-semibold uppercase tracking-wider">No onboarding briefs found</h3>
+            <h3 className="text-sm font-semibold">No onboarding briefs yet</h3>
             <p className="text-xs text-white/25 max-w-xs mx-auto">Click "Log Client Brief" to document a new project briefing.</p>
           </div>
         )}

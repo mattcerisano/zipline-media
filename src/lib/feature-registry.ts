@@ -77,7 +77,7 @@ export const APP_FEATURES: AppFeature[] = [
   // ---- Dashboard ----
   { id: 'dash-overview', title: 'Dashboard Overview', description: 'At-a-glance widgets: upcoming shoots, tasks, budget, notes, and your work queue.', keywords: 'dashboard home overview widgets summary today', tab: 'dashboard' },
   { id: 'dash-mywork', title: 'My Work', description: 'Everything assigned to you — cards, tasks, and mentions — in one queue.', keywords: 'my work assigned to me tasks queue mentions personal', tab: 'dashboard' },
-  { id: 'dash-notes', title: 'Notes Library', description: 'Shared production notes, searchable and reusable across jobs.', keywords: 'notes library snippets shared knowledge write', tab: 'dashboard' },
+  { id: 'meeting-notes', title: 'Meeting Notes', description: 'Client meeting notes with attendees, action items and a summary, searchable across clients.', keywords: 'notes meeting minutes agenda action items client library write', tab: 'meeting_notes' },
 
   // ---- Integrations ----
   { id: 'slate-crew-card', title: 'Crew on a Production Card', description: 'See who is on a shoot, their position and call time, without opening the crew manager.', keywords: 'crew card slate who is on team members roster position call time assigned unassigned', tab: 'slate' },

@@ -148,6 +148,9 @@ export default function DriveTracker() {
 
   const jobTitles = useMemo(() => Object.fromEntries(jobs.map((j) => [j.id, j.title])), [jobs]);
   const totals = useMemo(() => driveTotals(drives), [drives]);
+  // "Value out $0" says nothing until a purchase price is logged somewhere.
+  const hasPrices = useMemo(() => drives.some((d) => Number(d.purchase_price) > 0), [drives]);
+  const showThirdStat = hasPrices || totals.lost > 0;
 
   const matches = useCallback(
     (d: Drive) => {
@@ -415,7 +418,7 @@ export default function DriveTracker() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-2 md:mt-4">
+        <div className={`grid ${showThirdStat ? 'grid-cols-3' : 'grid-cols-2'} gap-2 md:mt-4`}>
           <Stat
             label="Available"
             value={String(totals.available)}
@@ -433,13 +436,23 @@ export default function DriveTracker() {
             detail={totals.tbOut ? `${formatCapacity(totals.tbOut)} of storage` : 'Nothing out'}
             onClick={() => { setView('all'); setStatusFilter('out'); }}
           />
-          <Stat
-            label="Value out"
-            value={money(totals.valueOut)}
-            detail={totals.lost ? `${totals.lost} lost${totals.valueLost ? ` · ${money(totals.valueLost)}` : ''}` : 'Where a price is logged'}
-            tone={totals.lost ? 'warn' : undefined}
-            onClick={totals.lost ? () => { setView('all'); setStatusFilter('lost'); } : undefined}
-          />
+          {hasPrices ? (
+            <Stat
+              label="Value out"
+              value={money(totals.valueOut)}
+              detail={totals.lost ? `${totals.lost} lost${totals.valueLost ? ` · ${money(totals.valueLost)}` : ''}` : 'Where a price is logged'}
+              tone={totals.lost ? 'warn' : undefined}
+              onClick={totals.lost ? () => { setView('all'); setStatusFilter('lost'); } : undefined}
+            />
+          ) : totals.lost > 0 ? (
+            <Stat
+              label="Lost"
+              value={String(totals.lost)}
+              detail="Marked lost"
+              tone="warn"
+              onClick={() => { setView('all'); setStatusFilter('lost'); }}
+            />
+          ) : null}
         </div>
 
         {/* Toolbar */}
