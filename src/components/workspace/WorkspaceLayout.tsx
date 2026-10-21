@@ -124,7 +124,7 @@ const WIDGET_LABELS: Record<string, string> = {
   notes: 'Scratch Notes',
   meeting_notes: 'Meeting Notes',
   review: 'Client Review',
-  locations: 'Locations Scouting',
+  locations: 'Locations',
   drives: 'Drive Tracker',
   intake: 'Client Onboarding',
   script: 'Script & Teleprompter',
@@ -1092,7 +1092,12 @@ function WidgetMount({
     case 'review':
       return <ClientReview />;
     case 'locations':
-      return <LocationsDatabase />;
+      return (
+        <LocationsDatabase
+          onOpenProduction={(jobId) => onSwitchTab({ selectCalendarJob: jobId })}
+          isAdmin={userRole === 'admin'}
+        />
+      );
     case 'drives':
       return <DriveTracker />;
     case 'intake':

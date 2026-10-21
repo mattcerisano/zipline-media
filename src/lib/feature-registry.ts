@@ -49,6 +49,10 @@ export const APP_FEATURES: AppFeature[] = [
   { id: 'drives-who', title: 'Who Has Our Drives', description: 'See every SSD out of the office, grouped by the editor or agency holding it, and which drives are free with Matt or Tommy.', keywords: 'drive drives ssd hard drive t5 t7 t9 samsung transfer editor agency who has checked out borrowed missing available free tracker storage', tab: 'drives' },
   { id: 'drives-checkout', title: 'Check a Drive Out or In', description: 'Log a drive going to an editor or agency, then mark it returned to Matt or Tommy when it comes back.', keywords: 'check out return returned drive ssd courier hand off editor agency project matt tommy', tab: 'drives' },
 
+  // ---- Locations ----
+  { id: 'locations-map', title: 'Map of Every Shoot and Scout', description: 'A map of every place the studio has shot or scouted, filtered by year. Tap a pin for the production or the location card.', keywords: 'map locations pins where shot filmed scouted history places addresses year google venues', tab: 'locations' },
+  { id: 'locations-scout', title: 'Log a Location Scout', description: 'Save a scouted location with its permit rules, power and parking, and rate it. It goes on the map from its address.', keywords: 'location scout scouting permit power parking rating venue add log recce', tab: 'locations' },
+
   // ---- Creative ----
   { id: 'creative-board', title: 'Creative Board', description: 'Concept, lighting, camera, and audio direction per production — exports into the Master Brief PDF.', keywords: 'creative brief concept moodboard lighting direction vision', tab: 'creative' },
   { id: 'creative-brief', title: 'Master Brief PDF', description: 'One PDF with the full production: creative, crew, schedule, shotlist, and gear.', keywords: 'master brief pdf export full document production bible', tab: 'creative' },

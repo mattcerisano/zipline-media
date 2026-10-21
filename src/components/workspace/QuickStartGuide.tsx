@@ -75,6 +75,7 @@ export function QuickStartWidget() {
     { label: 'Duplicate a shoot for the next day', how: 'Slate card → menu' },
     { label: 'Archive a production', how: 'Slate card → menu' },
     { label: 'One-off gear list', how: 'Gear Builder → One-off' },
+    { label: 'Map of every shoot and scout', how: 'Locations → Map' },
     { label: 'Split a panel or add an embed', how: 'Edit layout' },
     { label: 'Calendar subscription link', how: 'Calendar sync icon' },
     { label: 'Team alerts', how: 'Settings → Integrations' },

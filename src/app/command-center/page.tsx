@@ -171,7 +171,7 @@ const STARTER_TOOLS: { id: string; label: string }[] = [
   { id: 'social', label: 'Social Media' },
   { id: 'rolodex', label: 'Rolodex' },
   { id: 'meeting_notes', label: 'Meeting Notes' },
-  { id: 'locations', label: 'Locations Scouting' },
+  { id: 'locations', label: 'Locations' },
   { id: 'drives', label: 'Drive Tracker' },
   { id: 'intake', label: 'Client Onboarding' },
   { id: 'inbox', label: 'Studio Inbox' },
@@ -214,7 +214,7 @@ const SYSTEM_TAB_EYEBROWS: Record<string, string> = {
   rolodex: 'Contacts & Clients',
   meeting_notes: 'Agendas & Minutes',
   review: 'Client Feedback',
-  locations: 'Location Database',
+  locations: 'Shoots & Scouts',
   drives: 'Drives & Hand-offs',
   intake: 'Project Intake',
   vault: 'Secure Asset Storage',
@@ -230,6 +230,13 @@ const SYSTEM_TAB_EYEBROWS: Record<string, string> = {
 // "tutorials" (Learning Center) came from an old branch whose widget never
 // reached main, so it rendered the shared scratch notepad under another name.
 const RETIRED_SYSTEM_TABS = new Set(['review', 'tutorials']);
+
+// Built-in tabs whose default name changed. Saved tab lists keep the label
+// they were saved with, so one still carrying an old default takes the new
+// name on load; a name an admin typed for the tab stays.
+const RENAMED_SYSTEM_TAB_LABELS: Record<string, string[]> = {
+  locations: ['Locations Scouting'],
+};
 
 // The tools a custom workspace opens with. Tabs made before this was
 // recorded fall back to a tool whose name matches the tab's ("Tasks" → the
@@ -253,7 +260,7 @@ const DEFAULT_TABS: CustomTab[] = [
   { id: 'inbox', label: 'Inbox', iconName: 'Mail', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'rolodex', label: 'Rolodex', iconName: 'Users', type: 'system', isDefault: true, allowedRoles: ['admin'] },
   { id: 'meeting_notes', label: 'Meeting Notes', iconName: 'FileText', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
-  { id: 'locations', label: 'Locations Scouting', iconName: 'MapPin', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
+  { id: 'locations', label: 'Locations', iconName: 'MapPin', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'drives', label: 'Drive Tracker', iconName: 'HardDrive', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
   { id: 'intake', label: 'Client Onboarding', iconName: 'ClipboardList', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff', 'client'] },
   { id: 'vault', label: 'Vault', iconName: 'Lock', type: 'system', isDefault: true, allowedRoles: ['admin', 'staff'] },
@@ -369,7 +376,13 @@ export default function CommandCenterPage() {
     // (e.g. "social"), so existing users get them without losing custom
     // tabs or ordering.
     const mergeSystemTabs = (saved: CustomTab[]): CustomTab[] => {
-      const parsed = saved.filter((t) => !(t.type === 'system' && RETIRED_SYSTEM_TABS.has(t.id)));
+      const parsed = saved
+        .filter((t) => !(t.type === 'system' && RETIRED_SYSTEM_TABS.has(t.id)))
+        .map((t) => {
+          if (t.type !== 'system' || !RENAMED_SYSTEM_TAB_LABELS[t.id]?.includes(t.label)) return t;
+          const current = DEFAULT_TABS.find((d) => d.id === t.id);
+          return current ? { ...t, label: current.label } : t;
+        });
       const savedIds = new Set(parsed.map((t) => t.id));
       const missingSystemTabs = DEFAULT_TABS.filter((t) => t.type === 'system' && !savedIds.has(t.id));
       return missingSystemTabs.length ? [...parsed, ...missingSystemTabs] : parsed;
@@ -379,7 +392,10 @@ export default function CommandCenterPage() {
     const savedTabs = localStorage.getItem('custom_tabs_list');
     if (savedTabs) {
       try {
-        setTabs(mergeSystemTabs(JSON.parse(savedTabs) as CustomTab[]));
+        const merged = mergeSystemTabs(JSON.parse(savedTabs) as CustomTab[]);
+        setTabs(merged);
+        // The Usage tab names tabs from this copy, so it gets the new names too.
+        localStorage.setItem('custom_tabs_list', JSON.stringify(merged));
       } catch (e) {
         setTabs(DEFAULT_TABS);
       }
