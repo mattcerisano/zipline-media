@@ -58,6 +58,7 @@ import {
   parseContactCSV,
   parseClientCSV,
   describeHeaders,
+  isPlaceholderEmail,
   type ImportContact,
   type ImportClient,
 } from '@/lib/contact-import';
@@ -530,6 +531,23 @@ export default function Rolodex({
   useEffect(() => {
     setVisibleCount(150);
   }, [searchQuery, selectedRoleFilter, showFavoritesOnly, sortField, sortOrder]);
+
+  // The role filter offers every role anyone actually holds, not just the
+  // standard list: Driving PA, HMU and Drone Op were on contacts but could
+  // never be picked.
+  const roleOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const role of STANDARD_ROLES) seen.set(role.toLowerCase(), role);
+    for (const c of contacts) {
+      for (const role of contactRoles(c)) {
+        const key = role.trim().toLowerCase();
+        if (key && !seen.has(key)) seen.set(key, role.trim());
+      }
+    }
+    const standard = new Set(STANDARD_ROLES);
+    const extra = [...seen.values()].filter(r => !standard.has(r)).sort((a, b) => a.localeCompare(b));
+    return [...STANDARD_ROLES, ...extra];
+  }, [contacts]);
 
   const filteredContacts = useMemo(() => {
     let result = contacts;
@@ -1081,7 +1099,7 @@ export default function Rolodex({
                 className="bg-neutral-900/40 border border-white/10 p-4 rounded-2xl outline-none focus:border-accent transition-all text-xs font-semibold text-white cursor-pointer"
               >
                 <option value="" className="bg-neutral-950 text-white">— All Roles —</option>
-                {STANDARD_ROLES.map(role => (
+                {roleOptions.map(role => (
                   <option key={role} value={role} className="bg-neutral-950 text-white">{role}</option>
                 ))}
               </select>
@@ -1240,10 +1258,19 @@ export default function Rolodex({
                   </td>
                   <td className="px-4 md:px-6 py-4 hidden md:table-cell">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-[10px] font-bold text-white/40">
-                        <Mail className="w-3 h-3" />
-                        <span className="truncate">{contact.email}</span>
-                      </div>
+                      {/* Imports invent name@temporary.com for contacts with
+                          no address; that is not an email anyone can use. */}
+                      {contact.email && !isPlaceholderEmail(contact.email) ? (
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-white/40">
+                          <Mail className="w-3 h-3" />
+                          <span className="truncate">{contact.email}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-[10px] font-semibold text-white/25 italic">
+                          <Mail className="w-3 h-3" />
+                          <span>No email</span>
+                        </div>
+                      )}
                       {contact.phone && (
                         <div className="flex items-center gap-2 text-[10px] font-bold text-white/40">
                           <Phone className="w-3 h-3" />
@@ -2113,7 +2140,7 @@ export default function Rolodex({
                   <tbody className="divide-y divide-white/5">
                     {parsedContacts.map((contact, idx) => {
                       const isSelected = selectedImportIdxs.includes(idx);
-                      const isPlaceholderEmail = contact.email.includes('@temporary.com');
+                      const placeholder = isPlaceholderEmail(contact.email);
                       const duplicateOf = importDuplicateFlags[idx];
                       
                       return (
@@ -2166,9 +2193,9 @@ export default function Rolodex({
                                 setParsedContacts(updated);
                               }}
                               className={`w-full bg-black/40 border outline-none p-2 rounded-lg text-xs font-bold text-white ${
-                                isPlaceholderEmail ? 'border-yellow-500/30 focus:border-yellow-500' : 'border-white/5 hover:border-white/10 focus:border-accent'
+                                placeholder ? 'border-yellow-500/30 focus:border-yellow-500' : 'border-white/5 hover:border-white/10 focus:border-accent'
                               }`}
-                              title={isPlaceholderEmail ? 'Temporary email generated' : ''}
+                              title={placeholder ? 'Temporary email generated' : ''}
                               disabled={!isSelected}
                             />
                           </td>

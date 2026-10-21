@@ -320,6 +320,11 @@ button, a, [role="button"], input[type="checkbox"], select {
   .studio-os[data-theme="light"] .text-white\/45:not(:hover) { color: color-mix(in oklab, var(--color-white) 60%, transparent); }
   .studio-os[data-theme="light"] .text-white\/50:not(:hover) { color: color-mix(in oklab, var(--color-white) 65%, transparent); }
 
+  /* Solid fills keep white type. `text-white` is ink in this theme, which
+     is right on cards but turned the red "Late" pill and the amber and
+     green status chips into near-black on a deep colour. */
+  .studio-os[data-theme="light"] :is(.bg-accent, .bg-red-500, .bg-red-600, .bg-green-500, .bg-green-600, .bg-emerald-500, .bg-amber-500, .bg-yellow-500, .bg-orange-500, .bg-blue-500, .bg-purple-600).text-white { color: #ffffff; }
+
   /* Accent-coloured text, in the deeper --accent-ink above. */
   .studio-os[data-theme="light"] .text-accent:not(:hover) { color: var(--accent-ink); }
   .studio-os[data-theme="light"] .text-accent\/80:not(:hover) { color: color-mix(in oklab, var(--accent-ink) 90%, transparent); }
