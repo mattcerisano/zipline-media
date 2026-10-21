@@ -3,7 +3,9 @@ import { decodeHtmlEntities } from '@/lib/html-entities';
 import { getValidGoogleToken } from '@/lib/google-auth';
 import { getAuthedUserId } from '@/lib/api-auth';
 
-// Realistic mock email threads for fallbacks or demonstration
+// Mock email threads shown before a Google account is connected. Every name
+// and address here is invented (example.com): this repository is public, and
+// real contacts belong in the Rolodex, not in source.
 const MOCK_THREADS = [
   {
     id: 'mock_thread_1',
@@ -16,29 +18,29 @@ const MOCK_THREADS = [
     messages: [
       {
         id: 'mock_msg_1_1',
-        from: 'Claude Films <claudefilms@gmail.com>',
+        from: 'Avery Chen <avery@example.com>',
         to: 'Matt <matt@zipline.media>',
         date: 'June 21, 2026, 4:12 PM',
         snippet: 'Hi team, here is the V2 edit of the Broadway B-Roll Reveal. The opening night shots are stunning...',
         body: `<p>Hi team,</p>
                <p>Here is the V2 edit of the <strong>Broadway B-Roll Reveal</strong>. The opening night shots look absolutely stunning! The coloring is spot on.</p>
                <p>However, the transition at 0:42 feels a bit abrupt. Can we extend the B-roll by 5 frames to let it breathe? Let me know if that's possible.</p>
-               <p>Best,<br>Claude</p>`
+               <p>Best,<br>Avery</p>`
       },
       {
         id: 'mock_msg_1_2',
         from: 'Matt <matt@zipline.media>',
-        to: 'Claude Films <claudefilms@gmail.com>',
+        to: 'Avery Chen <avery@example.com>',
         date: 'June 21, 2026, 6:30 PM',
-        snippet: "Hey Claude, thanks for the feedback! I've updated the transition at 0:42 and uploaded the new edit...",
-        body: `<p>Hey Claude,</p>
+        snippet: "Hey Avery, thanks for the feedback! I've updated the transition at 0:42 and uploaded the new edit...",
+        body: `<p>Hey Avery,</p>
                <p>Thanks for the quick feedback! I went ahead and extended that B-roll shot at 0:42 by 6 frames so the audio cue matches the cut better. The updated master has been rendered and uploaded to the review link.</p>
                <p>Let me know how this version feels.</p>
                <p>Best,<br>Matt</p>`
       },
       {
         id: 'mock_msg_1_3',
-        from: 'Claude Films <claudefilms@gmail.com>',
+        from: 'Avery Chen <avery@example.com>',
         to: 'Matt <matt@zipline.media>',
         date: 'June 21, 2026, 9:45 PM',
         snippet: 'Looks incredible Matt! This is approved. Can we get the final delivery files by tomorrow morning?',
@@ -59,7 +61,7 @@ const MOCK_THREADS = [
     messages: [
       {
         id: 'mock_msg_2_1',
-        from: 'Luis Pimentel <luispimentelsounds@gmail.com>',
+        from: 'Sam Rivera <sam@example.com>',
         to: 'Matt <matt@zipline.media>',
         date: 'June 20, 2026, 2:15 PM',
         snippet: "Hey Matt, I've finished the master mix for the opening night reveals. Some of the TVC audio stems...",
@@ -67,7 +69,7 @@ const MOCK_THREADS = [
                <p>I've finished the master stereo mix and surround stems for the opening night reveals.</p>
                <p>Some of the TVC audio stems had slight clipping around the 1:15 mark, so I ran them through RX and cleaned up the high end. It sounds super clean now. I've uploaded the full high-res Stems zip to the Google Drive project folder.</p>
                <p>Let me know if we need any adjustments for the theatrical release.</p>
-               <p>Cheers,<br>Luis</p>`
+               <p>Cheers,<br>Sam</p>`
       }
     ]
   },
@@ -82,14 +84,14 @@ const MOCK_THREADS = [
     messages: [
       {
         id: 'mock_msg_3_1',
-        from: 'Chad Henderson <chadhendersonmusic@gmail.com>',
+        from: 'Casey Morgan <casey@example.com>',
         to: 'Matt <matt@zipline.media>',
         date: 'June 19, 2026, 11:05 AM',
         snippet: "Hi Matt, confirming the studio booking for Tuesday's cast recordings. We have 14 singers scheduled...",
         body: `<p>Hi Matt,</p>
                <p>Confirming the studio booking for Tuesday's cast recordings. We have 14 singers scheduled between 10 AM and 6 PM. We should be running two rooms simultaneously.</p>
                <p>Could you double-check if we have the Neumann U87s and Sennheiser 416s packed in the gear manifest? Also, we'll need the teleprompter rigs set up for the lyrics feed.</p>
-               <p>Best,<br>Chad</p>`
+               <p>Best,<br>Casey</p>`
       }
     ]
   },
@@ -104,7 +106,7 @@ const MOCK_THREADS = [
     messages: [
       {
         id: 'mock_msg_4_1',
-        from: 'Tom Fama <tomfama96@gmail.com>',
+        from: 'Jordan Blake <jordan@example.com>',
         to: 'Matt <matt@zipline.media>',
         date: 'June 18, 2026, 9:20 AM',
         snippet: "Hey, looking over the gear builder manifest for the TVC shoot. We are short one Arri Alexa Mini LF body...",
@@ -112,7 +114,7 @@ const MOCK_THREADS = [
                <p>I was looking over the gear builder manifest for the TVC shoot next weekend.</p>
                <p>It looks like we are short one <strong>Arri Alexa Mini LF</strong> body. Did we arrange a sub-rental for this from PRG, or are we hoping to pull it from house inventory? We have three active sets shooting simultaneously on Saturday.</p>
                <p>Please let me know so I can confirm the pick-up schedule.</p>
-               <p>Thanks,<br>Tom</p>`
+               <p>Thanks,<br>Jordan</p>`
       }
     ]
   },
@@ -127,14 +129,14 @@ const MOCK_THREADS = [
     messages: [
       {
         id: 'mock_msg_5_1',
-        from: 'Rob McEnaney <robmcenaney@gmail.com>',
+        from: 'Riley Park <riley@example.com>',
         to: 'Matt <matt@zipline.media>',
         date: 'June 17, 2026, 3:40 PM',
         snippet: "Hey Matt, I picked out six high-performing social clips to place above the client ticker on the homepage...",
         body: `<p>Hey Matt,</p>
                <p>I picked out six high-performing social clips to place above the client ticker on the homepage. They showcase the Broadway Opening Nights and Cast Recording playlists best.</p>
                <p>Let's link up tomorrow to get them integrated. They are all organized in the Broadway B-Roll playlist. Let me know what time works.</p>
-               <p>Best,<br>Rob</p>`
+               <p>Best,<br>Riley</p>`
       }
     ]
   }
@@ -538,8 +540,8 @@ export async function POST(request: Request) {
 
     // 2. Build RFC 2822 email payload
     const emailParts = [
-      `To: ${to}`,
-      `Subject: ${subject || 'Reply from Studio OS'}`,
+      `To: ${header(to)}`,
+      `Subject: ${header(subject) || 'Reply from Studio OS'}`,
       'Content-Type: text/html; charset=utf-8',
       'MIME-Version: 1.0',
       '',
@@ -584,6 +586,14 @@ export async function POST(request: Request) {
 // ----------------------------------------------------------------------
 // HELPER FUNCTIONS
 // ----------------------------------------------------------------------
+
+// A header value is one line. The recipient and subject come straight from
+// the compose form, and a line break inside either would start a new header
+// (`To: a@x.com\r\nBcc: …`), so breaks are folded into spaces before the
+// message is assembled.
+function header(value: unknown): string {
+  return String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
+}
 
 function getHeaderValue(msg: any, name: string): string {
   const header = msg.payload?.headers?.find(

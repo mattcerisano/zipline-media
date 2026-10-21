@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
 import { isSameOrigin, withinRateLimit } from '@/lib/api-guard';
+import { getAuthedUserId } from '@/lib/api-auth';
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 export async function GET(request: Request) {
   if (!isSameOrigin(request) || !withinRateLimit(request)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  // Signed in as well: the origin check can be forged with one header and the
+  // throttle only holds within one instance, so on their own they left the
+  // studio's Maps budget open to anyone. Every caller is inside the app.
+  if (!(await getAuthedUserId(request))) {
+    return NextResponse.json({ error: 'Sign in first.' }, { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);

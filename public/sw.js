@@ -22,7 +22,17 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
 
   // Only handle same-origin GET navigations/assets; let everything else pass through.
-  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) {
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Never cache API responses. Every same-origin 200 GET used to be stored,
+  // which put the signed-in mailbox (/api/integrations/mail), the team roster
+  // and time logs into Cache Storage on disk — unencrypted, kept after sign-out,
+  // and served back to whoever opened the app offline. Those routes are only
+  // useful live anyway; what offline needs is the app shell and its assets.
+  if (url.pathname.startsWith('/api/')) {
     return;
   }
 
