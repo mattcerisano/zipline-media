@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Trash2, Search, Loader2, FolderKanban, Building2, Clapperboard, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Search, Loader2, FolderKanban, Building2, Clapperboard, AlertCircle, Merge } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
+import { Modal } from '@/components/workspace/Overlay';
+import { losersOf, mergeClients, mergeProjects, pickSurvivor, type MergeRow } from '@/lib/merge-records';
 import { useRealtime } from '@/lib/useRealtime';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
 import { formatLocalDate, todayLocalISO } from '@/lib/date';
@@ -480,6 +482,47 @@ export default function LibraryWidget() {
     }
   };
 
+  /**
+   * Merge the selected projects (or clients) into one. The Library had two
+   * "860"s and two "Fantasticks"; deleting one would strip its productions of
+   * the tag, so instead everything moves to the survivor and the rest go.
+   */
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [keepId, setKeepId] = useState<string | null>(null);
+  const mergeRows = useMemo<MergeRow[]>(
+    () => current
+      .filter(r => selected.has(r.id))
+      .map(r => ({ id: r.id, name: r.name, client_id: r.raw.client_id ?? null, usage: r.count ?? 0 })),
+    [current, selected],
+  );
+  const canMerge = entity !== 'jobs' && mergeRows.length >= 2;
+
+  const openMerge = () => {
+    setKeepId(pickSurvivor(mergeRows)?.id || null);
+    setMergeOpen(true);
+  };
+
+  const mergeSelected = async () => {
+    const keep = mergeRows.find(r => r.id === keepId);
+    if (!keep) return;
+    const losers = losersOf(mergeRows, keep.id);
+    setBusy(true);
+    try {
+      const { moved } = entity === 'projects'
+        ? await mergeProjects(keep, losers)
+        : await mergeClients(keep, losers);
+      toast(`Merged ${losers.length} into "${keep.name}"${moved ? ` — ${moved} production${moved === 1 ? '' : 's'} moved` : ''}.`);
+      setMergeOpen(false);
+      setSelected(new Set());
+      setActiveId(keep.id);
+      await load();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Merge failed.', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const removeSelected = async () => {
     const ids = [...selected];
     if (ids.length === 0) return;
@@ -620,6 +663,53 @@ export default function LibraryWidget() {
         </div>
       </div>
 
+      <Modal
+        open={mergeOpen}
+        onClose={() => setMergeOpen(false)}
+        title={`Merge ${mergeRows.length} ${meta.label.toLowerCase()}`}
+        subtitle={entity === 'projects'
+          ? 'Productions in the others move to the one you keep. The others are then removed.'
+          : 'Productions, projects, notes and briefs on the others move to the one you keep. The others are then removed.'}
+        maxWidth="max-w-md"
+        footer={(
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setMergeOpen(false)} disabled={busy} className="px-4 py-2 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-colors">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={mergeSelected}
+              disabled={busy || !keepId}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50"
+            >
+              {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Merge className="w-3.5 h-3.5" />}
+              Merge
+            </button>
+          </div>
+        )}
+      >
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-white/35 mb-2">Keep</p>
+        <div className="space-y-1.5">
+          {mergeRows.map(r => (
+            <label
+              key={r.id}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-colors ${keepId === r.id ? 'border-accent/60 bg-accent/10' : 'border-white/10 hover:bg-white/[0.04]'}`}
+            >
+              <input type="radio" name="merge-keep" checked={keepId === r.id} onChange={() => setKeepId(r.id)} className="accent-[var(--accent)]" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-medium text-white truncate">{r.name}</span>
+                {current.find(c => c.id === r.id)?.detail && (
+                  <span className="block text-[11px] text-white/40 truncate">{current.find(c => c.id === r.id)?.detail}</span>
+                )}
+              </span>
+              <span className="text-[11px] text-white/40 tabular-nums shrink-0">
+                {r.usage || 0} {entity === 'projects' ? (r.usage === 1 ? 'shoot' : 'shoots') : (r.usage === 1 ? 'use' : 'uses')}
+              </span>
+            </label>
+          ))}
+        </div>
+      </Modal>
+
       {/* Action bar */}
       <div className="px-4 py-2 border-b border-white/5 flex items-center justify-between gap-3 shrink-0">
         <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/40 cursor-pointer">
@@ -634,6 +724,17 @@ export default function LibraryWidget() {
         </label>
 
         <div className="flex items-center gap-2">
+          {canMerge && (
+            <button
+              type="button"
+              onClick={openMerge}
+              disabled={busy}
+              title={`Fold the selected ${meta.label.toLowerCase()} into one`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/80 text-[10px] font-semibold hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+            >
+              <Merge className="w-3.5 h-3.5" /> Merge {selected.size}
+            </button>
+          )}
           {selected.size > 0 && (
             <button
               type="button"

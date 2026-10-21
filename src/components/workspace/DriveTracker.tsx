@@ -153,7 +153,7 @@ export default function DriveTracker() {
     (d: Drive) => {
       const q = query.trim().toLowerCase();
       if (!q) return true;
-      return [d.label, d.model, d.serial, d.holder_name, d.notes, d.job_id ? jobTitles[d.job_id] : '']
+      return [d.label, d.model, d.serial, d.holder_name, d.notes, d.contents, d.job_id ? jobTitles[d.job_id] : '']
         .some((v) => (v || '').toLowerCase().includes(q));
     },
     [query, jobTitles]
@@ -341,6 +341,11 @@ export default function DriveTracker() {
               </div>
             );
           })()}
+          {d.contents && (
+            <div className="text-[11px] text-white/55 mt-0.5 truncate" title={d.contents}>
+              On it: {d.contents}
+            </div>
+          )}
         </div>
 
         {out !== null && (
@@ -725,6 +730,7 @@ function DriveForm({ drive, existingLabels, onClose, onSaved }: {
   const [serial, setSerial] = useState(drive?.serial ?? '');
   const [price, setPrice] = useState(drive?.purchase_price != null ? String(drive.purchase_price) : '');
   const [notes, setNotes] = useState(drive?.notes ?? '');
+  const [contents, setContents] = useState(drive?.contents ?? '');
   const [saving, setSaving] = useState(false);
 
   const duplicate =
@@ -744,6 +750,9 @@ function DriveForm({ drive, existingLabels, onClose, onSaved }: {
       serial: serial.trim() || null,
       purchase_price: price ? Number(price) : null,
       notes: notes.trim() || null,
+      // Only written when there is something to write, so a save still works
+      // on a database where the contents migration hasn't run yet.
+      ...(contents.trim() || drive?.contents ? { contents: contents.trim() || null } : {}),
     };
     const res = drive
       ? await supabase.from('drives').update(row).eq('id', drive.id).select().single()
@@ -817,6 +826,10 @@ function DriveForm({ drive, existingLabels, onClose, onSaved }: {
             <label className={labelClass}>What it cost ($)</label>
             <input type="number" min="0" step="1" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Optional" className={inputClass} />
           </div>
+        </div>
+        <div>
+          <label className={labelClass}>What's on it</label>
+          <textarea value={contents} onChange={(e) => setContents(e.target.value)} rows={2} placeholder="Fantasticks Press Day, 860 B-roll, fonts…" className={`${inputClass} resize-none`} />
         </div>
         <div>
           <label className={labelClass}>Notes</label>

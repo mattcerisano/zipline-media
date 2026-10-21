@@ -34,7 +34,8 @@ import {
   Merge
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EscapeToClose, Portal } from '@/components/workspace/Overlay';
+import { EscapeToClose, Portal, Modal } from '@/components/workspace/Overlay';
+import { mergeClients } from '@/lib/merge-records';
 import { supabase } from '@/lib/supabase';
 import { useRealtime } from '@/lib/useRealtime';
 import { Contact, Client } from '@/components/gearbuilder/types';
@@ -86,6 +87,11 @@ export default function Rolodex({
   const [activeView, setActiveView] = useState<RolodexView>('crew');
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  // "Merge into…" on a client row: the duplicate being folded away, and the
+  // client that keeps everything ("FinEvents - Rob" into "FinEvents UK Ltd").
+  const [mergeSource, setMergeSource] = useState<Client | null>(null);
+  const [mergeTargetId, setMergeTargetId] = useState('');
+  const [merging, setMerging] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   
@@ -991,6 +997,27 @@ export default function Rolodex({
     }
   };
 
+  const runClientMerge = async () => {
+    const target = clients.find(c => c.id === mergeTargetId);
+    if (!mergeSource || !target || target.id === mergeSource.id) return;
+    setMerging(true);
+    try {
+      const { moved } = await mergeClients(
+        { id: target.id, name: target.name },
+        [{ id: mergeSource.id, name: mergeSource.name }],
+      );
+      setClients(prev => prev.filter(c => c.id !== mergeSource.id));
+      toast(`Merged "${mergeSource.name}" into "${target.name}"${moved ? ` — ${moved} production${moved === 1 ? '' : 's'} moved` : ''}.`);
+      setMergeSource(null);
+      setMergeTargetId('');
+      void fetchData();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Merge failed.', 'error');
+    } finally {
+      setMerging(false);
+    }
+  };
+
   const deleteClient = async (id: string) => {
     if (!(await confirmAction({ title: 'Delete this client?', message: 'Jobs associated with this client will remain, but the client record will be removed.', danger: true, confirmLabel: 'Delete' }))) return;
     try {
@@ -1147,6 +1174,41 @@ export default function Rolodex({
           <Plus className="w-4 h-4" /> Add {activeView === 'crew' ? 'Contact' : 'Client'}
         </button>
       </div>
+
+      <Modal
+        open={!!mergeSource}
+        onClose={() => setMergeSource(null)}
+        title={mergeSource ? `Merge "${mergeSource.name}"` : 'Merge client'}
+        subtitle="Its productions, projects, notes and briefs move to the client you pick, and productions take that client's name. This record is then removed."
+        maxWidth="max-w-md"
+        footer={(
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setMergeSource(null)} disabled={merging} className="px-4 py-2 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-colors">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={runClientMerge}
+              disabled={merging || !mergeTargetId}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50"
+            >
+              <Merge className="w-3.5 h-3.5" /> Merge
+            </button>
+          </div>
+        )}
+      >
+        <label className="block text-[11px] font-semibold uppercase tracking-widest text-white/35 mb-2">Into</label>
+        <select
+          value={mergeTargetId}
+          onChange={(e) => setMergeTargetId(e.target.value)}
+          className="w-full bg-black/50 border border-white/10 p-3 rounded-xl outline-none focus:border-accent text-sm text-white cursor-pointer"
+        >
+          <option value="" className="bg-zinc-950">Choose the client to keep…</option>
+          {clients.filter(c => c.id !== mergeSource?.id).map(c => (
+            <option key={c.id} value={c.id} className="bg-zinc-950">{c.name}</option>
+          ))}
+        </select>
+      </Modal>
 
       {activeView === 'clients' && strayClientIds.size > 0 && (
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.07]">
@@ -1339,7 +1401,14 @@ export default function Rolodex({
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button 
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setMergeTargetId(''); setMergeSource(client); }}
+                        className="p-2 text-white/10 hover:text-accent hover:bg-accent/5 rounded-lg transition-all"
+                        title="Merge into another client"
+                      >
+                        <Merge className="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         onClick={(e) => { e.stopPropagation(); deleteClient(client.id); }}
                         className="p-2 text-white/10 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
                       >

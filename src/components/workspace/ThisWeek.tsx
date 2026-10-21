@@ -17,7 +17,7 @@ import {
   type WeekDrive,
   type WeekJob,
 } from '@/lib/week-ahead';
-import { DropdownMenu } from '@/components/workspace/Overlay';
+import { DropdownMenu, Modal } from '@/components/workspace/Overlay';
 import { toast } from '@/components/Feedback';
 
 /**
@@ -52,6 +52,13 @@ export default function ThisWeek({
   const [stageDefs, setStageDefs] = useState<EditStageDef[]>(DEFAULT_STAGE_DEFS);
   const [loaded, setLoaded] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // "Close out all": one sheet listing every stale shoot with what to do to
+  // each, instead of 38 trips through the one-at-a-time menu.
+  type CloseOutChoice = 'wrapped' | 'wrapped_post' | 'cancelled' | 'skip';
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkPlan, setBulkPlan] = useState<Record<string, CloseOutChoice>>({});
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(async () => {
     const [jobsRes, drivesRes, orgRes] = await Promise.all([
@@ -99,19 +106,31 @@ export default function ThisWeek({
    * board, or cancelled. The same write, alert and Google push a status change
    * on its Slate card makes — a cancelled one comes off the studio calendar.
    */
-  const closeOut = async (job: WeekJob, action: 'wrapped' | 'wrapped_post' | 'cancelled') => {
+  /** The write itself, plus the Google Calendar push. Returns the error message, or null. */
+  const writeCloseOut = async (job: WeekJob, action: 'wrapped' | 'wrapped_post' | 'cancelled'): Promise<string | null> => {
     const status = action === 'cancelled' ? 'Cancelled' : 'Wrapped';
     const patch: Record<string, unknown> = { job_status: status };
     if (action === 'wrapped_post' && !job.edit_status) patch.edit_status = stageDefs[0]?.id || 'Filmed';
 
-    setBusyId(job.id);
-    const before = jobs;
-    setJobs(prev => prev.map(j => (j.id === job.id ? { ...j, ...patch } as WeekJob : j)));
     const { error } = await supabase.from('jobs').update(patch).eq('id', job.id);
+    if (error) return error.message;
+    setJobs(prev => prev.map(j => (j.id === job.id ? { ...j, ...patch } as WeekJob : j)));
+    if (job.shoot_date) {
+      pushJobToGoogleCalendar(job.id).then(result => {
+        if (!result.ok && result.message) toast(result.message, 'error');
+      });
+    }
+    return null;
+  };
+
+  const closeOut = async (job: WeekJob, action: 'wrapped' | 'wrapped_post' | 'cancelled') => {
+    const status = action === 'cancelled' ? 'Cancelled' : 'Wrapped';
+
+    setBusyId(job.id);
+    const message = await writeCloseOut(job, action);
     setBusyId(null);
-    if (error) {
-      setJobs(before);
-      toast(`Couldn't update "${job.title}": ${error.message}`, 'error');
+    if (message) {
+      toast(`Couldn't update "${job.title}": ${message}`, 'error');
       return;
     }
 
@@ -133,12 +152,40 @@ export default function ThisWeek({
         new_status: status,
       },
     }).catch(() => { /* an alert hiccup never undoes the change */ });
-    if (job.shoot_date) {
-      pushJobToGoogleCalendar(job.id).then(result => {
-        if (!result.ok && result.message) toast(result.message, 'error');
-      });
+  };
+
+  const openBulk = () => {
+    // A hold that passed didn't happen; anything booked or planned did.
+    const plan: Record<string, CloseOutChoice> = {};
+    for (const j of stale) plan[j.id] = j.job_status === 'Hold' ? 'cancelled' : 'wrapped';
+    setBulkPlan(plan);
+    setBulkOpen(true);
+  };
+
+  /**
+   * Run the sheet. One summary toast rather than one per shoot, and no team
+   * alerts — closing out a season of old shoots is housekeeping, not news.
+   */
+  const runBulk = async () => {
+    const todo = stale.filter(j => (bulkPlan[j.id] || 'skip') !== 'skip');
+    if (todo.length === 0) { setBulkOpen(false); return; }
+    setBulkBusy(true);
+    const failed: string[] = [];
+    for (const j of todo) {
+      const message = await writeCloseOut(j, bulkPlan[j.id] as 'wrapped' | 'wrapped_post' | 'cancelled');
+      if (message) failed.push(`${j.title} (${message})`);
+    }
+    setBulkBusy(false);
+    setBulkOpen(false);
+    const done = todo.length - failed.length;
+    if (failed.length === 0) {
+      toast(`Closed out ${done} shoot${done === 1 ? '' : 's'}.`, 'success');
+    } else {
+      toast(`Closed out ${done}; ${failed.length} failed: ${failed.join(', ')}`, 'error');
     }
   };
+
+  const bulkCount = stale.filter(j => (bulkPlan[j.id] || 'skip') !== 'skip').length;
 
   const anyShown = show.shoots || show.edits || show.closeOut || show.drives;
   if (!anyShown) return null;
@@ -249,7 +296,7 @@ export default function ThisWeek({
         {/* Close out past shoots — hidden when there's nothing to close. */}
         {show.closeOut && loaded && stale.length > 0 && (
           <section className={cardClass}>
-            {header(<ClipboardCheck className="w-4 h-4 text-amber-400" />, 'Close out past shoots', stale.length)}
+            {header(<ClipboardCheck className="w-4 h-4 text-amber-400" />, 'Close out past shoots', stale.length, stale.length > 1 ? { label: 'Close out all', onClick: openBulk } : undefined)}
             <p className="px-2.5 -mt-1 mb-2 text-[11px] text-white/40 leading-relaxed">
               These have finished but still read Booked, Hold or Planning, so they count as upcoming everywhere.
             </p>
@@ -307,6 +354,64 @@ export default function ThisWeek({
             )}
           </section>
         )}
+
+        <Modal
+          open={bulkOpen}
+          onClose={() => { if (!bulkBusy) setBulkOpen(false); }}
+          title={`Close out ${stale.length} past shoot${stale.length === 1 ? '' : 's'}`}
+          subtitle="Booked and planned shoots are marked wrapped; holds that passed are marked cancelled and come off the calendar. Change any row, or skip it."
+          maxWidth="max-w-2xl"
+          footer={(
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex gap-3 text-[11px]">
+                <button type="button" onClick={() => setBulkPlan(Object.fromEntries(stale.map(j => [j.id, 'wrapped' as CloseOutChoice])))} className="text-white/50 hover:text-white transition-colors">All wrapped</button>
+                <button type="button" onClick={() => setBulkPlan(Object.fromEntries(stale.map(j => [j.id, 'skip' as CloseOutChoice])))} className="text-white/50 hover:text-white transition-colors">Skip all</button>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setBulkOpen(false)} disabled={bulkBusy} className="px-4 py-2 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-colors">
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void runBulk()}
+                  disabled={bulkBusy || bulkCount === 0}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-accent/90 transition-colors disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {bulkBusy ? 'Closing out…' : `Close out ${bulkCount}`}
+                </button>
+              </div>
+            </div>
+          )}
+        >
+          <div className="space-y-1">
+            {stale.map(j => (
+              <div key={j.id} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-white/[0.04] min-w-0">
+                <div className="flex-1 min-w-0">
+                  <span className="block text-[13px] font-medium text-white truncate">{j.title}</span>
+                  <span className="block text-[11px] text-white/40 truncate">
+                    {formatLocalDate(lastDayOf(j), { month: 'short', day: 'numeric' })} · {j.job_status}
+                    {j.client_name ? ` · ${j.client_name}` : ''}
+                  </span>
+                </div>
+                <select
+                  value={bulkPlan[j.id] || 'skip'}
+                  onChange={e => setBulkPlan(prev => ({ ...prev, [j.id]: e.target.value as CloseOutChoice }))}
+                  disabled={bulkBusy}
+                  aria-label={`What to do with ${j.title}`}
+                  className={`shrink-0 bg-black/40 border border-white/10 rounded-lg py-1.5 px-2 text-[11px] font-semibold outline-none focus:border-accent cursor-pointer ${
+                    (bulkPlan[j.id] || 'skip') === 'skip' ? 'text-white/40' : (bulkPlan[j.id] === 'cancelled' ? 'text-red-400' : 'text-white')
+                  }`}
+                >
+                  <option value="wrapped" className="bg-zinc-950 text-white">Wrapped</option>
+                  {!j.edit_status && <option value="wrapped_post" className="bg-zinc-950 text-white">Wrapped, add to edit board</option>}
+                  <option value="cancelled" className="bg-zinc-950 text-white">Didn't happen</option>
+                  <option value="skip" className="bg-zinc-950 text-white">Skip</option>
+                </select>
+              </div>
+            ))}
+          </div>
+        </Modal>
 
         {/* Drives out longest */}
         {show.drives && (
