@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countOpens, rankTabsByUse } from './tab-ranking';
+import { applyPersonalOrder, countOpens, rankTabsByUse } from './tab-ranking';
 
 const tabs = ['dashboard', 'calendar', 'slate', 'edits', 'vault'].map(id => ({ id }));
 
@@ -22,5 +22,17 @@ describe('rankTabsByUse', () => {
 describe('countOpens', () => {
   it('counts rows per surface', () => {
     expect(countOpens([{ surface: 'slate' }, { surface: 'slate' }, { surface: 'vault' }, { surface: null }])).toEqual({ slate: 2, vault: 1 });
+  });
+});
+
+describe('applyPersonalOrder', () => {
+  it('follows the order someone dragged', () => {
+    expect(applyPersonalOrder(tabs, ['vault', 'slate', 'dashboard', 'calendar', 'edits']).map(t => t.id))
+      .toEqual(['vault', 'slate', 'dashboard', 'calendar', 'edits']);
+  });
+
+  it('adds tabs missing from it at the end, in the team order, and drops ones that are gone', () => {
+    expect(applyPersonalOrder(tabs, ['edits', 'review', 'slate']).map(t => t.id))
+      .toEqual(['edits', 'slate', 'dashboard', 'calendar', 'vault']);
   });
 });

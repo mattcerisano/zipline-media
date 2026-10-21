@@ -20,3 +20,15 @@ export function countOpens(rows: { surface: string | null }[]): Record<string, n
   for (const r of rows) if (r.surface) out[r.surface] = (out[r.surface] || 0) + 1;
   return out;
 }
+
+/**
+ * A person's own sidebar order, when they've dragged one. Tabs they ordered
+ * come in that order; anything newer — a workspace added since, a tab their
+ * role just gained — follows in the team's order rather than vanishing.
+ */
+export function applyPersonalOrder<T extends { id: string }>(tabs: T[], order: string[]): T[] {
+  const byId = new Map(tabs.map(t => [t.id, t]));
+  const placed = order.map(id => byId.get(id)).filter((t): t is T => !!t);
+  const seen = new Set(placed.map(t => t.id));
+  return [...placed, ...tabs.filter(t => !seen.has(t.id))];
+}
