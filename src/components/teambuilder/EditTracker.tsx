@@ -46,7 +46,8 @@ import {
   ChevronUp,
   ChevronDown,
   Check,
-  Copy
+  Copy,
+  Link as LinkIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -1023,7 +1024,6 @@ function CardDrafts({
   job,
   onUpdate,
   isClient,
-  isEditor,
   myName,
   stages,
   onMoveStage,
@@ -1032,7 +1032,6 @@ function CardDrafts({
   /** Resolves false when the save failed (and was rolled back). */
   onUpdate: (job: Job) => void | Promise<boolean | void>;
   isClient: boolean;
-  isEditor: boolean;
   myName?: string | null;
   stages: ResolvedStage[];
   onMoveStage: (jobId: string, stageId: string) => void;
@@ -1072,32 +1071,6 @@ function CardDrafts({
     () => [...new Set([...groups.map(g => g.title), ...deliverableTitles])],
     [groups, deliverableTitles]
   );
-
-  // Everything else attached to the card: older review/Drive/Discord fields and
-  // non-draft links. Shown so nothing already saved disappears; not added to
-  // here any more. The review link is skipped when it's just the newest draft.
-  const draftUrls = new Set(links.filter(isDraft).map(l => l.url));
-  const otherLinks: { key: string; label: string; url: string; remove?: () => void }[] = [
-    ...(job.review_link && !draftUrls.has(job.review_link)
-      ? [{ key: 'review', label: 'Review link', url: job.review_link, remove: () => onUpdate({ ...job, review_link: null as unknown as string }) }]
-      : []),
-    ...(job.drive_folder_url
-      ? [{ key: 'drive', label: 'Drive folder', url: job.drive_folder_url, remove: () => onUpdate({ ...job, drive_folder_url: null as unknown as string }) }]
-      : []),
-    // discord_url isn't on the editor's column whitelist, so only the studio can clear it.
-    ...(job.discord_url
-      ? [{ key: 'discord', label: 'Discord', url: job.discord_url, remove: isEditor ? undefined : () => onUpdate({ ...job, discord_url: null as unknown as string }) }]
-      : []),
-    ...links
-      .map((l, i) => ({ l, i }))
-      .filter(({ l }) => l && !isDraft(l) && l.url)
-      .map(({ l, i }) => ({
-        key: `link-${i}`,
-        label: l.label || 'Link',
-        url: l.url,
-        remove: () => onUpdate({ ...job, links: links.filter((_, j) => j !== i) }),
-      })),
-  ];
 
   const post = async () => {
     const url = extractDraftUrl(link);
@@ -1294,41 +1267,216 @@ function CardDrafts({
           </div>
         )}
 
-        {otherLinks.length > 0 && (
-          <div className="mt-5">
-            <h4 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-1.5">Other links</h4>
-            <div className="space-y-0.5">
-              {otherLinks.map(o => (
-                <div key={o.key} className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
-                  <ExternalLink className="w-3.5 h-3.5 text-white/30 shrink-0" />
-                  <a
-                    href={sanitizeUrl(o.url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 min-w-0 truncate text-xs text-white/70 hover:underline"
-                    title={o.url}
-                  >
-                    <span className="font-semibold text-white/80">{o.label}</span>
-                    <span className="text-white/35"> · {o.url.replace(/^https?:\/\/(www\.)?/, '')}</span>
-                  </a>
-                  {!isClient && o.remove && (
-                    <button
-                      type="button"
-                      onClick={o.remove}
-                      aria-label={`Remove ${o.label}`}
-                      className="p-1 text-white/0 group-hover:text-white/30 hover:!text-red-400 transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
+}
+
+// ----------------------------------------------------------------------
+// COMPONENT: CardQuickLinks — the Dropbox folder, the Frame.io page, the
+// brief: whatever the editor keeps reaching for on this job. These used to
+// get pasted into the description, which turned it into a wall of URL. Kept
+// in jobs.links beside the Slate card's links (every non-draft link shows
+// here, whichever tab added it), so an editor can add one without a schema
+// change. The review, Drive and Discord fields set elsewhere are listed too.
+// ----------------------------------------------------------------------
+function CardQuickLinks({
+  job,
+  onUpdate,
+  isClient,
+  isEditor,
+  myName,
+}: {
+  job: Job;
+  /** Resolves false when the save failed (and was rolled back). */
+  onUpdate: (job: Job) => void | Promise<boolean | void>;
+  isClient: boolean;
+  isEditor: boolean;
+  myName?: string | null;
+}) {
+  const [label, setLabel] = useState('');
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const links = job.links || [];
+  // The review link is skipped when it's just the newest draft: that one
+  // already heads the Drafts list below.
+  const draftUrls = new Set(links.filter(isDraft).map(l => l.url));
+  const rows: { key: string; label: string; url: string; meta?: string; remove?: () => void }[] = [
+    ...(job.review_link && !draftUrls.has(job.review_link)
+      ? [{ key: 'review', label: 'Review link', url: job.review_link, remove: () => onUpdate({ ...job, review_link: null as unknown as string }) }]
+      : []),
+    ...(job.drive_folder_url
+      ? [{ key: 'drive', label: 'Drive folder', url: job.drive_folder_url, remove: () => onUpdate({ ...job, drive_folder_url: null as unknown as string }) }]
+      : []),
+    // discord_url isn't on the editor's column whitelist, so only the studio can clear it.
+    ...(job.discord_url
+      ? [{ key: 'discord', label: 'Discord', url: job.discord_url, remove: isEditor ? undefined : () => onUpdate({ ...job, discord_url: null as unknown as string }) }]
+      : []),
+    ...links
+      .map((l, i) => ({ l, i }))
+      .filter(({ l }) => l && !isDraft(l) && l.url)
+      .map(({ l, i }) => ({
+        key: `link-${i}`,
+        label: l.label || 'Link',
+        url: l.url,
+        meta: [when(l.added_at), l.added_by].filter(Boolean).join(' · ') || undefined,
+        remove: () => onUpdate({ ...job, links: links.filter((_, j) => j !== i) }),
+      })),
+  ];
+
+  const add = async () => {
+    const href = extractDraftUrl(url);
+    if (!href) {
+      setError(url.trim() ? "That doesn't look like a link." : 'Paste a link first.');
+      return;
+    }
+    // Labelled by its site when no label is given, the way Slate does it.
+    let host = '';
+    try { host = new URL(href).hostname.replace(/^www\./, ''); } catch { /* extractDraftUrl already vetted it */ }
+    const link: JobLink = {
+      label: label.trim() || host || 'Link',
+      url: href,
+      category: 'Other',
+      added_at: new Date().toISOString(),
+      ...(myName ? { added_by: myName } : {}),
+    };
+    setError(null);
+    // Keep what was typed if the save fails, so it isn't pasted twice.
+    if ((await onUpdate({ ...job, links: [...links, link] })) === false) return;
+    setLabel('');
+    setUrl('');
+  };
+
+  const remove = async (row: { label: string; url: string; remove?: () => void }) => {
+    if (!row.remove) return;
+    const ok = await confirmAction({
+      title: `Remove ${row.label}?`,
+      message: 'Only the link on this card goes. Whatever it points at is untouched.',
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (ok) row.remove();
+  };
+
+  const copy = (href: string) => {
+    navigator.clipboard?.writeText(href).then(() => {
+      setCopied(href);
+      setTimeout(() => setCopied(c => (c === href ? null : c)), 1500);
+    }).catch(() => toast('Could not copy the link.'));
+  };
+
+  return (
+    <div className="flex gap-4">
+      <LinkIcon className="w-6 h-6 text-white/40 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <h3 className="text-base font-bold text-white mb-2">Quick links</h3>
+
+        {rows.length === 0 && (
+          <p className="text-xs text-white/35 mb-2">
+            {isClient ? 'No links on this card yet.' : 'Nothing yet. Add the Dropbox folder, the brief, the Frame.io page — anything you keep opening.'}
+          </p>
+        )}
+
+        {rows.length > 0 && (
+          <div className="space-y-0.5">
+            {rows.map(o => (
+              <div key={o.key} className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                <ExternalLink className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                <a
+                  href={sanitizeUrl(o.url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-0 truncate text-xs text-white/70 hover:underline"
+                  title={[o.url, o.meta].filter(Boolean).join(' · ')}
+                >
+                  <span className="font-semibold text-white/90">{o.label}</span>
+                  <span className="text-white/35"> · {o.url.replace(/^https?:\/\/(www\.)?/, '')}</span>
+                </a>
+                {o.meta && (
+                  <span className="hidden sm:inline shrink-0 text-[10px] text-white/35">{o.meta}</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => copy(o.url)}
+                  aria-label="Copy link"
+                  title="Copy link"
+                  className="p-1 text-white/30 hover:text-white transition-colors"
+                >
+                  {copied === o.url ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+                {!isClient && o.remove && (
+                  <button
+                    type="button"
+                    onClick={() => void remove(o)}
+                    aria-label={`Remove ${o.label}`}
+                    title="Remove"
+                    className="p-1 text-white/0 group-hover:text-white/30 hover:!text-red-400 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isClient && (
+          <form
+            onSubmit={e => { e.preventDefault(); void add(); }}
+            className="mt-3 flex flex-col sm:flex-row gap-2"
+          >
+            <input
+              type="text"
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              onPaste={e => {
+                // A web address pasted into the label box almost always meant
+                // the link box.
+                const text = e.clipboardData.getData('text');
+                const href = /https?:\/\//i.test(text) ? extractDraftUrl(text) : null;
+                if (href && !url.trim()) { e.preventDefault(); setUrl(href); setError(null); }
+              }}
+              placeholder="Label (optional)"
+              aria-label="Link label"
+              className="sm:w-40 bg-white/5 border border-white/10 px-3 py-2 rounded-lg text-xs font-semibold text-white outline-none focus:border-accent placeholder:text-white/30"
+            />
+            <input
+              id={`quick-link-url-${job.id}`}
+              type="text"
+              inputMode="url"
+              value={url}
+              onChange={e => { setUrl(e.target.value); setError(null); }}
+              onPaste={e => {
+                // Pasting a whole message keeps just the link.
+                const href = extractDraftUrl(e.clipboardData.getData('text'));
+                if (href) { e.preventDefault(); setUrl(href); setError(null); }
+              }}
+              placeholder="Paste link"
+              aria-label="Quick link"
+              className="flex-1 min-w-0 bg-white/5 border border-white/10 px-3 py-2 rounded-lg text-xs text-white outline-none focus:border-accent placeholder:text-white/30"
+            />
+            <button
+              type="submit"
+              disabled={!url.trim()}
+              className="px-4 py-2 rounded-lg bg-accent text-white text-xs font-bold hover:bg-white hover:text-black disabled:opacity-40 disabled:hover:bg-accent disabled:hover:text-white transition-colors"
+            >
+              Add
+            </button>
+          </form>
+        )}
+        {error && <p className="text-[11px] text-red-400 mt-1.5 ml-1">{error}</p>}
+      </div>
+    </div>
+  );
+}
+
+// "Oct 21", or null when the link predates the stamp.
+function when(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 // ----------------------------------------------------------------------
@@ -2193,10 +2341,12 @@ function CardDetailModal({
               </div>
             </div>
 
-            {/* Description / Notes */}
+            {/* Description / Notes. min-w-0 + break-words: a pasted Dropbox
+                link has no spaces, so without them the box grew to the link's
+                width and ran under the sidebar. */}
             <div className="flex gap-4">
               <AlignLeft className="w-6 h-6 text-white/40 shrink-0" />
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-4 mb-3">
                   <h3 className="text-base font-bold text-white">Description</h3>
                   {job.edit_notes && !isEditingNotes && !isClient && (
@@ -2205,7 +2355,7 @@ function CardDetailModal({
                 </div>
                 
                 {isClient ? (
-                  <div className="text-sm text-white/80 bg-white/5 p-4 rounded-xl whitespace-pre-wrap">
+                  <div className="text-sm text-white/80 bg-white/5 p-4 rounded-xl whitespace-pre-wrap break-words">
                     {job.edit_notes || 'No description provided.'}
                   </div>
                 ) : isEditingNotes || !job.edit_notes ? (
@@ -2225,13 +2375,20 @@ function CardDetailModal({
                 ) : (
                   <div
                     onClick={() => setIsEditingNotes(true)}
-                    className="text-sm text-white/80 bg-white/5 hover:bg-white/10 p-4 rounded-xl cursor-pointer transition-colors whitespace-pre-wrap"
+                    className="text-sm text-white/80 bg-white/5 hover:bg-white/10 p-4 rounded-xl cursor-pointer transition-colors whitespace-pre-wrap break-words"
                   >
                     {job.edit_notes}
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Quick links — the folders and pages this job keeps opening */}
+            {!isCreatingNew && (
+              <div data-tour="card-links">
+                <CardQuickLinks job={job} onUpdate={onUpdate} isClient={isClient} isEditor={!!isEditor} myName={myName} />
+              </div>
+            )}
 
             {/* Deliverables, as built on Slate */}
             {!isCreatingNew && (
@@ -2267,7 +2424,7 @@ function CardDetailModal({
             {/* Drafts — the cut links editors used to post in Discord */}
             {!isCreatingNew && (
               <div data-tour="card-drafts">
-                <CardDrafts job={job} onUpdate={onUpdate} isClient={isClient} isEditor={!!isEditor} myName={myName} stages={stages} onMoveStage={onMoveStage} />
+                <CardDrafts job={job} onUpdate={onUpdate} isClient={isClient} myName={myName} stages={stages} onMoveStage={onMoveStage} />
               </div>
             )}
 
@@ -2306,6 +2463,20 @@ function CardDetailModal({
                    </div>
                  )}
                </div>
+
+               {!isClient && !isCreatingNew && (
+                 <button
+                   type="button"
+                   onClick={() => {
+                     const box = document.getElementById(`quick-link-url-${job.id}`);
+                     box?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                     box?.focus();
+                   }}
+                   className="w-full flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white p-2 rounded transition-colors text-sm font-medium"
+                 >
+                   <LinkIcon className="w-4 h-4" /> Link
+                 </button>
+               )}
              </div>
 
              {!isBoardOnly && !isCreatingNew && (
