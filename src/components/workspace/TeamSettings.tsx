@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, UserPlus, Trash2, ShieldCheck, Eye, EyeOff, Link2 } from 'lucide-react';
+import { Loader2, UserPlus, Trash2, ShieldCheck, Eye, EyeOff, Link2, HardDrive } from 'lucide-react';
 import { confirmAction } from '@/components/Feedback';
 import { APP_ROLES, ROLE_HINTS, ROLE_LABELS, type AppRole } from '@/lib/roles';
 import { supabase } from '@/lib/supabase';
 import { hasAnyRole, POST_ROLES } from '@/lib/crew-roles';
+import { MAX_DRIVE_KEEPERS, listKeepers, normalizeKeepers, parseKeepers } from '@/lib/drives';
+import { loadOrgPref, saveOrgPref } from '@/lib/team-prefs';
 
 // Admin-only team roster. Creates accounts with a temporary password the admin
 // hands over — no client-facing signup flow, matching how the tool is used.
@@ -55,6 +57,12 @@ export default function TeamSettings({ session, onMessage }: Props) {
   const [newContactId, setNewContactId] = useState<string>(NEW_CONTACT);
   const [newContactName, setNewContactName] = useState('');
 
+  // Who available drives live with (organizations.drive_keepers). The field
+  // holds the list as typed; saving normalizes it the way the tracker reads it.
+  const [keepersText, setKeepersText] = useState('');
+  const [savedKeepers, setSavedKeepers] = useState<string[]>([]);
+  const [savingKeepers, setSavingKeepers] = useState(false);
+
   const authHeaders = useCallback((): Record<string, string> => ({
     'Content-Type': 'application/json',
     ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
@@ -74,6 +82,30 @@ export default function TeamSettings({ session, onMessage }: Props) {
   }, [authHeaders, onMessage]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    loadOrgPref<unknown>('drive_keepers').then((v) => {
+      const keepers = normalizeKeepers(v);
+      setSavedKeepers(keepers);
+      setKeepersText(keepers.join(', '));
+    });
+  }, []);
+
+  const keepersDirty = parseKeepers(keepersText).join('|') !== savedKeepers.join('|');
+
+  const saveKeepers = async () => {
+    const keepers = parseKeepers(keepersText);
+    setSavingKeepers(true);
+    onMessage('');
+    try {
+      await saveOrgPref('drive_keepers', keepers);
+      setSavedKeepers(keepers);
+      setKeepersText(keepers.join(', '));
+      onMessage(`Drives now come back to ${listKeepers(keepers)}.`);
+    } finally {
+      setSavingKeepers(false);
+    }
+  };
 
   useEffect(() => {
     supabase
@@ -282,6 +314,33 @@ export default function TeamSettings({ session, onMessage }: Props) {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Drive keepers */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        <h4 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-white mb-1">
+          <HardDrive className="w-3.5 h-3.5 text-accent" /> Drive keepers
+        </h4>
+        <p className="text-[10px] text-white/40 mb-3 leading-relaxed">
+          The people a drive is with when it isn&apos;t out — the Drive Tracker offers these names when a drive comes back or is added. Separate names with commas, up to {MAX_DRIVE_KEEPERS}.
+        </p>
+        <div className="flex gap-2">
+          <input
+            className={inputClass}
+            type="text"
+            placeholder="e.g. Matt, Tommy"
+            value={keepersText}
+            onChange={(e) => setKeepersText(e.target.value)}
+          />
+          <button
+            type="button"
+            onClick={saveKeepers}
+            disabled={savingKeepers || !keepersDirty}
+            className="shrink-0 px-4 py-2 rounded-lg bg-accent text-white text-[10px] font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {savingKeepers ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save'}
+          </button>
         </div>
       </div>
 

@@ -10,6 +10,12 @@ symptom to notice.
 
 `schema_migrations` is what closes that gap.
 
+**Starting from nothing?** Don't paste 69 files. `supabase/install/install.sql`
+is all of them in order, plus the five original tables that predate this
+folder, as one paste — see [INSTALL_NEW_STUDIO.md](INSTALL_NEW_STUDIO.md). It is
+generated, not written: after adding a migration, run
+`node scripts/build-install-sql.mjs` and commit the result.
+
 ---
 
 ## What is pending

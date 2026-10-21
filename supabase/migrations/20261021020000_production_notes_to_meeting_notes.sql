@@ -16,3 +16,6 @@ WHERE NOT EXISTS (
     AND m.content = p.body
     AND m.client_id IS NOT DISTINCT FROM p.client_id
 );
+
+INSERT INTO public.schema_migrations (version) VALUES ('20261021020000_production_notes_to_meeting_notes')
+  ON CONFLICT (version) DO NOTHING;

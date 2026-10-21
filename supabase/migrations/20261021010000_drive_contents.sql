@@ -5,3 +5,6 @@
 -- the physical description; this holds the projects and footage on the drive,
 -- so it can be searched and read at a glance on the card.
 ALTER TABLE public.drives ADD COLUMN IF NOT EXISTS contents TEXT;
+
+INSERT INTO public.schema_migrations (version) VALUES ('20261021010000_drive_contents')
+  ON CONFLICT (version) DO NOTHING;
