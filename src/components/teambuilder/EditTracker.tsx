@@ -621,7 +621,7 @@ export default function EditTracker({
           page header already names the screen, so the second title and the
           Active Edits readout (each column shows its own count) are gone, and
           client/project/year live behind one Filters button. */}
-      <div className={`flex flex-wrap items-center ${CONTROL_GAP} ${TOOLBAR_CARD} shrink-0`}>
+      <div data-tour="edits-views" className={`flex flex-wrap items-center ${CONTROL_GAP} ${TOOLBAR_CARD} shrink-0`}>
         <div className={`flex items-center gap-1 p-1 bg-black/50 border border-white/10 rounded-xl ${CONTROL_H}`}>
           <button
             onClick={() => setViewMode('board')}
@@ -739,7 +739,7 @@ export default function EditTracker({
             const stageJobs = filteredJobs.filter(j => (j.edit_status || firstStageId) === stage.id);
             
             return (
-              <div key={stage.id} className={`flex-none w-full md:w-auto md:flex-1 ${COLUMN_MIN[cardSize]} flex flex-col bg-neutral-900/80 rounded-xl border border-white/5 max-h-[70vh]`}>
+              <div key={stage.id} data-tour="edits-column" className={`flex-none w-full md:w-auto md:flex-1 ${COLUMN_MIN[cardSize]} flex flex-col bg-neutral-900/80 rounded-xl border border-white/5 max-h-[70vh]`}>
                 <div className={`flex items-center justify-between p-3 rounded-t-xl border-t-2 ${stage.borderT}`}>
                   <div className="flex items-center gap-2">
                     <stage.icon className={`w-4 h-4 ${stage.colorClass}`} />
@@ -768,6 +768,7 @@ export default function EditTracker({
                                 ...provided.draggableProps.style,
                               }}
                               className="mb-2"
+                              data-tour="edit-card"
                               onClick={() => setActiveJob(job)}
                             >
                               <CardFront job={job} isDragging={snapshot.isDragging} loggedSeconds={timeTotals[job.id] || 0} size={cardSize} />
@@ -1989,6 +1990,7 @@ function CardDetailModal({
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
+        data-tour="edit-card-sheet"
         className="w-full max-w-3xl bg-neutral-900 border border-white/10 rounded-2xl shadow-2xl relative min-h-[600px] my-auto flex flex-col cursor-default"
       >
         <button aria-label="Close" title="Close" onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-colors">
@@ -2250,7 +2252,7 @@ function CardDetailModal({
                 studio's hours on their production are not theirs to read, and
                 the API would hand them an empty list anyway. */}
             {!isCreatingNew && !isClient && (
-              <div className="flex gap-4">
+              <div className="flex gap-4" data-tour="card-timer">
                 <Timer className="w-6 h-6 text-white/40 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <CardTimeTracker
@@ -2264,7 +2266,9 @@ function CardDetailModal({
 
             {/* Drafts — the cut links editors used to post in Discord */}
             {!isCreatingNew && (
-              <CardDrafts job={job} onUpdate={onUpdate} isClient={isClient} isEditor={!!isEditor} myName={myName} stages={stages} onMoveStage={onMoveStage} />
+              <div data-tour="card-drafts">
+                <CardDrafts job={job} onUpdate={onUpdate} isClient={isClient} isEditor={!!isEditor} myName={myName} stages={stages} onMoveStage={onMoveStage} />
+              </div>
             )}
 
           </div>
