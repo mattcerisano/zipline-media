@@ -31,7 +31,10 @@ export interface Drive {
   checked_out_at: string | null;
   /** No longer set by the tracker; return dates were dropped. */
   expected_back: string | null;
+  /** Physical description: colour, tape, sticker. */
   notes: string | null;
+  /** What's on it: the productions and footage it holds (20261021010000). */
+  contents?: string | null;
   created_at?: string;
   updated_at?: string;
 }
