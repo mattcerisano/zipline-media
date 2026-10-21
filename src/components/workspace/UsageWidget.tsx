@@ -51,7 +51,7 @@ const LABEL_TEXT: Record<string, string> = {
 const SURFACE_NAMES: Record<string, string> = {
   dashboard: 'Dashboard', calendar: 'Calendar', slate: 'Slate', edits: 'Edit Tracker', gear: 'Gear Builder',
   creative: 'Creative Board', social: 'Social Media', inbox: 'Inbox', rolodex: 'Rolodex', meeting_notes: 'Meeting Notes',
-  locations: 'Locations Scouting', drives: 'Drive Tracker', intake: 'Client Onboarding', vault: 'Vault', library: 'Library',
+  locations: 'Locations', drives: 'Drive Tracker', intake: 'Client Onboarding', vault: 'Vault', library: 'Library',
   usage: 'Usage', integrations: 'Integrations', review: 'Client Review (retired)', tutorials: 'Learning Center (retired)',
   header: 'Header',
 };
