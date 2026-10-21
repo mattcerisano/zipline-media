@@ -4,17 +4,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, MapPin as MapPinIcon, Star, X } from 'lucide-react';
 import { EscapeToClose } from '@/components/workspace/Overlay';
 import { useStudioTheme, type ResolvedTheme } from '@/components/workspace/ThemeProvider';
-import { loadGoogleMaps, onMapsAuthFailure, type GMap, type GMaps, type LatLngLiteral } from '@/lib/google-maps';
+import { loadGoogleMaps, onMapsAuthFailure, type GMap, type GMaps } from '@/lib/google-maps';
 import { dateSpan, type MapPin, type MapPlace } from '@/lib/map-places';
+import { STUDIO_HOME } from '@/lib/studio';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 /** Scouts are amber diamonds; productions are circles in the studio's accent. */
 export const SCOUT_COLOR = '#f59e0b';
 const PRODUCTION_COLOR = 'var(--accent)';
-
-/** Midtown, for a map with nothing on it yet. */
-const STUDIO_HOME: LatLngLiteral = { lat: 40.7549, lng: -73.984 };
 
 // Calm basemaps that keep the pins the loudest thing on screen. Points of
 // interest are hidden: a map full of shops and stations buries the pins.

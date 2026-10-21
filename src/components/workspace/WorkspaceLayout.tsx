@@ -69,7 +69,6 @@ import UsageWidget from '@/components/workspace/UsageWidget';
 import BudgetWidget from '@/components/workspace/BudgetWidget';
 import TasksWidget from '@/components/workspace/TasksWidget';
 import MyWorkWidget from '@/components/workspace/MyWorkWidget';
-import NotesLibraryWidget from '@/components/workspace/NotesLibraryWidget';
 
 export type LayoutNode = 
   | { type: 'row'; children: LayoutNode[]; sizes: number[] }
@@ -138,7 +137,7 @@ const WIDGET_LABELS: Record<string, string> = {
   budget: 'Budget Tracker',
   tasks: 'Task List',
   mywork: 'My Work',
-  docs: 'Notes Library'
+  docs: 'Meeting Notes'
 };
 
 const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
@@ -164,11 +163,13 @@ const DEFAULT_LAYOUTS: Record<string, LayoutNode> = {
   meeting_notes: { type: 'panel', id: 'meeting-notes-root', activeTab: 'meeting_notes', tabs: ['meeting_notes'] },
   review: { type: 'panel', id: 'client-review-root', activeTab: 'review', tabs: ['review'] },
   locations: { type: 'panel', id: 'locations-scouting-root', activeTab: 'locations', tabs: ['locations'] },
-  intake: { type: 'panel', id: 'client-onboarding-root', activeTab: 'intake', tabs: ['intake'] },
 };
 
+/** Tools no panel offers any more; a saved layout that names one still renders. */
+const RETIRED_WIDGETS = new Set(['review', 'intake', 'docs']);
+
 /** Built-in tabs that went without a default layout until it was added above. */
-const LATE_DEFAULT_TABS = new Set(['meeting_notes', 'review', 'locations', 'intake']);
+const LATE_DEFAULT_TABS = new Set(['meeting_notes', 'review', 'locations']);
 
 interface WorkspaceLayoutProps {
   activeTab: string;
@@ -538,9 +539,10 @@ function WorkspacePanel({
   // The "+" menu is the other door into every tool in the OS: without this a
   // freelance editor could mount the Vault or the Rolodex inside their own
   // board. Scoped roles only ever see the widgets their role whitelists.
-  // Client Review is retired: a panel someone already saved still renders it,
-  // but it isn't offered for new panels.
-  const addableWidgets = Object.keys(WIDGET_LABELS).filter(key => key !== 'review' && canUseWidget(userRole, key));
+  // Retired tools stay out of the + menu: Client Review, Client Onboarding,
+  // and the Notes Library, whose saved panels now open Meeting Notes. A panel
+  // someone already saved still renders.
+  const addableWidgets = Object.keys(WIDGET_LABELS).filter(key => !RETIRED_WIDGETS.has(key) && canUseWidget(userRole, key));
   const canEmbed = canUseWidget(userRole, 'embed_new');
 
   useEffect(() => {
@@ -1125,7 +1127,9 @@ function WidgetMount({
     case 'mywork':
       return <MyWorkWidget onSwitchTab={onSwitchTab} />;
     case 'docs':
-      return <NotesLibraryWidget />;
+      // The Notes Library's panels open the one notes home now. Its rows stay
+      // in production_notes.
+      return <MeetingNotes />;
     case 'vault':
       return <Vault userRole={userRole} />;
     default:

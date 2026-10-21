@@ -20,7 +20,8 @@ import { Job } from '@/components/gearbuilder/types';
 import ShotlistGrid from '@/components/teambuilder/ShotlistGrid';
 import { generateMasterBrief } from '@/lib/pdf-generator';
 import { sanitizeUrl } from '@/lib/sanitize';
-import { formatLocalDate } from '@/lib/date';
+import { todayLocalISO } from '@/lib/date';
+import { orderProductions, productionLabel } from '@/lib/production-order';
 import { toast } from '@/components/Feedback';
 
 const PRESET_COLORS = [
@@ -117,13 +118,16 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
         .order('shoot_date', { ascending: false });
 
       if (error) throw error;
-      const fetchedJobs = ((data || []) as Job[]).filter(j => j.job_status !== 'Wrapped' && j.job_status !== 'Cancelled');
+      // Soonest shoot first, then past newest first, then undated — the old
+      // strip ran newest date first, so it opened on whichever had no date.
+      const fetchedJobs = orderProductions(((data || []) as Job[]).filter(j => j.job_status !== 'Wrapped' && j.job_status !== 'Cancelled'), todayLocalISO());
       setJobs(fetchedJobs);
 
       if (fetchedJobs.length > 0) {
         let activeTab = selectedJobIdProp || selectedJobId;
         const activeIds = fetchedJobs.map(j => j.id);
 
+        // No saved choice: open on the next upcoming shoot.
         if (!activeTab || !activeIds.includes(activeTab)) {
           activeTab = fetchedJobs[0].id;
         }
@@ -352,41 +356,17 @@ export default function Creative({ selectedJobId: selectedJobIdProp }: CreativeP
             </div>
           ) : (
             <>
-              <label className="text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 ml-1 text-white">Active Projects</label>
-              <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar pb-1 select-none">
-                {jobs.map(job => {
-                  const isActive = selectedJobId === job.id;
-                  return (
-                    <div 
-                      key={job.id}
-                      onClick={() => handleSelectTab(job.id)}
-                      className={`flex flex-col items-start gap-1 px-4 py-2.5 rounded-xl border cursor-pointer transition-all duration-300 relative shrink-0 min-w-[160px]
-                        ${isActive 
-                          ? 'bg-accent/15 border-accent text-white shadow-lg shadow-accent/10' 
-                          : 'bg-black/30 border-white/5 text-white/50 hover:text-white/80 hover:bg-black/50 hover:border-white/10'
-                        }`}
-                    >
-                      <div className="flex items-center justify-between w-full gap-2">
-                        <span className="font-semibold tracking-tight text-[11px] truncate max-w-[100px] text-white">
-                          {job.title}
-                        </span>
-                        {job.job_status && (
-                          <span className={`text-[11px] md:text-[9px] font-semibold tracking-tight px-1.5 py-0.5 rounded-full border shrink-0
-                            ${job.job_status === 'Booked' ? 'bg-green-500/10 border-green-500/20 text-green-500' :
-                              job.job_status === 'Hold' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
-                              'bg-blue-500/10 border-blue-500/20 text-blue-500'}`}
-                          >
-                            {job.job_status}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] font-medium text-white/40 tracking-tight">
-                        {formatLocalDate(job.shoot_date, { month: 'short', day: 'numeric', year: 'numeric' }, 'TBD Date')}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+              <label htmlFor="creative-production" className="text-[10px] font-medium uppercase tracking-[0.12em] opacity-40 ml-1 text-white">Production</label>
+              <select
+                id="creative-production"
+                value={selectedJobId}
+                onChange={(e) => handleSelectTab(e.target.value)}
+                className="w-full lg:max-w-xl bg-black/50 border border-white/10 py-2.5 px-4 outline-none focus:border-accent transition-colors text-sm font-semibold rounded-lg cursor-pointer text-white"
+              >
+                {jobs.map(job => (
+                  <option key={job.id} value={job.id}>{productionLabel(job)}</option>
+                ))}
+              </select>
             </>
           )}
         </div>

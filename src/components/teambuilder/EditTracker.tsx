@@ -2176,21 +2176,21 @@ function CardDetailModal({
                 </div>
               )}
 
-              {/* Due Date */}
-              {job.due_date && (
-                <div>
-                  <h4 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-2">Due Date</h4>
-                  <div className="flex items-center gap-2 bg-white/5 border border-white/10 py-1.5 px-3 rounded text-xs font-bold text-white">
-                    <input 
-                      type="date" 
-                      value={job.due_date}
-                      onChange={(e) => updateDueDate(e.target.value)}
-                      disabled={isClient}
-                      className="bg-transparent outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:invert disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                  </div>
+              {/* Due date. Always shown: when it was hidden until a date existed,
+                  the only way to set one was an "Add to card → Dates" button
+                  that then duplicated this field. */}
+              <div>
+                <h4 className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-2">Due date</h4>
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 py-1.5 px-3 rounded text-xs font-bold text-white">
+                  <input 
+                    type="date" 
+                    value={job.due_date || ''}
+                    onChange={(e) => updateDueDate(e.target.value)}
+                    disabled={isClient}
+                    className="bg-transparent outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:invert disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Description / Notes */}
@@ -2305,17 +2305,6 @@ function CardDetailModal({
                      </div>
                    </div>
                  )}
-               </div>
-
-               <div className="relative">
-                 <label className="w-full flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white p-2 rounded transition-colors text-sm font-medium cursor-pointer">
-                   <Clock className="w-4 h-4" /> Dates
-                   <input 
-                     type="date" 
-                     className="absolute inset-0 opacity-0 cursor-pointer"
-                     onChange={(e) => updateDueDate(e.target.value)}
-                   />
-                 </label>
                </div>
              </div>
 

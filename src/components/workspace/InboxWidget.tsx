@@ -30,6 +30,7 @@ import { EscapeToClose, Portal } from '@/components/workspace/Overlay';
 import DOMPurify from 'dompurify';
 import { supabase } from '@/lib/supabase';
 import { authHeader } from '@/lib/api-client';
+import { OWNER_EMAIL_PUBLIC, STUDIO_EMAIL_DOMAIN } from '@/lib/studio';
 
 interface Attachment {
   messageId: string;
@@ -232,7 +233,9 @@ export default function InboxWidget() {
   // Is this message from the connected account? Drives the "me" styling and
   // reply targeting. Falls back to the sandbox identity when offline.
   const isMe = (from: string) =>
-    accountEmail ? from.toLowerCase().includes(accountEmail.toLowerCase()) : from.includes('matt@zipline.media');
+    accountEmail
+      ? from.toLowerCase().includes(accountEmail.toLowerCase())
+      : from.toLowerCase().includes(OWNER_EMAIL_PUBLIC || `@${STUDIO_EMAIL_DOMAIN}`);
 
   // Gmail-style thread actions with optimistic UI; the server call runs the
   // matching label operation (archive/trash/star/unread) against Gmail.
@@ -362,7 +365,7 @@ export default function InboxWidget() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
         body: JSON.stringify({
-          to: cleanRecipient || 'productions@zipline.media',
+          to: cleanRecipient || `productions@${STUDIO_EMAIL_DOMAIN}`,
           subject: currentThread.subject.startsWith('Re:') ? currentThread.subject : `Re: ${currentThread.subject}`,
           body: replyBody.replace(/\n/g, '<br>'),
           threadId: currentThread.id
@@ -375,7 +378,7 @@ export default function InboxWidget() {
         // Update thread UI locally
         const newMsg: Message = {
           id: data.messageId || `msg_${Date.now()}`,
-          from: accountEmail ? `Me <${accountEmail}>` : 'Matt <matt@zipline.media>',
+          from: `Me <${accountEmail || OWNER_EMAIL_PUBLIC || `me@${STUDIO_EMAIL_DOMAIN}`}>`,
           to: recipient || 'Unknown',
           date: new Date().toLocaleString(undefined, {
             month: 'short',
@@ -413,13 +416,13 @@ export default function InboxWidget() {
     }
   };
 
-  // Extract the counterparty email (the non-Zipline sender) from the thread
+  // Extract the counterparty email (the sender outside the studio) from the thread
   const extractCounterpartyEmail = (): string | null => {
     const msgs = currentThread?.messages || [];
     for (const m of msgs) {
       const match = m.from.match(/<([^>]+)>/) || m.from.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
       const email = match ? (match[1] || match[0]) : null;
-      if (email && !email.includes('matt@zipline.media') && !email.includes('@zipline.media')) {
+      if (email && !email.toLowerCase().includes(`@${STUDIO_EMAIL_DOMAIN}`)) {
         return email;
       }
     }

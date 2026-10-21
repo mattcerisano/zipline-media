@@ -82,6 +82,8 @@ not been run, so a missing one has no obvious symptom. See
 | | |
 |---|---|
 | [SETUP.md](docs/SETUP.md) | Deployment: env vars, QuickBooks, Google OAuth, running locally |
+| [INSTALL_NEW_STUDIO.md](docs/INSTALL_NEW_STUDIO.md) | Standing up a separate copy for another studio: own Supabase + Vercel, under an hour |
+| [PILOT_CHECKLIST.md](docs/PILOT_CHECKLIST.md) | What a pilot studio should try in week one, and how to send feedback |
 | [MIGRATIONS.md](docs/MIGRATIONS.md) | How database changes are applied and written |
 | [GOOGLE_SETUP.md](docs/GOOGLE_SETUP.md) | Google OAuth client and calendar sync |
 | [EDITOR_ACCOUNTS.md](docs/EDITOR_ACCOUNTS.md) | Giving a freelance editor a scoped login |

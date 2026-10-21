@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server';
 import { decodeHtmlEntities } from '@/lib/html-entities';
 import { getValidGoogleToken } from '@/lib/google-auth';
 import { getAuthedUserId } from '@/lib/api-auth';
+import { OWNER_EMAIL } from '@/lib/api-owner';
+import { STUDIO_EMAIL_DOMAIN, STUDIO_NAME } from '@/lib/studio';
+
+// The sample threads below stand in for Gmail until an account is connected.
+// They are addressed to the deployment's owner (OWNER_EMAIL), or to a generic
+// studio address when that isn't set.
+const OWNER_FIRST_NAME = OWNER_EMAIL
+  ? OWNER_EMAIL.split('@')[0].split(/[._-]/)[0].replace(/^./, (c) => c.toUpperCase())
+  : STUDIO_NAME;
+const ME = OWNER_EMAIL ? `${OWNER_FIRST_NAME} <${OWNER_EMAIL}>` : `${STUDIO_NAME} <team@${STUDIO_EMAIL_DOMAIN}>`;
 
 // Mock email threads shown before a Google account is connected. Every name
 // and address here is invented (example.com): this repository is public, and
@@ -19,7 +29,7 @@ const MOCK_THREADS = [
       {
         id: 'mock_msg_1_1',
         from: 'Avery Chen <avery@example.com>',
-        to: 'Matt <matt@zipline.media>',
+        to: ME,
         date: 'June 21, 2026, 4:12 PM',
         snippet: 'Hi team, here is the V2 edit of the Broadway B-Roll Reveal. The opening night shots are stunning...',
         body: `<p>Hi team,</p>
@@ -29,7 +39,7 @@ const MOCK_THREADS = [
       },
       {
         id: 'mock_msg_1_2',
-        from: 'Matt <matt@zipline.media>',
+        from: ME,
         to: 'Avery Chen <avery@example.com>',
         date: 'June 21, 2026, 6:30 PM',
         snippet: "Hey Avery, thanks for the feedback! I've updated the transition at 0:42 and uploaded the new edit...",
@@ -41,7 +51,7 @@ const MOCK_THREADS = [
       {
         id: 'mock_msg_1_3',
         from: 'Avery Chen <avery@example.com>',
-        to: 'Matt <matt@zipline.media>',
+        to: ME,
         date: 'June 21, 2026, 9:45 PM',
         snippet: 'Looks incredible Matt! This is approved. Can we get the final delivery files by tomorrow morning?',
         body: `<p>Looks incredible Matt! This version is 100% approved. Much better flow on that opening cut.</p>
@@ -62,7 +72,7 @@ const MOCK_THREADS = [
       {
         id: 'mock_msg_2_1',
         from: 'Sam Rivera <sam@example.com>',
-        to: 'Matt <matt@zipline.media>',
+        to: ME,
         date: 'June 20, 2026, 2:15 PM',
         snippet: "Hey Matt, I've finished the master mix for the opening night reveals. Some of the TVC audio stems...",
         body: `<p>Hey Matt,</p>
@@ -85,7 +95,7 @@ const MOCK_THREADS = [
       {
         id: 'mock_msg_3_1',
         from: 'Casey Morgan <casey@example.com>',
-        to: 'Matt <matt@zipline.media>',
+        to: ME,
         date: 'June 19, 2026, 11:05 AM',
         snippet: "Hi Matt, confirming the studio booking for Tuesday's cast recordings. We have 14 singers scheduled...",
         body: `<p>Hi Matt,</p>
@@ -107,7 +117,7 @@ const MOCK_THREADS = [
       {
         id: 'mock_msg_4_1',
         from: 'Jordan Blake <jordan@example.com>',
-        to: 'Matt <matt@zipline.media>',
+        to: ME,
         date: 'June 18, 2026, 9:20 AM',
         snippet: "Hey, looking over the gear builder manifest for the TVC shoot. We are short one Arri Alexa Mini LF body...",
         body: `<p>Hey,</p>
@@ -130,7 +140,7 @@ const MOCK_THREADS = [
       {
         id: 'mock_msg_5_1',
         from: 'Riley Park <riley@example.com>',
-        to: 'Matt <matt@zipline.media>',
+        to: ME,
         date: 'June 17, 2026, 3:40 PM',
         snippet: "Hey Matt, I picked out six high-performing social clips to place above the client ticker on the homepage...",
         body: `<p>Hey Matt,</p>
@@ -269,7 +279,7 @@ export async function GET(request: Request) {
             } else if (lowerSubject.includes('manifest') || lowerSubject.includes('gear') || lowerSubject.includes('rental')) {
               label = 'Gear';
               labelColor = 'green-500';
-            } else if (lowerFrom.includes('.media') || lowerFrom.includes('zipline')) {
+            } else if (lowerFrom.includes(`@${STUDIO_EMAIL_DOMAIN}`)) {
               label = 'Internal';
               labelColor = 'white/20';
             }
