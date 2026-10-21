@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { 
   Search,
   Plus, 
@@ -9,8 +10,6 @@ import {
   ArchiveRestore, 
   Calendar, 
   MapPin, 
-  Clock,
-  ChevronRight,
   ExternalLink,
   Filter,
   CheckCircle2,
@@ -36,7 +35,8 @@ import {
   CloudSun,
   RefreshCw,
   FolderKanban,
-  Mail
+  Mail,
+  X
 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
@@ -53,11 +53,12 @@ import { fetchGearCategoryMap, groupManifestByCategory, buildGearTableBody } fro
 import { getBranding, hexToRgb } from '@/lib/branding';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { latestDraftLinks } from '@/lib/drafts';
-import { formatLocalDate, todayLocalISO, parseCallTime, toTimeInputValue, fromTimeInputValue } from '@/lib/date';
+import { formatLocalDate, todayLocalISO, parseCallTime, toTimeInputValue, fromTimeInputValue, addDays } from '@/lib/date';
 import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
 import type { NewProductionSeed } from '@/components/gearbuilder/ProductionCalendar';
 import { caps, currency } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
+import { saved } from '@/lib/saved';
 import { trackAction } from '@/lib/usage';
 import { CONTROL_FIELD, CONTROL_SELECT, CONTROL_SELECT_MAX, CONTROL_CTA, CONTROL_GAP, TOOLBAR_CARD, controlToggle } from '@/lib/controls';
 import { FilterSheet } from '@/components/workspace/FilterSheet';
@@ -66,10 +67,11 @@ import type { BillingSummary } from '@/app/api/integrations/quickbooks/route';
 import {
   type Deliverable,
   DELIVERABLE_FORMATS,
-  nextDeliverableStatus,
+  DELIVERABLE_STATUS,
   deliverableStatusLabel,
   deliverableStatusTone,
 } from '@/lib/deliverables';
+import { InlineText, InlinePicker, ChipSelect, AddLine, AddLinkForm } from '@/components/teambuilder/InlineEdit';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -79,6 +81,39 @@ const wrapsOvernight = (call: string | null | undefined, wrap: string | null | u
   const w = parseCallTime(wrap);
   if (!c || !w) return false;
   return w.hour * 60 + w.minute <= c.hour * 60 + c.minute;
+};
+
+/** A card edit: any job field, with null to clear one (supabase-js drops undefined). */
+type JobPatch = { [K in keyof Job]?: Job[K] | null };
+
+const byShootDate = (a: Job, b: Job) => (a.shoot_date || '').localeCompare(b.shoot_date || '');
+
+/** Whole days from one "YYYY-MM-DD" to another. */
+const daysBetween = (from: string, to: string) =>
+  Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
+
+/** "Tue, Oct 21", with the year only when it isn't this one. */
+const cardDate = (value: string) => {
+  const d = formatLocalDate(value, { year: 'numeric' }, '');
+  const thisYear = String(new Date().getFullYear());
+  return formatLocalDate(value, d === thisYear
+    ? { weekday: 'short', month: 'short', day: 'numeric' }
+    : { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+/**
+ * "https://frame.io/r/abc" from whatever was pasted, or null when it isn't a
+ * link at all. A bare "frame.io/r/abc" is the usual paste from a text.
+ */
+const normaliseLink = (raw: string): URL | null => {
+  const text = raw.trim();
+  if (!text) return null;
+  try {
+    const url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(text) ? text : `https://${text}`);
+    return /^https?:$/.test(url.protocol) && url.hostname.includes('.') ? url : null;
+  } catch {
+    return null;
+  }
 };
 
 const weatherCodeToText = (code: number) => {
@@ -406,11 +441,6 @@ export default function Slate({
     }
   };
 
-  // Link Modal
-  const [linkModalJob, setLinkModalJob] = useState<Job | null>(null);
-  const [newLinkLabel, setNewLinkLabel] = useState('');
-  const [newLinkUrl, setNewLinkUrl] = useState('');
-
   useEffect(() => {
     fetchJobs();
   }, []);
@@ -623,11 +653,8 @@ export default function Slate({
     if (!status || status === job.job_status) return;
     const previous = job.job_status;
     setJobs(prev => prev.map(j => (j.id === job.id ? { ...j, job_status: status } : j)));
-    const { error } = await supabase.from('jobs').update({ job_status: status }).eq('id', job.id);
-    if (error) {
-      console.error('Error updating status:', error);
+    if (!(await saved(supabase.from('jobs').update({ job_status: status }).eq('id', job.id), 'change the status'))) {
       setJobs(prev => prev.map(j => (j.id === job.id ? { ...j, job_status: previous } : j)));
-      toast('Failed to update status.');
       return;
     }
     sendNotification(`status_${status.toLowerCase()}`, { ...job, job_status: status }, previous);
@@ -636,6 +663,61 @@ export default function Slate({
         if (!result.ok && result.message) toast(result.message, 'error');
       });
     }
+  };
+
+  // Card edits arrive a field at a time — call, then wrap, then the venue — and
+  // each would push its own Google update. Waiting for a pause sends one, and
+  // stops two pushes for the same event landing out of order.
+  const calendarPushTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const pushSoon = (jobId: string) => {
+    const timers = calendarPushTimers.current;
+    clearTimeout(timers.get(jobId));
+    timers.set(jobId, setTimeout(() => {
+      timers.delete(jobId);
+      pushJobToGoogleCalendar(jobId).then(result => {
+        if (!result.ok && result.message) toast(result.message, 'error');
+      });
+    }, 1500));
+  };
+
+  /** The card whose date just changed, so it can be found where it landed. */
+  const [movedJobId, setMovedJobId] = useState<string | null>(null);
+
+  /**
+   * Save a detail edited on the card itself — the call time moved, the venue
+   * swapped, the notes rewritten — without the full form. Only the fields
+   * edited are written, so nothing a teammate changed meanwhile is reverted.
+   * Optimistic, and put back if the write is refused. The Google event carries
+   * the dates, times, place, notes and links, so it follows.
+   */
+  const patchJob = async (job: Job, patch: JobPatch, what: string): Promise<boolean> => {
+    const before = Object.fromEntries(
+      Object.keys(patch).map(key => [key, job[key as keyof Job] ?? null]),
+    ) as JobPatch;
+    const apply = (fields: JobPatch) =>
+      setJobs(prev => prev.map(j => (j.id === job.id ? ({ ...j, ...fields } as Job) : j)).sort(byShootDate));
+    apply(patch);
+    if ('shoot_date' in patch) setMovedJobId(job.id);
+    if (!(await saved(supabase.from('jobs').update(patch).eq('id', job.id), what))) {
+      apply(before);
+      return false;
+    }
+    const shootDate = 'shoot_date' in patch ? patch.shoot_date : job.shoot_date;
+    if (shootDate) pushSoon(job.id);
+    return true;
+  };
+
+  /**
+   * A new first day. A multi-day shoot keeps its length, the way a calendar
+   * event does when it's dragged: Oct 21–23 moved to the 28th runs to the
+   * 30th. The last day can be changed on its own afterwards.
+   */
+  const moveShootDate = (job: Job, next: string) => {
+    const patch: JobPatch = { shoot_date: next || null };
+    if (next && job.shoot_date && job.end_date && job.end_date > job.shoot_date) {
+      patch.end_date = addDays(job.end_date, daysBetween(job.shoot_date, next));
+    }
+    return patchJob(job, patch, 'change the shoot date');
   };
 
   // Archive keeps a production — crew, gear, links, everything — but takes it
@@ -996,28 +1078,23 @@ export default function Slate({
     }
   };
 
-  const addCustomLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!linkModalJob || !newLinkLabel || !newLinkUrl) return;
-
-    const updatedLinks = [...(linkModalJob.links || []), { label: newLinkLabel, url: newLinkUrl }];
-    
-    try {
-      const { error } = await supabase
-        .from('jobs')
-        .update({ links: updatedLinks })
-        .eq('id', linkModalJob.id);
-
-      if (error) throw error;
-      
-      setJobs(prev => prev.map(j => j.id === linkModalJob.id ? { ...j, links: updatedLinks } : j));
-      setLinkModalJob(null);
-      setNewLinkLabel('');
-      setNewLinkUrl('');
-    } catch (err) {
-      console.error('Error adding link:', err);
-      toast('Failed to add link');
+  /** A link pasted straight onto the card. Labelled by its site when no label is given. */
+  const addLink = async (job: Job, rawUrl: string, label: string) => {
+    const url = normaliseLink(rawUrl);
+    if (!url) {
+      toast(`“${rawUrl.trim()}” doesn’t look like a link.`, 'error');
+      return false;
     }
+    const link: JobLink = { label: label.trim() || url.hostname.replace(/^www\./, ''), url: url.href };
+    return patchJob(job, { links: [...(job.links || []), link] }, 'add the link');
+  };
+
+  // Only links added here: drafts belong to the Edit Tracker, and the review,
+  // Discord and Drive links are set where they come from.
+  const removeLink = async (job: Job, link: JobLink) => {
+    if (!(await confirmAction({ title: 'Remove this link?', message: link.label || link.url, confirmLabel: 'Remove', danger: true }))) return;
+    const links = (job.links || []).filter(l => !(l.url === link.url && l.label === link.label && l.category === link.category));
+    void patchJob(job, { links }, 'remove the link');
   };
 
   // Projects available for the currently selected client (for the dependent dropdown)
@@ -1131,16 +1208,23 @@ export default function Slate({
     return () => { cancelled = true; };
   }, [jobIdsOnBoard.join(','), crewVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A new row starts blank and inherits the job's client, so it also lands in
-  // the Social tab's list under the right name instead of an orphaned dash.
-  const addDeliverable = async (job: Job) => {
-    const { data, error } = await supabase
-      .from('social_deliverables')
-      .insert([{ job_id: job.id, client_id: job.client_id || null, label: '', format: '16:9', status: 'todo' }])
-      .select()
-      .single();
-    if (error || !data) { toast('Could not add the deliverable.'); return; }
-    setDeliverables(prev => ({ ...prev, [job.id]: [...(prev[job.id] || []), data as Deliverable] }));
+  // A new row is written only once it has a name — a stray tap on "Add" used
+  // to leave a blank row behind here and in the Social tab. It inherits the
+  // job's client so the Social tab lists it under the right name, and the
+  // card's last format, since cutdowns tend to come in runs of one shape.
+  const addDeliverable = async (job: Job, label: string) => {
+    const current = deliverables[job.id] || [];
+    const format = current[current.length - 1]?.format || '16:9';
+    const result = await saved(
+      supabase
+        .from('social_deliverables')
+        .insert([{ job_id: job.id, client_id: job.client_id || null, label, format, status: 'todo' }])
+        .select()
+        .single(),
+      'add the deliverable',
+    );
+    if (!result?.data) return;
+    setDeliverables(prev => ({ ...prev, [job.id]: [...(prev[job.id] || []), result.data as Deliverable] }));
   };
 
   const patchDeliverable = async (jobId: string, id: string, patch: Partial<Deliverable>) => {
@@ -1148,15 +1232,21 @@ export default function Slate({
       ...prev,
       [jobId]: (prev[jobId] || []).map(d => (d.id === id ? { ...d, ...patch } : d)),
     }));
-    const { error } = await supabase.from('social_deliverables').update(patch).eq('id', id);
-    if (error) { toast('Could not save that change.'); void loadDeliverables(jobIdsOnBoard); }
+    if (!(await saved(supabase.from('social_deliverables').update(patch).eq('id', id), 'save the deliverable'))) {
+      void loadDeliverables(jobIdsOnBoard);
+    }
   };
 
   const removeDeliverable = async (jobId: string, id: string) => {
     const prior = deliverables[jobId] || [];
+    const target = prior.find(d => d.id === id);
+    // The remove button is always showing now, on phones too; a named
+    // deliverable is a thing someone typed, so it takes a second tap to go.
+    if (target?.label && !(await confirmAction({ title: 'Remove this deliverable?', message: target.label, confirmLabel: 'Remove', danger: true }))) return;
     setDeliverables(prev => ({ ...prev, [jobId]: prior.filter(d => d.id !== id) }));
-    const { error } = await supabase.from('social_deliverables').delete().eq('id', id);
-    if (error) { toast('Could not remove that deliverable.'); setDeliverables(prev => ({ ...prev, [jobId]: prior })); }
+    if (!(await saved(supabase.from('social_deliverables').delete().eq('id', id), 'remove the deliverable'))) {
+      setDeliverables(prev => ({ ...prev, [jobId]: prior }));
+    }
   };
 
 
@@ -1323,6 +1413,41 @@ export default function Slate({
     }
   };
 
+  // One card, wired up. The Slate renders it in five places (needs a date,
+  // upcoming, past, archived, and grouped by project), which used to mean
+  // five copies of the same twenty props.
+  const renderCard = (job: Job, { showProject = true }: { showProject?: boolean } = {}) => (
+    <JobCard
+      key={job.id}
+      job={job}
+      isClient={isClient}
+      getStatusIcon={getStatusIcon}
+      onSaveAsTemplate={() => saveAsTemplate(job)}
+      onDuplicate={() => duplicateJob(job)}
+      onDelete={() => deleteJob(job.id)}
+      onArchive={() => toggleArchive(job)}
+      onManage={() => setManageJobId(job.id)}
+      onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
+      onEdit={() => openEditJobModal(job)}
+      onBuildGear={() => onBuildGear?.(job)}
+      onRefreshWeather={() => handleRefreshWeather(job)}
+      onStatusChange={(status) => updateJobStatus(job, status)}
+      onPatch={(patch, what) => patchJob(job, patch, what)}
+      onMoveShootDate={(next) => moveShootDate(job, next)}
+      onAddLink={(url, label) => addLink(job, url, label)}
+      onRemoveLink={(link) => removeLink(job, link)}
+      billing={job.client_id ? billing[job.client_id] : undefined}
+      projectName={showProject && job.project_id ? projectNameById.get(job.project_id) : undefined}
+      crew={crew[job.id]}
+      deliverables={deliverables[job.id]}
+      onAddDeliverable={(label) => addDeliverable(job, label)}
+      onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
+      onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
+      moved={movedJobId === job.id}
+      onMovedSeen={() => setMovedJobId(null)}
+    />
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -1453,31 +1578,7 @@ export default function Slate({
                       <span className="text-[10px] font-medium opacity-40 tracking-tight text-white">{pg.jobs.length}</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {pg.jobs.map(job => (
-                        <JobCard
-                          key={job.id}
-                          job={job}
-                          isClient={isClient}
-                          getStatusIcon={getStatusIcon}
-                          onSaveAsTemplate={() => saveAsTemplate(job)}
-                          onDuplicate={() => duplicateJob(job)}
-                          onDelete={() => deleteJob(job.id)}
-                onArchive={() => toggleArchive(job)}
-                          onAddLink={() => setLinkModalJob(job)}
-                          onManage={() => setManageJobId(job.id)}
-                          onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
-                          onEdit={() => openEditJobModal(job)}
-                          onBuildGear={() => onBuildGear?.(job)}
-                          onRefreshWeather={() => handleRefreshWeather(job)}
-                          onStatusChange={(status) => updateJobStatus(job, status)}
-                  billing={job.client_id ? billing[job.client_id] : undefined}
-                  crew={crew[job.id]}
-                  deliverables={deliverables[job.id]}
-                  onAddDeliverable={() => addDeliverable(job)}
-                  onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
-                  onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
-                        />
-                      ))}
+                      {pg.jobs.map(job => renderCard(job, { showProject: false }))}
                     </div>
                   </div>
                 ))}
@@ -1498,32 +1599,7 @@ export default function Slate({
               <span className="text-[11px] font-medium opacity-40 tracking-tight text-white">{unscheduledJobs.length} {unscheduledJobs.length === 1 ? 'Job' : 'Jobs'}</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {unscheduledJobs.map(job => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  isClient={isClient}
-                  getStatusIcon={getStatusIcon}
-                  onSaveAsTemplate={() => saveAsTemplate(job)}
-                  onDuplicate={() => duplicateJob(job)}
-                  onDelete={() => deleteJob(job.id)}
-                onArchive={() => toggleArchive(job)}
-                  onAddLink={() => setLinkModalJob(job)}
-                  onManage={() => setManageJobId(job.id)}
-                  onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
-                  onEdit={() => openEditJobModal(job)}
-                  onBuildGear={() => onBuildGear?.(job)}
-                  onRefreshWeather={() => handleRefreshWeather(job)}
-                  onStatusChange={(status) => updateJobStatus(job, status)}
-                  billing={job.client_id ? billing[job.client_id] : undefined}
-                  projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
-                  crew={crew[job.id]}
-                  deliverables={deliverables[job.id]}
-                  onAddDeliverable={() => addDeliverable(job)}
-                  onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
-                  onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
-                />
-              ))}
+              {unscheduledJobs.map(job => renderCard(job))}
             </div>
           </section>
         )}
@@ -1536,32 +1612,7 @@ export default function Slate({
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingJobs.map(job => (
-              <JobCard 
-                key={job.id} 
-                job={job} 
-                isClient={isClient}
-                getStatusIcon={getStatusIcon} 
-                onSaveAsTemplate={() => saveAsTemplate(job)}
-                onDuplicate={() => duplicateJob(job)}
-                onDelete={() => deleteJob(job.id)}
-                onArchive={() => toggleArchive(job)}
-                onAddLink={() => setLinkModalJob(job)}
-                onManage={() => setManageJobId(job.id)}
-                onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
-                onEdit={() => openEditJobModal(job)}
-                onBuildGear={() => onBuildGear?.(job)}
-                onRefreshWeather={() => handleRefreshWeather(job)}
-                onStatusChange={(status) => updateJobStatus(job, status)}
-                billing={job.client_id ? billing[job.client_id] : undefined}
-                crew={crew[job.id]}
-                  deliverables={deliverables[job.id]}
-                onAddDeliverable={() => addDeliverable(job)}
-                onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
-                onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
-                projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
-              />
-            ))}
+            {upcomingJobs.map(job => renderCard(job))}
             {upcomingJobs.length === 0 && (
               <div className="col-span-full py-20 text-center bg-white/5 border border-dashed border-white/10 rounded-2xl opacity-40">
                 <p className="font-medium tracking-tight text-sm text-white/70">No upcoming jobs found.</p>
@@ -1578,32 +1629,7 @@ export default function Slate({
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {pastJobs.map(job => (
-              <JobCard 
-                key={job.id} 
-                job={job} 
-                isClient={isClient}
-                getStatusIcon={getStatusIcon} 
-                onSaveAsTemplate={() => saveAsTemplate(job)}
-                onDuplicate={() => duplicateJob(job)}
-                onDelete={() => deleteJob(job.id)}
-                onArchive={() => toggleArchive(job)}
-                onAddLink={() => setLinkModalJob(job)}
-                onManage={() => setManageJobId(job.id)}
-                onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
-                onEdit={() => openEditJobModal(job)}
-                onBuildGear={() => onBuildGear?.(job)}
-                onRefreshWeather={() => handleRefreshWeather(job)}
-                onStatusChange={(status) => updateJobStatus(job, status)}
-                billing={job.client_id ? billing[job.client_id] : undefined}
-                crew={crew[job.id]}
-                  deliverables={deliverables[job.id]}
-                onAddDeliverable={() => addDeliverable(job)}
-                onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
-                onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
-                projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
-              />
-            ))}
+             {pastJobs.map(job => renderCard(job))}
           </div>
         </section>
 
@@ -1626,32 +1652,7 @@ export default function Slate({
             </button>
             {(showArchived || !!searchQuery.trim()) && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-70">
-             {archivedJobs.map(job => (
-              <JobCard 
-                key={job.id} 
-                job={job} 
-                isClient={isClient}
-                getStatusIcon={getStatusIcon} 
-                onSaveAsTemplate={() => saveAsTemplate(job)}
-                onDuplicate={() => duplicateJob(job)}
-                onDelete={() => deleteJob(job.id)}
-                onArchive={() => toggleArchive(job)}
-                onAddLink={() => setLinkModalJob(job)}
-                onManage={() => setManageJobId(job.id)}
-                onExportCallSheet={() => { setExportOptions(DEFAULT_CALL_SHEET_OPTIONS); setExportJob(job); }}
-                onEdit={() => openEditJobModal(job)}
-                onBuildGear={() => onBuildGear?.(job)}
-                onRefreshWeather={() => handleRefreshWeather(job)}
-                onStatusChange={(status) => updateJobStatus(job, status)}
-                billing={job.client_id ? billing[job.client_id] : undefined}
-                crew={crew[job.id]}
-                  deliverables={deliverables[job.id]}
-                onAddDeliverable={() => addDeliverable(job)}
-                onPatchDeliverable={(id, patch) => patchDeliverable(job.id, id, patch)}
-                onRemoveDeliverable={(id) => removeDeliverable(job.id, id)}
-                projectName={job.project_id ? projectNameById.get(job.project_id) : undefined}
-              />
-            ))}
+             {archivedJobs.map(job => renderCard(job))}
               </div>
             )}
           </section>
@@ -2025,55 +2026,6 @@ export default function Slate({
               </form>
       </Modal>
 
-      {/* Add Link Modal */}
-      <Modal
-        open={!!linkModalJob}
-        onClose={() => setLinkModalJob(null)}
-        title="Add Link"
-        subtitle={linkModalJob?.title}
-        maxWidth="max-w-md"
-      >
-              <form onSubmit={addCustomLink} className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-[11px] md:text-[9px] font-black tracking-widest uppercase opacity-40 ml-1 text-white">Link Label</label>
-                  <input 
-                    required
-                    type="text"
-                    placeholder="e.g. Frame.io Review"
-                    value={newLinkLabel}
-                    onChange={(e) => setNewLinkLabel(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[11px] md:text-[9px] font-black tracking-widest uppercase opacity-40 ml-1 text-white">URL</label>
-                  <input 
-                    required
-                    type="url"
-                    placeholder="https://..."
-                    value={newLinkUrl}
-                    onChange={(e) => setNewLinkUrl(e.target.value)}
-                    className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-bold text-sm text-white"
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-1">
-                   <button
-                    type="button"
-                    onClick={() => setLinkModalJob(null)}
-                    className="px-5 py-2.5 rounded-xl font-semibold text-xs border border-white/10 hover:bg-white/5 transition-all text-white"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-accent text-white px-6 py-2.5 rounded-xl font-semibold text-xs hover:bg-white hover:text-black transition-all"
-                  >
-                    Add Link
-                  </button>
-                </div>
-              </form>
-      </Modal>
-
       {/* Manage Crew Modal (Team Builder) */}
       <Modal
         open={!!manageJobId}
@@ -2146,28 +2098,81 @@ export default function Slate({
   );
 }
 
-function JobCard({ 
-  job, 
+/** Label column of the card's details list, lined up with the first line of its value. */
+const DETAIL_LABEL = 'pt-2 pointer-coarse:pt-3.5 text-[11px] font-medium text-white/40';
+
+/**
+ * One labelled block on a card. Every section is headed the same way and
+ * sits in the same order on every card, so the eye learns where Notes or
+ * Deliverables are and can go straight there.
+ */
+function CardSection({ icon, label, meta, tour, children }: {
+  icon: React.ReactNode;
+  label: string;
+  meta?: React.ReactNode;
+  tour?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section data-tour={tour} className="pt-4 mt-4 border-t border-white/5">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p role="heading" aria-level={4} className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 flex items-center gap-1.5">
+          {icon} {label}
+        </p>
+        {meta}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function AddButton({ onClick, tour, label, children }: { onClick: () => void; tour?: string; label?: string; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-tour={tour}
+      aria-label={label}
+      className="inline-flex items-center gap-1.5 h-8 pointer-coarse:h-10 px-2.5 rounded-lg text-[12px] font-medium text-accent hover:bg-accent/10 transition-colors"
+    >
+      <Plus className="w-3.5 h-3.5" /> {children}
+    </button>
+  );
+}
+
+const STATUS_OPTIONS = STATUSES.map(s => ({ value: s, label: s }));
+
+/** The fixed list, plus whatever an older row holds, so a select never shows a value it wasn't given. */
+const withCurrent = (list: readonly string[], current: string, label = (v: string) => v) =>
+  (list.includes(current) ? list : [current, ...list]).map(v => ({ value: v, label: label(v) }));
+
+function JobCard({
+  job,
   isClient,
-  getStatusIcon, 
+  getStatusIcon,
   onSaveAsTemplate,
   onDuplicate,
   onDelete,
   onArchive,
-  onAddLink,
   onManage,
   onExportCallSheet,
   onEdit,
   onBuildGear,
   onRefreshWeather,
   onStatusChange,
+  onPatch,
+  onMoveShootDate,
+  onAddLink,
+  onRemoveLink,
   billing,
   projectName,
   crew = [],
   deliverables = [],
   onAddDeliverable,
   onPatchDeliverable,
-  onRemoveDeliverable
+  onRemoveDeliverable,
+  moved = false,
+  onMovedSeen,
 }: {
   job: Job,
   isClient: boolean,
@@ -2176,23 +2181,27 @@ function JobCard({
   onDuplicate: () => void,
   onDelete: () => void,
   onArchive?: () => void,
-  onAddLink: () => void,
   onManage: () => void,
   onExportCallSheet: () => void,
   onEdit: () => void,
   onBuildGear?: () => void,
   onRefreshWeather?: () => void,
   onStatusChange?: (status: Job['job_status']) => void,
+  onPatch: (patch: JobPatch, what: string) => Promise<boolean>,
+  onMoveShootDate: (next: string) => Promise<boolean>,
+  onAddLink: (url: string, label: string) => Promise<boolean>,
+  onRemoveLink: (link: JobLink) => void,
   billing?: BillingSummary,
   projectName?: string,
   crew?: JobRole[],
   deliverables?: Deliverable[],
-  onAddDeliverable?: () => void,
+  onAddDeliverable?: (label: string) => void,
   onPatchDeliverable?: (id: string, patch: Partial<Deliverable>) => void,
-  onRemoveDeliverable?: (id: string) => void
+  onRemoveDeliverable?: (id: string) => void,
+  /** Its date just changed, so it may have moved: bring it into view. */
+  moved?: boolean,
+  onMovedSeen?: () => void,
 }) {
-  const shootDate = formatLocalDate(job.shoot_date, { month: 'short', day: 'numeric', year: 'numeric' });
-
   const gearCount = job.gear_manifest ? Object.values(job.gear_manifest as Record<string, number>).reduce((a, b) => a + b, 0) : 0;
 
   const hasVaultLinks = !!(job.review_link || job.discord_url || job.drive_folder_url || job.links?.length);
@@ -2210,48 +2219,92 @@ function JobCard({
     Cancelled: 'bg-red-500/10 border-red-500/20 text-red-300',
   };
   const currentStatus = job.job_status || 'Planning';
+  const multiDay = !!(job.shoot_date && job.end_date && job.end_date > job.shoot_date);
+  const overnight = wrapsOvernight(job.call_time, job.wrap_time);
+
+  // An empty section folds away into an "Add" button below the others, so a
+  // card that has no notes doesn't carry an empty notes box. These open one.
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [addingDeliverable, setAddingDeliverable] = useState(false);
+  const [addingLink, setAddingLink] = useState(false);
+  const showNotes = !!job.notes_general || notesOpen;
+  const showDeliverables = deliverables.length > 0 || addingDeliverable;
+  const showLinks = hasVaultLinks || addingLink;
+
+  // Opened inside the tap that asked for it, so the new field is focused
+  // while the tap still counts: a phone only raises its keyboard for that.
+  const openNow = (open: (v: boolean) => void) => flushSync(() => open(true));
+
+  // A new date can send the card elsewhere in the list, or to another
+  // section. Bring it into view where it landed — unless the edit ended
+  // with a tap into some other field, which shouldn't be scrolled away from.
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!moved) return;
+    const card = cardRef.current;
+    const active = document.activeElement;
+    if (card && (!active || active === document.body || card.contains(active))) {
+      card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    const t = setTimeout(() => onMovedSeen?.(), 1600);
+    return () => clearTimeout(t);
+  }, [moved]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const readValue = 'px-2 py-1.5 text-[13px] leading-snug';
 
   return (
     <div
-      className={`group bg-neutral-900/40 border border-white/5 p-6 rounded-2xl transition-all relative flex flex-col h-full overflow-hidden ${isClient ? '' : 'hover:border-accent/30 hover:bg-neutral-900/60'}`}
+      ref={cardRef}
+      className={`@container group bg-neutral-900/40 border p-5 md:p-6 rounded-2xl transition-all relative flex flex-col h-full overflow-hidden ${
+        moved ? 'border-accent/60 ring-2 ring-accent/30' : 'border-white/5'
+      } ${isClient ? '' : 'hover:border-accent/30 hover:bg-neutral-900/60'}`}
     >
       {/* Background Decor */}
       <div className="hidden md:block absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-accent/10 transition-colors pointer-events-none" />
 
-      <div className="flex justify-between items-start mb-5 relative z-10 gap-2">
+      <div className="flex justify-between items-start mb-4 relative z-10 gap-2">
         <div className="flex flex-wrap gap-2 items-center">
-          {/* Status is a real control now. Hold → Booked is the most common
-              edit on this board and used to require the full edit modal. */}
+          {/* Status is a real control. Hold → Booked is the most common edit
+              on this board. */}
           {isClient || !onStatusChange ? (
             <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${statusTone[currentStatus] || 'bg-white/5 border-white/5 text-white'}`}>
               {getStatusIcon(job.job_status)}
               <span className="text-[10px] font-semibold tracking-wide">{currentStatus}</span>
             </div>
           ) : (
-            <div className={`relative flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full border transition-colors ${statusTone[currentStatus] || 'bg-white/5 border-white/5 text-white'}`}>
+            <ChipSelect
+              value={currentStatus}
+              options={STATUS_OPTIONS}
+              onChange={(s) => onStatusChange(s as Job['job_status'])}
+              ariaLabel={`Status for ${job.title}`}
+              className={statusTone[currentStatus] || 'bg-white/5 border-white/5 text-white'}
+            >
               {getStatusIcon(job.job_status)}
-              <span className="text-[10px] font-semibold tracking-wide">{currentStatus}</span>
-              <ChevronDown className="w-3 h-3 opacity-50" />
-              <select
-                value={currentStatus}
-                onChange={(e) => onStatusChange(e.target.value as Job['job_status'])}
-                aria-label={`Status for ${job.title}`}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              >
-                {STATUSES.map(s => <option key={s} value={s} className="bg-zinc-900 text-white">{s}</option>)}
-              </select>
-            </div>
+              {currentStatus}
+            </ChipSelect>
           )}
           {gearCount > 0 && (
-            <div className="flex items-center gap-1 px-2 py-1 bg-accent/10 rounded-full border border-accent/20">
-               <Package className="w-3.5 h-3.5 text-accent" />
-               <span className="text-[10px] font-medium tracking-wide text-accent">{gearCount} Gear</span>
-            </div>
+            isClient ? (
+              <div className="flex items-center gap-1 px-2 py-1 bg-accent/10 rounded-full border border-accent/20">
+                <Package className="w-3.5 h-3.5 text-accent" />
+                <span className="text-[10px] font-medium tracking-wide text-accent">{gearCount} Gear</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onBuildGear?.()}
+                aria-label={`Open the gear list — ${gearCount} items`}
+                className="flex items-center gap-1 h-7 pointer-coarse:h-10 px-2.5 bg-accent/10 hover:bg-accent/20 rounded-full border border-accent/20 transition-colors"
+              >
+                <Package className="w-3.5 h-3.5 text-accent" />
+                <span className="text-[11px] font-medium tracking-wide text-accent">{gearCount} gear</span>
+              </button>
+            )
           )}
         </div>
-        {/* One labelled menu instead of six unlabelled icons. Every action
-            reads as words, so nothing depends on decoding a glyph or on a
-            tooltip that touch devices never show. */}
+        {/* The details are edited on the card, the crew and the full form
+            from the footer; what's left here is what you do *with* a
+            production — gear, exports, copies — and the housekeeping. */}
         {!isClient && (
           <DropdownMenu
             align="right"
@@ -2261,23 +2314,15 @@ function JobCard({
                 onClick={onClick}
                 {...aria}
                 aria-haspopup="menu"
-                aria-label={`Actions for ${job.title}`}
+                aria-label={`More for ${job.title}`}
                 data-tour="slate-card-menu"
-                className="p-2 -mr-1 shrink-0 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                className="p-2 pointer-coarse:p-3 -mr-1 -mt-1 shrink-0 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-all"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
             )}
             items={[
-              { label: 'Edit production', icon: <Settings2 className="w-3.5 h-3.5" />, onSelect: onEdit },
               { label: 'Build gear list', icon: <Package className="w-3.5 h-3.5" />, onSelect: () => onBuildGear?.() },
-              { label: 'Add link', hint: 'Drive folder, review, reference', icon: <LinkIcon className="w-3.5 h-3.5" />, onSelect: onAddLink },
-              {
-                label: 'Add deliverable',
-                hint: 'Cutdown, version or platform cut',
-                icon: <Film className="w-3.5 h-3.5" />,
-                onSelect: () => onAddDeliverable?.(),
-              },
               { label: 'Export call sheet', icon: <ClipboardList className="w-3.5 h-3.5" />, onSelect: onExportCallSheet },
               {
                 label: 'Export production brief',
@@ -2309,15 +2354,13 @@ function JobCard({
       </div>
 
       <div className="flex-1 relative z-10 text-white">
-        {/* The title is the click target rather than the whole card. Every
-            action above used to need stopPropagation to avoid also opening
-            the edit modal, and a stray tap anywhere opened it by accident. */}
+        {/* The title opens the full form, as does "All details" below. */}
         {isClient ? (
           <h3 className="text-lg font-semibold tracking-tight mb-1 line-clamp-2">{job.title}</h3>
         ) : (
           <button
             onClick={onEdit}
-            className="text-left w-full mb-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="text-left w-full mb-1 pointer-coarse:min-h-10 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <h3 className="text-lg font-semibold tracking-tight hover:text-accent transition-colors line-clamp-2">{job.title}</h3>
           </button>
@@ -2331,63 +2374,177 @@ function JobCard({
           )}
         </div>
 
-        <div className="space-y-3 mb-6">
-          <div className="flex items-center gap-3 text-[11px] font-bold text-white/40">
-            <Calendar className="w-4 h-4 text-accent/50 shrink-0" />
-            <span className="tracking-tight">
-              {shootDate}
-              {job.call_time && ` • ${job.call_time}`}
-              {job.call_time && job.wrap_time && ` – ${job.wrap_time}`}
-            </span>
-          </div>
-          {(job.location_name || job.location_address) && (
-            <div className="flex items-start gap-3 text-[11px] font-bold text-white/40">
-              <MapPin className="w-4 h-4 text-accent/50 shrink-0 mt-0.5" />
-              <span className="tracking-tight leading-snug">
-                {job.location_name && <span className="block text-white/80">{job.location_name}</span>}
-                {job.location_address && <span className="block text-[10px] opacity-60 mt-0.5">{job.location_address}</span>}
+        {/* The facts that change the night before, laid out like the top of
+            a call sheet. Each value is its own editor: tap the call time
+            and the time picker opens; tap the venue and type. */}
+        <dl className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-x-1.5 gap-y-1 text-white/85">
+          <dt className={DETAIL_LABEL}>{multiDay ? 'Dates' : 'Date'}</dt>
+          <dd className="flex flex-wrap items-center gap-1 min-w-0">
+            {isClient ? (
+              <span className={readValue}>
+                {job.shoot_date ? cardDate(job.shoot_date) : 'TBD'}
+                {multiDay && ` → ${cardDate(job.end_date!)}`}
               </span>
-            </div>
-          )}
-          {job.weather_summary && (
-            <div className="flex items-center justify-between text-[11px] font-bold text-white/40 p-2.5 bg-white/5 border border-white/5 rounded-xl">
-              <div className="flex items-center gap-2">
-                <CloudSun className="w-4 h-4 text-amber-500/70 shrink-0" />
-                <span className="tracking-tight text-[11px] text-white/80">{job.weather_summary}</span>
-              </div>
-              {!isClient && (
-                <button
-                  onClick={() => onRefreshWeather?.()}
-                  className="p-1 hover:bg-white/5 rounded text-white/40 hover:text-accent transition-colors cursor-pointer"
-                  title="Refresh weather forecast"
-                  aria-label="Refresh weather forecast"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+            ) : (
+              <>
+                <InlinePicker
+                  type="date"
+                  value={job.shoot_date || ''}
+                  format={cardDate}
+                  placeholder="Add a date"
+                  placeholderClassName="text-amber-300"
+                  ariaLabel={multiDay ? `First day of ${job.title}` : `Shoot date for ${job.title}`}
+                  onSave={(next) => void onMoveShootDate(next)}
+                  className="flex-1 basis-28"
+                />
+                {multiDay && (
+                  <>
+                    <span aria-hidden className="text-white/30 text-xs">→</span>
+                    <InlinePicker
+                      type="date"
+                      value={job.end_date || ''}
+                      min={job.shoot_date}
+                      format={cardDate}
+                      placeholder="One day"
+                      ariaLabel={`Last day of ${job.title}`}
+                      // Cleared, or set back onto the first day: a one-day shoot.
+                      onSave={(next) => void onPatch({ end_date: next && next > (job.shoot_date || '') ? next : null }, 'change the last day')}
+                      className="flex-1 basis-28"
+                    />
+                  </>
+                )}
+              </>
+            )}
+          </dd>
 
-        {job.notes_general && (
-           <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
-              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 mb-1">Notes</p>
-              <p className="text-xs text-white/80 line-clamp-3 leading-relaxed">{job.notes_general}</p>
-           </div>
+          <dt className={DETAIL_LABEL}>Call</dt>
+          <dd className="flex items-center gap-1.5 min-w-0">
+            {isClient ? (
+              <span className={`${readValue} flex-1`}>{job.call_time || 'TBD'}</span>
+            ) : (
+              <InlinePicker
+                type="time"
+                value={toTimeInputValue(job.call_time)}
+                format={fromTimeInputValue}
+                // A call time the parser can't read ("after load-in") still
+                // shows as written rather than turning into TBD.
+                placeholder={job.call_time || 'TBD'}
+                ariaLabel={`Call time for ${job.title}`}
+                onSave={(next) => void onPatch({ call_time: fromTimeInputValue(next) }, 'change the call time')}
+                className="flex-1"
+              />
+            )}
+            <span className="shrink-0 text-[11px] font-medium text-white/40 px-1">Wrap</span>
+            {isClient ? (
+              <span className={`${readValue} flex-1`}>{job.wrap_time || '—'}{overnight && ' (+1)'}</span>
+            ) : (
+              <InlinePicker
+                type="time"
+                value={toTimeInputValue(job.wrap_time)}
+                format={(v) => (
+                  <>
+                    {fromTimeInputValue(v)}
+                    {/* A wrap at or before the call is a night shoot. */}
+                    {overnight && <span className="ml-1 text-[11px] text-white/40" title="Runs past midnight">+1</span>}
+                  </>
+                )}
+                placeholder={job.wrap_time || 'TBD'}
+                ariaLabel={`Wrap time for ${job.title}`}
+                onSave={(next) => void onPatch({ wrap_time: fromTimeInputValue(next) }, 'change the wrap time')}
+                className="flex-1"
+              />
+            )}
+          </dd>
+
+          {(!isClient || job.location_name) && (
+            <>
+              <dt className={DETAIL_LABEL}>Venue</dt>
+              <dd className="min-w-0">
+                {isClient ? (
+                  <p className={`${readValue} font-semibold`}>{job.location_name}</p>
+                ) : (
+                  <InlineText
+                    value={job.location_name}
+                    placeholder="Add a venue"
+                    ariaLabel={`Venue for ${job.title}`}
+                    onSave={(next) => void onPatch({ location_name: next }, 'change the venue')}
+                    className="font-semibold"
+                  />
+                )}
+              </dd>
+            </>
+          )}
+
+          {(!isClient || job.location_address) && (
+            <>
+              <dt className={DETAIL_LABEL}>Address</dt>
+              <dd className="min-w-0 text-white/60">
+                {isClient ? (
+                  <p className={readValue}>{job.location_address}</p>
+                ) : (
+                  <InlineText
+                    value={job.location_address}
+                    placeholder="Add an address"
+                    ariaLabel={`Address for ${job.title}`}
+                    onSave={(next) => void onPatch({ location_address: next }, 'change the address')}
+                  />
+                )}
+              </dd>
+            </>
+          )}
+
+          {job.weather_summary && (
+            <>
+              <dt className={DETAIL_LABEL}>Weather</dt>
+              <dd className="flex items-center gap-1 min-w-0">
+                <span className={`${readValue} flex-1 flex items-center gap-1.5 text-white/70`}>
+                  <CloudSun className="w-3.5 h-3.5 text-amber-500/70 shrink-0" />
+                  {job.weather_summary}
+                </span>
+                {!isClient && (
+                  <button
+                    onClick={() => onRefreshWeather?.()}
+                    className="shrink-0 w-8 h-8 pointer-coarse:w-11 pointer-coarse:h-11 grid place-items-center hover:bg-white/5 rounded-lg text-white/40 hover:text-accent transition-colors cursor-pointer"
+                    title="Refresh weather forecast"
+                    aria-label="Refresh weather forecast"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </dd>
+            </>
+          )}
+        </dl>
+
+        {showNotes && (
+          <CardSection icon={<FileText className="w-3 h-3" />} label="Notes" tour="slate-notes">
+            {isClient ? (
+              <p className={`${readValue} text-white/80 whitespace-pre-wrap line-clamp-4`}>{job.notes_general}</p>
+            ) : (
+              <InlineText
+                multiline
+                restLines={4}
+                autoFocus={notesOpen && !job.notes_general}
+                value={job.notes_general}
+                placeholder="Parking, load-in, who to ask for…"
+                ariaLabel={`Notes for ${job.title}`}
+                onSave={(next) => void onPatch({ notes_general: next }, 'save the notes')}
+                onDone={() => setNotesOpen(false)}
+                className="text-white/80"
+              />
+            )}
+          </CardSection>
         )}
 
         {/* Who's on it. Capped, because a 20-person call sheet is a document,
-            not a card — the count and the menu lead to the full crew list. */}
+            not a card — the count and the footer lead to the full crew list. */}
         {crew.length > 0 && (
-          <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 flex items-center gap-1.5">
-                <Users className="w-3 h-3" /> Crew
-              </p>
-              <span className="text-[10px] text-white/30">{crew.length}</span>
-            </div>
-
-            <div className="space-y-1">
+          <CardSection
+            icon={<Users className="w-3 h-3" />}
+            label="Crew"
+            meta={<span className="text-[10px] text-white/30">{crew.length}</span>}
+          >
+            <div className="space-y-1 px-2">
               {crew.slice(0, 4).map(r => {
                 const who = r.contact?.name || r.name || '';
                 return (
@@ -2401,123 +2558,123 @@ function JobCard({
                 );
               })}
             </div>
-
             {crew.length > 4 && (
-              <p className="mt-2 text-[10px] font-medium text-white/40">+{crew.length - 4} more</p>
+              <p className="mt-2 px-2 text-[10px] font-medium text-white/40">+{crew.length - 4} more</p>
             )}
-          </div>
+          </CardSection>
         )}
 
-        {/* Deliverables pinned to this production. Like the billing block, it
-            only appears once there's something in it — an empty shell on all
-            30 cards would be noise. "Add deliverable" lives in the card menu,
-            which is how an empty card gets its first one. */}
-        {deliverables.length > 0 && (
-          <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 flex items-center gap-1.5">
-                <Film className="w-3 h-3" /> Deliverables
-              </p>
+        {/* Deliverables pinned to this production, each edited in its row:
+            the name is typed over, the format and status are dropdowns. */}
+        {showDeliverables && (
+          <CardSection
+            icon={<Film className="w-3 h-3" />}
+            label="Deliverables"
+            tour="slate-deliverables"
+            meta={deliverables.length > 0 && (
               <span className="text-[10px] text-white/30">
                 {deliverables.filter(d => d.status === 'delivered').length}/{deliverables.length} delivered
               </span>
-            </div>
-
-            <div className="space-y-1.5">
-              {/* Phones put the name on its own line: beside the format, status
-                  and remove controls (and at the 16px phone input size) it was
-                  cut to "Short Form x1…". */}
+            )}
+          >
+            <ul className="space-y-2 @sm:space-y-1">
+              {/* A narrow card gives the name its own line: beside the format,
+                  status and remove controls it was cut to "Short Form x1…". */}
               {deliverables.map(d => (
-                <div key={d.id} className="flex flex-wrap sm:flex-nowrap items-center gap-x-2 gap-y-0.5 group/deliv">
+                <li key={d.id} className="flex flex-wrap @sm:flex-nowrap items-center gap-1.5">
                   {isClient ? (
-                    <span className="flex-1 basis-full sm:basis-auto text-[11px] text-white/80 truncate">{d.label || 'Untitled'}</span>
+                    <span className={`${readValue} flex-1 basis-full @sm:basis-auto text-white/80 truncate`}>{d.label || 'Untitled'}</span>
                   ) : (
-                    <input
-                      defaultValue={d.label || ''}
-                      placeholder="e.g. 60s hero cut"
-                      aria-label="Deliverable name"
-                      onBlur={e => {
-                        const value = e.target.value;
-                        if (value !== (d.label || '')) onPatchDeliverable?.(d.id, { label: value });
-                      }}
-                      className="flex-1 basis-full sm:basis-auto min-w-0 bg-transparent outline-none text-[11px] text-white/80 rounded px-1 py-0.5 focus:bg-white/10 placeholder:text-white/25"
+                    <InlineText
+                      value={d.label}
+                      placeholder="Untitled — add a name"
+                      ariaLabel="Deliverable name"
+                      onSave={(next) => onPatchDeliverable?.(d.id, { label: next })}
+                      className="flex-1 basis-full @sm:basis-auto text-white/85"
                     />
                   )}
-
-                  {!isClient && (
-                    <select
+                  {isClient ? (
+                    <span className="px-2 text-[11px] text-white/45">{d.format || '16:9'}</span>
+                  ) : (
+                    <ChipSelect
                       value={d.format || '16:9'}
-                      aria-label="Aspect ratio"
-                      onChange={e => onPatchDeliverable?.(d.id, { format: e.target.value })}
-                      className="ml-auto sm:ml-0 bg-transparent outline-none text-[10px] text-white/45 cursor-pointer shrink-0 hover:text-white/70"
+                      options={withCurrent(DELIVERABLE_FORMATS, d.format || '16:9')}
+                      onChange={(format) => onPatchDeliverable?.(d.id, { format })}
+                      ariaLabel={`Format for ${d.label || 'this deliverable'}`}
+                      className="border-white/10 text-white/60 tabular-nums"
                     >
-                      {DELIVERABLE_FORMATS.map(f => (
-                        <option key={f} value={f} className="bg-zinc-900">{f}</option>
-                      ))}
-                    </select>
+                      {d.format || '16:9'}
+                    </ChipSelect>
                   )}
-
-                  <button
-                    type="button"
-                    disabled={isClient}
-                    onClick={() => onPatchDeliverable?.(d.id, { status: nextDeliverableStatus(d.status) })}
-                    title={isClient ? undefined : 'Change status'}
-                    className={`px-2 py-0.5 rounded border text-[11px] md:text-[9px] font-black uppercase tracking-widest shrink-0 transition-colors ${deliverableStatusTone(d.status)} ${isClient ? '' : 'cursor-pointer'}`}
-                  >
-                    {deliverableStatusLabel(d.status)}
-                  </button>
-
+                  {isClient ? (
+                    <span className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${deliverableStatusTone(d.status)}`}>
+                      {deliverableStatusLabel(d.status)}
+                    </span>
+                  ) : (
+                    <ChipSelect
+                      value={d.status || 'todo'}
+                      options={withCurrent(DELIVERABLE_STATUS, d.status || 'todo', deliverableStatusLabel)}
+                      onChange={(status) => onPatchDeliverable?.(d.id, { status })}
+                      ariaLabel={`Status of ${d.label || 'this deliverable'}`}
+                      className={deliverableStatusTone(d.status)}
+                    >
+                      {deliverableStatusLabel(d.status)}
+                    </ChipSelect>
+                  )}
                   {!isClient && (
                     <button
                       type="button"
                       aria-label={`Remove ${d.label || 'deliverable'}`}
                       title="Remove"
                       onClick={() => onRemoveDeliverable?.(d.id)}
-                      className="shrink-0 text-white/20 hover:text-red-400 transition-colors opacity-100 md:opacity-0 md:group-hover/deliv:opacity-100"
+                      className="ml-auto shrink-0 w-8 h-8 pointer-coarse:w-10 pointer-coarse:h-10 grid place-items-center rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   )}
-                </div>
+                </li>
               ))}
-            </div>
-
-            {!isClient && (
-              <button
-                type="button"
-                onClick={() => onAddDeliverable?.()}
-                className="mt-2 text-[10px] font-bold uppercase tracking-widest text-accent hover:text-white transition-colors"
-              >
-                + Deliverable
-              </button>
+              {addingDeliverable && (
+                <li>
+                  <AddLine
+                    placeholder="Name it, e.g. 60s hero cut — Enter for another"
+                    ariaLabel="New deliverable name"
+                    onAdd={(label) => onAddDeliverable?.(label)}
+                    onClose={() => setAddingDeliverable(false)}
+                  />
+                </li>
+              )}
+            </ul>
+            {!isClient && !addingDeliverable && (
+              <div className="mt-1.5">
+                <AddButton onClick={() => openNow(setAddingDeliverable)}>Add deliverable</AddButton>
+              </div>
             )}
-          </div>
+          </CardSection>
         )}
 
         {/* QuickBooks, read-only. Only rendered once the client has actually
             been billed something — an empty billing block on every card would
             be the "No links" placeholder all over again. */}
         {billing && (billing.invoiced > 0 || billing.estimateCount > 0) && (
-          <div className="mb-6 p-3 bg-white/5 rounded-xl border border-white/5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/40 flex items-center gap-1.5">
-                <Receipt className="w-3 h-3" /> Billing
-              </p>
-              {billing.overdue > 0 ? (
-                <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/25">
-                  {currency(billing.overdue)} overdue
-                </span>
-              ) : billing.outstanding > 0 ? (
-                <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">
-                  {currency(billing.outstanding)} open
-                </span>
-              ) : billing.invoiced > 0 ? (
-                <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-green-500/15 text-green-300 border border-green-500/25">
-                  Paid in full
-                </span>
-              ) : null}
-            </div>
-            <div className="flex items-center gap-3 text-[10px] font-semibold text-white/50">
+          <CardSection
+            icon={<Receipt className="w-3 h-3" />}
+            label="Billing"
+            meta={billing.overdue > 0 ? (
+              <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/25">
+                {currency(billing.overdue)} overdue
+              </span>
+            ) : billing.outstanding > 0 ? (
+              <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                {currency(billing.outstanding)} open
+              </span>
+            ) : billing.invoiced > 0 ? (
+              <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-green-500/15 text-green-300 border border-green-500/25">
+                Paid in full
+              </span>
+            ) : null}
+          >
+            <div className="flex items-center gap-3 px-2 text-[10px] font-semibold text-white/50">
               {billing.invoiced > 0 && <span>{currency(billing.invoiced)} invoiced</span>}
               {billing.estimateCount > 0 && (
                 <span className="text-white/35">
@@ -2525,60 +2682,105 @@ function JobCard({
                 </span>
               )}
             </div>
-          </div>
+          </CardSection>
         )}
 
-        {/* Links — rendered only when there is something in it. Called
-            "Project Vault" before, which read as the password Vault. The
-            empty "No vault links" placeholder used to occupy a block on every
-            card that had no links, which was most of them. */}
-        {hasVaultLinks && (
-          <div className="space-y-2 mb-6">
-             <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/30 flex items-center gap-2 mb-3">
-               <LinkIcon className="w-3 h-3" /> Links
-             </p>
-             <div className="grid grid-cols-2 gap-2">
+        {/* Links. Called "Project Vault" before, which read as the password
+            Vault. A link pasted here can be taken off again here; drafts
+            belong to the Edit Tracker, and the review, Discord and Drive
+            links to wherever set them. */}
+        {showLinks && (
+          <CardSection icon={<LinkIcon className="w-3 h-3" />} label="Links">
+            {hasVaultLinks && (
+              <div className="grid grid-cols-2 gap-1.5">
                 {job.review_link && !reviewIsDraft && (
-                  <a href={sanitizeUrl(job.review_link)} target="_blank" className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
+                  <a href={sanitizeUrl(job.review_link)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-2 h-9 pointer-coarse:h-11 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
                     <Eye className="w-3 h-3 text-accent shrink-0" />
                     <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Review</span>
                   </a>
                 )}
                 {job.discord_url && (
-                  <a href={sanitizeUrl(job.discord_url)} target="_blank" className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
+                  <a href={sanitizeUrl(job.discord_url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-2 h-9 pointer-coarse:h-11 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
                     <MessageSquare className="w-3 h-3 text-purple-400 shrink-0" />
                     <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Discord</span>
                   </a>
                 )}
                 {job.drive_folder_url && (
-                  <a href={sanitizeUrl(job.drive_folder_url)} target="_blank" className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
+                  <a href={sanitizeUrl(job.drive_folder_url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-2 h-9 pointer-coarse:h-11 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
                     <FolderOpen className="w-3 h-3 text-yellow-500 shrink-0" />
                     <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100">Drive</span>
                   </a>
                 )}
-                {vaultLinks.map((link, i) => (
-                  <a key={i} href={sanitizeUrl(link.url)} target="_blank" className="flex items-center gap-2 p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group/link border border-white/5">
-                    <ExternalLink className="w-3 h-3 text-white/30 shrink-0" />
-                    <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100 truncate">{link.label}{link.version ? ` v${link.version}` : ''}</span>
-                  </a>
-                ))}
-             </div>
+                {vaultLinks.map((link, i) => {
+                  const removable = !isClient && link.category !== 'Draft';
+                  return (
+                    <div key={i} className="flex items-stretch min-w-0 bg-white/5 rounded-lg border border-white/5">
+                      <a href={sanitizeUrl(link.url)} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0 flex items-center gap-2 px-2 h-9 pointer-coarse:h-11 rounded-lg hover:bg-white/10 transition-colors group/link">
+                        <ExternalLink className="w-3 h-3 text-white/30 shrink-0" />
+                        <span className="text-[11px] font-medium tracking-tight opacity-60 group-hover/link:opacity-100 truncate">{link.label}{link.version ? ` v${link.version}` : ''}</span>
+                      </a>
+                      {removable && (
+                        <button
+                          type="button"
+                          onClick={() => onRemoveLink(link)}
+                          aria-label={`Remove the ${link.label} link`}
+                          title="Remove"
+                          className="shrink-0 w-7 pointer-coarse:w-10 grid place-items-center rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {!isClient && (
+              addingLink ? (
+                <div className={hasVaultLinks ? 'mt-2' : ''}>
+                  <AddLinkForm onAdd={onAddLink} onClose={() => setAddingLink(false)} />
+                </div>
+              ) : (
+                <div className="mt-1.5">
+                  <AddButton onClick={() => openNow(setAddingLink)}>Add link</AddButton>
+                </div>
+              )
+            )}
+          </CardSection>
+        )}
+
+        {/* The sections this card doesn't have yet, one tap each. They open
+            in their place above, with the cursor already in them. */}
+        {!isClient && (!showNotes || !showDeliverables || !showLinks) && (
+          <div className="pt-3 mt-4 border-t border-white/5 flex flex-wrap items-center gap-1">
+            <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-white/30 mr-1">Add</span>
+            {!showNotes && <AddButton tour="slate-notes" label="Add notes" onClick={() => openNow(setNotesOpen)}>Notes</AddButton>}
+            {!showDeliverables && <AddButton tour="slate-deliverables" label="Add a deliverable" onClick={() => openNow(setAddingDeliverable)}>Deliverable</AddButton>}
+            {!showLinks && <AddButton label="Add a link" onClick={() => openNow(setAddingLink)}>Link</AddButton>}
           </div>
         )}
       </div>
 
-      {/* Footer: the one way into the crew manager. The card used to offer
-          three (a link in the crew box, this button, and a menu item); links
-          are added from the ⋮ menu. */}
+      {/* Footer: the two bigger editors. The crew manager (booking, the day's
+          schedule, call times per person) and the full production form, for
+          everything the card doesn't show. */}
       {!isClient && (
-        <div className="pt-4 border-t border-white/5 mt-auto flex items-center justify-end gap-2 relative z-10">
-           <button
-             onClick={onManage}
-             data-tour="slate-crew"
-             className="text-[12px] font-medium tracking-tight text-white/50 hover:text-white transition-all flex items-center gap-1.5 px-3 py-1.5 hover:bg-white/5 rounded-lg"
-           >
-             Crew & schedule <ChevronRight className="w-4 h-4" />
-           </button>
+        <div className="pt-4 mt-4 border-t border-white/5 grid grid-cols-2 gap-2 relative z-10">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="h-9 pointer-coarse:h-11 px-2 rounded-lg bg-white/[0.04] hover:bg-white/10 text-[12px] font-medium tracking-tight whitespace-nowrap text-white/60 hover:text-white transition-colors flex items-center justify-center gap-1.5"
+          >
+            <Settings2 className="w-3.5 h-3.5" /> All details
+          </button>
+          <button
+            type="button"
+            onClick={onManage}
+            data-tour="slate-crew"
+            className="h-9 pointer-coarse:h-11 px-2 rounded-lg bg-white/[0.04] hover:bg-white/10 text-[12px] font-medium tracking-tight whitespace-nowrap text-white/60 hover:text-white transition-colors flex items-center justify-center gap-1.5"
+          >
+            <Users className="w-3.5 h-3.5" /> Crew & schedule
+          </button>
         </div>
       )}
     </div>
