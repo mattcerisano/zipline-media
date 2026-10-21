@@ -40,8 +40,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { supabase } from '@/lib/supabase';
 import { trackView, trackAction, loadTabOpens } from '@/lib/usage';
-import { rankTabsByUse } from '@/lib/tab-ranking';
-import { saveUserPref } from '@/lib/user-prefs';
+import { rankTabsByUse, applyPersonalOrder } from '@/lib/tab-ranking';
+import { loadUserPref, saveUserPref } from '@/lib/user-prefs';
 import { getBranding } from '@/lib/branding';
 import { applyAccent } from '@/lib/brand-theme';
 import WorkspaceLayout from '@/components/workspace/WorkspaceLayout';
@@ -269,6 +269,8 @@ const DEFAULT_TABS: CustomTab[] = [
   { id: 'integrations', label: 'Integrations', iconName: 'Plug', type: 'system', isDefault: true, allowedRoles: ['admin'] }
 ];
 
+const SIDEBAR_ORDER_KEY = 'sidebar_order';
+
 export default function CommandCenterPage() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const loadedUserRef = useRef<string | null>(null);
@@ -441,18 +443,50 @@ export default function CommandCenterPage() {
     saveOrgPref('custom_tabs', items);
   };
 
+  // Each person's own sidebar order, once they've dragged one: kept on this
+  // device and in their user_prefs row, so it follows them to the next one.
+  // Null until then, and the sidebar sorts itself by use.
+  const [myTabOrder, setMyTabOrder] = useState<string[] | null>(null);
+  useEffect(() => {
+    try {
+      const local = JSON.parse(localStorage.getItem(SIDEBAR_ORDER_KEY) || 'null');
+      if (Array.isArray(local)) setMyTabOrder(local);
+    } catch { /* private mode */ }
+    let cancelled = false;
+    loadUserPref<string[]>(SIDEBAR_ORDER_KEY).then(saved => {
+      if (cancelled || !Array.isArray(saved)) return;
+      setMyTabOrder(saved);
+      try { localStorage.setItem(SIDEBAR_ORDER_KEY, JSON.stringify(saved)); } catch { /* ignore */ }
+    });
+    return () => { cancelled = true; };
+  }, []);
+  const saveMyTabOrder = (order: string[] | null) => {
+    setMyTabOrder(order);
+    try {
+      if (order) localStorage.setItem(SIDEBAR_ORDER_KEY, JSON.stringify(order));
+      else localStorage.removeItem(SIDEBAR_ORDER_KEY);
+    } catch { /* ignore */ }
+    saveUserPref(SIDEBAR_ORDER_KEY, order, 0);
+  };
+
   const onDragEnd = (result: any) => {
-    if (!result.destination || userRole !== 'admin') return;
+    if (!result.destination) return;
     const from = result.source.index;
     const to = result.destination.index;
     if (from === to) return;
-    // The indexes are positions in the list this account *sees*, which skips
-    // any tab its role can't open. Splicing the full list with them moved the
-    // wrong tabs. Reorder the visible ones, then put them back into the slots
-    // visible tabs held, leaving hidden tabs exactly where they were.
-    const reordered = [...visibleTabs];
-    const [moved] = reordered.splice(from, 1);
-    reordered.splice(to, 0, moved);
+    // Anyone can put the tools in their own order. It's theirs alone; the
+    // indexes are positions in the sidebar exactly as they see it.
+    const mine = sidebarTabs.map(t => t.id);
+    const [dragged] = mine.splice(from, 1);
+    mine.splice(to, 0, dragged);
+    saveMyTabOrder(mine);
+    // An admin's drag also still sets the team's order, which decides where
+    // tabs land for everyone who hasn't arranged their own.
+    if (userRole !== 'admin') return;
+    // The team list also holds tabs this role can't open. Put the visible ones
+    // in the new order back into the slots visible tabs held, leaving hidden
+    // tabs exactly where they were.
+    const reordered = applyPersonalOrder(visibleTabs, mine);
     const visibleIds = new Set(visibleTabs.map(t => t.id));
     let next = 0;
     const items = tabs.map(t => (visibleIds.has(t.id) ? reordered[next++] : t));
@@ -686,10 +720,13 @@ export default function CommandCenterPage() {
 
   // Most-used first. While editing the layout the saved order shows instead:
   // that's the order dragging changes, and it decides ties and unopened tabs.
-  const sidebarTabs = useMemo(
-    () => (isLayoutEditing || !tabOpens ? visibleTabs : rankTabsByUse(visibleTabs, tabOpens)),
-    [visibleTabs, tabOpens, isLayoutEditing],
-  );
+  // Someone who arranged their own order gets it, always. Otherwise most-used
+  // first — also while editing, so the list doesn't jump the moment someone
+  // starts arranging it: the first drag starts from what they were looking at.
+  const sidebarTabs = useMemo(() => {
+    if (myTabOrder) return applyPersonalOrder(visibleTabs, myTabOrder);
+    return tabOpens ? rankTabsByUse(visibleTabs, tabOpens) : visibleTabs;
+  }, [visibleTabs, tabOpens, myTabOrder]);
 
   // If the persisted/last-used tab isn't open to this account (a shared
   // browser, a role change, a widget linking across tabs), fall back to the
@@ -1244,18 +1281,28 @@ export default function CommandCenterPage() {
                     ref={provided.innerRef}
                     className="space-y-1.5"
                   >
-                    {isLayoutEditing && userRole === 'admin' && isSidebarOpen && (
+                    {isLayoutEditing && isSidebarOpen && (
                       <p className="px-2 pb-2 text-[11px] leading-snug text-white/40">
-                        Normally sorted by most used. The order here is used for ties and tabs nobody has opened.
+                        {myTabOrder
+                          ? 'Drag the grips to arrange your tools. This order is yours alone.'
+                          : 'Sorted by most used. Drag the grips to put them in your own order instead.'}
+                        {myTabOrder && (
+                          <button
+                            type="button"
+                            onClick={() => saveMyTabOrder(null)}
+                            className="block mt-1 text-accent hover:text-white transition-colors"
+                          >
+                            Reset to most used
+                          </button>
+                        )}
                       </p>
                     )}
                     {sidebarTabs
                       .map((tab, index) => {
                         const Icon = getIconComponent(tab.iconName);
                         return (
-                          // The sidebar order is the team's (saved to the org), so only
-                          // an admin rearranges it — the same line as editing a tab.
-                          <Draggable key={tab.id} draggableId={tab.id} index={index} isDragDisabled={userRole !== 'admin' || !isLayoutEditing}>
+                          // Anyone can drag while editing the layout; it sets their own order.
+                          <Draggable key={tab.id} draggableId={tab.id} index={index} isDragDisabled={!isLayoutEditing}>
                             {(provided, snapshot) => (
                               <div
                                 ref={provided.innerRef}
@@ -1276,7 +1323,7 @@ export default function CommandCenterPage() {
                                     // Room for the hover controls (edit, reset, grip) laid over
                                     // the right edge, so a long label truncates instead of
                                     // running under them. On a phone they are always shown.
-                                    isSidebarOpen && userRole === 'admin' && isLayoutEditing ? 'pr-20' : ''
+                                    isSidebarOpen && isLayoutEditing ? (userRole === 'admin' ? 'pr-20' : 'pr-10') : ''
                                   } ${
                                     activeTab === tab.id
                                       ? 'bg-gradient-to-r from-accent/15 to-accent/5 text-white border-accent/30 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] shadow-accent/5'
@@ -1337,7 +1384,7 @@ export default function CommandCenterPage() {
                                     always exist in the DOM, so hide it with classes, not unmount. */}
                                 <div
                                   {...provided.dragHandleProps}
-                                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white hover:text-accent transition-opacity cursor-grab active:cursor-grabbing ${(!isSidebarOpen && !isMobile) || userRole !== 'admin' || !isLayoutEditing ? 'opacity-0 pointer-events-none' : 'opacity-50 hover:opacity-100'}`}
+                                  className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white hover:text-accent transition-opacity cursor-grab active:cursor-grabbing ${(!isSidebarOpen && !isMobile) || !isLayoutEditing ? 'opacity-0 pointer-events-none' : 'opacity-50 hover:opacity-100'}`}
                                   title="Drag to reorder"
                                   onClick={(e) => e.stopPropagation()}
                                 >
