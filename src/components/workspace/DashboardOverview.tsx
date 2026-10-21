@@ -18,6 +18,7 @@ import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
 import { todayLocalISO } from '@/lib/date';
 import ThisWeek from '@/components/workspace/ThisWeek';
+import { STUDIO_OS_NAME } from '@/lib/studio';
 
 export interface DashboardOverviewProps {
   /** A tab id, or a hand-off object ({ selectCalendarJob }, { openEditCard }). */
@@ -504,7 +505,7 @@ export default function DashboardOverview({
           </div>
 
           <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-            <span className="text-[10px] font-medium tracking-wide text-white/30">Zipline Studio OS v1.2</span>
+            <span className="text-[10px] font-medium tracking-wide text-white/30">{STUDIO_OS_NAME} v1.2</span>
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
           </div>
         </div>

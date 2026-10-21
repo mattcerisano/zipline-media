@@ -6,9 +6,10 @@
  * name, so it's what keeps Rob's A1 and the studio's A1 apart on a manifest.
  */
 import type { InventoryItem } from '@/data/inventory';
+import { STUDIO_NAME } from '@/lib/studio';
 
 /** Who a manifest groups unowned gear under. */
-export const STUDIO_OWNER = 'Zipline Media';
+export const STUDIO_OWNER = STUDIO_NAME;
 
 const OWNED_NAME = /^(.*\S)\s*\[([^\[\]]+)\]\s*$/;
 

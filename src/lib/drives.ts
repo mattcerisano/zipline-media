@@ -4,9 +4,11 @@
  * the tracker exists for: who has each drive, and which drives are free.
  *
  * A drive that isn't out is available, and it is always with one of the
- * studio's owners (Matt or Tommy), so "available" also says where to grab it.
- * That keeper is stored in `holder_name`, the same field that names who has a
- * drive while it's out.
+ * studio's keepers (the owners, by default), so "available" also says where
+ * to grab it. That keeper is stored in `holder_name`, the same field that
+ * names who has a drive while it's out. Who the keepers are is a team setting
+ * (Settings → Team → Drive keepers, stored in organizations.drive_keepers);
+ * every helper here takes the list and falls back to the original pair.
  */
 import { parseLocalDate } from './date';
 
@@ -24,7 +26,7 @@ export interface Drive {
   serial: string | null;
   purchase_price: number | null;
   status: DriveStatus;
-  /** Who has it: the editor or agency while out, Matt or Tommy while available. */
+  /** Who has it: the editor or agency while out, one of the keepers while available. */
   holder_name: string | null;
   holder_type: HolderType | null;
   job_id: string | null;
@@ -52,8 +54,43 @@ export interface DriveEvent {
   created_at: string;
 }
 
-/** The studio's owners. An available drive is always with one of them. */
-export const OWNERS = ['Matt', 'Tommy'] as const;
+/** The people available drives live with, until Settings → Team says otherwise. */
+export const DEFAULT_DRIVE_KEEPERS: readonly string[] = ['Matt', 'Tommy'];
+
+/** At most this many keepers — it's a segmented control, not a roster. */
+export const MAX_DRIVE_KEEPERS = 6;
+
+/**
+ * The keepers list as saved (a JSON array of names), cleaned: trimmed,
+ * de-duplicated case-insensitively, capped. Anything unusable — no row yet,
+ * an empty list, the wrong shape — yields the default pair, so the tracker
+ * never ends up with nowhere to put a returned drive.
+ */
+export function normalizeKeepers(value: unknown): string[] {
+  if (!Array.isArray(value)) return [...DEFAULT_DRIVE_KEEPERS];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const v of value) {
+    const name = typeof v === 'string' ? v.trim().replace(/\s+/g, ' ') : '';
+    const key = name.toLowerCase();
+    if (!name || seen.has(key)) continue;
+    seen.add(key);
+    out.push(name);
+    if (out.length >= MAX_DRIVE_KEEPERS) break;
+  }
+  return out.length ? out : [...DEFAULT_DRIVE_KEEPERS];
+}
+
+/** "Matt, Tommy" → ["Matt", "Tommy"], for the settings field. */
+export function parseKeepers(text: string): string[] {
+  return normalizeKeepers(text.split(/[,\n]/));
+}
+
+/** "Matt or Tommy", "Matt, Tommy or Sam" — for prose. */
+export function listKeepers(keepers: readonly string[]): string {
+  if (keepers.length <= 1) return keepers[0] || '';
+  return `${keepers.slice(0, -1).join(', ')} or ${keepers[keepers.length - 1]}`;
+}
 
 /** The drives the studio buys, offered as quick picks in the form. */
 export const DRIVE_MODELS = ['Samsung T5', 'Samsung T7', 'Samsung T9', 'Transfer stick'];
@@ -72,17 +109,20 @@ export function daysOut(drive: Pick<Drive, 'status' | 'checked_out_at'>, now: Da
   return Math.max(0, Math.round((startOfDay(now) - startOfDay(out)) / DAY_MS));
 }
 
-/** Which owner an available drive is with, or null if nobody was recorded. */
-export function keeperOf(drive: Pick<Drive, 'status' | 'holder_name'>): string | null {
+/** Which keeper an available drive is with, or null if nobody was recorded. */
+export function keeperOf(
+  drive: Pick<Drive, 'status' | 'holder_name'>,
+  keepers: readonly string[] = DEFAULT_DRIVE_KEEPERS
+): string | null {
   if (drive.status !== 'in_office') return null;
   const name = (drive.holder_name || '').trim().toLowerCase();
-  return OWNERS.find((o) => o.toLowerCase() === name) ?? null;
+  return keepers.find((o) => o.toLowerCase() === name) ?? null;
 }
 
 export interface DriveTotals {
   total: number;
   available: number;
-  /** Available drives per owner, in OWNERS order. */
+  /** Available drives per keeper, in keeper order. */
   availableBy: Record<string, number>;
   out: number;
   lost: number;
@@ -94,9 +134,9 @@ export interface DriveTotals {
   valueLost: number;
 }
 
-export function driveTotals(drives: Drive[]): DriveTotals {
+export function driveTotals(drives: Drive[], keepers: readonly string[] = DEFAULT_DRIVE_KEEPERS): DriveTotals {
   const t: DriveTotals = {
-    total: 0, available: 0, availableBy: Object.fromEntries(OWNERS.map((o) => [o, 0])),
+    total: 0, available: 0, availableBy: Object.fromEntries(keepers.map((o) => [o, 0])),
     out: 0, lost: 0, tbOut: 0, valueOut: 0, valueLost: 0,
   };
   for (const d of drives) {
@@ -104,7 +144,7 @@ export function driveTotals(drives: Drive[]): DriveTotals {
     t.total++;
     if (d.status === 'in_office') {
       t.available++;
-      const k = keeperOf(d);
+      const k = keeperOf(d, keepers);
       if (k) t.availableBy[k]++;
     }
     if (d.status === 'lost') {
@@ -153,21 +193,21 @@ export function groupByHolder(drives: Drive[], now: Date = new Date()): HolderGr
 }
 
 export interface KeeperGroup {
-  /** An owner's name, or null for available drives nobody was recorded against. */
+  /** A keeper's name, or null for available drives nobody was recorded against. */
   keeper: string | null;
   drives: Drive[];
 }
 
 /**
- * Available drives by which owner has them. Every owner gets a group, even an
- * empty one, so "Tommy has none" is visible rather than missing.
+ * Available drives by which keeper has them. Every keeper gets a group, even
+ * an empty one, so "Tommy has none" is visible rather than missing.
  */
-export function groupAvailable(drives: Drive[]): KeeperGroup[] {
-  const groups: KeeperGroup[] = OWNERS.map((o) => ({ keeper: o, drives: [] }));
+export function groupAvailable(drives: Drive[], keepers: readonly string[] = DEFAULT_DRIVE_KEEPERS): KeeperGroup[] {
+  const groups: KeeperGroup[] = keepers.map((o) => ({ keeper: o, drives: [] }));
   const unassigned: KeeperGroup = { keeper: null, drives: [] };
   for (const d of drives) {
     if (d.status !== 'in_office') continue;
-    const k = keeperOf(d);
+    const k = keeperOf(d, keepers);
     (k ? groups.find((g) => g.keeper === k)! : unassigned).drives.push(d);
   }
   for (const g of groups) g.drives.sort(byLabel);

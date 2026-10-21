@@ -1,11 +1,12 @@
 import type { MetadataRoute } from 'next';
+import { STUDIO_OS_NAME } from '@/lib/studio';
 
 // PWA manifest — makes the Command Center installable on iOS, Android, and desktop
 // from a single codebase. Next.js automatically serves this at /manifest.webmanifest
 // and injects the <link rel="manifest"> tag.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Zipline Studio OS',
+    name: STUDIO_OS_NAME,
     short_name: 'Studio OS',
     description: 'Production command center for crews, gear, schedules, and clients.',
     start_url: '/command-center',

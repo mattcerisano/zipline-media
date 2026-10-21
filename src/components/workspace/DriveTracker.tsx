@@ -22,9 +22,10 @@ import { useRealtime } from '@/lib/useRealtime';
 import { toast, confirmAction } from '@/components/Feedback';
 import { Modal, DropdownMenu, type MenuItem } from '@/components/workspace/Overlay';
 import { formatLocalDate, todayLocalISO } from '@/lib/date';
+import { loadOrgPref } from '@/lib/team-prefs';
 import {
+  DEFAULT_DRIVE_KEEPERS,
   DRIVE_MODELS,
-  OWNERS,
   daysOut,
   describeDrive,
   driveTotals,
@@ -32,6 +33,8 @@ import {
   groupAvailable,
   groupByHolder,
   keeperOf,
+  listKeepers,
+  normalizeKeepers,
   type Drive,
   type DriveAction,
   type DriveEvent,
@@ -90,6 +93,8 @@ async function currentActor(): Promise<string | null> {
 
 export default function DriveTracker() {
   const [drives, setDrives] = useState<Drive[]>([]);
+  // Who available drives live with — Settings → Team → Drive keepers.
+  const [keepers, setKeepers] = useState<readonly string[]>(DEFAULT_DRIVE_KEEPERS);
   const [jobs, setJobs] = useState<JobOption[]>([]);
   const [holderSuggestions, setHolderSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +129,7 @@ export default function DriveTracker() {
 
   useEffect(() => {
     supabase.from('drives').select('*').order('label').then(applyDrives);
+    loadOrgPref<unknown>('drive_keepers').then((v) => setKeepers(normalizeKeepers(v)));
     // Pickers: recent productions, and the names a drive usually goes to.
     supabase
       .from('jobs')
@@ -147,7 +153,7 @@ export default function DriveTracker() {
   useRealtime(['drives'], load);
 
   const jobTitles = useMemo(() => Object.fromEntries(jobs.map((j) => [j.id, j.title])), [jobs]);
-  const totals = useMemo(() => driveTotals(drives), [drives]);
+  const totals = useMemo(() => driveTotals(drives, keepers), [drives, keepers]);
   // "Value out $0" says nothing until a purchase price is logged somewhere.
   const hasPrices = useMemo(() => drives.some((d) => Number(d.purchase_price) > 0), [drives]);
   const showThirdStat = hasPrices || totals.lost > 0;
@@ -181,7 +187,7 @@ export default function DriveTracker() {
   }, [drives, matches, statusFilter]);
 
   const holderGroups = useMemo(() => groupByHolder(drives.filter(matches)), [drives, matches]);
-  const keeperGroups = useMemo(() => groupAvailable(drives.filter(matches)), [drives, matches]);
+  const keeperGroups = useMemo(() => groupAvailable(drives.filter(matches), keepers), [drives, matches, keepers]);
 
   // ---- Writes ------------------------------------------------------------
 
@@ -273,12 +279,12 @@ export default function DriveTracker() {
       items.push({ label: 'Change who has it', icon: <ArrowUpRight className="w-3.5 h-3.5" />, onSelect: () => setCheckingOut(d) });
     }
     if (d.status === 'in_office') {
-      for (const o of OWNERS) {
-        if (keeperOf(d) !== o) items.push({ label: `Move to ${o}`, icon: <Users className="w-3.5 h-3.5" />, onSelect: () => moveTo(d, o) });
+      for (const o of keepers) {
+        if (keeperOf(d, keepers) !== o) items.push({ label: `Move to ${o}`, icon: <Users className="w-3.5 h-3.5" />, onSelect: () => moveTo(d, o) });
       }
     }
     if (d.status === 'lost' || d.status === 'retired') {
-      for (const o of OWNERS) {
+      for (const o of keepers) {
         items.push({
           label: d.status === 'lost' ? `Found, with ${o}` : `Back in service, with ${o}`,
           icon: <RotateCcw className="w-3.5 h-3.5" />,
@@ -298,7 +304,7 @@ export default function DriveTracker() {
 
   const renderRow = (d: Drive, opts: { showHolder: boolean; showStatus?: boolean }) => {
     const out = daysOut(d);
-    const keeper = keeperOf(d);
+    const keeper = keeperOf(d, keepers);
     const spec = describeDrive(d);
     return (
       <div
@@ -372,6 +378,7 @@ export default function DriveTracker() {
         )}
         {d.status === 'out' && (
           <ReturnButton
+            keepers={keepers}
             label="Returned"
             ariaLabel={`Mark ${d.label} returned`}
             onReturn={(owner) => markReturned(d, owner)}
@@ -428,7 +435,7 @@ export default function DriveTracker() {
             label="Available"
             value={String(totals.available)}
             detail={[
-              ...OWNERS.map((o) => `${o} ${totals.availableBy[o]}`),
+              ...keepers.map((o) => `${o} ${totals.availableBy[o]}`),
               ...(totals.available > Object.values(totals.availableBy).reduce((a, b) => a + b, 0)
                 ? [`${totals.available - Object.values(totals.availableBy).reduce((a, b) => a + b, 0)} unset`]
                 : []),
@@ -536,7 +543,7 @@ export default function DriveTracker() {
               <SectionLabel>Out · {holderGroups.reduce((n, g) => n + g.drives.length, 0)}</SectionLabel>
               {holderGroups.length === 0 ? (
                 <p className="text-sm text-white/40 px-1 py-2">
-                  {query ? 'No drives out match that.' : 'Nothing is out. Every drive is with Matt or Tommy.'}
+                  {query ? 'No drives out match that.' : `Nothing is out. Every drive is with ${listKeepers(keepers)}.`}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -556,6 +563,7 @@ export default function DriveTracker() {
                         </div>
                         {g.drives.length > 1 && (
                           <ReturnButton
+            keepers={keepers}
                             label="All returned"
                             ariaLabel={`Mark all of ${g.holder}'s drives returned`}
                             onReturn={(owner) => returnAll(g.drives, owner)}
@@ -604,6 +612,7 @@ export default function DriveTracker() {
 
       {editing !== null && (
       <DriveForm
+        keepers={keepers}
         key={editing === 'new' ? 'new' : editing.id}
         drive={editing === 'new' ? null : editing}
         existingLabels={drives.map((d) => d.label)}
@@ -618,6 +627,7 @@ export default function DriveTracker() {
 
       {checkingOut && (
       <CheckoutForm
+          keepers={keepers}
         key={checkingOut.id}
         drive={checkingOut}
         jobs={jobs}
@@ -647,12 +657,12 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/35 px-1 mb-2">{children}</h2>;
 }
 
-/** "Returned" asks who has it now, so the drive lands with Matt or Tommy. */
-function ReturnButton({ label, ariaLabel, onReturn }: { label: string; ariaLabel: string; onReturn: (owner: string) => void }) {
+/** "Returned" asks who has it now, so the drive lands with one of the keepers. */
+function ReturnButton({ label, ariaLabel, keepers, onReturn }: { label: string; ariaLabel: string; keepers: readonly string[]; onReturn: (owner: string) => void }) {
   return (
     <DropdownMenu
       align="right"
-      items={OWNERS.map((o) => ({
+      items={keepers.map((o) => ({
         label: `Back with ${o}`,
         icon: <CornerDownLeft className="w-3.5 h-3.5" />,
         onSelect: () => onReturn(o),
@@ -730,14 +740,15 @@ function Segmented({ value, onChange, options }: {
   );
 }
 
-function DriveForm({ drive, existingLabels, onClose, onSaved }: {
+function DriveForm({ drive, existingLabels, keepers, onClose, onSaved }: {
   drive: Drive | null;
   existingLabels: string[];
+  keepers: readonly string[];
   onClose: () => void;
   onSaved: (drive: Drive, isNew: boolean) => void;
 }) {
   const [label, setLabel] = useState(drive?.label ?? '');
-  const [keeper, setKeeper] = useState<string>(OWNERS[0]);
+  const [keeper, setKeeper] = useState<string>(keepers[0]);
   const [model, setModel] = useState(drive?.model ?? 'Samsung T9');
   const [capacity, setCapacity] = useState(drive?.capacity_tb != null ? String(drive.capacity_tb) : '2');
   const [serial, setSerial] = useState(drive?.serial ?? '');
@@ -807,7 +818,7 @@ function DriveForm({ drive, existingLabels, onClose, onSaved }: {
         {!drive && (
           <div>
             <label className={labelClass}>Who has it now</label>
-            <Segmented value={keeper} onChange={setKeeper} options={OWNERS.map((o) => ({ value: o, label: o }))} />
+            <Segmented value={keeper} onChange={setKeeper} options={keepers.map((o) => ({ value: o, label: o }))} />
           </div>
         )}
         <div className="grid grid-cols-2 gap-3">
@@ -853,8 +864,9 @@ function DriveForm({ drive, existingLabels, onClose, onSaved }: {
   );
 }
 
-function CheckoutForm({ drive, jobs, holderSuggestions, knownHolders, onClose, onSubmit }: {
+function CheckoutForm({ drive, jobs, holderSuggestions, knownHolders, keepers, onClose, onSubmit }: {
   drive: Drive;
+  keepers: readonly string[];
   jobs: JobOption[];
   holderSuggestions: string[];
   knownHolders: Drive[];
@@ -895,7 +907,7 @@ function CheckoutForm({ drive, jobs, holderSuggestions, knownHolders, onClose, o
       onClose={onClose}
       maxWidth="max-w-md"
       title={`${editingExisting ? 'Update' : 'Check out'} ${drive.label}`}
-      subtitle={[describeDrive(drive), keeperOf(drive) && `From ${keeperOf(drive)}`].filter(Boolean).join(' · ') || undefined}
+      subtitle={[describeDrive(drive), keeperOf(drive, keepers) && `From ${keeperOf(drive, keepers)}`].filter(Boolean).join(' · ') || undefined}
       footer={
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm border border-white/10 hover:bg-white/5">Cancel</button>

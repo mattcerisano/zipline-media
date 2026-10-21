@@ -46,8 +46,8 @@ export const APP_FEATURES: AppFeature[] = [
   { id: 'gear-value', title: 'Replacement Value Totals', description: 'Running insurance/replacement value for everything on the manifest.', keywords: 'replacement value insurance total worth cost gear', tab: 'gear' },
 
   // ---- Drive Tracker ----
-  { id: 'drives-who', title: 'Who Has Our Drives', description: 'See every SSD out of the office, grouped by the editor or agency holding it, and which drives are free with Matt or Tommy.', keywords: 'drive drives ssd hard drive t5 t7 t9 samsung transfer editor agency who has checked out borrowed missing available free tracker storage', tab: 'drives' },
-  { id: 'drives-checkout', title: 'Check a Drive Out or In', description: 'Log a drive going to an editor or agency, then mark it returned to Matt or Tommy when it comes back.', keywords: 'check out return returned drive ssd courier hand off editor agency project matt tommy', tab: 'drives' },
+  { id: 'drives-who', title: 'Who Has Our Drives', description: 'See every SSD out of the office, grouped by the editor or agency holding it, and which drives are free and who in the studio is keeping them.', keywords: 'drive drives ssd hard drive t5 t7 t9 samsung transfer editor agency who has checked out borrowed missing available free tracker storage', tab: 'drives' },
+  { id: 'drives-checkout', title: 'Check a Drive Out or In', description: 'Log a drive going to an editor or agency, then mark it returned to whoever keeps it when it comes back.', keywords: 'check out return returned drive ssd courier hand off editor agency project keeper', tab: 'drives' },
 
   // ---- Locations ----
   { id: 'locations-map', title: 'Map of Every Shoot and Scout', description: 'A map of every place the studio has shot or scouted, filtered by year. Tap a pin for the production or the location card.', keywords: 'map locations pins where shot filmed scouted history places addresses year google venues', tab: 'locations' },

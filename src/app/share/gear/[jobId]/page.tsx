@@ -20,7 +20,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import { toast } from '@/components/Feedback';
-import { parseOwnedName } from '@/lib/gear-owners';
+import { STUDIO_OWNER, parseOwnedName } from '@/lib/gear-owners';
 
 // Define structures matching the main catalog
 interface InventoryItem {
@@ -271,7 +271,7 @@ export default function ShareGearPage() {
     Object.entries(manifest).forEach(([name, count]) => {
       if (count <= 0) return;
       const item = allInventory.find(i => i.name === name);
-      const owner = item?.owner || 'Zipline Media';
+      const owner = item?.owner || STUDIO_OWNER;
       const category = item?.category || 'Specialty';
 
       if (!byOwner[owner]) byOwner[owner] = {};
@@ -614,7 +614,7 @@ export default function ShareGearPage() {
             {Object.keys(manifestByOwner).map(owner => (
               <div key={owner} className="space-y-3">
                 <h3 className={`text-[11px] font-black uppercase tracking-widest border-b border-white/5 pb-1 ${
-                  owner === 'Zipline Media' ? 'text-white/40' : 'text-red-400'
+                  owner === STUDIO_OWNER ? 'text-white/40' : 'text-red-400'
                 }`}>
                   {owner}
                 </h3>

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { SITE_URL } from '@/lib/site';
+import { studioSlug } from '@/lib/studio';
 import { createClient } from '@supabase/supabase-js';
 import * as ics from 'ics';
 import { Job } from '@/components/gearbuilder/types';
@@ -80,7 +82,7 @@ export async function GET(request: Request) {
         location: job.location_address || job.location_name || undefined,
         status: 'CONFIRMED' as const,
         busyStatus: 'BUSY' as const,
-        url: 'https://zipline.media/command-center',
+        url: `${SITE_URL}/command-center`,
       };
 
       if (!call) {
@@ -152,7 +154,7 @@ export async function GET(request: Request) {
     return new NextResponse(value, {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="zipline-media-slate.ics"',
+        'Content-Disposition': `attachment; filename="${studioSlug()}-slate.ics"`,
         // Calendar clients poll this on their own schedule; a short cache keeps
         // a busy subscriber list from hammering the database.
         'Cache-Control': 'public, max-age=300',

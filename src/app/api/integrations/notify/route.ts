@@ -4,6 +4,7 @@ import { isSameOrigin } from '@/lib/api-guard';
 import { getAuthedUserId } from '@/lib/api-auth';
 import { resolveEventTemplate } from '@/lib/notify-defaults';
 import { isAllowedWebhookUrl } from '@/lib/webhook-hosts';
+import { STUDIO_NAME } from '@/lib/studio';
 
 // Service-role client so the route can read org channel/event config and
 // dispatch regardless of which user triggered the event.
@@ -20,6 +21,21 @@ interface Channel {
   label: string | null;
   webhook_url: string | null;
   enabled: boolean;
+}
+
+/** "🛠️ Acme Films test alert — …", named after the organization row when there is one. */
+async function testAlertText(): Promise<string> {
+  let name = STUDIO_NAME;
+  try {
+    const { data } = await supabaseAdmin
+      .from('organizations')
+      .select('name')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (data?.name?.trim()) name = data.name.trim();
+  } catch { /* placeholder client or no table yet — the env name will do */ }
+  return `🛠️ ${name} test alert — your notifications are connected and working.`;
 }
 
 // Replace {placeholder} tokens with values; unknown/empty tokens render as TBD.
@@ -99,7 +115,7 @@ export async function POST(request: Request) {
     }
     const result = await dispatch(
       { id: '', platform: (platform as Platform) || 'discord', label: null, webhook_url, enabled: true },
-      '🛠️ Zipline Media test alert — your notifications are connected and working.'
+      await testAlertText()
     );
     return NextResponse.json(
       result.ok ? { success: true } : { error: result.error || 'Failed to send test' },
@@ -136,10 +152,7 @@ export async function POST(request: Request) {
       if (!channel) {
         return NextResponse.json({ error: 'Channel not found' }, { status: 404 });
       }
-      const result = await dispatch(
-        channel as Channel,
-        '🛠️ Zipline Media test alert — your notifications are connected and working.'
-      );
+      const result = await dispatch(channel as Channel, await testAlertText());
       return NextResponse.json(
         result.ok ? { success: true } : { error: result.error || 'Failed to send test' },
         { status: result.ok ? 200 : 502 }
