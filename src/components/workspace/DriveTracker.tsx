@@ -355,6 +355,7 @@ export default function DriveTracker() {
         {d.status === 'in_office' && (
           <button
             onClick={() => setCheckingOut(d)}
+            data-tour="drive-checkout"
             aria-label={`Check out ${d.label}`}
             className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.06] hover:bg-accent hover:text-white text-white/80 transition-colors"
           >

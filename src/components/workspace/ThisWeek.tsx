@@ -171,7 +171,7 @@ export default function ThisWeek({
   const shootCount = shootDays.reduce((n, d) => n + d.shoots.length, 0);
 
   return (
-    <div className="md:col-span-2 lg:col-span-3 mt-5">
+    <div className="md:col-span-2 lg:col-span-3 mt-5" data-tour="this-week">
       <h2 className="text-base font-semibold tracking-tight text-white mb-3">This week</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Coming up */}

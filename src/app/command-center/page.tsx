@@ -596,7 +596,11 @@ export default function CommandCenterPage() {
   // Which surfaces get opened. One line here covers every tab, rather than a
   // call scattered through each widget. Repeats inside ten seconds collapse,
   // so flicking through tabs doesn't drown the totals.
+  // The guided tour flips through tabs on its own; those aren't visits, and
+  // counting them would push the toured tabs up everyone's sidebar.
+  const tourSwitchingTab = useRef(false);
   useEffect(() => {
+    if (tourSwitchingTab.current) { tourSwitchingTab.current = false; return; }
     if (activeTab) trackView(activeTab);
   }, [activeTab]);
 
@@ -1230,7 +1234,7 @@ export default function CommandCenterPage() {
             aside past the viewport and cut "Sign Out" in half against the
             shell's overflow-hidden, on every panel. With it, the nav scrolls
             and the footer stays pinned. */}
-        <nav className="flex-1 min-h-0 px-4 py-6 overflow-y-auto overscroll-contain touch-pan-y custom-scrollbar">
+        <nav data-tour="sidebar" className="flex-1 min-h-0 px-4 py-6 overflow-y-auto overscroll-contain touch-pan-y custom-scrollbar">
           {isMounted ? (
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="sidebar-nav">
@@ -1260,6 +1264,7 @@ export default function CommandCenterPage() {
                                 style={{ ...provided.draggableProps.style }}
                               >
                                 <button
+                                  data-tour={`tab-${tab.id}`}
                                   onClick={() => {
                                     setActiveTab(tab.id);
                                     localStorage.setItem('studio_active_tab', tab.id);
@@ -1413,6 +1418,7 @@ export default function CommandCenterPage() {
             {isMobile && (
               <button
                 onClick={() => setIsSidebarOpen(true)}
+                data-tour="open-nav"
                 aria-label="Open navigation"
                 className="p-2 hover:bg-white/5 border border-white/10 rounded-lg transition-colors cursor-pointer text-white shrink-0"
               >
@@ -1439,6 +1445,7 @@ export default function CommandCenterPage() {
                 {/* Smart Search (Cmd/Ctrl+K) */}
                 <button
                    onClick={() => { trackAction('header', 'search_palette'); setIsSearchOpen(true); }}
+                   data-tour="search"
                    className="p-2 rounded-md text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
                    title="Smart search (⌘K) — search productions, contacts & clients by meaning"
                    aria-label="Smart search"
@@ -1450,6 +1457,7 @@ export default function CommandCenterPage() {
                     only — a phone shows one screen at a time. */}
                 <button
                    onClick={() => setIsLayoutEditing(v => !v)}
+                   data-tour="edit-layout"
                    className={`hidden md:inline-flex items-center gap-1.5 px-2 py-2 rounded-md transition-colors cursor-pointer ${isLayoutEditing ? 'bg-accent/15 text-accent' : 'text-white/50 hover:text-white hover:bg-white/[0.06]'}`}
                    title={isLayoutEditing ? 'Done editing the layout' : 'Edit layout: add, split and reorder panels and tabs'}
                    aria-pressed={isLayoutEditing}
@@ -1496,6 +1504,7 @@ export default function CommandCenterPage() {
                 {!isScopedRole(userRole) && (
                   <button
                      onClick={() => setIsCalendarSyncOpen(true)}
+                     data-tour="calendar-sync"
                      className="hidden md:inline-flex p-2 rounded-md text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer"
                      title="Google Calendar sync"
                      aria-label="Calendar sync"
@@ -1507,6 +1516,7 @@ export default function CommandCenterPage() {
                 {/* Quick Start Guide */}
                 <button
                    onClick={() => setIsQuickStartOpen(true)}
+                   data-tour="help"
                    className="p-2 rounded-md text-accent hover:bg-accent/10 transition-colors cursor-pointer"
                    title="Quick start guide"
                    aria-label="Quick start guide"
@@ -1518,6 +1528,7 @@ export default function CommandCenterPage() {
              {/* Profile / Settings — top-right for quick access */}
              <button
                 onClick={() => setIsSettingsOpen(true)}
+                data-tour="settings"
                 title="Edit profile & settings"
                 className="flex items-center gap-2 pl-1 pr-1 md:pr-3 py-1 bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 rounded-full transition-colors cursor-pointer shrink-0"
              >
@@ -2218,10 +2229,20 @@ export default function CommandCenterPage() {
         isOpen={isQuickStartOpen} 
         userRole={userRole}
         onClose={() => setIsQuickStartOpen(false)} 
-        onOpenCalendarSync={() => {
-          setIsQuickStartOpen(false);
-          setIsCalendarSyncOpen(true);
-        }} 
+        host={{
+          activeTab,
+          isMobile,
+          setSidebarOpen: setIsSidebarOpen,
+          goToTab: (tabId) => {
+            if (!visibleTabs.some(t => t.id === tabId)) return false;
+            if (tabId !== activeTab) {
+              tourSwitchingTab.current = true;
+              setActiveTab(tabId);
+              localStorage.setItem('studio_active_tab', tabId);
+            }
+            return true;
+          },
+        }}
       />
     </div>
   );
