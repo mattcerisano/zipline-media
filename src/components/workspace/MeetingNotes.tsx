@@ -15,8 +15,6 @@ import {
   Users, 
   Smile, 
   FileText, 
-  ChevronDown, 
-  ChevronRight, 
   ChevronLeft,
   Clock, 
   Save, 
@@ -120,9 +118,6 @@ export default function MeetingNotes() {
   const [selectedClientForNewNote, setSelectedClientForNewNote] = useState<string>('');
   const [newNoteTitle, setNewNoteTitle] = useState('');
 
-  // Sidebar expanded clients state
-  const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
-
   // Widget States for active note
   const [newAttendee, setNewAttendee] = useState('');
   const [newActionItem, setNewActionItem] = useState('');
@@ -184,13 +179,6 @@ export default function MeetingNotes() {
 
     setClients(loadedClients);
     setNotes(loadedNotes);
-    
-    // Auto-expand clients that have notes
-    const expansions: Record<string, boolean> = {};
-    loadedNotes.forEach(note => {
-      expansions[note.client_id] = true;
-    });
-    setExpandedClients(expansions);
 
     if (loadedNotes.length > 0) {
       setSelectedNoteId(loadedNotes[0].id);
@@ -257,9 +245,6 @@ export default function MeetingNotes() {
     setNotes(prev => [newNote, ...prev]);
     setSelectedNoteId(newNote.id);
     setMobilePane('note');
-
-    // Expand the client in sidebar
-    setExpandedClients(prev => ({ ...prev, [newNote.client_id]: true }));
 
     // Reset form states
     setNewNoteTitle('');
@@ -509,19 +494,19 @@ export default function MeetingNotes() {
     return `${m}:${s}`;
   };
 
-  // Filter clients and notes based on search query
-  const filteredClients = clients.filter(client => {
-    const matchesClientName = client.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Check if any note of this client matches title or content
-    const clientNotes = notes.filter(n => n.client_id === client.id);
-    const matchesNotes = clientNotes.some(note => 
-      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  const clientName = (id: string) => clients.find(c => c.id === id)?.name;
 
-    return matchesClientName || matchesNotes;
-  });
+  // The list is the notes themselves, newest first (the query orders them).
+  // It used to be every client in the Rolodex with a count beside each, so
+  // before a single note existed it read as 52 rows of "0".
+  const query = searchQuery.trim().toLowerCase();
+  const filteredNotes = query
+    ? notes.filter(note =>
+        note.title.toLowerCase().includes(query) ||
+        note.content.toLowerCase().includes(query) ||
+        (clientName(note.client_id) || '').toLowerCase().includes(query)
+      )
+    : notes;
 
   return (
     <div className="flex h-full bg-neutral-950 text-white font-sans overflow-hidden">
@@ -533,7 +518,7 @@ export default function MeetingNotes() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
             <input 
               type="text"
-              placeholder="Search notes or clients…"
+              placeholder="Search notes…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-black/40 border border-white/10 pl-9 pr-4 py-2 rounded-xl text-xs font-semibold outline-none focus:border-accent text-white"
@@ -552,99 +537,50 @@ export default function MeetingNotes() {
           </button>
         </div>
 
-        {/* Dynamic Client Note Tree */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+        {/* Notes list */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 text-white/40 gap-2">
               <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-              <span className="text-[10px] uppercase font-bold tracking-wider">Syncing workspaces…</span>
+              <span className="text-[11px] font-medium">Loading notes…</span>
             </div>
-          ) : filteredClients.length > 0 ? (
-            filteredClients.map(client => {
-              const clientNotes = notes.filter(n => n.client_id === client.id).filter(note => 
-                note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                client.name.toLowerCase().includes(searchQuery.toLowerCase())
-              );
-              const isExpanded = !!expandedClients[client.id];
-              const hasNotes = clientNotes.length > 0;
-
+          ) : filteredNotes.length > 0 ? (
+            filteredNotes.map(note => {
+              const isSelected = note.id === selectedNoteId;
+              const client = clientName(note.client_id);
               return (
-                <div key={client.id} className="bg-white/[0.01] border border-white/5 rounded-xl overflow-hidden transition-all">
-                  {/* Client Header Item */}
-                  <button
-                    onClick={() => setExpandedClients(prev => ({ ...prev, [client.id]: !isExpanded }))}
-                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/[0.03] transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <FileText className="w-4 h-4 text-accent shrink-0" />
-                      <span className="text-[13px] font-semibold tracking-tight text-white truncate">{client.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] md:text-[9px] font-black bg-white/5 border border-white/5 text-white/50 px-1.5 py-0.5 rounded-full shrink-0">
-                        {clientNotes.length}
+                <div
+                  key={note.id}
+                  onClick={() => { setSelectedNoteId(note.id); setMobilePane('note'); }}
+                  className={`group w-full px-3 py-2.5 rounded-lg flex items-center justify-between transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-accent/15 border border-accent/25 text-white'
+                      : 'border border-transparent hover:bg-white/5 text-white/65'
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold truncate tracking-tight">{note.title || 'Untitled note'}</p>
+                    <div className="flex items-center gap-1.5 mt-1 min-w-0 text-[11px] md:text-[10px] font-medium text-white/35">
+                      <Clock className="w-3 h-3 shrink-0" />
+                      <span className="shrink-0">
+                        {new Date(note.meeting_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
-                      {isExpanded ? <ChevronDown className="w-4 h-4 text-white/40" /> : <ChevronRight className="w-4 h-4 text-white/40" />}
+                      {client && <span className="truncate">· {client}</span>}
                     </div>
+                  </div>
+                  <button
+                    onClick={(e) => handleDeleteNote(note.id, e)}
+                    className="p-1 hover:bg-red-500/10 rounded text-white/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all cursor-pointer shrink-0 ml-2"
+                    title="Delete meeting note"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
-
-                  {/* Note Subtree */}
-                  <AnimatePresence initial={false}>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: 'auto' }}
-                        exit={{ height: 0 }}
-                        className="overflow-hidden bg-black/20 border-t border-white/5"
-                      >
-                        <div className="p-1.5 space-y-1">
-                          {hasNotes ? (
-                            clientNotes.map(note => {
-                              const isSelected = note.id === selectedNoteId;
-                              return (
-                                <div
-                                  key={note.id}
-                                  onClick={() => { setSelectedNoteId(note.id); setMobilePane('note'); }}
-                                  className={`group w-full px-3 py-2.5 rounded-lg flex items-center justify-between transition-all cursor-pointer ${
-                                    isSelected 
-                                      ? 'bg-accent/15 border border-accent/25 text-white' 
-                                      : 'border border-transparent hover:bg-white/5 text-white/65'
-                                  }`}
-                                >
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-bold truncate tracking-tight">{note.title || 'Untitled Note'}</p>
-                                    <div className="flex items-center gap-1.5 mt-1">
-                                      <Clock className="w-3 h-3 text-white/30 shrink-0" />
-                                      <span className="text-[11px] md:text-[9px] font-bold text-white/30 shrink-0">
-                                        {new Date(note.meeting_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <button
-                                    onClick={(e) => handleDeleteNote(note.id, e)}
-                                    className="p-1 hover:bg-red-500/10 rounded text-white/20 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all cursor-pointer shrink-0 ml-2"
-                                    title="Delete meeting note"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <div className="py-3 px-4 text-[10px] text-white/30 italic font-medium">
-                              No meeting notes recorded.
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               );
             })
           ) : (
-            <div className="py-12 text-center text-white/30 text-xs font-semibold uppercase tracking-wider">
-              No matching clients found
+            <div className="py-12 px-6 text-center text-white/35 text-xs leading-relaxed">
+              {notes.length === 0 ? 'No meeting notes yet. Start one with the button above.' : 'No notes match that search.'}
             </div>
           )}
         </div>
@@ -1128,9 +1064,9 @@ export default function MeetingNotes() {
             <div className="w-20 h-20 rounded-3xl bg-white/[0.02] border border-white/5 flex items-center justify-center mb-6">
               <FileText className="w-9 h-9 text-accent/60" />
             </div>
-            <h2 className="text-lg font-semibold tracking-tight text-white mb-2">No meeting notes selected</h2>
-            <p className="text-xs font-semibold uppercase tracking-wider max-w-sm leading-relaxed text-white/30">
-              Choose a client from the left sidebar or create a new meeting note to launch the interactive widgets dashboard.
+            <h2 className="text-lg font-semibold tracking-tight text-white mb-2">No note open</h2>
+            <p className="text-xs max-w-sm leading-relaxed text-white/35">
+              Pick a note from the list, or start a new one.
             </p>
           </div>
         )}
