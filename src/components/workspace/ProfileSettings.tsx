@@ -214,7 +214,7 @@ export default function ProfileSettings({ session, userRole, onClose, onSaved }:
           exit={{ y: 30, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 360, damping: 32 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full md:max-w-xl max-h-[92vh] overflow-y-auto bg-zinc-950 border border-white/10 rounded-t-3xl md:rounded-2xl shadow-2xl"
+          className="w-full md:max-w-xl h-[92vh] md:h-[85vh] overflow-y-auto bg-zinc-950 border border-white/10 rounded-t-3xl md:rounded-2xl shadow-2xl"
         >
           {/* Header */}
           <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-white/10 bg-zinc-950">

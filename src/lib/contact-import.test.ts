@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseContactCSV, parseClientCSV, parseVCF, describeHeaders } from './contact-import';
+import { parseContactCSV, parseClientCSV, parseVCF, describeHeaders, isPlaceholderEmail } from './contact-import';
 
 describe('parseContactCSV', () => {
   it('reads a plain crew list', () => {
@@ -130,5 +130,15 @@ describe('parseVCF', () => {
   it('falls back to the structured N field when FN is absent', () => {
     const card = 'BEGIN:VCARD\nN:Reyes;Tommy;;;\nEND:VCARD';
     expect(parseVCF(card)[0].name).toBe('Tommy Reyes');
+  });
+});
+
+describe('isPlaceholderEmail', () => {
+  it('recognises the invented address and nothing else', () => {
+    expect(isPlaceholderEmail('tommy.reyes@temporary.com')).toBe(true);
+    expect(isPlaceholderEmail('  Tommy.Reyes@Temporary.com ')).toBe(true);
+    expect(isPlaceholderEmail('tommy@zipline.media')).toBe(false);
+    expect(isPlaceholderEmail('')).toBe(false);
+    expect(isPlaceholderEmail(null)).toBe(false);
   });
 });

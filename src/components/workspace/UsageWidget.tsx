@@ -172,6 +172,10 @@ export default function UsageWidget() {
   };
 
   const bar = (n: number, max: number) => `${Math.max(2, Math.round((n / max) * 100))}%`;
+  // The per-day columns size themselves to their content, so a percentage
+  // height resolved to nothing and the chart drew empty. Pixels, against the
+  // 80px strip less room for the "today" dot.
+  const barHeight = (n: number, max: number) => `${Math.max(2, Math.round((n / Math.max(1, max)) * 68))}px`;
   const topSurface = stats.surfaces[0]?.[1] || 1;
   const topAction = stats.actions[0]?.[1] || 1;
 
@@ -248,7 +252,7 @@ export default function UsageWidget() {
                   <div key={d.date} className="flex-1 flex flex-col justify-end items-center gap-1 group" title={`${formatLocalDate(d.date, { month: 'short', day: 'numeric' }, d.date)} · ${d.count}`}>
                     <div
                       className={`w-full rounded-t ${d.count ? 'bg-accent/60 group-hover:bg-accent' : 'bg-white/5'} transition-colors`}
-                      style={{ height: bar(d.count, stats.peak) }}
+                      style={{ height: barHeight(d.count, stats.peak) }}
                     />
                     {d.date === todayLocalISO() && <span className="w-1 h-1 rounded-full bg-accent" />}
                   </div>

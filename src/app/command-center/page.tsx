@@ -241,6 +241,18 @@ const RENAMED_SYSTEM_TAB_LABELS: Record<string, string[]> = {
 // The tools a custom workspace opens with. Tabs made before this was
 // recorded fall back to a tool whose name matches the tab's ("Tasks" → the
 // task list), then to the scratch notepad.
+/** The eyebrow above a custom tab's title: the tools it opens with ("Task
+ *  List", "Scratch Notes & Calendar"), so Tasks and Notes stop being
+ *  labelled "Custom Workspace Layout". */
+function workspaceEyebrow(tools: string[] | undefined): string {
+  const labels = (tools || [])
+    .map(id => STARTER_TOOLS.find(t => t.id === id)?.label)
+    .filter((l): l is string => !!l);
+  if (labels.length === 0) return 'Custom workspace';
+  if (labels.length <= 2) return labels.join(' & ');
+  return `${labels[0]}, ${labels[1]} & more`;
+}
+
 function starterToolsFor(tab: CustomTab | undefined): string[] | undefined {
   if (!tab || tab.type !== 'workspace') return undefined;
   if (tab.starterTools?.length) return tab.starterTools;
@@ -1477,7 +1489,7 @@ export default function CommandCenterPage() {
                 {activeTabObj ? (
                   activeTabObj.type === 'system' ? (SYSTEM_TAB_EYEBROWS[activeTabObj.id] || 'Studio OS')
                   : activeTabObj.type === 'embed' ? 'External Tool Integration' :
-                      activeTabObj.type === 'notes' ? 'Production Notepad' : 'Custom Workspace Layout'
+                      activeTabObj.type === 'notes' ? 'Production Notepad' : workspaceEyebrow(activeStarterTools)
                 ) : 'Workspace Overview'}
               </h2>
               <h1 className="text-lg md:text-[26px] font-semibold tracking-tight text-white truncate">

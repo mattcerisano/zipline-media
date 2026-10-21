@@ -39,8 +39,13 @@ export interface ContactCSVResult {
 }
 
 /** A contact with no email still has to satisfy a NOT NULL column. */
+const PLACEHOLDER_DOMAIN = '@temporary.com';
 const placeholderEmail = (name: string) =>
-  `${name.toLowerCase().replace(/\s+/g, '.')}@temporary.com`;
+  `${name.toLowerCase().replace(/\s+/g, '.')}${PLACEHOLDER_DOMAIN}`;
+
+/** True for the made-up address above, so screens can show "no email" instead. */
+export const isPlaceholderEmail = (email: string | null | undefined): boolean =>
+  !!email && email.trim().toLowerCase().endsWith(PLACEHOLDER_DOMAIN);
 
 /** vCard (.vcf), as exported from iOS and macOS Contacts. */
 export function parseVCF(text: string): ImportContact[] {
