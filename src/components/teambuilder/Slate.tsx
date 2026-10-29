@@ -42,6 +42,7 @@ import { AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { supabase } from '@/lib/supabase';
+import { authHeader } from '@/lib/api-client';
 import { postNotify } from '@/lib/notify';
 import { useRealtime } from '@/lib/useRealtime';
 import { Job, STATUSES, JobLink, Client, Project, JobRole } from '@/components/gearbuilder/types';
@@ -374,13 +375,13 @@ export default function Slate({
     setIsAutoFillingLogistics(true);
     try {
       // 1. Geocode address
-      const geoRes = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
+      const geoRes = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`, { headers: await authHeader() });
       const geoData = await geoRes.json();
       if (!geoRes.ok) throw new Error(geoData.error || 'Geocoding failed');
       const { lat, lng } = geoData;
 
       // 2. Fetch nearest hospital
-      const hospRes = await fetch(`/api/hospital?address=${encodeURIComponent(address)}`);
+      const hospRes = await fetch(`/api/hospital?address=${encodeURIComponent(address)}`, { headers: await authHeader() });
       const hospData = await hospRes.json();
       let hospitalName = '';
       let hospitalAddr = '';
@@ -390,7 +391,7 @@ export default function Slate({
       }
 
       // 3. Fetch nearest parking
-      const parkRes = await fetch(`/api/parking?address=${encodeURIComponent(address)}`);
+      const parkRes = await fetch(`/api/parking?address=${encodeURIComponent(address)}`, { headers: await authHeader() });
       const parkData = await parkRes.json();
       let parkingName = '';
       let parkingAddr = '';
@@ -441,7 +442,7 @@ export default function Slate({
     }
     try {
       // 1. Geocode
-      const geoRes = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
+      const geoRes = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`, { headers: await authHeader() });
       const geoData = await geoRes.json();
       if (!geoRes.ok) throw new Error(geoData.error || 'Address geocoding failed');
       const { lat, lng } = geoData;
