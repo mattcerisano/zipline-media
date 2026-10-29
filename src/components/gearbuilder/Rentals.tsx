@@ -38,7 +38,6 @@ import {
 } from 'lucide-react';
 
 import { jsPDF } from 'jspdf';
-import Autocomplete from 'react-google-autocomplete';
 
 import { ALL_CATEGORIES, type InventoryItem } from '@/data/inventory';
 
