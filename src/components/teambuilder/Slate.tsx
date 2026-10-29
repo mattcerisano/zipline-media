@@ -75,6 +75,14 @@ import { InlineText, InlinePicker, ChipSelect, AddLine, AddLinkForm } from '@/co
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+/**
+ * Where most shoots are: the New York metro area, roughly Trenton to New
+ * Haven. Both location fields pass this as a bias, not a restriction, so a
+ * "Lafayette Street" match in Manhattan outranks one in Lafayette, Louisiana
+ * while a shoot in Toronto or London still finds its address.
+ */
+const NEW_YORK_AREA_BOUNDS = { north: 41.3, south: 40.3, east: -73.0, west: -74.8 };
+
 /** True when the wrap lands at or before the call, i.e. the day runs overnight. */
 const wrapsOvernight = (call: string | null | undefined, wrap: string | null | undefined) => {
   const c = parseCallTime(call);
@@ -1876,6 +1884,7 @@ export default function Slate({
                       options={{
                         types: ['establishment'],
                         fields: ['name', 'formatted_address', 'geometry.location', 'place_id'],
+                        bounds: NEW_YORK_AREA_BOUNDS,
                       }}
                       onPlaceSelected={handleVenueSelected}
                       defaultValue={editingJob.location_name || ''}
@@ -1894,11 +1903,15 @@ export default function Slate({
                     <Autocomplete
                       key={`addr-${editingJob.id || 'new'}-${editingJob.location_address || ''}`}
                       apiKey={GOOGLE_MAPS_API_KEY}
-                      // The library's default field list omits `name`, so
-                      // place.name came back undefined and Location Name never
-                      // auto-filled. Everything else here is that default.
+                      // `types` has to be set: the library's default is
+                      // `(cities)`, which only ever offered towns, so a street
+                      // address was matched against city names worldwide.
+                      // The field list adds `name` to the library's default so
+                      // Location Name can auto-fill from a venue's address.
                       options={{
+                        types: ['address'],
                         fields: ['address_components', 'geometry.location', 'place_id', 'formatted_address', 'name'],
+                        bounds: NEW_YORK_AREA_BOUNDS,
                       }}
                       onPlaceSelected={handlePlaceSelected}
                       defaultValue={editingJob.location_address || ''}
