@@ -196,3 +196,30 @@ export function todayInZone(timeZone: string = STUDIO_TIME_ZONE, d: Date = new D
   // en-CA formats a date as YYYY-MM-DD.
   return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }
+
+/**
+ * Stored instant (ISO 8601, any offset) → the local "YYYY-MM-DDTHH:mm" an
+ * `<input type="datetime-local">` shows. That input has no timezone: it is
+ * the viewer's own wall clock. Slicing the ISO string put the UTC clock in
+ * the field instead, so a 3:00 PM meeting read as 8:00 PM, and typing 3:00 PM
+ * back stored 8:00 PM — every edit shifted the time by the zone offset.
+ */
+export function toDateTimeLocalValue(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/**
+ * A datetime-local input's value → ISO instant, or null while the value is
+ * incomplete. Browsers fire change with an empty string as digits are typed
+ * or a segment is cleared; `new Date('').toISOString()` throws on that, and
+ * took the whole Meeting Notes tab down with it.
+ */
+export function fromDateTimeLocalValue(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}

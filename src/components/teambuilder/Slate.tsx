@@ -54,7 +54,8 @@ import { getBranding, hexToRgb } from '@/lib/branding';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { latestDraftLinks } from '@/lib/drafts';
 import { formatLocalDate, todayLocalISO, parseCallTime, toTimeInputValue, fromTimeInputValue, addDays } from '@/lib/date';
-import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
+import { pushJobToGoogleCalendar, removeJobFromGoogleCalendar } from '@/lib/calendar-push';
+import { retireMarker } from '@/lib/calendar-markers';
 import type { NewProductionSeed } from '@/components/gearbuilder/ProductionCalendar';
 import { caps, currency } from '@/lib/format';
 import { toast, confirmAction, promptAction } from '@/components/Feedback';
@@ -272,7 +273,7 @@ export default function Slate({
     // The marker only goes once its production exists — a form abandoned
     // halfway must leave the hold on the calendar.
     pendingMarker.current = seed?.markerId
-      ? { id: seed.markerId }
+      ? { id: seed.markerId, preset: seed.markerPreset }
       : null;
     setEditingJob(blank);
     setJobModalBaseline(JSON.stringify(blank));
@@ -287,7 +288,7 @@ export default function Slate({
    * A ref rather than state: nothing renders from it, and it has to survive
    * the form being edited without re-running the effect that opened it.
    */
-  const pendingMarker = useRef<{ id: string } | null>(null);
+  const pendingMarker = useRef<{ id: string; preset?: string } | null>(null);
 
   /** Clear the marker a saved production replaced, on both calendars. */
   const clearPendingMarker = async () => {
@@ -295,11 +296,10 @@ export default function Slate({
     pendingMarker.current = null;
     if (!marker) return;
     try {
-      // The Slate id: a marker is mirrored onto every connected calendar, so
-      // the server resolves which Google events to remove.
-      await removeEventFromGoogleCalendar(marker.id);
-      const { error } = await supabase.from('calendar_events').delete().eq('id', marker.id);
-      if (error) throw error;
+      // Same path as the Calendar tab's delete. A marker synced from Google
+      // used to be hard-deleted here, and the next sync imported it straight
+      // back — a hold sitting beside the production it had just become.
+      await retireMarker(marker.id, marker.preset);
     } catch (err) {
       // The production is saved and is what matters; a marker left behind is
       // a duplicate on the day, not lost work.

@@ -8,6 +8,8 @@ import {
   todayLocalISO,
   todayInZone,
   parseLocalDate,
+  toDateTimeLocalValue,
+  fromDateTimeLocalValue,
 } from './date';
 
 /**
@@ -165,5 +167,33 @@ describe('parseLocalDate', () => {
   it('rejects junk', () => {
     expect(parseLocalDate('')).toBeNull();
     expect(parseLocalDate(null)).toBeNull();
+  });
+});
+
+describe('datetime-local round trip', () => {
+  // Built from local components so the expectations hold in any zone the
+  // tests happen to run in.
+  const local = new Date(2026, 10, 4, 15, 30);
+
+  it('shows a stored instant on the viewer’s own clock, not UTC', () => {
+    expect(toDateTimeLocalValue(local.toISOString())).toBe('2026-11-04T15:30');
+  });
+
+  it('stores what was typed as the same instant, so re-opening shows the same time', () => {
+    const stored = fromDateTimeLocalValue('2026-11-04T15:30');
+    expect(stored).toBe(local.toISOString());
+    expect(toDateTimeLocalValue(stored)).toBe('2026-11-04T15:30');
+  });
+
+  it('reads the +00:00 form Postgres returns', () => {
+    const iso = local.toISOString().replace(/\.\d{3}Z$/, '+00:00');
+    expect(toDateTimeLocalValue(iso)).toBe('2026-11-04T15:30');
+  });
+
+  it('ignores an incomplete value instead of throwing mid-keystroke', () => {
+    expect(fromDateTimeLocalValue('')).toBeNull();
+    expect(fromDateTimeLocalValue('2026-11-04T')).toBeNull();
+    expect(toDateTimeLocalValue('')).toBe('');
+    expect(toDateTimeLocalValue('not a date')).toBe('');
   });
 });

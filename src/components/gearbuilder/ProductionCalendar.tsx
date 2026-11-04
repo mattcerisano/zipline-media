@@ -10,7 +10,8 @@ import { Job, Client, CalendarEvent, CalendarEventPreset } from './types';
 import { supabase } from '@/lib/supabase';
 import { todayLocalISO, formatLocalDate, toTimeInputValue, fromTimeInputValue } from '@/lib/date';
 import { useRealtime } from '@/lib/useRealtime';
-import { pushJobToGoogleCalendar, pushEventToGoogleCalendar, removeEventFromGoogleCalendar } from '@/lib/calendar-push';
+import { pushJobToGoogleCalendar, pushEventToGoogleCalendar } from '@/lib/calendar-push';
+import { retireMarker } from '@/lib/calendar-markers';
 import { Modal, EscapeToClose, Portal } from '@/components/workspace/Overlay';
 import ClientPicker from '@/components/workspace/ClientPicker';
 import { toast } from '@/components/Feedback';
@@ -84,7 +85,8 @@ export interface NewProductionSeed {
   status?: 'Planning' | 'Hold' | 'Booked';
   /** The marker this came from, removed once the production is saved. */
   markerId?: string;
-  /** Its Google event, removed alongside it. */
+  /** Its preset: a marker synced from Google is hidden, not deleted. */
+  markerPreset?: CalendarEventPreset;
 }
 
 interface ProductionCalendarProps {
@@ -265,6 +267,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
       // meeting or a day off isn't, so it starts in Planning.
       status: ev.preset === 'hold' || ev.preset === 'booked' ? 'Booked' : 'Planning',
       markerId: ev.id,
+      markerPreset: ev.preset,
     });
   };
 
@@ -358,21 +361,12 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
     const ev = events.find(e => e.id === id);
     setEvents(prev => prev.filter(e => e.id !== id));
 
-    // Markers imported *from* Google get a tombstone — Google still has the
-    // event, so a hard delete would just resurrect it on the next sync.
-    if (ev?.preset === 'google') {
-      const { error } = await supabase.from('calendar_events').update({ hidden: true }).eq('id', id);
-      if (!error) return;
-    } else if (ev) {
-      // Ours, and mirrored to Google — clear the Google side first so it
-      // doesn't outlive the row and get re-imported as a new marker. The Slate
-      // id goes over, not a Google one: the marker has a copy (and an id) on
-      // every connected calendar, and the server holds that list.
-      await removeEventFromGoogleCalendar(ev.id);
-    }
-
-    const { error } = await supabase.from('calendar_events').delete().eq('id', id);
-    if (error) {
+    // Tombstone for a marker synced from Google, Google removal then delete
+    // for ours — see retireMarker, which Slate shares when a hold becomes a
+    // production.
+    try {
+      await retireMarker(id, ev?.preset);
+    } catch (error) {
       console.error('Error deleting calendar event:', error);
       toast("Couldn't delete the event — it's still on the calendar.", 'error');
       fetchEvents();
@@ -1147,6 +1141,13 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
               />
             </div>
 
+            {/* A marker synced from Google keeps its type. Picking "Meeting"
+                or "Hold" here made the app treat the event as its own: the
+                next save overwrote the real Google event (guests, location,
+                reminders and all) and copied it onto every connected
+                calendar, and deleting it later removed the marker row while
+                Google kept the event — which the next sync imported again. */}
+            {eventDraft.preset !== 'google' && (
             <div className="space-y-1.5">
               <label className="text-[11px] md:text-[9px] font-bold uppercase tracking-widest text-white/40 ml-1">Type</label>
               <div className="grid grid-cols-2 gap-2">
@@ -1176,6 +1177,7 @@ export default function ProductionCalendar({ onSelectDate, onSelectJob, onDelete
                 })}
               </div>
             </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
