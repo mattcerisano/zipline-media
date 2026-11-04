@@ -32,6 +32,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { EscapeToClose, Portal } from '@/components/workspace/Overlay';
 import { supabase } from '@/lib/supabase';
+import { toDateTimeLocalValue, fromDateTimeLocalValue } from '@/lib/date';
 import { saved } from '@/lib/saved';
 import { toast, confirmAction } from '@/components/Feedback';
 
@@ -731,8 +732,13 @@ export default function MeetingNotes() {
                     </label>
                     <input 
                       type="datetime-local"
-                      value={activeNote.meeting_date.slice(0, 16)}
-                      onChange={(e) => updateActiveNote({ meeting_date: new Date(e.target.value).toISOString() })}
+                      value={toDateTimeLocalValue(activeNote.meeting_date)}
+                      onChange={(e) => {
+                        // Null while the value is half-typed: leave the note
+                        // as it is rather than storing an invalid date.
+                        const iso = fromDateTimeLocalValue(e.target.value);
+                        if (iso) updateActiveNote({ meeting_date: iso });
+                      }}
                       className="bg-black/50 border border-white/10 rounded-lg px-2 py-1 text-[10px] font-bold text-white outline-none focus:border-accent cursor-pointer"
                     />
                   </div>

@@ -343,9 +343,15 @@ export function markerDeletionTargets(
 export async function removeMarkerFromAllCalendars(eventId: string): Promise<void> {
   const { data: event } = await supabaseAdmin
     .from('calendar_events')
-    .select('google_event_id')
+    .select('google_event_id, preset')
     .eq('id', eventId)
     .maybeSingle();
+
+  // A marker imported from Google is Google's event, not a copy the studio
+  // made: its google_event_id is the real thing on someone's calendar, and the
+  // sweep below would delete it from every connected account. The push side
+  // already leaves these alone; so does the delete.
+  if (event?.preset === 'google') return;
 
   const { links } = await linksFor(eventId);
   const needsSweep = !!event?.google_event_id && !Array.from(links.values()).includes(event.google_event_id);
