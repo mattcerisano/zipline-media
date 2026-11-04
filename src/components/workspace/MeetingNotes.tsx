@@ -1,38 +1,39 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Search, 
-  Plus, 
-  Trash2, 
-  Sparkles, 
-  Mic, 
-  MicOff, 
-  Square, 
-  Check, 
-  Calendar, 
-  MapPin, 
-  Users, 
-  Smile, 
-  FileText, 
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  Search,
+  Plus,
+  Trash2,
+  Sparkles,
+  Mic,
+  MicOff,
+  Square,
+  Check,
+  Calendar,
+  MapPin,
+  Users,
+  FileText,
   ChevronLeft,
-  Clock, 
-  Save, 
-  Cloud, 
-  CloudOff, 
-  Bold, 
-  Italic, 
-  Heading1, 
-  Heading2, 
-  List, 
-  CheckSquare, 
+  Clock,
+  Save,
+  Cloud,
+  CloudOff,
+  Bold,
+  Italic,
+  Heading1,
+  Heading2,
+  List,
+  CheckSquare,
   X,
   SmilePlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EscapeToClose, Portal } from '@/components/workspace/Overlay';
+import ClientPicker from '@/components/workspace/ClientPicker';
+import { Client } from '@/components/gearbuilder/types';
 import { supabase } from '@/lib/supabase';
-import { toDateTimeLocalValue, fromDateTimeLocalValue } from '@/lib/date';
+import { toDateTimeLocalValue, fromDateTimeLocalValue, formatLocalDate } from '@/lib/date';
 import { saved } from '@/lib/saved';
 import { toast, confirmAction } from '@/components/Feedback';
 
@@ -55,9 +56,26 @@ interface MeetingNote {
   created_at?: string;
 }
 
-interface Client {
-  id: string;
-  name: string;
+/**
+ * The browser's own speech recogniser (Chrome, Edge and Safari have one; the
+ * typings aren't in TypeScript's DOM lib, so the handful of members used here
+ * are declared by hand). Null where the browser has none.
+ */
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: any) => void) | null;
+  onerror: ((event: any) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+function speechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
+  if (typeof window === 'undefined') return null;
+  const w = window as any;
+  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
 const LOCAL_KEY = 'studio_meeting_notes_local';
@@ -114,34 +132,56 @@ export default function MeetingNotes() {
   // True while the latest autosave was refused, so the footer can say so.
   const [saveFailed, setSaveFailed] = useState(false);
   
-  // Client selection for new note modal
+  // The new-note form. The client is typed or picked in a ClientPicker, so a
+  // client who isn't in the Rolodex yet can be added right there — the form
+  // used to be a dropdown of existing clients and a note telling you to go to
+  // the Rolodex first.
   const [isNewNoteModalOpen, setIsNewNoteModalOpen] = useState(false);
+  const [newNoteClientName, setNewNoteClientName] = useState('');
   const [selectedClientForNewNote, setSelectedClientForNewNote] = useState<string>('');
   const [newNoteTitle, setNewNoteTitle] = useState('');
+
+  // Re-filing an open note under another client (or a new one).
+  const [isChangingClient, setIsChangingClient] = useState(false);
+  const [changeClientName, setChangeClientName] = useState('');
 
   // Widget States for active note
   const [newAttendee, setNewAttendee] = useState('');
   const [newActionItem, setNewActionItem] = useState('');
   const [newActionDueDate, setNewActionDueDate] = useState('');
-  
-  // AI summarizer state
-  const [isSummarizing, setIsSummarizing] = useState(false);
 
-  // Audio recording state
+  // AI summarizer state. `summaryUnavailable` is set once the server says it
+  // has no API key, so the button isn't offered on a deployment where it can
+  // never work.
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summaryUnavailable, setSummaryUnavailable] = useState(false);
+
+  // Dictation state. Speech goes through the browser's own recogniser; the
+  // text it heard is shown live, then offered for the note when it stops.
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [dictationSupported, setDictationSupported] = useState(true);
+  const [liveTranscript, setLiveTranscript] = useState('');
   const [audioTranscript, setAudioTranscript] = useState<string | null>(null);
   const [showTranscriptModal, setShowTranscriptModal] = useState(false);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const finalTranscriptRef = useRef('');
 
   // Ref for note content text area for inserting formatting
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Sync active note changes back to DB / local storage
   const activeNote = notes.find(n => n.id === selectedNoteId) || null;
 
-  // Debounce timer for the autosave effect further down
+  // Autosave bookkeeping: which note has edits the table hasn't seen, the
+  // timer that will send them, and the latest copy of every note so a save
+  // that runs outside render (the timer, or leaving the note) has the text.
+  const dirtyIdRef = useRef<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const notesRef = useRef<MeetingNote[]>([]);
+  useEffect(() => { notesRef.current = notes; }, [notes]);
+
+  useEffect(() => { setDictationSupported(speechRecognitionCtor() !== null); }, []);
 
   // Voice recording timer
   useEffect(() => {
@@ -165,7 +205,7 @@ export default function MeetingNotes() {
   const fetchInitialData = async () => {
     setIsLoading(true);
     const [clientsRes, notesRes] = await Promise.all([
-      supabase.from('clients').select('id, name').order('name'),
+      supabase.from('clients').select('id, name, email, phone').order('name'),
       supabase.from('meeting_notes').select('*').order('meeting_date', { ascending: false }),
     ]);
     const loadedClients = (clientsRes.data || []) as Client[];
@@ -191,7 +231,7 @@ export default function MeetingNotes() {
   // Autosave the open note. A refused save leaves the text on screen (it's
   // still there to retry — the next edit saves again) and the footer says
   // "Not saved" until a save goes through.
-  const saveNoteToStorage = async (updatedNote: MeetingNote) => {
+  const saveNoteToStorage = useCallback(async (updatedNote: MeetingNote) => {
     setIsSaving(true);
     const ok = await saved(
       supabase
@@ -213,6 +253,45 @@ export default function MeetingNotes() {
     );
     setSaveFailed(!ok);
     setIsSaving(false);
+  }, []);
+
+  // Send whatever is waiting now rather than when the timer fires. Called
+  // when the open note changes and when the tab closes: the old debounce was
+  // cancelled by both, so an edit made in the last 800ms before clicking
+  // another note never reached the table.
+  const flushPendingSave = useCallback(() => {
+    const id = dirtyIdRef.current;
+    if (!id) return;
+    dirtyIdRef.current = null;
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    const note = notesRef.current.find(n => n.id === id);
+    if (note) void saveNoteToStorage(note);
+  }, [saveNoteToStorage]);
+
+  // Change one note and queue its save. Only edits queue one: merely opening
+  // a note used to write its whole row back, which bumped updated_at and
+  // could overwrite a teammate's newer version with the copy loaded earlier.
+  const patchNote = useCallback((id: string, patch: Partial<MeetingNote> | ((n: MeetingNote) => Partial<MeetingNote>)) => {
+    setNotes(prev => prev.map(n => (n.id === id ? { ...n, ...(typeof patch === 'function' ? patch(n) : patch) } : n)));
+    if (dirtyIdRef.current && dirtyIdRef.current !== id) flushPendingSave();
+    dirtyIdRef.current = id;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(flushPendingSave, 800); // Debounce saves by 800ms
+  }, [flushPendingSave]);
+
+  // Leaving a note for another one, or closing the tab, sends its edits.
+  useEffect(() => {
+    setIsChangingClient(false);
+    if (dirtyIdRef.current && dirtyIdRef.current !== selectedNoteId) flushPendingSave();
+  }, [selectedNoteId, flushPendingSave]);
+  useEffect(() => () => flushPendingSave(), [flushPendingSave]);
+
+  // A client added from either picker joins the list for both.
+  const addClient = (client: Client) => {
+    setClients(prev => [...prev.filter(c => c.id !== client.id), client].sort((a, b) => a.name.localeCompare(b.name)));
   };
 
   // Create a new note
@@ -221,14 +300,16 @@ export default function MeetingNotes() {
 
     const title = newNoteTitle.trim() || 'New Meeting Note';
     // The table assigns the id; the note only appears once it has one, so it
-    // can't exist on screen without existing for the team.
+    // can't exist on screen without existing for the team. The body starts
+    // empty so the editor's own prompt shows, rather than placeholder text
+    // that had to be deleted (and counted as words).
     const res = await saved(
       supabase
         .from('meeting_notes')
         .insert({
           client_id: selectedClientForNewNote,
           title,
-          content: `# ${title}\n\n*Write your meeting details here…*`,
+          content: '',
           meeting_date: new Date().toISOString(),
           sentiment: 'neutral',
           attendees: [],
@@ -249,6 +330,8 @@ export default function MeetingNotes() {
 
     // Reset form states
     setNewNoteTitle('');
+    setNewNoteClientName('');
+    setSelectedClientForNewNote('');
     setIsNewNoteModalOpen(false);
   };
 
@@ -259,6 +342,8 @@ export default function MeetingNotes() {
 
     const before = notes;
     const beforeSelected = selectedNoteId;
+    // Nothing to save for a note that's going away.
+    if (dirtyIdRef.current === id) dirtyIdRef.current = null;
     const updatedNotes = notes.filter(n => n.id !== id);
     setNotes(updatedNotes);
 
@@ -276,47 +361,15 @@ export default function MeetingNotes() {
   // Load clients and notes on mount
   useEffect(() => { void (async () => { await fetchInitialData(); })(); }, []);
 
-  // Auto-save effect
-  useEffect(() => {
-    if (activeNote) {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = setTimeout(() => {
-        saveNoteToStorage(activeNote);
-      }, 800); // Debounce saves by 800ms
-    }
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    };
-  }, [
-    activeNote?.title, 
-    activeNote?.content, 
-    activeNote?.meeting_date, 
-    activeNote?.sentiment, 
-    activeNote?.attendees, 
-    activeNote?.action_items, 
-    activeNote?.metadata, 
-    activeNote?.scratchpad
-  ]);
-
   // Update fields on the currently active note
   const updateActiveNote = (patch: Partial<MeetingNote>) => {
     if (!selectedNoteId) return;
-    setNotes(prev => prev.map(n => {
-      if (n.id === selectedNoteId) {
-        return { ...n, ...patch };
-      }
-      return n;
-    }));
+    patchNote(selectedNoteId, patch);
   };
 
   const updateActiveNoteMetadata = (patch: Record<string, any>) => {
-    if (!activeNote) return;
-    updateActiveNote({
-      metadata: {
-        ...activeNote.metadata,
-        ...patch
-      }
-    });
+    if (!selectedNoteId) return;
+    patchNote(selectedNoteId, n => ({ metadata: { ...n.metadata, ...patch } }));
   };
 
   // Inline styling toggle helpers for markdown editor
@@ -391,88 +444,132 @@ export default function MeetingNotes() {
     });
   };
 
-  // Simulated AI Summarizer logic
-  const handleAISummarize = () => {
+  // Ask Claude for a summary of what the note actually says. This used to be
+  // a two-second pause followed by a canned template — "Aligned on project
+  // deliverables and execution roadmap", "Finalize production contract
+  // paperwork" — stored on the client's record as if it came from the call.
+  const handleAISummarize = async () => {
     if (!activeNote) return;
+    const noteId = activeNote.id;
     setIsSummarizing(true);
-    
-    // Simulate thinking delay
-    setTimeout(() => {
-      const text = activeNote.content || '';
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-      
-      // Extraction heuristics
-      const headings = lines.filter(l => l.startsWith('#')).map(l => l.replace(/#/g, '').trim());
-      const bullets = lines.filter(l => l.startsWith('-') || l.startsWith('*')).map(l => l.substring(1).trim());
-      
-      const topic = activeNote.title || 'the client briefing';
-      let summary = `**AI Meeting Summary for ${topic}**\n\n`;
-      summary += `*Generated automatically from note context.*\n\n`;
-      
-      summary += `### Key Themes & Focus:\n`;
-      if (headings.length > 0) {
-        headings.slice(0, 3).forEach(h => {
-          summary += `- **${h}**: Addressed core guidelines and creative criteria.\n`;
-        });
-      } else {
-        summary += `- **Creative Sync**: Aligned on project deliverables and execution roadmap.\n`;
-        summary += `- **Strategic Review**: Discussed client feedback and visual objectives.\n`;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast('Sign in to use the summariser.', 'error');
+        return;
       }
-      
-      summary += `\n### Key Takeaways:\n`;
-      if (bullets.length > 0) {
-        bullets.slice(0, 3).forEach(b => {
-          summary += `- Aligned on: *"${b}"*\n`;
-        });
-      } else {
-        summary += `- Locked down the stylistic theme and branding requirements.\n`;
-        summary += `- Clarified deadlines for post-production and final delivery review.\n`;
+      const res = await fetch('/api/ai/meeting-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          note: {
+            title: activeNote.title,
+            client_name: clientName(activeNote.client_id) || '',
+            meeting_date: activeNote.meeting_date,
+            objective: activeNote.metadata.objective || '',
+            attendees: activeNote.attendees,
+            action_items: activeNote.action_items,
+            content: activeNote.content,
+          },
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 501) {
+        // No API key on this deployment: say so once and stop offering it.
+        setSummaryUnavailable(true);
+        toast(data.error || 'The summariser is not set up on this deployment.', 'error');
+        return;
       }
-
-      summary += `\n### Decisions & Actions:\n`;
-      const uncompletedItems = activeNote.action_items.filter(i => !i.completed);
-      if (uncompletedItems.length > 0) {
-        uncompletedItems.forEach(item => {
-          summary += `- [ ] **Pending Action**: ${item.text} ${item.due_date ? `(Due ${item.due_date})` : ''}\n`;
-        });
-      } else {
-        summary += `- [ ] Finalize production contract paperwork.\n`;
-        summary += `- [ ] Book technical equipment and scheduling.\n`;
+      if (!res.ok || !data.summary) {
+        toast(data.error || 'No summary came back. Try again.', 'error');
+        return;
       }
-
-      updateActiveNoteMetadata({ ai_summary: summary });
+      // The note may have been switched while the summary was being written,
+      // so it goes on the note it was written for, not whichever is open now.
+      patchNote(noteId, n => ({ metadata: { ...n.metadata, ai_summary: data.summary } }));
+    } catch {
+      toast('Could not reach the summariser. Check your connection and try again.', 'error');
+    } finally {
       setIsSummarizing(false);
-    }, 2000);
+    }
   };
 
-  // Simulated Audio Voice Recorder & Transcript Generator
+  // Dictation through the browser's speech recogniser. The old version
+  // recorded nothing: the mic button ran a timer and then offered one of three
+  // invented transcripts ("Sarah mentioned they need the first cuts by the end
+  // of next week") to paste into the note.
   const startVoiceRecording = () => {
-    setIsRecording(true);
+    const Ctor = speechRecognitionCtor();
+    if (!Ctor) {
+      toast('Dictation needs a browser with speech recognition, such as Chrome or Safari.', 'error');
+      return;
+    }
+    const recognition = new Ctor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = navigator.language || 'en-US';
+    finalTranscriptRef.current = '';
+
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const text = result[0]?.transcript || '';
+        if (result.isFinal) finalTranscriptRef.current += text + ' ';
+        else interim += text;
+      }
+      setLiveTranscript((finalTranscriptRef.current + interim).trim());
+    };
+    recognition.onerror = (event: any) => {
+      const code = event?.error || '';
+      if (code === 'not-allowed' || code === 'service-not-allowed') {
+        toast('Microphone access was refused. Allow it for this site and try again.', 'error');
+      } else if (code && code !== 'aborted' && code !== 'no-speech') {
+        toast(`Dictation stopped: ${code}.`, 'error');
+      }
+    };
+    // Fires after stop(), and also when the browser gives up on its own
+    // (a long silence, or a lost connection to its speech service).
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      setIsRecording(false);
+      setLiveTranscript('');
+      const heard = finalTranscriptRef.current.trim();
+      if (heard) {
+        setAudioTranscript(heard);
+        setShowTranscriptModal(true);
+      } else {
+        toast('Nothing was heard. Check the microphone and try again.', 'info');
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch {
+      toast('Dictation could not start. Try again.', 'error');
+      return;
+    }
+    recognitionRef.current = recognition;
     setAudioTranscript(null);
+    setLiveTranscript('');
+    setIsRecording(true);
   };
 
   const stopVoiceRecording = () => {
-    setIsRecording(false);
-    
-    // Simulate generation of a highly relevant transcript based on note title/content
-    const topic = activeNote?.title || 'the production';
-    setTimeout(() => {
-      const mockTranscripts = [
-        `"Hey team, let's make sure we lock in the crew schedules by Friday. The client is really keen on getting the cinematic dark mode lighting absolutely perfect for the A-roll. We should also check the rentals and confirm the ARRI Alexa kit availability. Let's touch base tomorrow."`,
-        `"Alright, so the client approved the script concept. They want the b-roll to feel fast-paced, urban, and modern. We need to scout locations in the downtown plaza. Sarah mentioned they need the first cuts by the end of next week, so let's push the edits quickly."`,
-        `"Regarding the budget, we are on track. Let's follow up on the outstanding invoices before we kick off the second day of the shoot. Also, let's schedule a pre-production meeting with the DP next Tuesday at ten AM."`
-      ];
-      const randomTranscript = mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
-      setAudioTranscript(randomTranscript);
-      setShowTranscriptModal(true);
-    }, 600);
+    recognitionRef.current?.stop();
   };
+
+  // Closing the tab mid-dictation releases the microphone.
+  useEffect(() => () => { recognitionRef.current?.abort(); }, []);
 
   const appendTranscriptToNote = () => {
     if (!activeNote || !audioTranscript) return;
     const divider = activeNote.content ? '\n\n' : '';
     updateActiveNote({
-      content: activeNote.content + divider + `> 🎙️ **Voice Memo Transcript:**\n> *${audioTranscript}*`
+      content: activeNote.content + divider + `> 🎙️ **Voice memo transcript:**\n> ${audioTranscript}`
     });
     setAudioTranscript(null);
     setShowTranscriptModal(false);
@@ -526,12 +623,7 @@ export default function MeetingNotes() {
             />
           </div>
           <button
-            onClick={() => {
-              if (clients.length > 0) {
-                setSelectedClientForNewNote(clients[0].id);
-              }
-              setIsNewNoteModalOpen(true);
-            }}
+            onClick={() => setIsNewNoteModalOpen(true)}
             className="w-full bg-accent hover:bg-white hover:text-black text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-accent/10 flex items-center justify-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" /> New Meeting Note
@@ -611,15 +703,55 @@ export default function MeetingNotes() {
         </button>
         {activeNote ? (
           // Phones stack the details under the note and scroll the whole thing.
-          <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden custom-scrollbar">
+          <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden custom-scrollbar">
             {/* COLUMN 1: MARKDOWN NOTE EDITOR (60% Width) */}
-            <div className="md:flex-1 flex flex-col md:border-r border-white/10 md:h-full md:overflow-hidden">
+            <div className="lg:flex-1 flex flex-col lg:border-r border-white/10 lg:h-full lg:overflow-hidden">
               {/* Editor Header */}
               <div className="p-4 md:p-6 border-b border-white/10 flex flex-col gap-3 shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded bg-accent/15 border border-accent/20 text-[11px] font-semibold text-accent shrink-0">
-                    {clients.find(c => c.id === activeNote.client_id)?.name || 'Client'}
-                  </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* The client chip opens a picker, so a note can be re-filed
+                      under another client, or one added on the spot. */}
+                  {isChangingClient ? (
+                    <div className="flex items-center gap-1.5 w-full max-w-xs">
+                      <div className="flex-1 min-w-0">
+                        <ClientPicker
+                          clients={clients}
+                          value={changeClientName}
+                          clientId={clients.some(c => c.id === activeNote.client_id && c.name === changeClientName) ? activeNote.client_id : null}
+                          onChange={({ name, clientId }) => {
+                            setChangeClientName(name);
+                            if (clientId) {
+                              updateActiveNote({ client_id: clientId });
+                              setIsChangingClient(false);
+                            }
+                          }}
+                          onClientCreated={addClient}
+                          placeholder="Client name"
+                          inputClassName="w-full bg-black/50 border border-white/10 py-1.5 pl-2.5 pr-8 rounded-lg outline-none focus:border-accent font-semibold text-xs text-white"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsChangingClient(false)}
+                        className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors cursor-pointer shrink-0"
+                        aria-label="Keep the current client"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChangeClientName(clientName(activeNote.client_id) || '');
+                        setIsChangingClient(true);
+                      }}
+                      title="Change client"
+                      className="px-2 py-0.5 rounded bg-accent/15 border border-accent/20 text-[11px] font-semibold text-accent shrink-0 hover:bg-accent/25 transition-colors cursor-pointer max-w-[16rem] truncate"
+                    >
+                      {clientName(activeNote.client_id) || 'No client'}
+                    </button>
+                  )}
                   <span className="text-[10px] font-medium text-white/30 shrink-0">|</span>
                   <div className="flex items-center gap-1 text-[11px] md:text-[9px] font-bold text-white/40 uppercase tracking-wider">
                     <Save className="w-3.5 h-3.5 text-white/30" />
@@ -685,7 +817,7 @@ export default function MeetingNotes() {
               </div>
 
               {/* Text Writing Area */}
-              <div className="min-h-[50vh] md:min-h-0 flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar flex flex-col bg-neutral-900/10">
+              <div className="min-h-[50vh] lg:min-h-0 flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar flex flex-col bg-neutral-900/10">
                 <textarea
                   ref={editorRef}
                   value={activeNote.content}
@@ -696,7 +828,7 @@ export default function MeetingNotes() {
               </div>
 
               {/* Editor Footer / Info */}
-              <div className="hidden md:flex px-6 py-3 border-t border-white/10 bg-black/20 items-center justify-between text-[10px] font-bold text-white/40 uppercase tracking-widest shrink-0">
+              <div className="hidden lg:flex px-6 py-3 border-t border-white/10 bg-black/20 items-center justify-between text-[10px] font-bold text-white/40 uppercase tracking-widest shrink-0">
                 <div className="flex items-center gap-4">
                   <span>Words: {getWordCount(activeNote.content)}</span>
                   <span>Characters: {getCharacterCount(activeNote.content)}</span>
@@ -706,7 +838,7 @@ export default function MeetingNotes() {
             </div>
 
             {/* COLUMN 2: WIDGETS STACK (40% Width) */}
-            <div className="w-full md:w-96 flex flex-col md:h-full md:overflow-y-auto custom-scrollbar p-4 md:p-6 bg-zinc-900/15 divide-y divide-white/10 shrink-0 border-t md:border-t-0 border-white/10">
+            <div className="w-full lg:w-96 flex flex-col lg:h-full lg:overflow-y-auto custom-scrollbar p-4 md:p-6 bg-zinc-900/15 divide-y divide-white/10 shrink-0 border-t lg:border-t-0 border-white/10">
               
               {/* WIDGET 1: MEETING METADATA & SENTIMENT */}
               <div className="pb-6 space-y-4">
@@ -891,7 +1023,7 @@ export default function MeetingNotes() {
                             </p>
                             {item.due_date && (
                               <span className="text-[11px] md:text-[8px] font-bold text-white/30 block mt-1">
-                                Due {new Date(item.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                Due {formatLocalDate(item.due_date, { month: 'short', day: 'numeric' })}
                               </span>
                             )}
                           </div>
@@ -947,13 +1079,20 @@ export default function MeetingNotes() {
                   <h3 className="text-xs font-black uppercase tracking-widest text-accent flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-purple-400" /> AI Executive Summary
                   </h3>
-                  <button
-                    onClick={handleAISummarize}
-                    disabled={isSummarizing || !activeNote.content}
-                    className="bg-purple-600/10 hover:bg-purple-600 border border-purple-500/20 text-purple-400 hover:text-white px-3.5 py-1.5 rounded-xl text-[11px] md:text-[9px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-purple-500/5"
-                  >
-                    {isSummarizing ? 'Analyzing…' : 'Run Summarizer'}
-                  </button>
+                  {summaryUnavailable ? (
+                    <span className="text-[10px] font-medium text-white/35" title="Set ANTHROPIC_API_KEY on the server to turn this on.">
+                      Not set up on this deployment
+                    </span>
+                  ) : (
+                    <button
+                      onClick={handleAISummarize}
+                      disabled={isSummarizing || !activeNote.content.trim()}
+                      title={activeNote.content.trim() ? 'Summarise what the note says' : 'Write the notes first'}
+                      className="bg-purple-600/10 hover:bg-purple-600 border border-purple-500/20 text-purple-400 hover:text-white px-3.5 py-1.5 rounded-xl text-[11px] md:text-[9px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-purple-500/5"
+                    >
+                      {isSummarizing ? 'Summarising…' : activeNote.metadata.ai_summary ? 'Summarise again' : 'Summarise'}
+                    </button>
+                  )}
                 </div>
 
                 {/* AI Output Card */}
@@ -967,7 +1106,7 @@ export default function MeetingNotes() {
                         <div className="absolute inset-0 border-2 border-purple-500/20 rounded-full" />
                         <div className="absolute inset-0 border-2 border-t-purple-400 rounded-full animate-spin" />
                       </div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest animate-pulse">Extracting highlights & decisions…</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest animate-pulse">Reading the note…</p>
                     </div>
                   ) : activeNote.metadata.ai_summary ? (
                     <div className="space-y-2.5">
@@ -985,7 +1124,9 @@ export default function MeetingNotes() {
                     <div className="py-6 text-center text-white/30 space-y-2">
                       <Sparkles className="w-6 h-6 text-purple-500/30 mx-auto" />
                       <p className="text-[10px] font-bold leading-normal uppercase tracking-wider max-w-xs mx-auto">
-                        Ready to extract action items, key decisions, and strategic highlights automatically.
+                        {summaryUnavailable
+                          ? 'Summaries need an Anthropic API key on the server.'
+                          : 'Key points, decisions and open items, drawn only from what the note says.'}
                       </p>
                     </div>
                   )}
@@ -1001,40 +1142,36 @@ export default function MeetingNotes() {
                 <div className="bg-black/20 border border-white/5 rounded-3xl p-4 flex items-center gap-4 relative overflow-hidden">
                   <button
                     onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                      isRecording 
-                        ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/20' 
+                    disabled={!dictationSupported}
+                    title={dictationSupported ? (isRecording ? 'Stop dictating' : 'Dictate into this note') : 'Dictation needs Chrome, Edge or Safari'}
+                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${
+                      isRecording
+                        ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/20'
                         : 'bg-white/10 hover:bg-white hover:text-black border border-white/10'
                     }`}
                   >
-                    {isRecording ? <Square className="w-5 h-5 fill-current" /> : <Mic className="w-5 h-5" />}
+                    {isRecording ? <Square className="w-5 h-5 fill-current" /> : dictationSupported ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
                   </button>
 
                   <div className="flex-grow min-w-0">
                     <div className="flex justify-between items-center mb-1.5">
                       <span className="text-[11px] md:text-[9px] font-black uppercase tracking-widest text-white/50">
-                        {isRecording ? 'Listening & Transcribing' : 'Record meeting memo'}
+                        {!dictationSupported ? 'Not available in this browser' : isRecording ? 'Listening' : 'Dictate a memo'}
                       </span>
                       <span className="text-[10px] font-mono font-bold text-white/40">{formatTime(recordingTime)}</span>
                     </div>
 
-                    {/* Animated sound wave bars when recording */}
+                    {/* What the browser has heard so far, as it hears it. */}
                     {isRecording ? (
-                      <div className="flex items-end gap-0.5 h-6">
-                        {[4, 2, 6, 8, 3, 5, 2, 7, 5, 8, 9, 3, 6, 4, 7, 2, 5, 3, 6].map((h, i) => (
-                          <div
-                            key={i}
-                            className="bg-red-500 rounded-full flex-grow"
-                            style={{
-                              height: `${h * 10}%`,
-                              animation: `pulse 0.8s ease-in-out infinite alternate`,
-                              animationDelay: `${i * 0.05}s`
-                            }}
-                          />
-                        ))}
-                      </div>
+                      <p className="text-[11px] text-white/70 leading-snug max-h-16 overflow-y-auto custom-scrollbar">
+                        {liveTranscript || <span className="text-white/30 italic">Speak, and the words appear here…</span>}
+                      </p>
                     ) : (
-                      <div className="h-0.5 bg-white/10 rounded-full w-full mt-2" />
+                      <p className="text-[10px] text-white/30 leading-snug">
+                        {dictationSupported
+                          ? 'Uses the browser’s speech recognition. You’ll see the text before it goes in the note.'
+                          : 'Open Studio OS in Chrome, Edge or Safari to dictate.'}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1053,11 +1190,11 @@ export default function MeetingNotes() {
                   <textarea
                     value={activeNote.scratchpad}
                     onChange={(e) => updateActiveNote({ scratchpad: e.target.value })}
-                    placeholder="Quick thoughts, clipboard items, or numbers jotted during the call. Saved instantly…"
+                    placeholder="Quick thoughts, clipboard items, or numbers jotted during the call…"
                     className="w-full bg-transparent resize-none outline-none border-none text-[11px] font-semibold leading-relaxed placeholder:text-amber-900/40 h-28 custom-scrollbar mt-1"
                   />
                   <div className="text-[11px] md:text-[8px] font-black uppercase tracking-wider text-amber-900/40 text-right mt-2">
-                    Transient Scratchpad
+                    Saved with the note
                   </div>
                 </div>
               </div>
@@ -1103,22 +1240,27 @@ export default function MeetingNotes() {
               <h2 className="text-xl font-bold tracking-tight text-white mb-6">New Meeting Note</h2>
 
               <div className="space-y-4">
-                {/* Select Client */}
+                {/* Client: pick one from the Rolodex, or type a new name and
+                    add it from the list — no detour through the Rolodex. */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-white/50 ml-1">Select Client</label>
-                  {clients.length > 0 ? (
-                    <select
-                      value={selectedClientForNewNote}
-                      onChange={(e) => setSelectedClientForNewNote(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 p-4 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white cursor-pointer"
-                    >
-                      {clients.map(c => (
-                        <option key={c.id} value={c.id} className="bg-zinc-950 text-white font-bold">{c.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="text-xs text-red-400 italic ml-1">No clients found in database. Create a client in Rolodex first.</p>
-                  )}
+                  <label className="text-xs font-semibold text-white/50 ml-1">Client</label>
+                  <ClientPicker
+                    clients={clients}
+                    value={newNoteClientName}
+                    clientId={selectedClientForNewNote || null}
+                    onChange={({ name, clientId }) => {
+                      setNewNoteClientName(name);
+                      setSelectedClientForNewNote(clientId || '');
+                    }}
+                    onClientCreated={addClient}
+                    placeholder="Start typing a client name"
+                    inputClassName="w-full bg-black/50 border border-white/10 p-4 pr-10 rounded-xl outline-none focus:border-accent font-semibold text-sm text-white placeholder:text-white/30"
+                  />
+                  <p className="text-[11px] text-white/35 ml-1">
+                    {newNoteClientName.trim() && !selectedClientForNewNote
+                      ? 'Pick a match from the list, or choose “Add … as a new client”.'
+                      : 'A client who isn’t in the Rolodex yet can be added right here.'}
+                  </p>
                 </div>
 
                 {/* Note Title */}
@@ -1188,10 +1330,10 @@ export default function MeetingNotes() {
               </div>
 
               <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-4">
-                Audio processed and transcribed
+                What the browser heard — check it before adding it to the note
               </p>
 
-              <div className="bg-black/40 border border-white/5 p-5 rounded-2xl mb-6 text-sm text-white/90 font-medium italic leading-relaxed">
+              <div className="bg-black/40 border border-white/5 p-5 rounded-2xl mb-6 text-sm text-white/90 font-medium leading-relaxed whitespace-pre-wrap">
                 {audioTranscript}
               </div>
 
