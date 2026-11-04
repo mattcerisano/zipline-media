@@ -1,10 +1,13 @@
-// Lightweight guard for the unauthenticated Maps proxy routes
-// (/api/geocode, /api/hospital, /api/parking). These proxy Google Maps using a
-// server-side key, so without any control they double as a free geocoding API
-// anyone can hammer, running up the org's Maps bill.
+// Lightweight guard for the Maps proxy routes (/api/geocode, /api/hospital,
+// /api/parking) and the public gear-share API. The Maps routes proxy Google
+// using a server-side key, so without any control they double as a free
+// geocoding API anyone can hammer, running up the org's Maps bill. They now
+// also require a signed-in session (api-auth); these checks are the layer
+// underneath that, and the only layer on the share route, whose visitors are
+// anonymous by design.
 //
 // We can't do durable rate limiting on serverless without external state (KV),
-// so the primary control is a same-origin check: the request must originate
+// so the primary control here is a same-origin check: the request must originate
 // from our own site. It's not a perfect defense (Origin/Referer can be forged
 // by a determined caller), but it stops the endpoints from being used as a
 // public API by other sites and casual scripts. A per-request in-memory bucket
